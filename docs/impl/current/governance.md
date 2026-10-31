@@ -16,9 +16,10 @@ human-gated acceptance. This current tree owns available behavior and durable re
 misfiled capabilities, missing task fields, status-lane mismatches, missing evaluations or current
 links, out-of-order groups, required tasks after optional tasks, malformed ids, and historical plan
 language. `ss-track-plan` and `make plan-status` reuse the same parsed model to report counts and
-the next task in each lane.
+the first task by priority in each lane. The current parser reads only the first line of each field;
+it does not evaluate dependency readiness. Read the full task dependencies before starting work.
 
-A repository-level plan-summary test keeps the checked-in plan schedulable.
+A repository-level plan-summary test verifies that the checked-in plan renders a valid summary.
 
 `src/ss_track/quality/doc_links.py` checks repository documentation before a Git commit is required.
 It validates relative file targets and generated heading anchors while ignoring fenced examples and
