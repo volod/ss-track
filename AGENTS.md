@@ -9,7 +9,7 @@ specific files must link here and keep only integration-specific routing.
 - **Scope:** Preserve unrelated work. Diagnose without changing code when the request is diagnostic.
 - **Python:** Support Python 3.12 or newer. Use `uv`, `uv.lock`, and `pyproject.toml` for dependency
   management. Use Make targets for standard workflows. Before a direct `uv` command, source
-  `scripts/shared/common.sh` and run `apy_load_env`.
+  `scripts/shared/common.sh` and run `sst_load_env`.
 - **Typing:** Keep production code fully typed. Do not add `from __future__ import annotations`.
 - **Paths:** Never hardcode machine-specific absolute paths. Resolve from the project root and
   honor `.env` and `DATA_DIR`.
@@ -18,8 +18,8 @@ specific files must link here and keep only integration-specific routing.
 
 ## Code organization
 
-- Production Python lives under `src/agent_py/`; tests mirror it under `tests/`.
-- `src/agent_py/cli.py` owns command parsing. Domain behavior belongs in focused modules, not in
+- Production Python lives under `src/ss_track/`; tests mirror it under `tests/`.
+- `src/ss_track/cli.py` owns command parsing. Domain behavior belongs in focused modules, not in
   CLI handlers or top-level shell scripts.
 - Prefer cohesive modules and functions with small interfaces. Reuse existing code and avoid
   parallel implementations of one rule.
@@ -29,7 +29,7 @@ specific files must link here and keep only integration-specific routing.
   production code.
 - Runtime output belongs under `$DATA_DIR/<method>/<run-id>/`, never inside `src/`.
 - Shared shell behavior belongs in `scripts/shared/common.sh`. Every tracked shell function must
-  use the `apy_` prefix because sourced functions share one namespace.
+  use the `sst_` prefix because sourced functions share one namespace.
 
 ## Tests and quality
 

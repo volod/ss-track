@@ -7,7 +7,7 @@ from collections import defaultdict
 from collections.abc import Sequence
 from pathlib import Path
 
-from agent_py.quality.plan_model import (
+from ss_track.quality.plan_model import (
     AGENT_SECTION,
     HUMAN_SECTION,
     PLAN_SECTIONS,
@@ -16,7 +16,7 @@ from agent_py.quality.plan_model import (
     read_registry,
     read_tasks,
 )
-from agent_py.quality.project_root import discover_project_root
+from ss_track.quality.project_root import discover_project_root
 
 _LOG = logging.getLogger(__name__)
 

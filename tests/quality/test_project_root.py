@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from agent_py.quality.project_root import discover_project_root
+from ss_track.quality.project_root import discover_project_root
 
 
 def test_project_root_is_discovered_from_a_nested_directory(tmp_path: Path) -> None:

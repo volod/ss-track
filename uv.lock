@@ -7,36 +7,6 @@ resolution-markers = [
 ]
 
 [[package]]
-name = "agent-python-project"
-version = "0.1.0"
-source = { editable = "." }
-
-[package.optional-dependencies]
-dev = [
-    { name = "complexipy" },
-    { name = "mypy" },
-    { name = "pymarkdownlnt" },
-    { name = "pytest" },
-    { name = "pytest-cov" },
-    { name = "radon" },
-    { name = "ruff" },
-    { name = "shellcheck-py" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "complexipy", marker = "extra == 'dev'", specifier = "==6.0.0" },
-    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.15,<2" },
-    { name = "pymarkdownlnt", marker = "extra == 'dev'", specifier = ">=0.9.32,<1" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8,<10" },
-    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=6,<8" },
-    { name = "radon", marker = "extra == 'dev'", specifier = "==6.0.1" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.11,<0.17" },
-    { name = "shellcheck-py", marker = "extra == 'dev'", specifier = "==0.11.0.1" },
-]
-provides-extras = ["dev"]
-
-[[package]]
 name = "annotated-doc"
 version = "0.0.5"
 source = { registry = "https://pypi.org/simple" }
@@ -786,6 +756,36 @@ sdist = { url = "https://files.pythonhosted.org/packages/41/8a/59e943f7b27904c77
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8e/4d/c96d807295183f2360329cd8d8bf5e8072c53d664125b3858c04153f026e/sly-0.5-py3-none-any.whl", hash = "sha256:20485483259eec7f6ba85ff4d2e96a4e50c6621902667fc2695cc8bc2a3e5133", size = 28864, upload-time = "2022-10-25T14:35:28.054Z" },
 ]
+
+[[package]]
+name = "ss-track"
+version = "0.1.0"
+source = { editable = "." }
+
+[package.optional-dependencies]
+dev = [
+    { name = "complexipy" },
+    { name = "mypy" },
+    { name = "pymarkdownlnt" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
+    { name = "radon" },
+    { name = "ruff" },
+    { name = "shellcheck-py" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "complexipy", marker = "extra == 'dev'", specifier = "==6.0.0" },
+    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.15,<2" },
+    { name = "pymarkdownlnt", marker = "extra == 'dev'", specifier = ">=0.9.32,<1" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8,<10" },
+    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=6,<8" },
+    { name = "radon", marker = "extra == 'dev'", specifier = "==6.0.1" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.11,<0.17" },
+    { name = "shellcheck-py", marker = "extra == 'dev'", specifier = "==0.11.0.1" },
+]
+provides-extras = ["dev"]
 
 [[package]]
 name = "tomli"

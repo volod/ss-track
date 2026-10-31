@@ -3,14 +3,14 @@ requires = ["setuptools>=80"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "agent-python-project"
+name = "ss-track"
 version = "0.1.0"
-description = "A copy-ready Python project with agent governance and executable quality checks"
+description = "Benchmark, data factory, and reference perception stack for resource-aware object tracking on autonomous and assisted robots"
 readme = "README.md"
 requires-python = ">=3.12"
 license = "MIT"
 authors = [{ name = "Project Contributors" }]
-keywords = ["agentic-development", "project-template", "python"]
+keywords = ["benchmark", "object-tracking", "perception", "robotics", "sensor-fusion"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Programming Language :: Python :: 3",
@@ -32,12 +32,12 @@ dev = [
 ]
 
 [project.scripts]
-agent-py = "agent_py.cli:main"
-agent-py-plan = "agent_py.quality.plan_summary:main"
+ss-track = "ss_track.cli:main"
+ss-track-plan = "ss_track.quality.plan_summary:main"
 
 [project.urls]
-Documentation = "https://example.com/agent-python-project/docs"
-Repository = "https://example.com/agent-python-project"
+Documentation = "https://github.com/volod/ss-track/blob/main/docs/README.md"
+Repository = "https://github.com/volod/ss-track"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -51,7 +51,7 @@ select = ["E4", "E7", "E9", "F", "I", "B", "UP", "SIM", "RUF"]
 
 [tool.mypy]
 python_version = "3.12"
-files = ["src/agent_py"]
+files = ["src/ss_track"]
 check_untyped_defs = true
 disallow_any_generics = true
 disallow_untyped_defs = true
@@ -68,7 +68,7 @@ addopts = "-q"
 
 [tool.coverage.run]
 branch = true
-source = ["agent_py"]
+source = ["ss_track"]
 
 [tool.coverage.report]
 fail_under = 90

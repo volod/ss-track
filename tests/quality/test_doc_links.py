@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from agent_py.quality.doc_links import (
+from ss_track.quality.doc_links import (
     anchors,
     broken_links,
     documentation_files,

@@ -1,4 +1,4 @@
-# Agent Python Project developer entrypoints.
+# ss-track developer entrypoints.
 SHELL := /bin/bash
 PROJECT_ROOT := $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 VENV := $(PROJECT_ROOT)/.venv
@@ -22,17 +22,17 @@ help: ## List available targets
 
 bootstrap: ## Create/update .venv from uv.lock with development tools
 	@command -v uv >/dev/null 2>&1 || { echo "ERROR: uv is required"; exit 1; }
-	@source "$(PROJECT_ROOT)/scripts/shared/common.sh"; apy_load_env; \
+	@source "$(PROJECT_ROOT)/scripts/shared/common.sh"; sst_load_env; \
 		uv sync --locked --extra dev --python "$(PYTHON_VERSION)"
 
 venv: bootstrap ## Alias for bootstrap
 
 lock: ## Refresh uv.lock after dependency changes
-	@source "$(PROJECT_ROOT)/scripts/shared/common.sh"; apy_load_env; uv lock
+	@source "$(PROJECT_ROOT)/scripts/shared/common.sh"; sst_load_env; uv lock
 
-run: ## Run the starter project identity command
-	@test -x "$(VENV)/bin/agent-py" || { echo "ERROR: run 'make bootstrap' first"; exit 1; }
-	@"$(VENV)/bin/agent-py" info
+run: ## Run the project identity command
+	@test -x "$(VENV)/bin/ss-track" || { echo "ERROR: run 'make bootstrap' first"; exit 1; }
+	@"$(VENV)/bin/ss-track" info
 
 doctor: ## Verify required tools, files, and the installed package
 	@command -v git >/dev/null
@@ -40,7 +40,7 @@ doctor: ## Verify required tools, files, and the installed package
 	@command -v make >/dev/null
 	@test -f pyproject.toml -a -f uv.lock -a -f AGENTS.md
 	@test -x "$(PY)" || { echo "ERROR: run 'make bootstrap' first"; exit 1; }
-	@"$(PY)" -c 'import agent_py; print(agent_py.project_info().distribution)'
+	@"$(PY)" -c 'import ss_track; print(ss_track.project_info().distribution)'
 
 format: ## Format production code and tests with Ruff
 	@"$(VENV)/bin/ruff" format src tests
@@ -59,7 +59,7 @@ test: ## Run deterministic unit tests
 	@"$(PY)" -m pytest $(PYTEST_CACHE)
 
 coverage: ## Run tests and enforce the coverage floor
-	@"$(PY)" -m pytest $(PYTEST_CACHE) --cov=agent_py --cov-report=term-missing
+	@"$(PY)" -m pytest $(PYTEST_CACHE) --cov=ss_track --cov-report=term-missing
 
 complexity-gate: ## Fail on Radon D-or-worse or cognitive complexity above 15
 	@output="$$($(VENV)/bin/radon cc src tests -s -n D)"; \
@@ -80,13 +80,13 @@ lint-md: ## Lint repository Markdown and then validate relative links
 	@$(MAKE) --no-print-directory lint-doc-links
 
 lint-doc-links: ## Check that relative Markdown links and anchors resolve
-	@"$(PY)" -m agent_py.quality.doc_links --root "$(PROJECT_ROOT)"
+	@"$(PY)" -m ss_track.quality.doc_links --root "$(PROJECT_ROOT)"
 
 lint-spec-plan: ## Check capability registry, task structure, status, and ordering
-	@"$(PY)" -m agent_py.quality.plan_integrity --root "$(PROJECT_ROOT)"
+	@"$(PY)" -m ss_track.quality.plan_integrity --root "$(PROJECT_ROOT)"
 
 plan-status: ## Count tasks by lane/status and show the next eligible work
-	@"$(VENV)/bin/agent-py-plan" --root "$(PROJECT_ROOT)"
+	@"$(VENV)/bin/ss-track-plan" --root "$(PROJECT_ROOT)"
 
 ci-checks: format-check lint typecheck complexity-gate shell-lint-gate lint-doc-links lint-spec-plan
 
@@ -95,7 +95,7 @@ ci: ci-checks test ## Run the required local and GitHub CI gate
 ci-github: ci ## Explicit GitHub Actions entrypoint
 
 build: ## Build source and wheel distributions
-	@source "$(PROJECT_ROOT)/scripts/shared/common.sh"; apy_load_env; uv build
+	@source "$(PROJECT_ROOT)/scripts/shared/common.sh"; sst_load_env; uv build
 
 quality: ci-checks coverage lint-md build ## Run the full local quality suite
 

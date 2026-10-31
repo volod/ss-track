@@ -29,7 +29,7 @@ Make targets are the stable workflow. For one-off dependency debugging:
 
 ```bash
 source scripts/shared/common.sh
-apy_load_env
+sst_load_env
 uv <command>
 ```
 

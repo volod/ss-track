@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from agent_py.quality.plan_integrity import integrity_findings, main
+from ss_track.quality.plan_integrity import integrity_findings, main
 from tests.quality._plan_fixture import SPEC, plan_with, task_block, write_project
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]

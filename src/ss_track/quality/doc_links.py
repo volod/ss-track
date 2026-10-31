@@ -7,7 +7,7 @@ from collections.abc import Iterator, Sequence
 from pathlib import Path
 from urllib.parse import unquote
 
-from agent_py.quality.project_root import discover_project_root
+from ss_track.quality.project_root import discover_project_root
 
 _LOG = logging.getLogger(__name__)
 

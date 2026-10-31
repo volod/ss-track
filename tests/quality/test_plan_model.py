@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from agent_py.quality.plan_model import read_registry, read_tasks
+from ss_track.quality.plan_model import read_registry, read_tasks
 from tests.quality._plan_fixture import SPEC, plan_with, task_block, write_project
 
 

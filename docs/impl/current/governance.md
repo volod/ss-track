@@ -12,16 +12,15 @@ change therefore has one canonical edit.
 `docs/impl/plan.md` owns only work that remains and separates independent agent work from
 human-gated acceptance. This current tree owns available behavior and durable results.
 
-`src/agent_py/quality/plan_integrity.py` parses the registry and plan. It rejects unknown or
+`src/ss_track/quality/plan_integrity.py` parses the registry and plan. It rejects unknown or
 misfiled capabilities, missing task fields, status-lane mismatches, missing evaluations or current
 links, out-of-order groups, required tasks after optional tasks, malformed ids, and historical plan
-language. `agent-py-plan` and `make plan-status` reuse the same parsed model to report counts and
+language. `ss-track-plan` and `make plan-status` reuse the same parsed model to report counts and
 the next task in each lane.
 
-The template plan starts with `personalize-template-project`, and the repository-level plan-summary
-test ensures it remains the first agent task after a repository is created from the template.
+A repository-level plan-summary test keeps the checked-in plan schedulable.
 
-`src/agent_py/quality/doc_links.py` checks repository documentation before a Git commit is required.
+`src/ss_track/quality/doc_links.py` checks repository documentation before a Git commit is required.
 It validates relative file targets and generated heading anchors while ignoring fenced examples and
 external URLs.
 
