@@ -1,7 +1,6 @@
 # Object Perception and Tracking Benchmark for Mobile Observation Systems
 
 **Product specification for `ss-track`**  
-**Date:** 2026-10-31  
 **Evidence status:** No accuracy, latency, energy, field-range, or safety result has yet been
 measured.
 
@@ -22,7 +21,7 @@ visible.
 The first milestone is an **offline, computer-vision-only** test: import authorized recorded video;
 replay the same operator selection to two versions of a motion-proposal/tracking module; score both
 against reviewed annotations; inspect a local comparison report. Camera, telemetry, real-time and
-energy experiments follow. The first version also supports advisory replay of tracking or
+energy experiments follow. A later, separately scheduled capability may evaluate advisory tracking or
 view-centering recommendations on recorded mobile-camera video. Such footage contains only the path
 chosen by its operator; it cannot reveal an unobserved viewpoint or an object's response to an
 alternative action.
@@ -31,6 +30,16 @@ The benchmark is the acceptance harness for later onboard modules on Raspberry P
 including constrained devices. It can eventually compare autonomous drone subsystems, but offline
 scores do not authorize vehicle actuation, approach to a protected subject, or operation in a public
 road or park. Closed-loop and field claims have separate gates.
+
+The repository's scope is software development and hardware support design for two outcomes:
+correct benchmarks and a reference sensor mesh object-tracking implementation. Software contracts,
+measurement methods, reproducible reports and test-stand requirements belong here. Hardware
+selection is a separate human-assisted evidence flow: requirements come from the software, and
+measured choices, rejected alternatives and limitations return to current-state documentation.
+Startup strategy, commercial terms, staffing, public entry policy, dispute operations, publication
+approval and launch execution belong in an owner-managed organizational to-do outside this
+repository's Git control. They are not software capabilities or implementation prerequisites.
+Rights, access controls and measurement validity remain software/data contracts here.
 
 ### Design rules
 
@@ -78,27 +87,30 @@ are stratified unless a predeclared common metric and sampling frame justify poo
 
 | Gate | Required outcome | Explicit boundary |
 | --- | --- | --- |
-| **G0a — pipeline validity** | Authorized development clips and invalid fixtures import; reviewed object labels and fixed seeds; oracle/null/fault and deterministic reference-tracker fixtures have expected results; two module versions produce an inspectable local report | No superiority, generalization, real-time, energy-efficiency or field-safety claim |
-| **G0b — within-corpus development decision** | Enough independent encounters, repeated same-version runs, paired metric differences, noise floor and predeclared classification rule | A decision on the development corpus only; not a public or field-performance leaderboard |
-| **G1 — controlled device evidence** | Camera hardware probe, functional baseline under normal paced Linux, stationary and motion/vibration bench, independent object trace, versioned §7.9 hardware trial, measured capture/timing and explicit energy-measurement status, second-host event conformance; offline advisory diagnostics. PREEMPT_RT, vector/tensor paths and two-camera geometric/clock-alignment smoke tests are evaluated only when claimed | No live autonomous operation or field-range claim; validated fusion-quality claims belong to G2; an energy-efficiency claim additionally requires a calibrated meter and declared boundary |
-| **G2 — expanded perception and sensing** | Genuine MOT case with TrackEval adapter; class/subtype recognition and object state; four separately scored boundaries: sensor-set/front-end evidence, fixed-observation fusion/analysis, fixed-observation tracking, and the full installed system. Include deduplication, uncertainty calibration and resource-aware acquisition/processing; calibrated range only when independently labelled | Every claimed modality, fusion output, probability and energy trade-off needs valid labels, synchronization, resource evidence and its own metric suite. A system-level gain cannot be attributed to a component without a fixed-input component run |
-| **G3 — closed-loop research** | Action-dependent simulator or controlled hardware-in-loop with stated validity region and energy boundary | Separate domain-specific safety and operational authorization before any public-space or protected-subject field trial |
+| **G0a -- pipeline validity** | Authorized development clips and invalid fixtures import; reviewed object labels and fixed seeds; oracle/null/fault and deterministic reference-tracker fixtures have expected results; two module versions produce an inspectable local report | No superiority, generalization, real-time, energy-efficiency or field-safety claim |
+| **G0b -- within-corpus development decision** | Enough independent encounters, repeated same-version runs, paired metric differences, noise floor and predeclared classification rule | A decision on the development corpus only; not a public or field-performance leaderboard |
+| **G1 -- controlled device evidence** | Camera hardware probe, functional baseline under normal paced Linux, stationary and motion/vibration bench, independent object trace, versioned section 7.9 hardware trial, measured capture/timing and explicit energy-measurement status, second-host event conformance; offline advisory diagnostics. PREEMPT_RT, vector/tensor paths and two-camera geometric/clock-alignment smoke tests are evaluated only when claimed | No live autonomous operation or field-range claim; validated fusion-quality claims belong to G2; an energy-efficiency claim additionally requires a calibrated meter and declared boundary |
+| **G2 -- expanded perception and sensing** | Genuine MOT case with TrackEval adapter; class/subtype recognition and object state; four separately scored boundaries: sensor-set/front-end evidence, fixed-observation fusion/analysis, fixed-observation tracking, and the full installed system. Include deduplication, uncertainty calibration and resource-aware acquisition/processing; calibrated range only when independently labelled | Every claimed modality, fusion output, probability and energy trade-off needs valid labels, synchronization, resource evidence and its own metric suite. A system-level gain cannot be attributed to a component without a fixed-input component run |
+| **G3 -- closed-loop research** | Action-dependent simulator or controlled hardware-in-loop with stated validity region and energy boundary | Separate domain-specific safety and operational authorization before any public-space or protected-subject field trial |
 
 G0a is deliberately small; one positive and one negative encounter can prove the pipeline but cannot
 prove improvement. G0b is not required to call G0a complete. G0 media is **development** material. A
 locked test set exists only after rights, grouping, access and a test custodian are defined; no G0
-report may call itself a held-out benchmark.
+report may call itself a held-out benchmark. The optional cohort comparison in
+[section 16](#16-benchmark-extensions-hardware-selection-and-reference-sensor-mesh) does not change
+what a G0 report may claim. Delivery milestones in the engine design implement bounded subsets of
+these gates: M1 closes on G0a with two pilot encounters; M2 supplies host measurement and selection;
+M3 evaluates the reference mesh at four boundaries. None claims all G1/G2 capabilities are shipped.
+Thermal experiments and ranking are optional M4 work, and cross-device cases are optional M5 work.
 
-The initial development host is a Raspberry Pi 5 and/or laptop. One or two available USB Arducam
-cameras may be profiled at G1. Wide-field proposal plus narrow-field tracking is a hypothesis to
-test, not an assumed gain. Initial cameras are rigidly fixed; vehicle mounting, power and gimbals
-are later engineering work. Event, near-infrared, short-wave infrared and thermal cameras;
-microphones/arrays; radar (including a possible W-band profile); lidar/time-of-flight; proximity,
-contact and cooperative-tag sensors are **candidate later modalities**, not assumed installed or
-capable of detecting a particular object at a particular range. Their roles and limits are specified
-in §7.6. Raspberry Pi Zero and Raspberry ↔ Rockchip interoperability are later constrained targets
-whose exact revisions and supported modes must be probed. These devices are reference profiles, not
-assumptions built into the benchmark schema.
+Available laptops or small Linux boards may bootstrap development; no model is the assumed final
+host. Final host and sensor configurations follow measured selection against versioned stand
+requirements. Wide-field proposal plus narrow-field tracking is a hypothesis to test, not an assumed
+gain. Initial cameras are rigidly fixed; vehicle mounting, power and gimbals are later engineering
+work. Event, infrared and thermal cameras, audio, radar, lidar/time-of-flight, proximity, contact and
+cooperative-tag sensors are candidate modalities, not assumed installed or capable at any range.
+Their roles and limits are specified in section 7.6. Raspberry Pi and Rockchip devices are example
+profiles whose exact revisions and supported modes must be probed, not benchmark schema assumptions.
 
 Python is the main implementation language for corpus tooling, runner, evaluation and dashboard.
 Onboard modules may begin in Python; C++20 is the preferred implementation for paths whose measured
@@ -236,14 +248,14 @@ independent versioned concerns. No video frame is required to pass through proto
 Required record families are `RunManifest`, `FrameRef`, `TargetSelection`, `FrameResult`,
 `Detection`, `TrackState`, `AdvisoryAction`, `SensorSample`, `ResourceSample`, `PowerSample`,
 `RunEvent`, and `ValidationResult`. G1 hardware trials add `HardwareTrial`, `InstrumentRecord` and
-`CalibrationRecord` with the §7.9 evidence and uncertainty fields. Later G2 suites add
+`CalibrationRecord` with the section 7.9 evidence and uncertainty fields. Later G2 suites add
 `SensorObservation`, `FusionEpoch`, `FusionResult`, `FusedObservation`, `TrackerEpoch`,
 `TrackerResult`, `AcquisitionDecision` and `BudgetState` without changing G0 `FrameResult`
 semantics. `RunManifest` identifies corpus/split/annotation/mask, scenario pack and class map,
 metric suite, module binary/configuration, schema, decoder, host, kernel/scheduler profile, active
 compute variant and evaluator revisions. A compute variant identifies its scalar or vector kernel
 and ISA, or its tensor graph/model, precision, backend and device, as applicable; the detailed
-provenance contract is in §7. `FrameRef` identifies stream, source-media hash, zero-based frame
+provenance contract is in section 7. `FrameRef` identifies stream, source-media hash, zero-based frame
 index, PTS, decoded dimensions/pixel format, transform, time evidence and staged-bundle access.
 `Detection` carries class ID, confidence and geometry; `TrackState` carries instance/track ID,
 presence confidence and geometry. `FrameResult` acknowledges exactly one input frame and contains
@@ -263,7 +275,7 @@ sample; unavailable dimensions remain absent. An available sensor's `no_detectio
 field of regard** is distinct from `out_of_view`, a candidate policy's `disabled_by_policy`, and
 source `missing`, `stale` or `invalid`; none alone proves scene-level absence. A scheduled
 `FusionEpoch` names its reference time, permitted source-time window, **observation availability
-cutoff** `t_fuse` and output deadline. An `AcquisitionDecision` is made at `t_decide ≤ t_fuse` using
+cutoff** `t_fuse` and output deadline. An `AcquisitionDecision` is made at `t_decide <= t_fuse` using
 only evidence then available. Exactly one `FusionResult` acknowledges each scheduled epoch,
 including a valid empty/skip result; a missing or late result is scored under the fixed task
 schedule. Each fused record lists every contributing source ID **once**, source age/uncertainty,
@@ -315,7 +327,10 @@ liveness guard, not a measured real-time deadline. G0 modules may return an expl
 set or `lost` state, but they may not silently skip frames. Subprocess/network lifecycle messages
 (`HELLO`, `CONFIG`, `FRAME`, `EVENT`, `FLUSH`, `DONE`, `ERROR`) and bounded queues enter at G1. In
 paced G1 runs, module-side drops, late answers, queue overflow and backpressure are counted and
-scored against the fixed input schedule.
+scored against the fixed input schedule. A paced run releases each frame's bytes to the module at
+its scheduled time, and no future frame is readable by the module, so offline preprocessing cannot
+pass as streaming behavior. A third-party module runs in a pinned container with no network, no
+label path and declared resource limits.
 
 The runner owns validity, not the module. `RUNNER_INVALID` (for example wrong source hash, broken
 bundle, corrupt precomputed mask) invalidates the complete comparison. A module crash, timeout,
@@ -416,7 +431,7 @@ before a possible gap can be resolved is insufficient for that horizon, not a su
 Also report time to first sustained loss with the number of episodes still observable at each time,
 IoU success AUC on box frames, center-error distribution, per-size/seed/camera-motion slices, false
 continuation when the target is not visible, and re-entry/reacquisition in a separate suite. A
-Kaplan–Meier curve may be exploratory only: target exit and clip end in operator-steered video can
+Kaplan-Meier curve may be exploratory only: target exit and clip end in operator-steered video can
 be informative censoring, so it is **not** the primary G0 ranking or a field-survival estimate.
 Scores against each annotator's labels form an annotation-sensitivity band.
 
@@ -430,7 +445,7 @@ scenario class, first annotator-detectable onset interval, duration, geometry/un
 camera-motion label. Onset uncertainty is retained rather than collapsed to a single exact time.
 
 Each frame may contain zero or more scored proposals with center/box and confidence. At each
-declared confidence threshold, form candidate proposal–ground-truth edges that pass the tracking
+declared confidence threshold, form candidate proposal-ground-truth edges that pass the tracking
 spatial tolerance and size bound when geometry supports them. Choose a one-to-one assignment with
 maximum cardinality, then minimum summed normalized center error; break remaining ties by higher
 proposal confidence and stable proposal/object IDs. This matching order is part of the metric-suite
@@ -462,8 +477,9 @@ for a metric is above both zero and the measured noise floor; `regressed_on_deve
 symmetric. If the interval overlaps either bound, report `inconclusive`. If the encounter count,
 annotation or timing validity is inadequate, report `insufficient_data`. Failure to reject a
 difference is **not** equivalence. Tracking, motion proposals, absence behavior, latency and energy
-have separate statuses; there is no automatic overall winner. A later held-out or field claim
-requires a new sample-size plan and locked protocol.
+have separate statuses; there is no automatic overall winner. The one exception is the predeclared
+rank inside a matched cohort in [section 16.1](#161-cohort-ranking), which sets its own
+sample rule. A later held-out or field claim requires a new sample-size plan and locked protocol.
 
 Scores are sliced by object class and pixel size (including a small-object view), box versus point
 geometry, seed quality, camera control and motion, background, illumination and independently
@@ -480,7 +496,7 @@ constraints and costs are shown without mixing unlike classes or operating envir
 | MOT | HOTA with DetA/AssA/LocA through pinned TrackEval; IDF1/MOTA as diagnostics, with class/ignore policy and tiny-target slices |
 | Multi-sensor motion and tracking | Motion-event recall/delay and false proposals; SOT lock and MOT output metrics; compare each sensor alone with fused output on the same encounter; report time/geometry validity and source coverage |
 | Cross-sensor deduplication | Duplicate-output, missed-association and false-merge rates against reviewed event identity, with source-event provenance and time uncertainty |
-| Calibrated uncertainty | Detection-correctness and track-existence reliability, proper probability scores, conditional location-region coverage and sharpness where reference geometry exists; class/posterior calibration and risk–coverage are separate |
+| Calibrated uncertainty | Detection-correctness and track-existence reliability, proper probability scores, conditional location-region coverage and sharpness where reference geometry exists; class/posterior calibration and risk-coverage are separate |
 | Adaptive sensing and processing | Task quality, source availability/activation, abstention, deadline misses, measured sensor-plus-compute energy and peak/rolling-budget violations at each declared operating point |
 | Non-camera sensor evidence | Modality-specific event detection, occupancy/contact, bearing, localization, range or velocity only when that sensor's geometry, coverage and independent labels support the quantity; no implied cross-modal identity or object class |
 | Stereo/range | Error, coverage and uncertainty calibration against an independent distance reference; do not score uncalibrated or unsynchronized pairs |
@@ -495,7 +511,7 @@ probability, detection correctness after spatial matching, track existence and l
 uncertainty are scored separately. Report reliability diagrams and Brier score or negative
 log-likelihood for defined binary/class outcomes, with expected calibration error only as a
 diagnostic; report coverage **with** the width/area of prediction regions when a geometric posterior
-and independent reference are available. Risk–coverage curves show errors together with the
+and independent reference are available. Risk-coverage curves show errors together with the
 proportion of scheduled inputs that received a usable answer. A high-confidence wrong association,
 duplicate track or confident output on absence is explicitly counted. Optional probabilistic MOT
 scoring requires a fully specified multi-object posterior; TrackEval's HOTA remains the canonical
@@ -515,7 +531,7 @@ available single-sensor path, fixed always-on fusion, fixed-rate/periodic and ra
 declared time-shared mixtures across the feasible modes. Offline input-subset ablations produce
 paired **quality and process-latency** comparisons; their physical sensor-energy status is
 `NOT_MEASURABLE` without a measured on/off profile. Only a controlled trial with a calibrated, fixed
-installed-system boundary and real sensor modes may form a **measured quality–energy–latency
+installed-system boundary and real sensor modes may form a **measured quality-energy-latency
 frontier** or support an energy-gain claim. Then report adaptive-policy quality at matched
 complete-system energy and deadline constraints, or energy at matched quality; use paired
 encounter-level differences and predeclared uncertainty/margins. A task gain is claimed only at the
@@ -527,7 +543,7 @@ confidence threshold from a navigation study into this benchmark.
 
 G2 has four separately versioned suites with **fixed task exposure and independent scene truth**. An
 improvement at one boundary is attributed only to the stage that was allowed to change. A sensor
-family can be registered through the generic contract, but a score for “all sensors” means **all
+family can be registered through the generic contract, but a score for "all sensors" means **all
 installed, simultaneously feasible and declared sensors in that scenario**, not every conceivable
 modality. Predeclare the feasible single-sensor, paired, all-installed and leave-one-out sets; use a
 justified fractional design if exhaustive subsets are impractical. Do not assume that combining
@@ -539,7 +555,7 @@ opportunities and the full fixed task denominator so that lack of a sensor is no
 | `SENSOR_SET_FRONT_END` | Raw streams, sensor opportunity labels and a fixed, versioned reference late-fusion/association rule; candidate sensor adapters/front ends emit typed `SensorObservation` events. Run each feasible declared subset through the **same** reference rule | Per-sensor event recall/delay, false alarms per observed time/area, localization/range/angle error and calibration where valid; actual fused proposal recall at fixed false-alarm burden, duplicate/false-merge rates, complementary coverage, all-installed and leave-one-out marginal effects. Show the label-derived oracle union only as an observability ceiling | Measures front-end and sensor-set evidence under one reference rule, not a candidate fusion algorithm. Report acquisition and stage-local compute cost only where separately metered; a shared rail cannot be assigned to a sensor |
 | `FIXED_OBSERVATION_FUSION` | Immutable, hashed `SensorObservation` bundle, field-of-regard/availability states, calibration, event order and epoch schedule; candidate emits `FusionResult`/`FusedObservation` | Association precision/recall, missed links, false merges, deduplication, existence/class probability scores, abstention/coverage, state or geometry error/calibration when reference permits, output latency and faults. Compare to the pinned late-fusion baseline and single-source inputs | Isolates the fusion/analysis module. A changed front end or calibration creates a new bundle/cohort; score only fusion-stage compute cost, with energy `NOT_MEASURABLE` if no separate boundary exists |
 | `FIXED_OBSERVATION_TRACKER` | Immutable, hashed single-source or fused observation stream, optional identical operator seed and `TrackerEpoch` schedule; candidate emits `TrackerResult`/`TrackState` or explicit lost/abstain | G0-compatible SOT lock and re-entry measures or genuine MOT HOTA/DetA/AssA/LocA, ID switches and fragmentation; state forecast error, existence calibration, coverage, latency and deadline misses when labels allow | Isolates track maintenance, association over time and prediction. Candidates that inspect pixels or produce their own detections are a larger pipeline unless the identical additional input is frozen and declared. Report only tracker-stage compute cost |
-| `FULL_INSTALLED_SYSTEM` | Live/recorded raw capture through adapters, fusion, tracker, recognition and acquisition policy on a named installed configuration; candidate emits final tracks/events and resource evidence | End-to-end task quality at fixed false-alarm burden, calibrated uncertainty, sensor availability, glass-to-output time when measured, deadline misses, peak/rolling limits and quality–latency–energy frontier. Include stationary, controlled motion/vibration, outage and recovery slices | Only boundary that can support a **complete-system** joule or physical sensor on/off saving claim with a calibrated fixed meter boundary. This score alone cannot identify which internal stage caused a gain |
+| `FULL_INSTALLED_SYSTEM` | Live/recorded raw capture through adapters, fusion, tracker, recognition and acquisition policy on a named installed configuration; candidate emits final tracks/events and resource evidence | End-to-end task quality at fixed false-alarm burden, calibrated uncertainty, sensor availability, glass-to-output time when measured, deadline misses, peak/rolling limits and quality-latency-energy frontier. Include stationary, controlled motion/vibration, outage and recovery slices | Only boundary that can support a **complete-system** joule or physical sensor on/off saving claim with a calibrated fixed meter boundary. This score alone cannot identify which internal stage caused a gain |
 
 The first three boundaries use **identical upstream bytes, labels and release/deadline schedule**
 within their cohort; `FULL_INSTALLED_SYSTEM` may compare predeclared modality sets or policies at
@@ -554,7 +570,7 @@ joules.
 
 ### 7.1 Probe and adaptive launch
 
-`bench hardware-probe` enumerates the actual CPU model/architecture/cores and OS-enabled user-space
+`ss-track hardware-probe` enumerates the actual CPU model/architecture/cores and OS-enabled user-space
 instruction features, RAM, OS/kernel and preemption configuration, scheduler/affinity/`mlockall`
 availability, frequency governor, **every installed sensor's** identity/interface/supported mode and
 active/standby/off/wake behavior, shared USB/CSI/network topology and bandwidth, available compute
@@ -565,7 +581,7 @@ that it can observe a declared object. It tests **simultaneous** requested senso
 sustained frames/samples, timestamp quality, bus contention, memory and CPU/accelerator load;
 separate successful single-sensor probes do not establish a joint mode. The protocol predeclares a
 sustained trial duration, maximum frame/event-loss rate, time-alignment error and thermal state for
-a `SUPPORTED` joint profile under §7.9. For a requested tensor graph it also probes supported
+a `SUPPORTED` joint profile under section 7.9. For a requested tensor graph it also probes supported
 operations, shapes, layouts, precision, device memory, model compilation and execution of
 representative inputs; merely listing a GPU/NPU or a runtime provider is insufficient. It runs
 bounded capability trials and returns structured `SUPPORTED`, `UNSUPPORTED` or `MEASURE_REQUIRED`
@@ -608,7 +624,7 @@ formats, integer overflow/saturation and floating-point tolerances. Compare full
 output and quality as well as kernel values against the scalar reference on a frozen workload. A
 `quality_equivalent` label requires predeclared per-output tolerance and task-level non-inferiority
 margins on sufficient independent encounters; small G0a fixtures alone cannot establish it.
-Otherwise retain the path as a separately scored quality–cost variant. A vector path may be slower
+Otherwise retain the path as a separately scored quality-cost variant. A vector path may be slower
 or consume more energy for small regions; such a negative result remains reportable.
 
 ### 7.3 Tensor graphs and heterogeneous compute backends
@@ -630,18 +646,18 @@ The compute manifest records model/weights and graph hashes; runtime, backend, c
 firmware versions; device and memory identifiers; input/output shapes, layout, batch, data type,
 quantization scheme and calibration-data revision; declared operator partition and fallback policy;
 compilation/cache state; and actual device assignment or profiling evidence. It also records
-pre/postprocessing revisions, host↔device transfers, zero-copy claims, thread settings and power
+pre/postprocessing revisions, host<->device transfers, zero-copy claims, thread settings and power
 boundary. For an external black box, unavailable internal fields are explicitly `opaque` with a
 reason and the strongest available executable/package or endpoint version identity; task scores
 remain possible, but graph-equivalence, exact-reproduction and unverifiable accelerator-partition
-claims are withheld. Do not label a run “NPU” or “GPU” solely because the device is present. If a
+claims are withheld. Do not label a run "NPU" or "GPU" solely because the device is present. If a
 backend cannot prove its intended operator coverage, it may run only under a declared mixed-device
 profile with observed CPU fallback and its full cost.
 
 If pre-run probing shows that a requested accelerator-only profile needs undeclared CPU fallback,
 that profile is `UNSUPPORTED`; a declared mixed-device or CPU profile may be selected before input
 begins. During a run, an undeclared fallback attributable to a frame is `MODULE_FAULT` from the
-first affected frame, with the remaining scorable input handled under §5. If only aggregate post-run
+first affected frame, with the remaining scorable input handled under section 5. If only aggregate post-run
 evidence reveals an unlocalized fallback, keep task outputs and fault evidence visible, but mark
 accelerator-specific timing/energy results `UNSUPPORTED` with reason `backend_unverified` and
 exclude the run from that compute cohort. Neither case is silently credited as acceleration.
@@ -652,7 +668,7 @@ tolerances **before** execution, and report task-level detection/tracking/recogn
 coverage and failures alongside tensor differences. Quantization calibration and threshold selection
 use development data only. A changed model, calibration, precision or operator partition is a
 distinct compute variant, even when its output is within tolerance. `quality_equivalent` uses the
-same predeclared output and task-level non-inferiority rule as §7.2; an equivalence failure remains
+same predeclared output and task-level non-inferiority rule as section 7.2; an equivalence failure remains
 a valid separately scored result. Compare both cold-start cost (load/compile/first result) and
 warmed sustained behavior. Microbenchmarks of isolated operators or kernels are diagnostic; the
 primary timing and energy evidence is end to end, including preprocessing, copies/synchronization,
@@ -687,7 +703,7 @@ firmware or application paths. A fixed frequency can improve timing repeatabilit
 energy; record the trade-off.
 
 The platform references for scheduling, instruction dispatch and tensor-provider behavior are listed
-in §14.
+in section 14.
 
 ### 7.5 Controlled bench and energy measurement
 
@@ -697,7 +713,7 @@ A fiducial measured only by the tested camera is not independent ground truth. R
 controlled motion/vibration conditions, with repeated trials, declared warm-up, camera mode,
 exposure/focus/FOV, object pixel/angular extent, lighting, queue/drop counts, host load and
 throttling state. Synthetic vibration is labelled synthetic unless its spectrum came from an
-instrumented platform. Display-screen targets are labelled because refresh and moiré can change
+instrumented platform. Display-screen targets are labelled because refresh and moire can change
 results.
 
 A power measurement declares its **boundary**: module/CPU rail, accelerator rail when separately
@@ -722,8 +738,10 @@ scorable exposure, quality and deadline-miss denominators. Joules per correct tr
 detection may be shown only as a secondary conditional diagnostic, with a zero-denominator status;
 it cannot reward a system that emits few results. Host and meter/installed-system boundaries define
 separate energy cohorts; the enabled sensor subset is an explicit factor **within** a fixed-boundary
-cohort. The dashboard presents quality–latency–energy trade-offs or Pareto views within matched
-cohorts rather than one universal weighted score. §7.9 supplies the normative instrument,
+cohort. The dashboard presents quality-latency-energy trade-offs or Pareto views within matched
+cohorts rather than one universal weighted score. The rank in
+[section 16.1](#161-cohort-ranking) is a floor followed by an energy order inside one cohort,
+not a weighted score. section 7.9 supplies the normative instrument,
 integration and uncertainty procedure for these quantities.
 
 For glass-to-output latency, measure the camera-mode glass-to-buffer offset using a physical
@@ -732,7 +750,7 @@ buffer timestamp alone is insufficient. Cross-host latency additionally needs cl
 uncertainty below the claimed resolution. Otherwise report process-local or buffer-to-output time
 with its exact name. Before opening a stereo-range suite, compute an uncertainty budget from
 measured focal length in pixels `f_px`, baseline `B`, disparity error `sigma_d` and range `Z`,
-including the leading approximation `sigma_Z ≈ Z² * sigma_d / (f_px * B)`. Add calibration and
+including the leading approximation `sigma_Z ~ Z^2 * sigma_d / (f_px * B)`. Add calibration and
 synchronization error terms, then verify with independent measured distances. If the predeclared
 tolerance is not achievable, the mode is `UNSUPPORTED` for range even if both cameras stream
 successfully.
@@ -765,8 +783,8 @@ uncertain/abstaining output, while the original task event remains in the scorin
 #### Sensor-family registry and feasible observation roles
 
 The adapter registry is **open to any sensor with a physically meaningful measurement model and the
-§5 contract**. It is not a claim that every family is useful for every object or that all families
-must be installed. For the initial small-bird scenario (approximately 15 cm body and 10–100 m
+section 5 contract**. It is not a claim that every family is useful for every object or that all families
+must be installed. For the initial small-bird scenario (approximately 15 cm body and 10-100 m
 research distances), rank feasibility by measured object extent/signal, field of regard, platform
 motion/noise, timing and installed-system energy. Published performance on larger birds, stationary
 towers, specialised ground instruments or humans does not establish detection at 100 m with a
@@ -779,7 +797,7 @@ compact payload. The following roles determine which G2 suites may be opened:
 | NIR/SWIR, multispectral or polarimetric imaging (reflected light) | Registered per-band contrast/feature proposals, then a separately scored multimodal detector | Candidate when spectral contrast is validated. Active illumination, filters and extra optics add mass, power and alignment cost; NIR/SWIR are not passive thermal measurements. Cross-band matching needs measured timing/geometry. A [field comparison of spectral imagers](https://www.osti.gov/servlets/purl/1342469) illustrates modality-dependent visibility and false returns |
 | Thermal LWIR/MWIR imager or coarse thermopile array (emitted heat) | Contrast/background and temporal proposals, with temperature/scene quality flags | Candidate for low-light observation, but thermal pixels, optics, sky/ground contrast and weather govern small-target visibility. Coarse thermopiles are local occupancy triggers, not assumed 100 m trackers; thermal appearance alone does not establish species. A [field thermal study of small songbirds](https://pmc.ncbi.nlm.nih.gov/articles/PMC4705634/) used specialised narrow-FOV equipment, not a compact-payload validation |
 | Microphone or synchronized acoustic array (sound emission) | Band-limited event detection; with calibrated geometry, beamforming/GCC-PHAT or time-difference-of-arrival bearing/location | Only a **calling or otherwise audible** object supplies direct evidence; silence is not absence. A single microphone has no justified range or bearing. [Flight-call localization](https://pmc.ncbi.nlm.nih.gov/articles/PMC5513243/) used a distributed array; propeller/wind noise and acoustic association must be measured separately for an onboard array |
-| Radar, including CW/FMCW, scanning or passive radar (RF scatter) | Mode-specific detection/CFAR, range–Doppler and angle estimation; wingbeat micro-Doppler only if actually resolved | Candidate range/radial-velocity cue. Cross section, beamwidth, clutter, false returns, transmit/receive mode, antenna and full-system power dominate feasibility; W-band names a frequency region, not a performance guarantee. [24/94 GHz bird measurements](https://pmc.ncbi.nlm.nih.gov/articles/PMC6255807/) do not establish 100 m performance for a smaller bird or the proposed payload |
+| Radar, including CW/FMCW, scanning or passive radar (RF scatter) | Mode-specific detection/CFAR, range-Doppler and angle estimation; wingbeat micro-Doppler only if actually resolved | Candidate range/radial-velocity cue. Cross section, beamwidth, clutter, false returns, transmit/receive mode, antenna and full-system power dominate feasibility; W-band names a frequency region, not a performance guarantee. [24/94 GHz bird measurements](https://pmc.ncbi.nlm.nih.gov/articles/PMC6255807/) do not establish 100 m performance for a smaller bird or the proposed payload |
 | Lidar/scanning laser and ToF/depth camera (active optical range) | Return clustering, temporal background subtraction and geometric association | Potential 3D cue only where a sufficiently dense return hits the small target. Commodity compact ToF modules are predominantly near-field; [a representative ToF module](https://ai.benewake.com/en/resources/technical-documents/tfmini-s-datasheet/) cannot be treated as a 100 m bird sensor. Specialised long-range lidar is a different equipment class. Account for active-emitter operation and power |
 | PIR, passive thermal-motion, microwave Doppler presence or IR break-beam (zone crossing) | Debounced threshold/change event, with mapped coverage zone and refractory period | **Local trigger/flight corridor or perch**, not an identity, range or 100 m free-flight track. PIR requires usable thermal contrast and can miss small/fast animals; a [wild-bird camera-trap study](https://pmc.ncbi.nlm.nih.gov/articles/PMC6065333/) shows that size and distance matter. Microwave presence and break-beam signals likewise need a bounded observed zone |
 | Ultrasonic/sonar range (active acoustic echo) | Thresholded echo/range with multipath and temperature flags | Near-field obstacle or instrumented corridor cue, not an assumed 100 m bird detector. A [representative weather-resistant ultrasonic sensor](https://maxbotix.com/products/mb7566) is specified for metre-scale operation; flight noise and small-object echo strength need direct testing |
@@ -804,7 +822,7 @@ this task contract; they require a separately defined task before scoring.
 G2's mandatory reference path is a **deterministic, transparent late-fusion baseline**. Each front
 end converts its raw signal to typed observations; a bounded event-time reorder buffer releases only
 events available by `t_fuse`; frame/pose transforms and clock uncertainty are applied before
-spatial–temporal gating. The baseline groups admissible measurements by compatible geometry and
+spatial-temporal gating. The baseline groups admissible measurements by compatible geometry and
 provenance, performs gated one-to-one association where identity is resolvable, retains unmatched
 evidence, and outputs an explicit fused/ambiguous/empty result. It computes existence using a
 calibrated per-sensor detection/false-alarm model and a stated dependence model. For a sensor that
@@ -824,7 +842,7 @@ optional for uncertain object count. All candidates use the same event-time, ava
 state-space, provenance, output and evaluation contracts. A learned path reports data/weights,
 training split, calibration, missing-modality behavior, compute/energy cost and no hidden future
 context. A mathematically more complex algorithm is accepted only when matched-scenario evidence
-improves a declared quality–cost point; no candidate family is a mandatory dependency for G0/G1.
+improves a declared quality-cost point; no candidate family is a mandatory dependency for G0/G1.
 
 ### 7.7 Resource-aware acquisition and processing policy
 
@@ -874,8 +892,8 @@ thresholds are trained/tuned only on development/calibration encounters and froz
 testing. Offline full-stream replay can compare **input selection and processing choices** if all
 candidate raw data was recorded; it cannot establish sensor-on/off energy or a scene response to a
 different active sensor. Physical energy savings and sustainable joint modes require measured bench
-trials. Policy comparisons use the fixed baselines and, where measured, the frontier in §6.5. Every
-skipped true event is a miss; a policy fails its declared quality target or no-loss claim only when
+trials. Policy comparisons use the fixed baselines and, where measured, the frontier in section 6.5.
+Every skipped true event is a miss; a policy fails its declared quality target or no-loss claim when
 that miss contributes to a violation of the predeclared floor or margin.
 
 ### 7.8 TDD reference tracker and stagewise development
@@ -893,8 +911,8 @@ source revision are fixed in each run. The G0 baseline validates the runner, lab
 calculations; it does not set a minimum target score for future models.
 
 At G2, front ends, the deterministic late-fusion reference, track maintenance and the optional
-resource policy are independently replaceable; §6.6 isolates the first three and evaluates the full
-pipeline separately. The G2 reference tracker consumes the same frozen `FusedObservation` or
+resource policy are independently replaceable; section 6.6 isolates the first three and evaluates
+the full pipeline separately. The G2 reference tracker consumes the same frozen `FusedObservation` or
 single-source observation bundle as a candidate tracker; it cannot inspect unavailable raw
 measurements. Its motion model stays in image coordinates until a separately calibrated
 common/world-state model is enabled. Stereo/radar range, acoustic direction and contact triggers
@@ -944,7 +962,7 @@ markers; event/clock alignment and uncertainty; sample gaps, saturation and coun
 the metric calculation revision; each estimate, unit, uncertainty and validity status; and the
 reason for any invalid or inconclusive claim. `PowerSample` and `ResourceSample` are the time-series
 records under this bundle, not substitutes for it. Every reported performance and power value in a
-paired quality–energy point comes from the **same trial and output trace**. Instrumentation overhead
+paired quality-energy point comes from the **same trial and output trace**. Instrumentation overhead
 is measured by a paired instrument-on/off diagnostic where feasible; it is not silently subtracted
 from the primary installed-system result.
 
@@ -980,7 +998,7 @@ The camera test fixes lens/zoom/focus/aperture, exposure, gain, pixel format, cr
 resolution, frame rate, ISP/sharpening and decoder. A measured calibration chart and distance
 establish effective focal length in delivered-image pixels `f_px`, distortion and field of view for
 **each capture mode**; report calibration residual and spatial uncertainty. Predict body extent only
-as `p_body ≈ f_px L_projected / Z` and motion smear only as `p_smear ≈ f_px |omega_relative|
+as `p_body ~ f_px L_projected / Z` and motion smear only as `p_smear ~ f_px |omega_relative|
 t_exposure`, with object projection, angular motion and uncertainty stated. Verify both predictions
 using a physical target of declared dimensions at independently surveyed distances (the initial
 small-bird scenario uses 20, 50, 75 and 100 m where the site permits), rather than declaring
@@ -1014,8 +1032,8 @@ electrical or photodiode reference in the same clock domain. With two cameras, i
 marker to estimate exposure-midpoint skew, drift and rolling-shutter row timing; revalidate after
 mode, exposure, driver or transport changes. Stereo range is scored only against independently
 surveyed distances or trajectories, with bias, RMSE, high-quantile absolute error, valid-output
-coverage and uncertainty by distance/speed/light. The predicted `Z²` error growth in §7.5 is a
-feasibility check, not the measured result.
+coverage and uncertainty by distance/speed/light. Predicted `Z^2` error growth in section 7.5 is
+a feasibility check, not the measured result.
 
 Other installed sensor families have modality-specific **independent physical stimuli and reference
 measurements**, with fixed thresholds before test:
@@ -1085,9 +1103,9 @@ For a power claim, place a calibrated external analyzer or synchronized voltage/
 whole installed-sensor input. These boundaries include different regulator and cable losses and are
 not pooled. Check zero, known-load response, sample rate/bandwidth, time base, voltage burden/shunt
 drop and saturation before the trial. Align analyzer and runner by a shared electrical/GPIO marker
-or measured offset/drift with uncertainty. With simultaneous samples, set `P_i = V_i × I_i`;
-interpolate the boundary samples at marked `a` and `b`, then compute `E_[a,b] = Σ (P_i + P_(i+1))/2
-× (t_(i+1)-t_i)` over the **exact marked interval** `[a,b]`, or use a calibrated analyzer's integral
+or measured offset/drift with uncertainty. With simultaneous samples, set `P_i = V_i x I_i`;
+interpolate the boundary samples at marked `a` and `b`, then compute `E_[a,b] = sum (P_i + P_(i+1))/2
+x (t_(i+1)-t_i)` over the **exact marked interval** `[a,b]`, or use a calibrated analyzer's integral
 counter with the same boundaries. Voltage and current sampled on different clocks require validated
 alignment before multiplication. Include active acquisition, transport, CPU/NPU work, standby/off
 and wake transitions inside the chosen full-system boundary. Record absolute joules first; a
@@ -1192,28 +1210,30 @@ real-world safety without independent field evidence.
 
 ## 10. Run artifacts and comparison dashboard
 
-Proposed command names define user-facing behavior, not existing software:
+Proposed command names define user-facing behavior, not existing software. They are subcommands of
+the installed `ss-track` entry point:
 
 ```text
-bench import --source recording.yaml
-bench corpus build --manifest corpus.yaml
-bench annotate validate --corpus <id>
-bench hardware-probe --out host.json
-bench hardware-measure --protocol hardware-trial.yaml --out trial/
-bench run --scenario scenario.yaml --module <local executable or adapter>
-bench sensor-set evaluate --scenario <declared sensor-set scenario> # G2 front ends/subsets
-bench fusion evaluate --scenario <fixed observation bundle>        # G2 fusion/analysis
-bench tracker evaluate --scenario <fixed observation bundle>       # G2 tracker
-bench system evaluate --scenario <installed-system scenario>       # G2 full pipeline
-bench policy sweep --scenario <budgeted scenario>              # later resource suite
-bench ingest --manifest external-run.yaml --events <event bundle>
-bench compare --runs <run-a>,<run-b> --out report/
+ss-track import --source recording.yaml
+ss-track corpus build --manifest corpus.yaml
+ss-track annotate validate --corpus <id>
+ss-track hardware-probe --out host.json
+ss-track hardware-measure --protocol hardware-trial.yaml --out trial/
+ss-track hardware-select --requirements stand.yaml --trials <trial-ids> --out selection/
+ss-track run --scenario scenario.yaml --module <local executable or adapter>
+ss-track sensor-set evaluate --scenario <declared sensor-set scenario> # G2 front ends/subsets
+ss-track fusion evaluate --scenario <fixed observation bundle>        # G2 fusion/analysis
+ss-track tracker evaluate --scenario <fixed observation bundle>       # G2 tracker
+ss-track system evaluate --scenario <installed-system scenario>       # G2 full pipeline
+ss-track policy sweep --scenario <budgeted scenario>              # later resource suite
+ss-track ingest --manifest external-run.yaml --events <event bundle>
+ss-track compare --runs <run-a>,<run-b> --out report/
 ```
 
 The scenario pins the domain pack/class taxonomy, corpus/split, annotation and eligibility-mask
 hashes, selection set, canonical decode/frame delivery, replay mode, module configuration, metric
 suite, seed, camera/host profile where applicable, deadlines, sensor-absence policy, energy boundary
-and sampling protocol. A G1 or G2 hardware claim also pins the §7.9 `HardwareTrial` protocol and
+and sampling protocol. A G1 or G2 hardware claim also pins the section 7.9 `HardwareTrial` protocol and
 instrument/calibration revision. A G2 scenario additionally pins **one of the four evaluation
 boundaries**, allowed inputs, upstream bundle/producer hashes, sensor opportunity profile, declared
 feasible sensor subsets, calibration/clock versions and tolerances, fusion/tracker epochs,
@@ -1233,7 +1253,7 @@ evidence, decisions made before acquisition, predicted versus actual costs, sour
 posterior/calibration evidence and budget violations. Compute artifacts include the actual
 kernel/ISA or tensor device/operator partition, runtime/driver/firmware and model/calibration
 provenance, compilation/cache and transfer evidence, and profile deviations. A local HTML/JSON
-report is G0's dashboard. A shared server is later optional.
+report is G0's dashboard. Hosting and a shared service are outside the scheduled scope.
 
 An **algorithm-only** accuracy comparison requires the same scenario pack and class map, corpus,
 split, annotation, selection and mask, transforms, metric suite, evidence lane and input
@@ -1250,10 +1270,12 @@ remain explicit factors. Timing and energy comparisons additionally require a co
 host/installed-sensor/workload cohort, comparable scheduler, shape/batch/concurrency and cold/warm
 state, and **the same installed-system meter boundary** for sensor-policy arms; dispatch, backend or
 sensor subsets are explicit comparison factors. A CPU-to-accelerator comparison can show a
-quality–latency–energy trade-off on the same host/workload, but may not be labelled a like-for-like
+quality-latency-energy trade-off on the same host/workload, but may not be labelled a like-for-like
 kernel speedup when precision, model, pre/postprocessing or graph partition changed. Cross-device
-results are stratified; an overall hardware-agnostic ranking is forbidden. The report explains every
-refused comparison and always displays scorable exposure, class and object-size distribution,
+results are stratified; an overall hardware-agnostic ranking is forbidden. The only cross-device
+comparison is the unranked same-stimulus device evaluation in
+[section 16.6](#166-device-bench-evaluation). The report
+explains every refused comparison and always displays scorable exposure, class and object-size distribution,
 uncertainty/calibration quality, source availability, module faults, backend fallback/profile
 deviations, deadline and budget misses, and energy measurement quality. The hardware view shows
 measured capture rate/drop cause, optical/temporal calibration, stage and end-to-end latency,
@@ -1262,9 +1284,10 @@ with instrument/trace links and `NOT_MEASURABLE`/`inconclusive` statuses. It dis
 kernel/operator timing from full pipeline timing and never edits or recomputes source metrics. G2
 shows **four separate panels** for sensor-set/front-end evidence, fixed-input fusion/analysis,
 fixed-input tracking and full installed-system output; a component score is never displayed as a
-whole-system score. A later shared dashboard adds roles, audit trails and restricted raw-media
-access. It may display detection/track quality at fixed false-alarm burden and coverage,
-reliability/risk–coverage views, and a quality–latency–energy Pareto view for a compatible cohort,
+whole-system score. Shareable exports require explicitly public input; missing visibility is
+restricted, while local restricted analysis remains available. The local report may display
+detection/track quality at fixed false-alarm burden and coverage,
+reliability/risk-coverage views, and a quality-latency-energy Pareto view for a compatible cohort,
 with no hidden composite score.
 
 ## 11. Scenario safety, privacy and data governance
@@ -1301,35 +1324,29 @@ observed responses and distances are context dependent in one wildlife scenario;
 universal safe distance for other objects or sites. The dashboard emphasizes performance at a
 declared object pixel extent and does not reward closest approach.
 
-## 12. Planned capabilities
+### Measurement-only scope
 
-These capabilities are design input; none claims an implementation exists. A row moves into the
-[capability registry](#capability-registry) together with its plan tasks.
+ss-track measures detection, tracking and energy for monitoring, warning and situational awareness.
+It does not evaluate or tune a system whose tracker output steers, cues or triggers a weapon,
+interceptor or other effector, and it publishes no engagement metrics. A **sensitive device** is any
+system sold for defense, security, counter-drone or law-enforcement use, or subject to export
+control. Results on a sensitive device stay restricted unless the project owner releases them.
 
-| # | Capability | Status | How it is evaluated | Implementation |
-| --- | --- | --- | --- | --- |
-| 1 | `corpus-provenance` | planned | Import/hash/canonical-decode, synchronized multi-stream grouping and scenario-rights/split fixtures; malformed source yields structured failure | — |
-| 2 | `annotation-selection` | planned | Two-reviewer G0 labels, stable class/instance IDs, frozen mask and identical seed replay | — |
-| 3 | `module-contract-runner` | planned | Oracle, null, dropper, crash, schema and class-identity fixtures pass with exact frame accounting | — |
-| 4 | `motion-sot-evaluation` | planned | Hand-computed fixture metrics, denominators and time weights match evaluator output | — |
-| 5 | `reference-tracker` | planned | Deterministic seeded SOT baseline and staged G2 multi-source tracker pass hand-audited continuity, lost/re-entry, identity, provenance and deadline fixtures | — |
-| 6 | `comparison-report` | planned | Compatible-cohort report exposes errors; incompatible runs are refused with reason | — |
-| 7 | `hardware-probe-adaptive-launch` | planned | Simultaneous sensor/CPU/device/runtime capabilities and sustained loss, timestamp, thermal and graph trials select a supported profile or explicit fallback | — |
-| 8 | `controlled-bench-timing-energy` | planned | §7.9 versioned trials retain independent stimulus, instrument/calibration and raw-trace hashes; compute capture, optics, latency, resource, vibration and energy estimates with uncertainty and explicit validity | — |
-| 9 | `scalar-vector-cpu-kernels` | planned | Scalar C++20 reference and optional Neon/SVE/x86/RISC-V paths pass conformance and measured quality–latency–energy comparison | — |
-| 10 | `tensor-compute-backends` | planned | Pinned CPU reference and optional accelerated graph pass support, partition/fallback, precision, task-quality and end-to-end cost fixtures | — |
-| 11 | `external-event-ingest` | planned | Second-host contract tests, frame match and clock-validity cases | — |
-| 12 | `advisory-diagnostics` | planned | Recorded-path and operator-agreement diagnostics remain separate; no G0/G1 actuation path | — |
-| 13 | `mot-trackeval` | planned | Byte-exact per-class export fixtures, pinned environment and hand-audited MOT results | — |
-| 14 | `recognition-state` | planned | Scenario-specific class/state labels, class probability and abstention coverage with negative-result tests | — |
-| 15 | `sensor-adapter-frontends` | planned | Each installed modality's typed observation, coverage/negative states, calibration, front-end event quality and acquisition-mode conformance are scored without assumed range | — |
-| 16 | `g2-sensor-set-evaluation` | planned | Feasible single, paired, all-installed and leave-one-out sets run through one frozen reference fusion rule; achieved quality and oracle observability ceiling remain distinct | — |
-| 17 | `fusion-analysis` | planned | Fixed hashed observation bundles isolate event-time association, deduplication, calibrated existence/class evidence, abstention and degraded-source behavior | — |
-| 18 | `fixed-input-tracker-evaluation` | planned | Fixed hashed observations and schedule isolate SOT/MOT identity, re-entry, prediction, confidence and tracker-stage cost | — |
-| 19 | `installed-system-evaluation` | planned | Raw-to-output quality, calibrated timing and full installed-boundary energy/limits are scored under matched encounters and hardware | — |
-| 20 | `resource-aware-sensing` | planned | Causal policy decisions, fixed-configuration and VOI/event-trigger comparators, task quality at energy/deadline budgets and measured sensor-plus-compute cost | — |
-| 21 | `stereo-range` | planned | Independent distance reference, calibration/synchronization uncertainty, range error and unsupported-mode coverage | — |
-| 22 | `closed-loop-simulation` | planned | Action changes the next supported observation; out-of-support action fails or aborts; energy model declared | — |
+## 12. Unscheduled design candidates
+
+These candidates are design input, not implementation commitments. Scheduling one requires a
+[capability registry](#capability-registry) entry and plan tasks with declared acceptance gates.
+
+| Capability | How it is evaluated |
+| --- | --- |
+| `scalar-vector-cpu-kernels` | Scalar C++20 reference and optional Neon/SVE/x86/RISC-V paths pass conformance and measured quality-latency-energy comparison |
+| `tensor-compute-backends` | Pinned CPU reference and optional accelerated graph pass support, partition/fallback, precision, task-quality and end-to-end cost fixtures |
+| `external-event-ingest` | Second-host contract tests, frame match and clock-validity cases |
+| `advisory-diagnostics` | Recorded-path and operator-agreement diagnostics remain separate; no G0/G1 actuation path |
+| `recognition-state` | Scenario-specific class/state labels, class probability and abstention coverage with negative-result tests |
+| `resource-aware-sensing` | Causal policy decisions, fixed-configuration and VOI/event-trigger comparators, task quality at energy/deadline budgets and measured sensor-plus-compute cost |
+| `stereo-range` | Independent distance reference, calibration/synchronization uncertainty, range error and unsupported-mode coverage |
+| `closed-loop-simulation` | Action changes the next supported observation; out-of-support action fails or aborts; energy model declared |
 
 ## 13. Acceptance and negative-result matrix
 
@@ -1344,9 +1361,9 @@ These capabilities are design input; none claims an implementation exists. A row
 | G0a comparability | Same-version rerun; different labels, seed, class map or mask versions | Repeatability/noise recorded; incompatible comparison refused |
 | G0b development decision | At least 10 independent encounter groups, three same-version runs, paired A/B results | Separate metric statuses, encounter interval and noise floor; otherwise `insufficient_data` |
 | G1 CPU dispatch, when a vector path is claimed | Scalar reference and each claimed vector build; absent-feature and forced-fallback fixtures; odd widths/strides, tail lanes, alignment, overflow and FP cases | Correct platform/OS feature dispatch and declared exact/tolerant numerical checks; unsupported ISA never executes; effective SVE vector length is recorded if SVE is used |
-| G1 tensor backend, when introduced | Pinned CPU reference for framework-owned graphs; representative compile/run; unsupported operation/shape, absent device, partial graph assignment, pre-run and frame-attributed fallback, post-run unlocalized fallback, threshold/precision drift and asynchronous device-fence fixtures | Supported graph path and actual partition are proved; unsupported or mixed-device mode is explicit; undeclared fallback follows §7.3; tensor and task-level tolerances and quality are reported |
+| G1 tensor backend, when introduced | Pinned CPU reference for framework-owned graphs; representative compile/run; unsupported operation/shape, absent device, partial graph assignment, pre-run and frame-attributed fallback, post-run unlocalized fallback, threshold/precision drift and asynchronous device-fence fixtures | Supported graph path and actual partition are proved; unsupported or mixed-device mode is explicit; undeclared fallback follows section 7.3; tensor and task-level tolerances and quality are reported |
 | G1 real-time | Normal paced runs under concurrent load; PREEMPT_RT profile only when claimed and available, with the same workload and compute variant | Deadline misses and tail latency include queue/transfer/synchronization cost with scheduler, thermal and clock evidence; unavailable PREEMPT_RT is `UNSUPPORTED` only for that optional profile |
-| G1 hardware protocol and instruments | Predeclared §7.9 protocol; hand-calculated constant/pulsed-power, sample-gap and clock-drift fixtures where those quantities are claimed; instrument identity, calibration, markers, trace hashes and uncertainty budget for **each claimed quantity** | Raw evidence reproduces the claimed derived estimates; saturated or misaligned measurements become `NOT_MEASURABLE` for the affected quantity; no energy meter is required when energy is unclaimed; uncertain paired differences are `inconclusive` |
+| G1 hardware protocol and instruments | Predeclared section 7.9 protocol; hand-calculated constant/pulsed-power, sample-gap and clock-drift fixtures where those quantities are claimed; instrument identity, calibration, markers, trace hashes and uncertainty budget for **each claimed quantity** | Raw evidence reproduces the claimed derived estimates; saturated or misaligned measurements become `NOT_MEASURABLE` for the affected quantity; no energy meter is required when energy is unclaimed; uncertain paired differences are `inconclusive` |
 | G1 capture, optics and stereo characterization | Locked mode/ISP and measured chart/target at declared distances; source frame IDs or explicit `upstream_drop_unknown`, independently measured clock marker, two-camera skew/stereo range when claimed | Delivered FPS, supported drop/duplicate counts, object extent, SFR/contrast and clock uncertainty are separate from requested FPS/pixel count; stereo geometry/error and controlled-target range are hardware/bench evidence, while scene-level object range and fusion-quality claims belong to G2 |
 | G1 compute, thermal and vibration | Sustained joint-stream load, cold/warm runs, instrumented mount-motion profile, memory/I/O/CPU traces, temperature/voltage/frequency/throttle evidence | Queue/deadline/memory and actual mount PSD/RMS/quality changes are reportable; nominal USB/CPU speed and actuator command do not substitute for delivered measurements; throttled runs remain visible |
 | G1 bench and energy | Actual camera and controlled object with independent trace; stationary and motion runs; cold and warmed compute intervals; calibrated meter when an energy claim is made | Mode, light/exposure, object extent, drops and full-pipeline timing always reported; joules and meter boundary reported only when measured; isolated kernel/operator results are separately labelled; uninstrumented energy is `NOT_MEASURABLE` |
@@ -1357,17 +1374,23 @@ These capabilities are design input; none claims an implementation exists. A row
 | G2 `SENSOR_SET_FRONT_END` | Modality-specific positive/negative/coverage fixtures; feasible single, paired, all-installed and leave-one-out sets on identical encounters with one pinned reference fusion rule | Per-sensor recall, false alarms, latency and uncertainty plus achieved set-level gain/loss are reported at fixed burden; uninstalled or infeasible sensor sets are `UNSUPPORTED`; label-derived oracle union is visibly an upper-bound diagnostic |
 | G2 `FIXED_OBSERVATION_FUSION` | Two versions consume byte-identical hashed observation bundles with fixed calibration, order, availability and epochs; correlated duplicates, contradictory and no-detection states | Association, false merge, dedup, existence/class calibration, abstention, faults and stage cost are isolated; a changed front end forces a new cohort; future or forbidden raw data access fails conformance |
 | G2 `FIXED_OBSERVATION_TRACKER` | Reference and candidate consume byte-identical frozen single/fused observations and seed; crossing, misses, occlusion, re-entry and prediction-only fixtures | SOT/MOT, identity, loss/re-entry, state/calibration, coverage and tracker-stage timing are isolated; every scheduled epoch is acknowledged; hidden detection from raw pixels fails this boundary |
-| G2 `FULL_INSTALLED_SYSTEM` | Complete sensor-plus-compute path on a named installed configuration, stationary/motion/vibration and sensor-outage trials, matched encounters, balanced A/B order and calibrated same-boundary meter when claiming energy; include active/standby/off/wake transitions | Raw-to-output quality, false alarms, availability, deadlines, full-system joules, sampled/validated peak and rolling limits with uncertainty, and paired quality–latency–energy frontier are reported from the same trials; no component causal attribution from this result alone |
+| G2 `FULL_INSTALLED_SYSTEM` | Complete sensor-plus-compute path on a named installed configuration, stationary/motion/vibration and sensor-outage trials, matched encounters, balanced A/B order and calibrated same-boundary meter when claiming energy; include active/standby/off/wake transitions | Raw-to-output quality, false alarms, availability, deadlines, full-system joules, sampled/validated peak and rolling limits with uncertainty, and paired quality-latency-energy frontier are reported from the same trials; no component causal attribution from this result alone |
 | G2 fusion provenance and timing | Two cameras plus optional registered audio/radar/thermal/event/contact/context fixtures; clock skew, out-of-order/stale/duplicate source, missing/negative/out-of-view source, calibration error and conflicting or correlated evidence | Source lineage is exact; no future event enters a decision; false merge/duplicate output is counted; missing/out-of-view is not treated as negative; unsupported geometry cannot yield a confident cross-modal identity |
 | G2 source versus policy absence | Valid `no_detection`, capture/clock failure, candidate `disabled_by_policy`, and frozen reference `unknown` fixtures | The first is a negative sensor observation, the next two retain scorable task exposure with distinct reasons, and only the last may yield `NOT_SCOREABLE` for the affected task; pre-run impossible joint mode is `UNSUPPORTED` |
-| G2 probability calibration | Known-outcome probability fixtures and a disjoint calibration split; confident false association, localization region and abstention cases | Proper-score, reliability, coverage/sharpness and risk–coverage computations match hand results; TrackEval output alone never certifies uncertainty |
+| G2 probability calibration | Known-outcome probability fixtures and a disjoint calibration split; confident false association, localization region and abstention cases | Proper-score, reliability, coverage/sharpness and risk-coverage computations match hand results; TrackEval output alone never certifies uncertainty |
 | G2 adaptive policy and energy | Each single-sensor/fixed-rate/always-on/time-shared baseline, skip-heavy policy, thermal/deadline/peak-power/rolling-energy fixtures and a measured sensor-on/off profile for an energy claim | Fixed task denominator and false-alarm burden expose skipped detections; predicted/realized costs and violations are visible; offline quality/process-latency gains are qualified to recorded inputs; energy savings from stream suppression alone are `NOT_MEASURABLE`, and energy-efficiency claims require the predeclared measured paired frontier |
 | G2 range | Uncalibrated stereo, radar mode without calibrated range or absent independent distance reference | `UNSUPPORTED` or `NOT_SCOREABLE` with coverage and uncertainty; no range inferred from modality name |
 | G3 closed loop | Candidate actions alter future view; action leaves simulator support | Model-bounded score; unsupported path fails or aborts, not excluded |
+| Paced frame release | Fixture module attempts to read a future frame | Read fails; the run reports a conformance failure |
+| Optional thermal trial | Identical frames at two chip temperatures; frequency-capped cool arm; load-calibrated baseline; fresh state; randomized order | Mechanism supported only if all four conditions hold; no throttling is `not_tested`; a negative result is retained |
+| Optional cohort rank | Fixture cohorts: median-run choice, every-run floor, anchored tiers, fault penalty, null row, fewer than three qualifying projects, cohort-key mismatch | Expected rank, tier, `inconclusive` or refusal; no rank published under the minimum; null row is never subtracted |
+| Export boundary | Restricted or unmarked bundle passed to a shareable export | Export refuses without leaking values; local restricted analysis remains available |
+| Hardware selection | Fixture configurations against a stated budget; datasheet-only option; shared rail | Only measured configurations are chosen; none qualifying is the stated result; a shared rail stays shared |
+| Optional device bench | No output path; matched and mismatched stimulus/reference fixtures across hosts | `UNSUPPORTED` or refused comparison where appropriate; valid cases remain unranked |
 
-A negative finding such as “the object cannot be localized at this pixel extent,” “this camera pair
-cannot sustain the declared mode,” “PREEMPT_RT did not improve the tail deadline,” or “energy is not
-measurable with the available meter” is a valid, traceable project result. Passing a software
+A negative finding such as "the object cannot be localized at this pixel extent," "this camera pair
+cannot sustain the declared mode," "PREEMPT_RT did not improve the tail deadline," or "energy is not
+measurable with the available meter" is a valid, traceable project result. Passing a software
 fixture is not evidence of field safety or a specific detection range.
 
 ## 14. Research and platform basis
@@ -1393,7 +1416,7 @@ fixture is not evidence of field safety or a specific detection range.
 | [Rotational stereo field tracking](https://jeb.biologists.org/content/jexbio/218/16/2496.full.pdf), [event-based flying-object dataset](https://openaccess.thecvf.com/content/CVPR2025W/EventVision/papers/Magrini_EV-Flying_an_Event-based_Dataset_for_In-The-Wild_Recognition_of_Flying_Objects_CVPRW_2025_paper.pdf) and [thermal bird observations](https://pmc.ncbi.nlm.nih.gov/articles/PMC4705634/) | Candidate optical/event/thermal sensor roles and small-object failure slices | Different optics, mounts and environments do not establish 100 m performance for the proposed compact platform |
 | [Flight-call microphone array](https://pmc.ncbi.nlm.nih.gov/articles/PMC5513243/), [K/W-band bird radar measurements](https://pmc.ncbi.nlm.nih.gov/articles/PMC6255807/) and [wild-bird PIR camera traps](https://pmc.ncbi.nlm.nih.gov/articles/PMC6065333/) | Acoustic, radar and PIR observation models, with distinct range/coverage and negative-evidence semantics | Calling, RF return and thermal zone crossing are not interchangeable sightings or proof of the same object; transmitter power is not system power |
 | [ToF module specification](https://ai.benewake.com/en/resources/technical-documents/tfmini-s-datasheet/), [ultrasonic sensor specification](https://maxbotix.com/products/mb7566), [bird perch load-cell experiment](https://pmc.ncbi.nlm.nih.gov/articles/PMC12795351/), [geophone footfall experiment](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1002/2688-8319.70072) and [Motus tagged-bird network](https://motus.org/resources/how-motus-works/) | Near-field, contact and cooperative-only sensor scope | Commodity short-range or contact/tag evidence cannot be generalized to untagged free flight at 100 m |
-| [Object-detection confidence calibration](https://arxiv.org/abs/2004.13546), [selective-classification evaluation](https://arxiv.org/abs/2407.01032) and [uncertainty-aware MOT measure](https://arxiv.org/abs/2108.04619) | Distinct probability, risk–coverage and posterior-aware scoring concepts | Posterior-aware scores require defined outputs and suitable labels; they do not follow from arbitrary confidence fields |
+| [Object-detection confidence calibration](https://arxiv.org/abs/2004.13546), [selective-classification evaluation](https://arxiv.org/abs/2407.01032) and [uncertainty-aware MOT measure](https://arxiv.org/abs/2108.04619) | Distinct probability, risk-coverage and posterior-aware scoring concepts | Posterior-aware scores require defined outputs and suitable labels; they do not follow from arbitrary confidence fields |
 | [DCASE audiovisual sound-event task](https://dcase.community/challenge2024/task-audio-and-audiovisual-sound-event-localization-and-detection-with-source-distance-estimation) and [IEEE radar band designation](https://technav.ieee.org/topic/microwave-bands/) | Separate acoustic event/location tasks and W-band terminology | Neither proves object identity or range from a generic microphone/radar module |
 | [Linux PREEMPT_RT](https://docs.kernel.org/core-api/real-time/index.html) and [kernel configuration guidance](https://docs.kernel.org/core-api/real-time/kernel-configuration.html) | Scheduler profile and preemption checks | Does not bound arbitrary camera, driver or accelerator paths |
 | [Arm64 HWCAP](https://docs.kernel.org/arch/arm64/elf_hwcaps.html), [Linux SVE user API](https://docs.kernel.org/arch/arm64/sve.html) and [Arm Neon intrinsics](https://developer.arm.com/documentation/ihi0073/latest/) | User-space ISA dispatch and per-thread SVE vector-length behavior | Extensions and benefit must be checked on the actual host |
@@ -1417,7 +1440,7 @@ are required **before the named later claim or gate**, rather than blocking G0a:
 | Annotation reviewers and disagreement authority | Freezing G0 labels; a small two-reviewer set is the G0 default |
 | Operator-relevant motion response window, onboard deadlines and stress workload | Locked motion evaluation or real-time claim |
 | Camera/lens modes and actual Raspberry Pi Zero/Rockchip revisions | Declaring those hardware profiles supported |
-| Versioned §7.9 protocol, independent target/trajectory reference, optical/time calibration fixtures, instrument identities/checks, declared workload and uncertainty/decision margin | Opening a G1 hardware accuracy, latency, optical or sustained-performance claim |
+| Versioned section 7.9 protocol, independent target/trajectory reference, optical/time calibration fixtures, instrument identities/checks, declared workload and uncertainty/decision margin | Opening a G1 hardware accuracy, latency, optical or sustained-performance claim |
 | Joint sensor modes, capture and arrival clocks, field-of-regard/detectability profiles, calibration/transform uncertainty, and independent cross-sensor identity labels | Opening a claimed multi-sensor fusion or range suite |
 | Actual installed sensor inventory, capability/coverage and active/standby/off/wake profiles, independent modality labels and a feasible-subset design | Opening G2 sensor-set/front-end evaluation; an uninstalled family remains a schema-supported candidate only |
 | Modality-specific collection/operating rights and installed active-emitter, audio, radar, contact or tag capabilities | Opening the corresponding physical sensor profile |
@@ -1427,13 +1450,15 @@ are required **before the named later claim or gate**, rather than blocking G0a:
 | Candidate action profiles, false-alarm/coverage target, deadline, peak and rolling energy/thermal budgets, calibrated sensor visibility/detection/cost models, and disjoint policy/calibration data | Claiming adaptive sensing improves quality or energy against a fixed-mode frontier |
 | Acceptable range-error tolerance | Opening stereo-range evaluation |
 | Local habitat/public-space/road constraints, response-label governance and approvals | Any new field operation or safety claim |
-| Need for a shared multi-user dashboard | Server deployment; local HTML/JSON report remains sufficient at G0 |
+| Frozen measurement protocol, floors, decision margin and maximum interval half-width | Optional cohort ranking |
+| A chip-temperature rig, measured throttle onset, declared schedule and deadline | Opening the optional thermal mechanism claim |
+| Recorded measurement access and data-sharing permissions | Physical device trials and explicitly shareable exports |
 
 Changes to taxonomy, labels, split, matching threshold, metric formula, TrackEval revision, decoder,
 clock policy, sensor set/opportunity profile or calibration, fixed-input bundle, evaluation
 boundary, hardware measurement protocol, energy boundary or real-time workload create a new relevant
 version and comparison cohort. A new instrument or calibration record remains in the trial
-provenance and triggers the §7.9 equivalence/uncertainty check before joining an existing
+provenance and triggers the section 7.9 equivalence/uncertainty check before joining an existing
 measurement cohort. A model, quantization/calibration, precision, compute backend,
 operator-partition, preprocessing, fusion rule, probability calibrator, action space, cost predictor
 or budget policy change creates a distinct variant and, when output semantics or metric validity
@@ -1441,6 +1466,231 @@ changes, a new relevant comparison cohort. Previous run artifacts remain immutab
 newly discovered capability first changes this living specification with its boundary and
 negative-result rule, then the capability registry and forward plan; implementation and
 current-state documentation follow.
+
+## 16. Benchmark extensions, hardware selection and reference sensor mesh
+
+The project has two goals: correct benchmarks, and a reference sensor mesh object-tracking
+implementation. One engine serves both through reproducible, inspectable evidence bundles.
+This section defines the additional capabilities and is normative for them. The rationale is in the
+[engine design](perception-bench-engine.md), and hardware needs are in the
+[test-stand requirements](test-stands.md).
+
+Terms used in this section:
+
+- A **run** is one pass of one module version over the scored segments at one chip set-point, in a
+  fresh container.
+- A **block** is one cool run and one hot run of the same module version, in randomized order.
+- A **row** is one module version in one cohort.
+
+### 16.1 Cohort ranking
+
+`benchmark-ranking` optionally computes local rankings inside one matched cohort. It compares
+declared module versions on one selected host, metered at its power input, on one authorized workload,
+in paced `OFFLINE_REPLAY`. It claims algorithm behavior on that host, not finished-system, held-out
+or field performance. It is not required for M1-M3 acceptance. Local comparison and hardware
+selection remain useful when no ranking is possible.
+The cohort key is the scenario hash (pack, class map, corpus, split, annotation, selection, mask,
+transforms and input representation), metric suite, evidence lane, execution schedule and frame
+deadline, host profile, physical meter boundary, chip set-points and rules version. One contract
+function derives it, and any difference refuses the comparison.
+
+The measurement protocol is frozen before candidate comparison runs:
+
+- **Workload rights:** the workload permits the intended analysis and recorded access.
+  Shareable exports additionally require permission for every included artifact; private development
+  data does not become public because it was scored.
+- **Quality:** encounter-aggregated observable lock coverage `C_j` from
+  [section 6.1](#61-operator-selected-tracking-sot-v2-dev), scored in the hot run by a suite named
+  `sot-paced-v1`. A result after its frame deadline, or a dropped frame, is a miss. The G0 thresholds
+  remain engineering defaults.
+- **Ranked energy:** `E_[a,b]` from [section 7.9.4](#794-electrical-power-thermal-state-and-motion),
+  between the marked first and last scheduled frames of the hot run, divided by scheduled frames.
+  Scheduled and emitted counts stay beside it.
+- **Runs:** the rules declare an odd number of blocks, at least three, and every run is kept. The row
+  comes from the hot run with median `C_j`. With an even number of valid hot runs it uses the lower of
+  the two middle runs, and a tie takes the run with higher ranked energy.
+- **Floor:** the lower bound of the 95% encounter-cluster interval clears the floor in every valid hot
+  run. Otherwise the row is `inconclusive`. The bootstrap seed and resample count are frozen, so the
+  interval recomputes exactly. A predeclared cap on false continuation and a minimum scorable exposure
+  also apply.
+- **Energy interval:** the ranked value with its expanded uncertainty from
+  [section 7.9.1](#791-common-trial-design-and-uncertainty), combining the meter budget and the
+  spread between hot runs.
+- **Order:** sort by ranked energy. The lowest row leads a tier. A row joins if its energy interval
+  overlaps the leader's interval widened by the margin, and the next row starts a new tier. The
+  margin is the larger of baseline rerun noise and combined meter uncertainty, frozen with the rules.
+- **Faults:** a `MODULE_FAULT` run shows the fault rate and moves the row down one tier. A row in the
+  last tier stays there with its fault shown. Throttling is measured behavior, not a fault.
+- **Invalid runs:** an invalid run stays on record with one replacement. A repeat undervoltage after
+  the supply passes its known-load check counts as a fault. Fewer than three valid hot runs means not
+  ranked.
+- **Sample:** 10 independent encounter groups is the minimum, not evidence of generalization. A pilot
+  on baselines measures interval width, and groups are added until a frozen maximum half-width holds.
+- **Baselines:** each cohort shows an unranked null-module row, never subtracted, and ss-track's own
+  modules are unranked baselines. Candidates, baselines and the null module use one container path.
+- **Diagnostic column:** `C_j` divided by ranked energy is a secondary diagnostic under
+  [section 7.5](#75-controlled-bench-and-energy-measurement). It never sets a rank or a pick.
+- **Picks:** lowest energy above the floor, highest `C_j`, and smallest cool-to-hot loss, from ranked
+  rows only.
+- **Snapshots:** each local report is an immutable versioned snapshot with fixed ranks. New
+  inputs or corrected calculations create a new snapshot; old artifacts stay readable.
+- **Minimum:** ranking needs at least three distinct algorithm lines passing every condition.
+  The protocol selects a version/configuration per line before measurement. Multiple versions of one
+  algorithm never inflate this count; their pairwise development comparisons remain available.
+
+Reproducibility has three levels. **Recompute** rebuilds scores from retained traces and applies to
+every row. **Re-run** repeats open software on the same host class within a declared tolerance, using
+recorded module recipes and pinned image digests. **Re-measure** repeats the hardware measurement
+with a calibrated meter, where the hardware can be obtained.
+
+Boundary: the software ranks only a declared development cohort. Known workloads can be tuned to;
+candidate choice limits generalization. Scoring reads saved bundles only. Public enrollment,
+commercial terms, moderation, site hosting and publication are outside this capability.
+
+Evaluation: fixture cohorts produce expected rank, tier, `inconclusive` or refusal; a second process
+recomputes byte-identical scores. Below the minimum, every row is shown unranked. Recompute and
+Re-run can be tested using the reference baseline even if no candidate qualifies for ranking.
+
+### 16.2 Paced thermal trial
+
+`paced-thermal-trial` tests whether tracking quality changes with the host's thermal state. The same
+labelled segments run at a declared cool and a declared hot chip temperature. The hot set-point is
+declared from the measured throttle onset of the reference host, so the hot run reaches the throttled
+state. A closed-loop rig holds chip temperature through each scored segment. Its control runs off the
+host, its power stays outside the energy boundary, and the host adds only a low-rate temperature and
+frequency log whose cost lands in the null-module row.
+
+Each run starts in a fresh container with no retained module state and a dropped file cache, and the
+runner warms its own frame store before the timed interval. Order is randomized within blocks, and
+setup energy is reported apart from ranked energy.
+
+The hypothesis is that throttling causes missed deadlines, missed deadlines cause lost tracks,
+and quality falls. It is tested on ss-track baselines before candidate comparison protocols freeze.
+They include a
+load-calibrated baseline whose cool-run compute sits near the frame deadline under a declared load
+setting, because a light tracker with spare time shows no loss whatever the heat does. A result on
+that baseline shows the mechanism, not any tracker's behavior. The hypothesis is supported on a workload
+only if all four conditions hold:
+
+1. Cool and hot runs score identical frames.
+2. Hot `C_j` is lower than cool `C_j`, beyond the rerun noise floor of
+   [section 6.3](#63-comparisons-and-decision-status).
+3. A cool run with frequency capped at the hot run's measured frequency reproduces the loss within
+   that noise floor. This control separates frequency from temperature.
+4. Frequency evidence from [section 7.9.4](#794-electrical-power-thermal-state-and-motion), deadline
+   misses and drops line up with the loss.
+
+Candidate reports show measured cool-to-hot change without assuming the mechanism generalizes.
+
+Boundary: it runs only in paced execution, because lockstep replay cannot show the effect. It does
+not show a module's own heating effect, and a mobile scenario pack discloses that a still bench lacks
+in-flight airflow and battery sag.
+
+Evaluation: hand-audited cool, hot and capped fixtures on identical frames, then a live baseline run.
+A hot run with no throttling evidence reports `not_tested`. Valid negative results are no change
+above noise, or a capped arm that does not reproduce the loss. Both are documented results.
+This optional experiment does not gate host selection, the reference mesh or basic energy evidence.
+
+### 16.3 Module reproducibility
+
+`module-contract-runner` owns pinned module recipes, image digests, declared configurations and
+license notices for the reference, null and candidate modules. Adapters and third-party dependencies
+stay under `modules/`, outside the core package lock. The same isolation and frame-release path
+applies to every module. Host checks use synthetic frames to verify schema, input isolation and
+whether the declared schedule can be sustained; passing them is not quality or energy evidence.
+
+Boundary: recipes and conformance are software deliverables. No mandatory external entry count,
+release-age filter, public participation policy, vendor recruitment or registry hosting is required
+for the benchmark or mesh to work.
+
+Evaluation: a recorded recipe/digest identifies the measured executable and can be used in a fresh
+environment. A missing image, incompatible host or license restriction is an explicit unavailable
+or unsupported result, never silently replaced by a different executable.
+
+### 16.4 Hardware selection
+
+`hardware-selection` turns software needs into documented hardware choices. Requirements come from
+the benchmark and the reference tracker, and they are listed per test stand in the
+[test-stand requirements](test-stands.md). A person shortlists candidates from published
+specifications. Before acquisition, record versioned requirements, acceptance tolerances and
+measurement precision from the software workload. Candidates are characterized against independent
+references before final selection, then tested in simultaneous modes. Requirements include task
+coverage/quality, clock/geometry uncertainty, latency/loss, driver/interface support, storage and
+throughput as well as average watts, watt-hours per task, peak watts and thermal limits. The selection
+record names the chosen configuration, rejected alternatives with reasons, evidence hashes and
+what stayed unmeasured.
+
+Each candidate also gets an energy ledger. Total energy is measured at the declared boundary,
+subsystems are itemized only where a rail or on/off mode is separately measurable, and shared rails
+stay shared. Datasheet-only options are listed as unmeasured and are never chosen as if measured.
+
+The first meter and host are a declared bootstrap, with specifications distinguished from
+known-load and harness checks. A single available candidate is provisional, not proof of comparative
+selection. No qualifying candidate, insufficient precision or missing required evidence is a valid
+result. Changes to requirements or installed configuration create a new decision revision.
+
+Hardware work returns machine-readable profiles/calibration, raw evidence hashes and a documented
+selection to software development. Financial approvals and supplier administration stay outside the
+repository; test-stand requirements and measured suitability remain here.
+
+Boundary: selection compares measured configurations for this project's stands. It makes no
+prediction or simulation, no general buying recommendation, no component attribution and no public
+ranking.
+
+Evaluation: fixture configurations against a stated budget, with only measured configurations
+chosen. Valid negative results are no configuration qualifying, `NOT_MEASURABLE` for an inaccessible
+boundary, and a stand requirement that nothing can meet, which returns to this specification.
+
+### 16.5 Reference sensor mesh
+
+`multi-source-reference-tracker` is the project's reference implementation: sensor front ends, typed
+observations, event-time late fusion and track maintenance on one installed sensor set. It uses the
+contract in [section 5](#5-module-contract-execution-and-fault-semantics), the late-fusion baseline
+in [section 7.6](#76-multi-sensor-fusion-and-uncertainty), the staged tracker in
+[section 7.8](#78-tdd-reference-tracker-and-stagewise-development), and the four evaluation
+boundaries in [section 6.6](#66-four-independent-g2-evaluation-boundaries).
+
+The minimum mesh is two visible cameras plus one non-camera source chosen through hardware selection,
+on a selected compute host. A networked source such as `ss-sens` may enter through an adapter when
+its clocks and provenance meet the contract. Encounters come from authorized bench recordings with an
+independent reference, and a disjoint calibration split supports any calibrated claim.
+
+Software delivery includes live synchronized capture through replaceable drivers; immutable raw and
+typed-observation bundles; four boundary-specific scenarios; calibrated evidence models where
+supported; and four separate local report panels. Capture records measured clock domains, queue
+loss, disconnect/recovery and original raw formats. Component runs enforce their allowed inputs
+through the runner rather than trusting a candidate not to read pixels or future events. The same
+corpus grouping rules cover every modality and freeze reviewed scene truth and opportunity masks.
+The calibration suite fits only on the disjoint split and validates each claimed probability against
+independent outcomes. Insufficient labels or calibration produces an explicit unavailable quantity
+and coverage, while deterministic association and tracking can still be evaluated.
+
+Boundary: the mesh is a reference baseline and not an accuracy ceiling. Resource-aware policy,
+recognition, stereo range and learned fusion stay in [section 12](#12-unscheduled-design-candidates).
+It makes
+no field-range claim and has no actuation path.
+
+Evaluation: the G2 rows of the [acceptance matrix](#13-acceptance-and-negative-result-matrix) for
+the four boundaries. A valid negative result is a sensor that adds no measured evidence. That finding
+is documented and updates the hardware selection record. A reduced mesh starts a new configuration
+and cohort; it never retroactively changes the evidence for the original set.
+
+### 16.6 Device bench evaluation
+
+`device-bench-evaluation` is an optional extension for measuring finished systems in one device
+class using the same physical stimulus, independent reference and installed-system boundary.
+`SENSOR_BENCH` adapters emit contract events; a suite without an operator seed measures detection
+delay, lock coverage by the device's own track ID and false alarms per hour. The protocol freezes
+the stimulus, timing, calibration, windows and validity limits before acquisition.
+
+Boundary: individual and side-by-side cases are unranked. This is the only cross-device comparison;
+there is no hardware-agnostic ranking, public Device Board, enrollment or publication service.
+Two units support unit-variation evidence; a single unit is explicitly labelled. An unavailable
+device does not block benchmark or reference-mesh development. No field-range or safety claim follows.
+
+Evaluation: simulated device fixtures verify event adaptation, unsupported output paths and refusal
+of unmatched stimulus/reference/boundary. Live cases retain raw events, reference and energy traces.
+No accessible device, no usable output path or an unmeasurable quantity is a valid negative result.
 
 ## Repository foundation
 
@@ -1505,23 +1755,45 @@ blocks the change and points to the documents that disagree.
 
 ## Capability Registry
 
-Every product capability appears here exactly once. Status is `planned` when the capability is
-specified and has open plan work, or `shipped` when current-state documentation describes its
-available implementation. A shipped capability may still have optional extension work.
+Each scheduled software or hardware-support capability appears once. `planned` requires open tasks;
+`shipped` links to current-state implementation. A shipped capability may have optional extensions.
+Unscheduled design candidates remain in section 12 until their evaluation and work are scheduled.
 
-Row order is the implementation line. Hard dependencies come first, then work that changes another
-capability's evaluation inputs, then required work before capabilities with only optional work, then
-upstream before downstream.
+Row order prioritizes required core software and hardware evidence before optional extensions.
+Both plan lanes follow this order. Tasks within a capability can span milestones; explicit
+dependencies handle cross-lane handoffs, such as characterization before final hardware selection.
+Group order alone never establishes readiness.
 
 | # | Capability | Status | How it is evaluated | Implementation |
 | --- | --- | --- | --- | --- |
 | 1 | `reproducible-environment` | shipped | A fresh locked environment reaches the complete CI gate without manual repair | [Developer tooling](../impl/current/developer-tooling.md) |
 | 2 | `project-identity` | shipped | Import, CLI, and distribution-build tests agree on the project identity | [Product core](../impl/current/product-core.md) |
-| 3 | `documentation-integrity` | shipped | Link, registry-plan, task-lane, metadata, ordering, and forward-language checks pass over fixtures and the repository tree | [Governance](../impl/current/governance.md) |
+| 3 | `corpus-provenance` | planned | Import/hash/canonical-decode, staged frame bundles, synchronized multi-stream grouping, generated cases and scenario-rights/split fixtures; malformed source yields structured failure | - |
+| 4 | `annotation-selection` | planned | Two-reviewer G0 labels, stable class/instance IDs, frozen mask and identical seed replay | - |
+| 5 | `module-contract-runner` | planned | Oracle, null, dropper, crash, schema and class-identity fixtures pass with exact frame accounting | - |
+| 6 | `motion-sot-evaluation` | planned | Hand-computed fixture metrics, denominators and time weights match evaluator output | - |
+| 7 | `reference-tracker` | planned | Deterministic seeded SOT and proposal front end pass continuity, lost/re-entry, identity and deadline fixtures; optional load setting preserves lockstep outputs | - |
+| 8 | `comparison-report` | planned | Compatible-cohort report exposes errors; incompatible runs are refused with reason | - |
+| 9 | `hardware-probe-adaptive-launch` | planned | Recorded and live host probes report CPU, memory, storage, scheduler, frequency and throttle evidence, and select a supported profile, `UNSUPPORTED` or `MEASURE_REQUIRED` | - |
+| 10 | `controlled-bench-timing-energy` | planned | section 7.9 versioned trials retain instrument/calibration and raw-trace hashes and compute timing, resource, thermal and energy estimates with uncertainty and explicit validity | - |
+| 11 | `hardware-selection` | planned | Fixture configurations against a stated budget; only measured configurations are chosen; a selection record states rejected and unmeasured options; none qualifying is stated | - |
+| 12 | `sensor-joint-mode-probe` | planned | Every installed sensor's modes and simultaneous joint modes are probed under sustained load and yield a supported profile or explicit fallback | - |
+| 13 | `camera-bench-characterization` | planned | Independent stimulus, capture, optics and vibration trials retain raw evidence and report estimates with uncertainty and explicit validity | - |
+| 14 | `sensor-adapter-frontends` | planned | Typed observations, mixed-modality bundles and four scenario boundaries pass conformance; fake-driver capture covers skew, overflow, outage and recovery before live acceptance | - |
+| 15 | `fusion-analysis` | planned | Fixed hashed observation bundles isolate event-time association, deduplication, calibrated existence/class evidence, abstention and degraded-source behavior | - |
+| 16 | `fixed-input-tracker-evaluation` | planned | Fixed hashed observations and schedule isolate SOT/MOT identity, re-entry, prediction, confidence and tracker-stage cost | - |
+| 17 | `multi-source-reference-tracker` | planned | The staged reference tracker consumes frozen observation bundles and passes hand-audited provenance, identity and deadline fixtures | - |
+| 18 | `g2-sensor-set-evaluation` | planned | Feasible single, paired, all-installed and leave-one-out sets run through one frozen reference fusion rule; achieved quality and oracle observability ceiling remain distinct | - |
+| 19 | `installed-system-evaluation` | planned | Same-trial raw-to-output quality, timing and installed-boundary energy retain validity; four local report panels distinguish component from whole-system results | - |
+| 20 | `mot-trackeval` | planned | Byte-exact per-class export fixtures, pinned environment and hand-audited MOT results | - |
+| 21 | `paced-thermal-trial` | planned | Hand-audited cool, hot and capped fixtures on identical frames, then a live baseline run; a hot run with no throttling is `not_tested`, and a failed bet is published | - |
+| 22 | `benchmark-ranking` | planned | Optional matched-cohort fixtures yield rank, tier, inconclusive or refusal; scores recompute exactly; below the minimum every row stays unranked | - |
+| 23 | `device-bench-evaluation` | planned | Optional same-stimulus fixtures validate unranked cross-host cases; incompatible references are refused and missing device output is UNSUPPORTED | - |
+| 24 | `documentation-integrity` | shipped | Link, registry-plan, task-lane, metadata, ordering, and forward-language checks pass over fixtures and the repository tree | [Governance](../impl/current/governance.md) |
 
-Each capability enters the specification before its plan tasks. A task names outcome, boundary,
-data/artifact paths, execution, acceptance and valid negative result. Only tested and documented
-behavior moves from plan to current state and changes status to `shipped`.
+Every task declares its outcome, scope, evidence, execution and acceptance. Only tested and
+documented implementation changes a capability to `shipped`. Optional branches cannot gate
+required M1-M3 acceptance.
 
 ## Extending This Specification
 

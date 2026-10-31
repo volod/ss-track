@@ -49,8 +49,8 @@ in `docs/design/spec.md`.
 
 After every product or developer-facing change, before reporting completion:
 
-1. Record what exists in the narrowest current-state page: behavior, modules, commands, tests,
-   verification, and result.
+1. Update the narrowest current-state page with available behavior, interfaces, module locations,
+   and verification methods. Retain measured findings when they inform implementation decisions.
 2. Remove the completed task from `docs/impl/plan.md`; retain only residual future work.
 3. Route anything surfaced during implementation exactly once:
    - a chore: do it now when necessary, otherwise drop it;
@@ -58,7 +58,10 @@ After every product or developer-facing change, before reporting completion:
    - more work for a registered capability: add a future task, optional when it is a refinement;
    - a new product capability: use the lifecycle below before creating a task.
 4. Update current-doc indexes when adding a page and run `make lint-doc-links`.
-5. Compare plan task counts before and after and state which capabilities moved.
+
+Keep documentation focused on current contracts, constraints, rationale, and actionable limitations.
+Do not retain task-count snapshots, migration narratives, completed audit logs, or routine check
+results. Update existing descriptions in place instead of appending completion history.
 
 Do not put completion notes, dates, measurements, or history in the plan. A plan task may use one
 line to link a prerequisite fact in current docs without restating it.

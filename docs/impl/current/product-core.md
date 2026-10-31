@@ -10,7 +10,7 @@ distribution metadata is unavailable.
 
 `src/ss_track/cli.py` owns argument parsing. The installed `ss-track info` command logs the same
 identity, providing a packaging and executable-path smoke test. No benchmark behavior exists yet;
-the [planned capabilities](../../design/spec.md#12-planned-capabilities) describe that work.
+the [implementation plan](../plan.md) describes the scheduled work.
 
 Run it with:
 

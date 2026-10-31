@@ -1,6 +1,7 @@
 # ss-track
 
-'''The difference between "not true" and "false" is the syncretism that destroys universes.'''
+> The difference between "not true" and "false" is the syncretism that destroys universes.
+> - Syncretism
 
 **Building an open-source benchmark, data factory, and reference perception stack for resource-aware
 object tracking on autonomous and assisted robots.**

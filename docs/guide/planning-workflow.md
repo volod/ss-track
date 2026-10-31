@@ -35,6 +35,23 @@ agent:
 Add `Research: yes` when the path is uncertain and a well-supported negative result is acceptable.
 Research is not a reason to omit scope or acceptance criteria.
 
+Add `Milestone: <id>` when a task belongs to a staged delivery. Cross-lane dependencies are
+allowed, including characterization that feeds a later selection step in an earlier capability
+group. Dependencies express gating; group order expresses priority. Required work cannot depend on
+an optional extension. Milestone relationships follow the engine's dependency graph rather than
+the numeric order of IDs.
+
+`make plan-status` currently reports counts and the first task by priority in each lane. It does not
+parse dependency readiness; check the full Dependencies fields before starting work. The optional
+dependency-integrity task covers automated graph validation and truthful readiness reporting.
+
+Hardware support stays in the Human-Assisted lane: define requirements from software needs, shortlist,
+characterize with independent references, select from measured evidence, and hand profiles and
+selection records back to software development. Datasheet and bootstrap choices remain provisional.
+Commercial planning, staffing, public entry/dispute policy, publication approval and launch operations
+belong outside repository Git control. Keep technical rights and export controls in the data contract;
+do not make organizational publication a dependency of software acceptance.
+
 ## Task shape
 
 Task ids are stable lowercase slugs. A task heading may end with `(optional)`. Use this structure:
@@ -76,11 +93,12 @@ priority in task wording.
 
 Before reporting completion:
 
-1. Count plan tasks with `make plan-status`.
-2. Record behavior, locations, commands, tests, and results in the narrowest current-state page.
-3. Remove the finished task and retain only genuinely open residual scope.
-4. Mark a newly complete capability `shipped` and add its current-documentation link.
-5. Run `make lint-spec-plan`, `make lint-doc-links`, and `make ci`.
-6. Count tasks again and report which capabilities moved.
+1. Update available behavior, interfaces, locations and verification methods in the narrowest
+   current-state page.
+2. Remove the finished task and retain only genuinely open residual scope.
+3. Mark a newly complete capability `shipped` and add its current-documentation link.
+4. Run `make lint-spec-plan`, `make lint-doc-links`, and `make ci`.
 
-Current-state pages retain decisions and results. The plan never becomes a changelog.
+Retain design rationale, actionable limitations and measured evidence that informs implementation.
+Update documentation in place; omit task-count snapshots, migration narratives, completed audit logs
+and routine check results. The plan contains only remaining work.
