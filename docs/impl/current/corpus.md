@@ -4,15 +4,16 @@
 `ss-track corpus build` groups imported sources into encounters and splits in one immutable corpus
 version. `ss-track corpus stage` decodes each stream into one immutable frame bundle that every
 module reads, plus one derived bundle for each declared generated case, and `ss-track corpus verify`
-proves those frames are intact. Each command produces a complete record or a structured refusal, and
-none invents a value it could not establish. Annotation does not exist yet; the [plan](../plan.md)
-schedules it. The task records keep the accepted tasks, their decisions and their acceptance
-evidence:
+proves those frames are intact and that the source records they rest on still hold. Each command
+produces a complete record or a structured refusal, and none invents a value it could not establish.
+Annotation does not exist yet; the [plan](../plan.md) schedules it. The task records keep the accepted
+tasks, their decisions and their acceptance evidence:
 [import and corpus build](../records/0001-corpus-provenance-corpus-manifest-import.md),
 [frame staging](../records/0002-corpus-provenance-frame-bundle-staging.md),
-[split grouping](../records/0003-corpus-provenance-corpus-split-grouping.md) and
-[generated cases](../records/0004-corpus-provenance-generated-fixture-cases.md), and
-[source terms](../records/0006-corpus-provenance-source-terms-enforcement.md).
+[split grouping](../records/0003-corpus-provenance-corpus-split-grouping.md),
+[generated cases](../records/0004-corpus-provenance-generated-fixture-cases.md),
+[source terms](../records/0006-corpus-provenance-source-terms-enforcement.md) and
+[rights verification](../records/0007-corpus-provenance-corpus-verify-rights.md).
 
 ## Commands
 
@@ -208,12 +209,48 @@ are refused with `RECORD_SCHEMA_UNSUPPORTED`; their terms are never guessed. Exi
 immutable, so migration requires explicitly declaring the terms and importing into a fresh data root
 (or operator-managed replacement), then building a new corpus version. No automatic migration runs.
 
-The manifest pins each source record. `corpus stage` first re-reads every source record, before
-writing or skipping anything, and a re-imported source is `SOURCE_RECORD_CHANGED`, so withdrawn
-rights cannot pass under the rights a corpus recorded earlier. `corpus verify` checks frames and
-retention pinned in the corpus; it
-does not yet re-read source records. Detecting subsequently changed terms during verification is
-owned by `corpus-verify-rights` in the [plan](../plan.md#corpus-verify-rights).
+The manifest pins each source record. `corpus stage` and `corpus verify` re-read every source record
+before writing, skipping or hashing anything, and a record that differs is `SOURCE_RECORD_CHANGED`,
+so withdrawn rights cannot pass under the rights a corpus recorded earlier:
+
+```json
+{"status": "refused", "code": "SOURCE_RECORD_CHANGED", "message": "...", "details": {
+ "stream_id": "enc01-cam0", "source_sha256": "...", "corpus_source_manifest_sha256": "...",
+ "source_manifest_sha256": "...", "changed_terms": ["rights.sharing"]}}
+```
+
+`changed_terms` names each `rights` and `sensitivity` field that differs. An empty list means the
+terms match and something else in the record changed, such as a capture fact or the decoder. That
+refuses all the same, because the pin covers the whole record, and so does a wider right. A
+re-import of the original declaration gives the original seal, so the corpus verifies again.
+
+`_require_sources_hold` in `src/ss_track/corpus/staging.py` is this one check for both commands, and
+each stream is checked, which covers every generated case because a case holds its parent's rights.
+Retention comes first and reads only the corpus, so an expired source stays `RETENTION_EXPIRED` after
+its directory is removed. Otherwise a missing record is `SOURCE_NOT_IMPORTED`, an unreadable one is
+`RECORD_TAMPERED`, and one of another schema is `RECORD_SCHEMA_UNSUPPORTED`.
+
+### Withdrawing rights
+
+`ss-track import` cannot change an imported record. Declaring other terms for an imported source is
+`IMPORT_CONFLICT`, which records nothing, so the corpus goes on verifying. Recording a withdrawal
+today means replacing the record by hand. That also deletes the stored source, so copy it out first
+when it is the only copy:
+
+```bash
+cp "$DATA_DIR/import/<source-sha256>/source.mkv" clip.mkv  # only when no other copy exists
+rm -rf "$DATA_DIR/import/<source-sha256>"
+ss-track import --source recording.yaml                    # now declaring the new terms
+```
+
+Every corpus version that pinned the old record then refuses at `corpus stage` and `corpus verify`.
+Rebuilding it is `RIGHTS_CONFLICT` if its scenario now asks too much, or `CORPUS_CONFLICT`, so
+continuing needs a new corpus version. Its frames stay on disk until an operator removes them.
+`source-terms-amendment` in the [plan](../plan.md#source-terms-amendment-optional) schedules a command
+for this.
+
+Verification compares records. It does not establish that a declaration is true, and a withdrawal
+nobody recorded stays invisible to it.
 
 ## Canonical decode policy
 
@@ -313,7 +350,8 @@ hold is `FRAME_NOT_IN_BUNDLE`.
 
 ### Verification
 
-`corpus verify` re-hashes every frame of every stream and names each damaged file with its stream:
+`corpus verify` first checks the [source terms](#withdrawing-rights), then re-hashes every frame of
+every stream and names each damaged file with its stream:
 
 ```json
 {"status": "refused", "code": "FRAME_CORRUPTED", "message": "...", "details": {"damaged_count": 1,
@@ -323,6 +361,11 @@ hold is `FRAME_NOT_IN_BUNDLE`.
 The reason is `hash_mismatch`, `missing` or `unexpected_file`. `damaged_count` is always complete; the
 list names the first 32. A stage over a damaged bundle and a read of a damaged frame refuse the same
 way, so a changed frame cannot reach a module.
+
+A `verified` result covers source records and frames, not stored source bytes. Only `corpus build`
+and staging a new bundle read those, so `corpus verify` and a repeated `corpus stage` do not notice a
+damaged or removed stored source. No module reads one, and the frames that modules do read are the
+ones hashed here.
 
 ## Generated cases
 
@@ -444,7 +487,7 @@ MPEG program streams import as `missing`, because they do not store a presentati
 | `TIMESTAMP_CLAIM_UNSUPPORTED` | Capture-clock evidence was declared without complete PTS |
 | `SELECTION_OUT_OF_RANGE` | A selection runs past the end of its sequence |
 | `SOURCE_NOT_IMPORTED` | A corpus names a source with no import record |
-| `SOURCE_RECORD_CHANGED` | A source was re-imported after the corpus that pins its record was built |
+| `SOURCE_RECORD_CHANGED` | A source's record differs from the one its corpus pinned, at stage or verify |
 | `SPLIT_LEAKAGE` | A group, encounter, stream or case name is declared in two splits, or two groups share a source |
 | `STREAM_OVERLAP` | Two streams use the same frames of one source |
 | `RIGHTS_CONFLICT` | Scenario sharing/sensitivity conflicts or a generated case lacks derivation permission |
@@ -529,6 +572,8 @@ staging, and `test_pixels.py` includes the comparison with FFmpeg's SIMD disable
 membership, rights and each stream's identity from build to `FrameRef`.
 `tests/corpus/test_source_terms.py` covers retention boundaries at every entrypoint, unchanged
 evidence across evaluation dates, explicit permission, strict declarations and legacy records.
+`tests/corpus/test_verify_rights.py` replaces source records through the real importer and covers
+verification from the command's exit status to the terms each refusal names.
 `tests/corpus/test_transforms.py`, `test_transform_recipes.py` and `test_transform_golden.py` cover
 each transform on hand-checkable frames and pin its bytes, and `test_recipes.py`,
 `test_generated_cases.py`, `test_case_membership.py` and `test_case_frames.py` cover recipes and

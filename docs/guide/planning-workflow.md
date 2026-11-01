@@ -108,7 +108,8 @@ authorized it. Name exact commands and tests as evidence; missing, mocked or sta
 prove acceptance, and a one-off investigation says that its scripts were not kept. The audit handoff
 gives each observation exactly one owner: an open task whose text states it, created in the same
 change if necessary. A closed record is history and is not rewritten later. Later routing of an old
-item goes in a new `adhoc` record.
+item goes in a new `adhoc` record. A record names plan tasks by id and links no plan heading, because
+the heading leaves with its task while the record stays.
 
 ### Record file naming
 

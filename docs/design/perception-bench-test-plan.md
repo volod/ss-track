@@ -43,6 +43,10 @@ makes it fail, and what it does not prove. A case with no task left is listed as
 - `corpus-verify-rights`: a source re-imported under narrower rights after staging.
   Value: protects=a verified corpus means valid rights; fails_when=verify passes on withdrawn rights;
   no_claim=the truth of a declaration.
+- `source-terms-amendment`: a source amended to `restricted` after staging, and a changed file
+  declared as an amendment.
+  Value: protects=a withdrawal that can be recorded; fails_when=stored bytes change or an amendment
+  carries more than terms; no_claim=removal of frames already staged.
 - `corpus-version-lineage`: a source moved between splits, and a source added, across linked versions.
   Value: protects=split isolation over time; fails_when=a moved source builds; no_claim=versions that
   declare no predecessor.

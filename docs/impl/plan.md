@@ -28,27 +28,6 @@ neither blocks M3. Fixture implementation proceeds without physical hardware or 
 
 ### Corpus provenance -- `corpus-provenance`
 
-#### corpus-verify-rights
-
-A corpus can verify cleanly after the rights it was built on were withdrawn.
-
-- Serves: `corpus-provenance` -- [Corpus
-  identity](../design/spec.md#41-corpus-identity-and-input-handling)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: `corpus verify` proves that frames are intact and that the source records
-  they rest on still hold.
-- Scope boundary: Source records and retention, read without re-hashing stored sources. Frame checks
-  are unchanged.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`.
-- Execution path: Reuse `require_source_record` and the retention check inside
-  `verify_corpus_frames`, with a re-import fixture.
-- Acceptance gates: A source re-imported as `restricted` makes `corpus verify` refuse with
-  `SOURCE_RECORD_CHANGED` and exit 1, and an expired source is `RETENTION_EXPIRED`. An unchanged
-  corpus still reports `verified`.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
 #### corpus-version-lineage
 
 A later corpus version can move material that was already evaluated into a held-out split, and
@@ -133,6 +112,32 @@ Likely reference hosts are arm64, and no decode, staged hash or transform has ru
 - Acceptance gates: Transform golden hashes match. A staged hash that differs is recorded per
   source, and cross-architecture bundle identity is then not claimed: that is a valid negative
   result.
+- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
+
+#### source-terms-amendment (optional)
+
+Changed terms cannot be recorded: `import` refuses them as `IMPORT_CONFLICT` and the corpus keeps
+verifying, until an operator deletes a sealed record by hand, and the stored source with it.
+
+- Serves: `corpus-provenance` -- [Corpus
+  identity](../design/spec.md#41-corpus-identity-and-input-handling)
+- Agent status: CLEAR
+- Milestone: M1
+- Dependencies: none.
+- User-visible outcome: `ss-track import --amend-terms` records new rights and sensitivity for an
+  imported source, and every corpus version pinning the old record then refuses. A plain import of
+  changed terms names the terms that differ and this command.
+- Scope boundary: Rights and sensitivity of one imported source, for the same bytes and decoder.
+  Stored bytes stay untouched and nothing is decoded. The replaced record is kept beside the new one.
+  Frames stay on disk.
+- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`,
+  `$DATA_DIR/import/<source-sha256>/`.
+- Execution path: Add the flag to `import`, re-seal the existing record with the declared terms under
+  one atomic replace, and keep the replaced record under its own seal.
+- Acceptance gates: A source amended to `restricted` makes `corpus verify` refuse with
+  `SOURCE_RECORD_CHANGED`, with its stored source byte-identical. A declaration that changes the file,
+  capture facts or decoder stays `IMPORT_CONFLICT`. A repeat reports `unchanged`, an interrupted
+  amendment leaves one whole record, and a replaced record stays readable.
 - Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
 
 #### case-preview (optional)
@@ -408,7 +413,7 @@ A comparison must pin everything that can change its result.
 - Serves: `module-contract-runner` -- [Run artifacts](../design/spec.md#10-run-artifacts-and-comparison-dashboard)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: event-schema-contract, annotation-contract, staged-frame-set, corpus-verify-rights.
+- Dependencies: event-schema-contract, annotation-contract, staged-frame-set.
 - User-visible outcome: A scenario file pins corpus, frame set, labels, selection, replay mode, metric
   suite, seed and deadlines, and yields one cohort key.
 - Scope boundary: The scenario schema, one cohort-key function, and one type that owns windows and

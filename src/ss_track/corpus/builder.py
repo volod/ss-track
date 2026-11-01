@@ -43,7 +43,7 @@ from ss_track.corpus.sealed import (
     sha256_file,
     write_sealed,
 )
-from ss_track.corpus.terms import evaluation_date, require_retention
+from ss_track.corpus.terms import changed_terms, evaluation_date, require_retention
 
 CORPUS_MANIFEST_KIND = "ss-track.corpus-manifest"
 CORPUS_DIRECTORY = "corpus"
@@ -176,8 +176,10 @@ def require_source_record(stream: Mapping[str, Any], data_root: Path) -> None:
             "this source's record changed after the corpus was built; build a new corpus version",
             {
                 "stream_id": stream["stream_id"],
+                "source_sha256": stream["source_sha256"],
                 "corpus_source_manifest_sha256": stream["source_manifest_sha256"],
                 "source_manifest_sha256": manifest[SEAL_FIELD],
+                "changed_terms": list(changed_terms(stream, manifest)),
             },
         )
 

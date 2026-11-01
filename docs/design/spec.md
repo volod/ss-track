@@ -229,8 +229,17 @@ requires `rights.retain_until` (an ISO calendar date or explicit `null` for no e
 the next UTC day. The evaluation date never enters sealed evidence. Ordinary decoding into staged
 frames does not require generated-case permission. Refusal does not delete
 anything: removing expired material stays an operator action. `corpus verify` re-reads the source
-records it pins, so a verified corpus is one whose rights still hold, not only one whose frames are
-intact.
+records it pins, without reading stored source bytes, so a verified corpus is one whose recorded
+rights still hold, not only one whose frames are intact. Any change to a pinned record refuses, even
+a wider right, and the refusal names the rights and sensitivity terms that differ. Verification
+compares records: it does not establish that a declaration is true, and it cannot see a withdrawal
+nobody recorded.
+
+An imported record is immutable, so an ordinary import that declares other terms is refused and
+records nothing. Changed terms are recorded by an explicit amendment, which replaces only the rights
+and sensitivity of a record, keeps the stored bytes untouched and retains the replaced record. Every
+corpus version that pins the old record then refuses at staging and verification. An amendment
+deletes no frames.
 
 ### 4.2 Annotation contract
 
@@ -1314,6 +1323,7 @@ which exist. They are subcommands of the installed `ss-track` entry point:
 
 ```text
 ss-track import --source recording.yaml
+ss-track import --source recording.yaml --amend-terms
 ss-track corpus build --manifest corpus.yaml
 ss-track corpus stage --corpus <id>
 ss-track corpus verify --corpus <id>

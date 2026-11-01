@@ -89,7 +89,9 @@ def build_parser() -> argparse.ArgumentParser:
     stage = corpus_commands.add_parser("stage", help="stage decoded frames for a corpus version")
     stage.add_argument("--corpus", required=True, help="built corpus_id")
     stage.set_defaults(handler=_run_corpus_stage)
-    verify = corpus_commands.add_parser("verify", help="verify every staged frame")
+    verify = corpus_commands.add_parser(
+        "verify", help="verify every staged frame and the source records it rests on"
+    )
     verify.add_argument("--corpus", required=True, help="built corpus_id")
     verify.set_defaults(handler=_run_corpus_verify)
     return parser

@@ -79,7 +79,7 @@ cache; the approved retry completed. No external footage or network-backed test 
 - `AUD-source-terms-enforcement-1`: Verification checks retention from pinned corpus terms but still
   does not re-read current source records. This pre-existing limitation is blocking for withdrawn-rights
   verification, not for this task. Owner: `corpus-verify-rights` in the
-  [plan](../plan.md#corpus-verify-rights), whose scope explicitly requires re-reading source records
+  [plan](../plan.md), whose scope explicitly requires re-reading source records
   and detecting changed rights without re-hashing media.
 - Legacy record migration is intentionally explicit. Automatic migration is dropped because neither
   a retention deadline nor derivation permission can be inferred safely from old descriptive terms.

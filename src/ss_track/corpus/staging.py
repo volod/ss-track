@@ -86,17 +86,27 @@ def _cases(corpus: dict[str, Any]) -> list[dict[str, Any]]:
     return cases
 
 
+def _require_sources_hold(corpus: dict[str, Any], data_root: Path, today: date) -> None:
+    """Refuse a corpus outside its recorded terms, before any bundle is written, skipped or hashed.
+
+    Retention goes first because it reads only the corpus, so removing expired material, which is
+    the operator's to do, cannot turn the reason into a missing record. A generated case holds its
+    parent's rights, so checking every stream covers every case.
+    """
+    for stream in _streams(corpus):
+        require_retention(stream, today)
+    for stream in _streams(corpus):
+        require_source_record(stream, data_root)
+
+
 def stage_corpus(corpus_id: str, data_root: Path, *, today: date | None = None) -> FramesResult:
     """Stage every stream and generated case, leaving each bundle complete or absent."""
     checked_on = evaluation_date(today)
     corpus = load_corpus_manifest(corpus_id, data_root)
-    for stream in _streams(corpus):
-        require_retention(stream, checked_on)
+    _require_sources_hold(corpus, data_root, checked_on)
     policy = current_decode_policy()
     policy_sha256 = decode_policy_sha256(policy.as_record())
     require_policy(corpus["decode_policy_sha256"], policy_sha256, f"corpus {corpus_id}")
-    for stream in _streams(corpus):
-        require_source_record(stream, data_root)
     for case in _cases(corpus):
         require_transform_revision(case)
     root = frames_root(data_root, corpus_id)
@@ -134,11 +144,14 @@ def _exclusive_staging(root: Path, corpus_id: str) -> Iterator[None]:
 def verify_corpus_frames(
     corpus_id: str, data_root: Path, *, today: date | None = None
 ) -> FramesResult:
-    """Compare every staged frame of a corpus version with its sealed index."""
+    """Prove the recorded source terms still hold, then compare every frame with its sealed index.
+
+    Source records are read and stored sources are not: a frame's hash covers what modules receive,
+    and staging is what ties those frames to the source bytes.
+    """
     checked_on = evaluation_date(today)
     corpus = load_corpus_manifest(corpus_id, data_root)
-    for stream in _streams(corpus):
-        require_retention(stream, checked_on)
+    _require_sources_hold(corpus, data_root, checked_on)
     root = frames_root(data_root, corpus_id)
     bundles = [_open_for_corpus(stream["stream_id"], corpus, root) for stream in _streams(corpus)]
     bundles += [_open_case(case, corpus, root) for case in _cases(corpus)]

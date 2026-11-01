@@ -11,5 +11,6 @@ Copy the [template](template.md) using the
 | 0004 | `generated-fixture-cases` | [0004-corpus-provenance-generated-fixture-cases](0004-corpus-provenance-generated-fixture-cases.md) |
 | 0005 | `audit-follow-up-routing` | [0005-adhoc-audit-follow-up-routing](0005-adhoc-audit-follow-up-routing.md) |
 | 0006 | `source-terms-enforcement` | [0006-corpus-provenance-source-terms-enforcement](0006-corpus-provenance-source-terms-enforcement.md) |
+| 0007 | `corpus-verify-rights` | [0007-corpus-provenance-corpus-verify-rights](0007-corpus-provenance-corpus-verify-rights.md) |
 
-Next unused sequence: `0007`.
+Next unused sequence: `0008`.
