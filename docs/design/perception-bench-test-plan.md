@@ -13,6 +13,10 @@ makes it fail, and what it does not prove. A case with no task left is listed as
   structured refusals. `tests/corpus/` covers them.
   Value: protects=structured refusal; fails_when=a bad source yields a score; no_claim=real decoder
   coverage.
+- One source staged twice gives one bundle hash, and a corrupted frame fails verification by name.
+  `tests/corpus/` covers them.
+  Value: protects=identical input for every module; fails_when=the hash drifts or corruption passes;
+  no_claim=cross-platform decoders.
 
 ## Fixture-level cases
 
@@ -26,9 +30,6 @@ makes it fail, and what it does not prove. A case with no task left is listed as
 - `annotation-review-tools`: hand-built disagreements between two label sets.
   Value: protects=review before freezing; fails_when=an unresolved case freezes; no_claim=reviewer
   skill.
-- `frame-bundle-staging`: one source staged twice, and one corrupted frame.
-  Value: protects=identical input for every module; fails_when=the hash drifts or corruption passes;
-  no_claim=cross-platform decoders.
 - `generated-fixture-cases`: a generated case on rerun with one seed.
   Value: protects=reproducible cases that are not encounters; fails_when=a case counts as new
   evidence; no_claim=realism.

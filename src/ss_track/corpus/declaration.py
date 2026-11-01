@@ -23,7 +23,7 @@ CAPTURE_FIELDS = (
     "motion",
     "object_pixel_extent",
 )
-_IDENTIFIER_PATTERN = re.compile(r"[a-z0-9][a-z0-9._-]{0,63}")
+IDENTIFIER_PATTERN = re.compile(r"[a-z0-9][a-z0-9._-]{0,63}")
 
 
 @dataclass(frozen=True, slots=True)
@@ -124,8 +124,8 @@ def load_corpus_declaration(path: Path) -> CorpusDeclaration:
 
 def _identifier(fields: Fields, key: str) -> str:
     value = fields.text(key)
-    if not _IDENTIFIER_PATTERN.fullmatch(value):
-        raise invalid(f"{key} must match {_IDENTIFIER_PATTERN.pattern}")
+    if not IDENTIFIER_PATTERN.fullmatch(value):
+        raise invalid(f"{key} must match {IDENTIFIER_PATTERN.pattern}")
     return value
 
 

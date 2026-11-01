@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from ss_track.corpus.declaration import (
+    IDENTIFIER_PATTERN,
     CorpusDeclaration,
     SequenceDeclaration,
     load_corpus_declaration,
@@ -44,12 +45,22 @@ class BuildResult:
         }
 
 
+def load_corpus_manifest(corpus_id: str, data_root: Path) -> dict[str, JsonValue]:
+    """Read one built corpus version, refusing an identifier that cannot name one."""
+    path = data_root / CORPUS_DIRECTORY / corpus_id / MANIFEST_NAME
+    if not IDENTIFIER_PATTERN.fullmatch(corpus_id) or not path.is_file():
+        raise CorpusRefusal(
+            RefusalCode.CORPUS_NOT_BUILT, "no such corpus version", {"corpus_id": corpus_id}
+        )
+    return read_sealed(path, CORPUS_MANIFEST_KIND)
+
+
 def build_corpus(declaration_path: Path, data_root: Path) -> BuildResult:
     """Verify every declared source again, then write the corpus version."""
     declaration = load_corpus_declaration(declaration_path)
     policy_record = current_decode_policy().as_record()
     policy_sha256 = decode_policy_sha256(policy_record)
-    _require_policy(declaration.decode_policy_sha256, policy_sha256, "corpus declaration")
+    require_policy(declaration.decode_policy_sha256, policy_sha256, "corpus declaration")
     sequences: list[JsonValue] = [
         _sequence_record(sequence, data_root, policy_sha256)
         for sequence in sorted(declaration.sequences, key=lambda item: item.sequence_id)
@@ -82,7 +93,7 @@ def _corpus_body(
     }
 
 
-def _require_policy(found: JsonValue, expected: str, origin: str) -> None:
+def require_policy(found: JsonValue, expected: str, origin: str) -> None:
     """Refuse a source decoded under anything but the corpus's one canonical policy."""
     if found is not None and found != expected:
         raise CorpusRefusal(
@@ -92,7 +103,7 @@ def _require_policy(found: JsonValue, expected: str, origin: str) -> None:
         )
 
 
-def _load_verified_source(source_sha256: str, data_root: Path) -> dict[str, JsonValue]:
+def load_verified_source(source_sha256: str, data_root: Path) -> dict[str, JsonValue]:
     """Load a source record only if both the record and the stored bytes are still intact."""
     directory = source_directory(data_root, source_sha256)
     manifest_path = directory / MANIFEST_NAME
@@ -138,8 +149,8 @@ def _resolve_selection(sequence: SequenceDeclaration, frame_count: int) -> dict[
 def _sequence_record(
     sequence: SequenceDeclaration, data_root: Path, policy_sha256: str
 ) -> dict[str, JsonValue]:
-    manifest = _load_verified_source(sequence.source_sha256, data_root)
-    _require_policy(
+    manifest = load_verified_source(sequence.source_sha256, data_root)
+    require_policy(
         manifest["decode_policy_sha256"], policy_sha256, f"source {sequence.source_sha256}"
     )
     media = manifest["sequence"]

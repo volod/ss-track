@@ -1,18 +1,22 @@
 # Corpus
 
 `ss-track import` turns one declared recording into an immutable, hashed source record.
-`ss-track corpus build` binds imported sources into one immutable corpus version. Either command
-produces a complete record or a structured refusal, and neither invents a value it could not
-establish. Frame staging, encounter grouping and splits, generated cases and annotation do not exist
-yet; the [plan](../plan.md) schedules them. The
-[task record](../records/0001-corpus-provenance-corpus-manifest-import.md) keeps the accepted task,
-its decisions and its acceptance evidence.
+`ss-track corpus build` binds imported sources into one immutable corpus version.
+`ss-track corpus stage` decodes each sequence into one immutable frame bundle that every module reads,
+and `ss-track corpus verify` proves those frames are intact. Each command produces a complete record
+or a structured refusal, and none invents a value it could not establish. Encounter grouping and
+splits, generated cases and annotation do not exist yet; the [plan](../plan.md) schedules them. The
+task records keep the accepted tasks, their decisions and their acceptance evidence:
+[import and corpus build](../records/0001-corpus-provenance-corpus-manifest-import.md) and
+[frame staging](../records/0002-corpus-provenance-frame-bundle-staging.md).
 
 ## Commands
 
 ```bash
 ss-track import --source recording.yaml
 ss-track corpus build --manifest corpus.yaml
+ss-track corpus stage --corpus pilot-v1
+ss-track corpus verify --corpus pilot-v1
 ```
 
 Each command logs one JSON record. A result has a `status`, its hashes and its manifest path, and
@@ -73,6 +77,7 @@ sequences:
 | `$DATA_DIR/import/<source-sha256>/source<ext>` | Read-only copy of the source bytes |
 | `$DATA_DIR/import/<source-sha256>/manifest.json` | Sealed source manifest |
 | `$DATA_DIR/corpus/<corpus-id>/manifest.json` | Sealed corpus manifest |
+| `$DATA_DIR/corpus/<corpus-id>/frames/<sequence-id>/` | One read-only frame bundle |
 
 Import copies the source first, then hashes and decodes that copy, so the record describes exactly
 the bytes retained. The finished directory is published by one rename, so a failure leaves nothing
@@ -86,8 +91,9 @@ new corpus version.
 
 A source manifest records the hash and size, whether the hash was declared, rights, sensitivity,
 capture facts, the decode policy and the sequence: container, codec, original and decoded dimensions,
-source pixel format, display rotation, time base, one PTS per presented frame, discarded sample
-count, video stream count, timestamp quality and completeness checks.
+source pixel format and bit depth, stored color tags, display rotation, interlaced frame count, time
+base, one PTS per presented frame, discarded sample count, video stream count, timestamp quality and
+completeness checks.
 
 `corpus build` trusts nothing from import time. It re-reads every source manifest, re-hashes every
 stored source, requires each source's decode policy to be the installed one, and checks each
@@ -106,6 +112,8 @@ sensitivity, and lists sequences in sorted order so declaration order cannot cha
 | `fflags=nofillin` | Without it the demuxer invents PTS from a guessed frame rate for files that store none |
 | `err_detect=explode` | Without it decoders conceal damaged blocks and return a frame as if nothing happened |
 | `flags=bitexact`, one thread | Removes decoder choices that can vary between runs |
+| `ACCURATE_RND`, `BITEXACT` conversion | Without them FFmpeg's SIMD and C paths round differently, so pixels depend on the CPU |
+| `FULL_CHR_H_INT`, `FULL_CHR_H_INP` conversion | Without them chroma is repeated instead of interpolated and lands in the wrong place |
 
 Exit status alone is not enough evidence, so `inspect_media` also refuses on a demuxer corrupt-packet
 flag, a decoder corrupt-frame flag, and any FFmpeg ERROR log. The log is the only signal for an FFV1
@@ -116,11 +124,88 @@ Decoded dimensions are the stored dimensions: the policy does not apply display 
 `display_rotation_degrees` is a fact for label tools, not a transform that modules receive. A tool
 that honors rotation must map its coordinates back to the stored orientation.
 
+`src/ss_track/corpus/pixels.py` owns the conversion to `rgb24`. It honors the stored color matrix,
+range and chroma location, and converts neither primaries nor transfer function, so an HDR source
+keeps its gamut and curve in 8-bit values. A source with no matrix tag is converted as BT.601, which
+misreads BT.709 content: a pure BT.709 red becomes `(233, 0, 2)`. Staging warns, and nothing guesses
+a tag the source lacks. Unspecified chroma location means center. Sources deeper than 8 bits lose
+precision and alpha is dropped. Interlaced frames stay woven and convert as progressive, so they are
+counted in `interlaced_frames`. Changing any stored color tag within a stream is
+`SOURCE_FORMAT_CHANGED`, which keeps one recorded description true of every frame.
+
 The decoder runs in process, not through the `ffmpeg` binary that `ss-video` and `ss-fusion` call.
 This corpus needs a decoder version fixed by `uv.lock`, its behavior covered by `make ci`, and frame
 and packet corruption flags; a system binary provides none of these. Their `-c copy` recordings
 import normally, and an interrupted one is refused: a cut faststart MP4 as `SOURCE_DAMAGED`, and a
 killed recording with no `moov` as `SOURCE_UNREADABLE`.
+
+## Frame bundles
+
+`corpus stage` writes one bundle per sequence of a built corpus, with the same strict decode as
+import. `src/ss_track/corpus/bundle_writer.py` writes a bundle and `src/ss_track/corpus/staging.py`
+runs the command.
+
+| Path | Content |
+| --- | --- |
+| `00000012.rgb24` | One frame: tightly packed RGB rows, `width * height * 3` bytes, no padding |
+| `manifest.json` | Sealed record with the frame index, per-frame SHA-256 and `bundle_sha256` |
+
+Frame names and `frame_index` are positions in the source sequence, so a selection keeps them: a
+window `[5, 9)` holds frames 5 to 8, and labels stay aligned with any window. A bundle holds only its
+selection, even though staging decodes the whole source to prove it still matches its import.
+
+`bundle_sha256` covers the `identity` block: source hash, decode policy hash, pixel format, width,
+height, bytes per frame, time base, selection and the ordered index of frame index, PTS and frame
+hash. Nothing else enters it, so two stagings of one source and window under one policy give one
+hash, whatever the corpus or sequence is called. The record separately holds the source pixel format
+and bit depth, `precision_reduced`, stored color tags, display rotation, interlaced frame count,
+timestamp quality and the links to its corpus and source manifests.
+
+Staging trusts nothing from before it ran. It re-hashes the stored source, requires the installed
+decode policy for both corpus and source, and refuses with `DECODE_DRIFT` if this decode disagrees
+with the import record in any field. It checks free space first, because raw frames dwarf their
+source: 14 MB of H.264 became 3.5 GB at 1080p. On the development host that clip staged at 74 frames
+per second with an 87 MB peak.
+
+Frames are written to a scratch directory and published by one rename, so a failure leaves no bundle.
+One staging runs per corpus, under a lock the kernel releases however a run ends. A second run gets
+`STAGING_IN_PROGRESS`, and the next run to take the lock removes what a killed run left behind.
+Sequences finished before a refusal stay staged, and repeating the command skips them.
+
+Repeating `corpus stage` re-hashes each existing bundle and reports `unchanged`. A bundle staged from
+another corpus version is `BUNDLE_CONFLICT`. A bundle is immutable: frames are mode `0444`, the
+directory is `0555`, and a damaged one is never repaired in place. Remove it with
+`chmod -R u+w <bundle> && rm -rf <bundle>`, then stage again; the hash comes back the same.
+
+### Reading frames
+
+```python
+from ss_track.corpus import open_frame_bundle
+
+bundle = open_frame_bundle(data_root / "corpus" / "pilot-v1" / "frames" / "enc01-cam0")
+ref = bundle.frame_ref(12)         # FrameRef for frame 12 of the source sequence
+pixels = bundle.read_frame(12)     # packed RGB bytes, compared with the sealed hash on every read
+```
+
+`src/ss_track/corpus/frames.py` owns this access. `frame_refs()` yields every reference in
+presentation order. A `FrameRef` carries stream, source hash, frame index, PTS, time base, timestamp
+quality and capture-clock evidence, dimensions, pixel format, transform, bundle hash, frame name and
+frame hash. `stream_id` is the sequence id until `corpus-split-grouping` adds stream identity.
+`transform` is always `identity`: pixels are as stored, and display rotation stays a record fact.
+An absent PTS stays `null`. An index outside the bundle is `FRAME_NOT_IN_BUNDLE`.
+
+### Verification
+
+`corpus verify` re-hashes every frame of every sequence and names each damaged file with its sequence:
+
+```json
+{"status": "refused", "code": "FRAME_CORRUPTED", "message": "...", "details": {"damaged_count": 1,
+ "frames": [{"sequence_id": "enc01-cam0", "frame": "00000003.rgb24", "reason": "hash_mismatch"}]}}
+```
+
+The reason is `hash_mismatch`, `missing` or `unexpected_file`. `damaged_count` is always complete; the
+list names the first 32. A stage over a damaged bundle and a read of a damaged frame refuse the same
+way, so a changed frame cannot reach a module.
 
 ## Timestamp quality
 
@@ -156,7 +241,14 @@ MPEG program streams import as `missing`, because they do not store a presentati
 | `DECODE_POLICY_MISMATCH` | A source or pin uses a decode policy other than the installed one |
 | `IMPORT_CONFLICT` | The same source was imported with another declaration or decoder |
 | `CORPUS_CONFLICT` | The `corpus_id` already exists with different content |
-| `STORAGE_FAILED` | The data root cannot be written |
+| `CORPUS_NOT_BUILT` | The named corpus version does not exist, or the identifier cannot name one |
+| `DECODE_DRIFT` | A staging decode disagrees with the import record of its source |
+| `BUNDLE_NOT_STAGED` | A sequence has no staged frame bundle |
+| `BUNDLE_CONFLICT` | A bundle was staged from a different corpus version |
+| `STAGING_IN_PROGRESS` | Another run is staging this corpus version |
+| `FRAME_CORRUPTED` | A staged file differs from the sealed index, is gone, or is not in it |
+| `FRAME_NOT_IN_BUNDLE` | A frame index lies outside a bundle |
+| `STORAGE_FAILED` | The data root cannot be written, or lacks the space for raw frames |
 
 ## Integrity limits
 
@@ -173,6 +265,20 @@ A Matroska file cut just after a cluster header ends cleanly: FFmpeg logs nothin
 frames, so `src/ss_track/corpus/integrity.py` compares the file with the segment size in its header.
 An MP4 edit list can mark stored samples as never presented. They count toward the container total
 as `discarded_frames` and are not frames of the sequence.
+
+A bundle's per-frame hashes prove that frames have not changed since staging. They cannot show that
+a frame was right when staged, because that rests on the source hash and the limits above.
+
+Two pixel comparisons bound the conversion. Staged frames matched system `ffmpeg` 8.0.1 exactly on 26
+of 32 real-encoder files, including every lossless source. The other six are H.264 and HEVC with
+left-sited chroma, where decoded YUV matched and only conversion differed. A measured chroma ramp
+settles which is right: the pinned path lands within 0.02 pixels when the tag is true, and system
+`ffmpeg` lands 0.48 pixels off because it treats `left` as `center`. Software that converts with that
+binary therefore sees different pixels from a bundle on those sources.
+
+Bundle hashes matched on all 32 files with FFmpeg's SIMD disabled, and the bit-exact flags are what
+make that true. That is the only cross-CPU evidence: it has not been run on arm64 hardware, and
+bundles are not claimed to be identical across decoders.
 
 An empty `completeness_checks` means completeness is unverified, not that the file is short. Import
 logs a warning and keeps the empty list in both manifests.
@@ -202,6 +308,8 @@ carries their notices.
 `tests/corpus/` generates its media at test time through the pinned library, so no binary enters the
 repository. `tests/corpus/test_decode.py` includes the truncation sweep over small H.264 Matroska and
 MP4 clips, and tests that default decoding hides damage the policy refuses.
+`tests/corpus/test_bundle_writer.py`, `test_staging.py`, `test_frames.py` and `test_pixels.py` cover
+staging, and `test_pixels.py` includes the comparison with FFmpeg's SIMD disabled.
 
 ```bash
 make test

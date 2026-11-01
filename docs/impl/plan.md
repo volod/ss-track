@@ -28,25 +28,6 @@ neither blocks M3. Fixture implementation proceeds without physical hardware or 
 
 ### Corpus provenance -- `corpus-provenance`
 
-#### frame-bundle-staging
-
-Every module must see exactly the same decoded frames.
-
-- Serves: `corpus-provenance` -- [Corpus identity](../design/spec.md#41-corpus-identity-and-input-handling)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: An operator stages one immutable decoded-frame bundle with a frame index and
-  per-frame hashes.
-- Scope boundary: Staged raw frames, `FrameRef` data and random access by frame index. Network
-  delivery and later packet paths are out of scope.
-- Data and artifact paths: `src/ss_track/corpus/`, `$DATA_DIR/corpus/<corpus-id>/frames/`.
-- Execution path: Add staging that records pixel format, dimensions and bundle hash, with fixtures
-  for a clean decode and a corrupted frame.
-- Acceptance gates: Two stagings of one source give one bundle hash. A corrupted frame fails
-  verification by name.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
 #### corpus-split-grouping
 
 Related frames must stay together, or evaluation leaks across splits.
@@ -72,7 +53,7 @@ Failure mechanisms need cheap, repeatable cases that do not count as field evide
 - Serves: `corpus-provenance` -- [Deterministic cases](../design/spec.md#43-deterministic-cases-and-negative-evidence)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: frame-bundle-staging, corpus-split-grouping.
+- Dependencies: corpus-split-grouping.
 - User-visible outcome: A recipe generates target absence, moving background, shake, blur, dropped
   frames and short occlusion cases from a parent sequence and seed.
 - Scope boundary: The spec section 4.3 initial cases. Fusion perturbations are out of scope.
@@ -181,7 +162,7 @@ G0 needs a runner that accounts for every frame.
 - Serves: `module-contract-runner` -- [Module contract](../design/spec.md#5-module-contract-execution-and-fault-semantics)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: run-bundle-store, frame-bundle-staging.
+- Dependencies: run-bundle-store.
 - User-visible outcome: `ss-track run` replays a scenario and reports exact frame accounting.
 - Scope boundary: Lockstep execution and fault semantics. Paced timing is a later task.
 - Data and artifact paths: `src/ss_track/runner/`, `tests/runner/`.
@@ -1058,7 +1039,7 @@ G0a needs only one positive and one negative encounter, so it should not wait fo
 - Serves: `annotation-selection` -- [Annotation contract](../design/spec.md#42-annotation-contract)
 - Agent status: HUMAN-GATED
 - Milestone: M1
-- Dependencies: select-development-workload, annotation-review-tools, frame-bundle-staging.
+- Dependencies: select-development-workload, annotation-review-tools.
 - User-visible outcome: Two encounters have frozen labels, selections and masks.
 - Scope boundary: The pilot encounters, including motion events. The pass also measures labelling
   time per encounter.

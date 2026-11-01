@@ -6,7 +6,7 @@ those into visible failures, and `inspect_media` treats every remaining signal a
 """
 
 import os
-from collections.abc import Iterator, Mapping
+from collections.abc import Callable, Iterator, Mapping
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -18,10 +18,16 @@ import av.video
 from av.video.codeccontext import VideoCodecContext
 
 from ss_track.corpus.integrity import matroska_segment_end
+from ss_track.corpus.pixels import (
+    CONVERSION_FLAGS,
+    OUTPUT_PIXEL_FORMAT,
+    ColorTags,
+    bits_per_component,
+    color_tags,
+)
 from ss_track.corpus.refusal import CorpusRefusal, JsonValue, RefusalCode
 
-POLICY_REVISION = 1
-OUTPUT_PIXEL_FORMAT = "rgb24"
+POLICY_REVISION = 2
 _FORMAT_OPTIONS = {"fflags": "nofillin", "err_detect": "explode"}
 _CODEC_OPTIONS = {"err_detect": "explode", "flags": "bitexact"}
 _THREAD_COUNT = 1
@@ -30,6 +36,7 @@ FRAME_COUNT_CHECK = "frame_count"
 SEGMENT_SIZE_CHECK = "matroska_segment_size"
 
 type FfmpegLog = list[tuple[int, str, str]]
+type FrameConsumer = Callable[[int, av.VideoFrame], None]
 
 
 @dataclass(frozen=True, slots=True)
@@ -43,6 +50,7 @@ class DecodePolicy:
     codec_options: Mapping[str, str] = field(default_factory=lambda: dict(_CODEC_OPTIONS))
     thread_count: int = _THREAD_COUNT
     output_pixel_format: str = OUTPUT_PIXEL_FORMAT
+    conversion_flags: str = CONVERSION_FLAGS
     revision: int = POLICY_REVISION
 
     def as_record(self) -> dict[str, JsonValue]:
@@ -69,7 +77,10 @@ class MediaInspection:
     decoded_width: int
     decoded_height: int
     source_pixel_format: str
+    source_bits_per_component: int
+    color: ColorTags
     display_rotation_degrees: int
+    interlaced_frames: int
     time_base: str | None
     pts: tuple[int | None, ...]
     discarded_frames: int
@@ -83,9 +94,11 @@ class _FrameShape:
     height: int
     pixel_format: str
     rotation: int
+    color: ColorTags
 
     def __str__(self) -> str:
-        return f"{self.width}x{self.height} {self.pixel_format} rotated {self.rotation}"
+        layout = f"{self.width}x{self.height} {self.pixel_format} rotated {self.rotation}"
+        return f"{layout} color {self.color}"
 
 
 @dataclass(slots=True)
@@ -95,6 +108,7 @@ class _Decoded:
     pts: list[int | None] = field(default_factory=list)
     shape: _FrameShape | None = None
     discarded: int = 0
+    interlaced: int = 0
 
 
 @contextmanager
@@ -121,8 +135,19 @@ def _damaged(reason: str, frames_decoded: int) -> CorpusRefusal:
     )
 
 
-def inspect_media(path: Path, policy: DecodePolicy) -> MediaInspection:
-    """Decode every frame strictly, or refuse with the evidence of why that failed."""
+def _ignore_frame(_: int, __: av.VideoFrame) -> None:
+    """Inspection needs only the account of each frame, not its pixels."""
+
+
+def inspect_media(
+    path: Path, policy: DecodePolicy, on_frame: FrameConsumer = _ignore_frame
+) -> MediaInspection:
+    """Decode every frame strictly, or refuse with the evidence of why that failed.
+
+    `on_frame` receives each accepted frame with its zero-based index, so anything built from the
+    pixels passes the same checks. A refusal can come after earlier frames were delivered, so a
+    consumer must keep its output unpublished until this returns.
+    """
     with _ffmpeg_errors() as logs:
         try:
             container = av.open(os.fspath(path), options=dict(policy.format_options))
@@ -131,7 +156,7 @@ def inspect_media(path: Path, policy: DecodePolicy) -> MediaInspection:
                 RefusalCode.SOURCE_UNREADABLE, f"cannot open media: {error.strerror}"
             ) from error
         with container:
-            return _inspect_container(path, container, policy, logs)
+            return _inspect_container(path, container, policy, logs, on_frame)
 
 
 def _configured_context(stream: av.video.VideoStream, policy: DecodePolicy) -> VideoCodecContext:
@@ -145,7 +170,11 @@ def _configured_context(stream: av.video.VideoStream, policy: DecodePolicy) -> V
 
 
 def _inspect_container(
-    path: Path, container: av.container.InputContainer, policy: DecodePolicy, logs: FfmpegLog
+    path: Path,
+    container: av.container.InputContainer,
+    policy: DecodePolicy,
+    logs: FfmpegLog,
+    on_frame: FrameConsumer,
 ) -> MediaInspection:
     streams = container.streams.video
     if not streams:
@@ -154,7 +183,7 @@ def _inspect_container(
     context = _configured_context(stream, policy)
     decoded = _Decoded()
     try:
-        _decode_all(container, stream, logs, decoded)
+        _decode_all(container, stream, logs, decoded, on_frame)
     except av.FFmpegError as error:
         raise _damaged(_last_log(logs) or str(error.strerror), len(decoded.pts)) from error
     checks = _frame_count_checks(stream.frames, decoded)
@@ -171,7 +200,10 @@ def _inspect_container(
         decoded_width=shape.width,
         decoded_height=shape.height,
         source_pixel_format=shape.pixel_format,
+        source_bits_per_component=bits_per_component(shape.pixel_format),
+        color=shape.color,
         display_rotation_degrees=shape.rotation,
+        interlaced_frames=decoded.interlaced,
         time_base=None if stream.time_base is None else str(stream.time_base),
         pts=tuple(decoded.pts),
         discarded_frames=decoded.discarded,
@@ -185,6 +217,7 @@ def _decode_all(
     stream: av.video.VideoStream,
     logs: FfmpegLog,
     decoded: _Decoded,
+    on_frame: FrameConsumer,
 ) -> None:
     """Account for every packet, stopping at the first sign of damage."""
     for packet in container.demux(stream):
@@ -195,6 +228,8 @@ def _decode_all(
             if frame.is_corrupt:
                 raise _damaged("decoder flagged a corrupt frame", len(decoded.pts))
             _require_one_shape(frame, decoded)
+            decoded.interlaced += frame.interlaced_frame
+            on_frame(len(decoded.pts), frame)
             decoded.pts.append(frame.pts)
         if logs:
             raise _damaged(_last_log(logs), len(decoded.pts))
@@ -204,7 +239,9 @@ def _decode_all(
 
 def _require_one_shape(frame: av.VideoFrame, decoded: _Decoded) -> None:
     """Keep the single recorded format true of every frame, not only the first."""
-    shape = _FrameShape(frame.width, frame.height, frame.format.name, frame.rotation)
+    shape = _FrameShape(
+        frame.width, frame.height, frame.format.name, frame.rotation, color_tags(frame)
+    )
     if decoded.shape is None:
         decoded.shape = shape
     elif shape != decoded.shape:

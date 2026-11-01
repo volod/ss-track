@@ -18,20 +18,27 @@ X264_WITH_B_FRAMES = {"preset": "medium", "bframes": "3"}
 MP4_OPTIONS = {"movflags": "faststart"}
 
 
-def _frame(index: int, width: int = WIDTH, height: int = HEIGHT) -> av.VideoFrame:
-    frame = av.VideoFrame(width, height, "rgb24")
-    plane = frame.planes[0]
-    padding = bytes(plane.line_size - width * 3)
-    rows = (
+def expected_rgb(index: int, width: int = WIDTH, height: int = HEIGHT) -> bytes:
+    """Return the packed pixels of one synthetic frame, for comparison after a lossless trip."""
+    return b"".join(
         bytes(
             value
             for x in range(width)
             for value in ((x * 5 + index * 7) % 256, (y * 5) % 256, (index * 11) % 256)
         )
-        + padding
         for y in range(height)
     )
-    plane.update(b"".join(rows))
+
+
+def _frame(index: int, width: int = WIDTH, height: int = HEIGHT) -> av.VideoFrame:
+    frame = av.VideoFrame(width, height, "rgb24")
+    plane = frame.planes[0]
+    row_bytes = width * 3
+    pixels = expected_rgb(index, width, height)
+    padding = bytes(plane.line_size - row_bytes)
+    plane.update(
+        b"".join(pixels[row * row_bytes : (row + 1) * row_bytes] + padding for row in range(height))
+    )
     return frame
 
 
@@ -43,15 +50,17 @@ def write_clip(
     container_options: dict[str, str] | None = None,
     container_format: str | None = None,
     frames: int = FRAME_COUNT,
+    width: int = WIDTH,
+    height: int = HEIGHT,
 ) -> Path:
     """Encode a short deterministic clip."""
     with av.open(path, "w", format=container_format, options=container_options or {}) as container:
         stream = container.add_stream(codec, rate=FRAME_RATE)
-        stream.width, stream.height, stream.pix_fmt = WIDTH, HEIGHT, pixel_format
+        stream.width, stream.height, stream.pix_fmt = width, height, pixel_format
         stream.thread_count = 1
         stream.options = options or {}
         for index in range(frames):
-            frame = _frame(index).reformat(format=pixel_format)
+            frame = _frame(index, width, height).reformat(format=pixel_format)
             frame.pts, frame.time_base = index, Fraction(1, FRAME_RATE)
             container.mux(stream.encode(frame))
         container.mux(stream.encode(None))

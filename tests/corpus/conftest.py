@@ -1,5 +1,6 @@
 """Shared corpus fixtures: a clean data root and written operator declarations."""
 
+import json
 from collections.abc import Callable
 from pathlib import Path
 
@@ -8,11 +9,12 @@ import yaml
 
 from ss_track.corpus import import_source
 from ss_track.corpus.importer import ImportResult
-from ss_track.corpus.sealed import sha256_file
+from ss_track.corpus.sealed import seal, sha256_file
 from tests.corpus._media import write_clip
 
 type Recording = dict[str, object]
 type WriteRecording = Callable[..., Path]
+type WriteCorpus = Callable[..., Path]
 
 
 def recording_declaration(source: str = "clip.mkv") -> Recording:
@@ -28,6 +30,19 @@ def recording_declaration(source: str = "clip.mkv") -> Recording:
         },
         "sensitivity": {"level": "low"},
     }
+
+
+def sequence_of(result: ImportResult, **fields: object) -> dict[str, object]:
+    """Return one corpus sequence entry naming an imported source."""
+    return {"sequence_id": "one", "source_sha256": result.source_sha256} | fields
+
+
+def reseal(path: Path, **changes: object) -> None:
+    """Change a record and repair its seal, as a wrong but self-consistent record would be."""
+    record = json.loads(path.read_text(encoding="ascii"))
+    record.pop("manifest_sha256")
+    path.chmod(0o644)
+    path.write_text(json.dumps(seal(record | changes)), encoding="ascii")
 
 
 @pytest.fixture
@@ -55,6 +70,17 @@ def write_recording(media: Path) -> WriteRecording:
             declaration["source"] = {"path": source, "sha256": sha256}
         path = media / "recording.yaml"
         path.write_text(yaml.safe_dump(declaration), encoding="utf-8")
+        return path
+
+    return write
+
+
+@pytest.fixture
+def write_corpus(media: Path) -> WriteCorpus:
+    def write(sequences: list[dict[str, object]], **overrides: object) -> Path:
+        declaration = {"schema_version": 1, "corpus_id": "pilot-v1", "sequences": sequences}
+        path = media / "corpus.yaml"
+        path.write_text(yaml.safe_dump(declaration | overrides), encoding="utf-8")
         return path
 
     return write

@@ -6,7 +6,15 @@ import logging
 from collections.abc import Callable, Sequence
 from pathlib import Path
 
-from ss_track.corpus import BuildResult, CorpusRefusal, ImportResult, RefusalCode
+from ss_track.corpus import (
+    BuildResult,
+    CorpusRefusal,
+    FramesResult,
+    ImportResult,
+    RefusalCode,
+    stage_corpus,
+    verify_corpus_frames,
+)
 from ss_track.corpus import build_corpus as run_corpus_build
 from ss_track.corpus import import_source as run_import
 from ss_track.metadata import project_info
@@ -27,7 +35,7 @@ def _refuse(refusal: CorpusRefusal) -> int:
     return EXIT_REFUSED
 
 
-def _report(action: Callable[[Path], ImportResult | BuildResult]) -> int:
+def _report(action: Callable[[Path], ImportResult | BuildResult | FramesResult]) -> int:
     """Run one corpus action and report one JSON record for its result or its refusal."""
     try:
         result = action(resolve_data_root())
@@ -53,6 +61,14 @@ def _run_corpus_build(args: argparse.Namespace) -> int:
     return _report(lambda data_root: run_corpus_build(args.manifest, data_root))
 
 
+def _run_corpus_stage(args: argparse.Namespace) -> int:
+    return _report(lambda data_root: stage_corpus(args.corpus, data_root))
+
+
+def _run_corpus_verify(args: argparse.Namespace) -> int:
+    return _report(lambda data_root: verify_corpus_frames(args.corpus, data_root))
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the command parser independently for tests and future subcommands."""
     parser = argparse.ArgumentParser(prog="ss-track")
@@ -70,6 +86,12 @@ def build_parser() -> argparse.ArgumentParser:
     build = corpus_commands.add_parser("build", help="build one corpus version")
     build.add_argument("--manifest", type=Path, required=True, help="corpus declaration (YAML)")
     build.set_defaults(handler=_run_corpus_build)
+    stage = corpus_commands.add_parser("stage", help="stage decoded frames for a corpus version")
+    stage.add_argument("--corpus", required=True, help="built corpus_id")
+    stage.set_defaults(handler=_run_corpus_stage)
+    verify = corpus_commands.add_parser("verify", help="verify every staged frame")
+    verify.add_argument("--corpus", required=True, help="built corpus_id")
+    verify.set_defaults(handler=_run_corpus_verify)
     return parser
 
 

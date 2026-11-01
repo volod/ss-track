@@ -1,5 +1,7 @@
 import hashlib
+from dataclasses import replace
 from pathlib import Path
+from types import SimpleNamespace
 
 import av
 import av.logging
@@ -8,11 +10,14 @@ import pytest
 from ss_track.corpus.decode import (
     DecodePolicy,
     MediaInspection,
+    _decode_all,
     _Decoded,
     _frame_count_checks,
+    _require_one_shape,
     current_decode_policy,
     inspect_media,
 )
+from ss_track.corpus.importer import decode_policy_sha256
 from ss_track.corpus.refusal import CorpusRefusal, RefusalCode
 from tests.corpus._media import (
     FRAME_COUNT,
@@ -259,3 +264,66 @@ def test_inspection_restores_global_ffmpeg_logging(clip: Path) -> None:
     _inspect(clip)
 
     assert (av.logging.get_level(), av.logging.get_skip_repeated()) == before
+
+
+def test_every_accepted_frame_reaches_the_consumer_with_its_index(clip: Path) -> None:
+    seen: list[tuple[int, int | None]] = []
+
+    inspection = inspect_media(clip, POLICY, lambda index, frame: seen.append((index, frame.pts)))
+
+    assert seen == list(enumerate(inspection.pts))
+
+
+def test_a_frame_after_damage_never_reaches_the_consumer(tmp_path: Path) -> None:
+    damaged = flip_bytes(write_clip(tmp_path / "clip.mkv", "ffv1", "yuv420p"), 0.6)
+    seen: list[int] = []
+
+    with pytest.raises(CorpusRefusal) as caught:
+        inspect_media(damaged, POLICY, lambda index, _: seen.append(index))
+
+    assert caught.value.code is RefusalCode.SOURCE_DAMAGED
+    assert len(seen) < FRAME_COUNT
+
+
+def test_a_frame_the_decoder_flags_as_corrupt_never_reaches_the_consumer() -> None:
+    frame = SimpleNamespace(is_corrupt=True)
+    packet = SimpleNamespace(is_corrupt=False, is_discard=False, decode=lambda: [frame])
+    container = SimpleNamespace(demux=lambda _: [packet])
+    seen: list[int] = []
+
+    with pytest.raises(CorpusRefusal):
+        _decode_all(container, None, [], _Decoded(), lambda i, _: seen.append(i))  # type: ignore[arg-type]
+
+    assert seen == []
+
+
+def test_a_color_tag_change_within_a_stream_is_refused() -> None:
+    first, second = av.VideoFrame(16, 16, "yuv420p"), av.VideoFrame(16, 16, "yuv420p")
+    first.colorspace, second.colorspace = 1, 5
+    decoded = _Decoded()
+    _require_one_shape(first, decoded)
+
+    with pytest.raises(CorpusRefusal) as caught:
+        _require_one_shape(second, decoded)
+
+    assert caught.value.code is RefusalCode.SOURCE_FORMAT_CHANGED
+
+
+def test_source_color_facts_are_recorded(clip: Path) -> None:
+    inspection = _inspect(clip)
+
+    assert inspection.source_bits_per_component == 8
+    assert (inspection.color.matrix, inspection.color.range) == (5, 2)
+
+
+def test_the_conversion_is_part_of_the_policy_identity() -> None:
+    changed = replace(POLICY, conversion_flags="BILINEAR")
+
+    assert decode_policy_sha256(changed.as_record()) != decode_policy_sha256(POLICY.as_record())
+
+
+def test_interlaced_frames_are_counted(tmp_path: Path) -> None:
+    options = {"flags": "+ildct+ilme", "preset": "ultrafast"}
+    clip = write_clip(tmp_path / "clip.mkv", "libx264", "yuv420p", options)
+
+    assert _inspect(clip).interlaced_frames == FRAME_COUNT

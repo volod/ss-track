@@ -160,7 +160,11 @@ The corpus declares a canonical decoder, its version/options and output pixel fo
 decode is strict: a source is refused when decoding shows truncation or corruption that a tolerant
 decoder would conceal, and a source whose completeness cannot be established says so in its record.
 G0 modules consume one staged, immutable decoded-frame bundle. This makes their actual input
-identical without requiring cross-platform decoders to produce identical pixels. Later external
+identical without requiring cross-platform decoders to produce identical pixels. The bundle hash
+covers the source hash, decode policy, pixel layout and per-frame hashes, and no corpus or sequence
+name, so two stagings of one source under one policy give one hash. The decode policy includes the
+conversion to the output pixel format, and a bundle records the stored color tags that conversion
+used, without inventing a tag the source lacks. Later external
 modules may consume the same bundle or original packets. The latter path matches source hash,
 packet/frame identity and PTS, and validates a declared sample of decoded pixels under a measured
 tolerance. If exact input correspondence cannot be established, `EXTERNAL_EVENTS` reports contract
@@ -1224,6 +1228,8 @@ which exist. They are subcommands of the installed `ss-track` entry point:
 ```text
 ss-track import --source recording.yaml
 ss-track corpus build --manifest corpus.yaml
+ss-track corpus stage --corpus <id>
+ss-track corpus verify --corpus <id>
 ss-track annotate validate --corpus <id>
 ss-track hardware-probe --out host.json
 ss-track hardware-measure --protocol hardware-trial.yaml --out trial/

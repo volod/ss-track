@@ -11,6 +11,7 @@ from ss_track.corpus.refusal import CorpusRefusal, JsonValue, RefusalCode
 
 SEAL_FIELD = "manifest_sha256"
 READ_ONLY_FILE_MODE = 0o444
+READ_ONLY_DIRECTORY_MODE = 0o555
 _CHUNK_BYTES = 1024 * 1024
 
 

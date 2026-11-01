@@ -64,6 +64,14 @@ def decode_policy_sha256(policy_record: dict[str, JsonValue]) -> str:
     return sha256_bytes(canonical_json(policy_record))
 
 
+def decoded_facts(inspection: MediaInspection) -> dict[str, JsonValue]:
+    """Return what a decode established, in the form a source manifest stores it."""
+    facts: dict[str, JsonValue] = asdict(inspection)
+    facts["pts"] = list(inspection.pts)
+    facts["completeness_checks"] = list(inspection.completeness_checks)
+    return facts
+
+
 def import_source(declaration_path: Path, data_root: Path) -> ImportResult:
     """Import one recording, leaving a complete record or nothing."""
     declaration = load_recording_declaration(declaration_path)
@@ -137,9 +145,7 @@ def _manifest_body(
 ) -> dict[str, JsonValue]:
     """Build the hashed record. It holds no clock time or path, so an import can be repeated."""
     policy_record = policy.as_record()
-    sequence: dict[str, JsonValue] = asdict(inspection)
-    sequence["pts"] = list(inspection.pts)
-    sequence["completeness_checks"] = list(inspection.completeness_checks)
+    sequence = decoded_facts(inspection)
     sequence["frame_count"] = len(inspection.pts)
     sequence["timestamp_quality"] = quality
     sequence["capture_clock_evidence"] = declaration.capture_clock_evidence
