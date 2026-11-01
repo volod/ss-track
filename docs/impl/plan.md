@@ -28,28 +28,6 @@ neither blocks M3. Fixture implementation proceeds without physical hardware or 
 
 ### Corpus provenance -- `corpus-provenance`
 
-#### arm64-reproducibility
-
-Likely reference hosts are arm64, and staged hashes have been compared with one only under emulation.
-
-- Serves: `corpus-provenance` -- [Corpus
-  identity](../design/spec.md#41-corpus-identity-and-input-handling)
-- Agent status: RUN NEEDED
-- Milestone: M2
-- Dependencies: none.
-- User-visible outcome: Maintainers know exactly which staged hashes and generated cases hold on
-  arm64 hardware.
-- Scope boundary: The declared run of `.github/workflows/arm64-reproducibility.yml` on one hosted
-  arm64 Linux runner. Timing is out of scope, and macOS is a separate claim.
-- Data and artifact paths: `.github/workflows/`, `$DATA_DIR/run/<run-id>/`.
-- Execution path: Declared run: the workflow on a pushed branch, then read its `hash-comparison`
-  artifact.
-- Acceptance gates: The job runs on an `aarch64` machine, and the tests pass with the transform golden
-  hashes among them. A comparison of `identical` proves every bundle equal. A comparison of `different`
-  names each source, and cross-architecture bundle identity is then not claimed for those sources: that
-  is a valid negative result.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
 #### source-terms-amendment (optional)
 
 Changed terms cannot be recorded: `import` refuses them as `IMPORT_CONFLICT` and the corpus keeps
@@ -1523,12 +1501,16 @@ Benchmark and reference-tracker measurements need a host chosen from evidence.
   candidate.
 - Scope boundary: At least two available candidates against Stand A, including the bootstrap host.
   Optional thermal-rig compatibility is recorded separately from core benchmark suitability.
-- Data and artifact paths: `$DATA_DIR/selection/<selection-id>/`, `scenarios/stands/`.
+- Data and artifact paths: `$DATA_DIR/selection/<selection-id>/`, `$DATA_DIR/run/<run-id>/`,
+  `scenarios/stands/`.
 - Execution path: A person obtains approved candidates; an agent runs probe, null-module and
-  reference-tracker trials on each under the same declared workload and limits.
-- Acceptance gates: Each measured candidate has traceable evidence and rejection reasons. A single available
-  candidate is a provisional choice, not a comparative selection. No qualifying host is valid;
-  revise the requirement before claiming support.
+  reference-tracker trials on each under the same declared workload and limits, then stages the fixed
+  corpus on each from sources carried from x86-64 and compares them with `ss-track corpus compare`.
+- Acceptance gates: Each measured candidate has traceable evidence, rejection reasons and a staged-hash
+  comparison on the candidate itself. A comparison of `different` names each source and narrows that
+  host's claim to the sources it does not name. A single available candidate is a provisional choice,
+  not a comparative selection. No qualifying host is valid; revise the requirement before claiming
+  support.
 - Documentation target: [Current implementation](current.md#areas), page
   `current/hardware-selection.md`.
 

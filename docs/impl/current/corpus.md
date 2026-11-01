@@ -599,12 +599,15 @@ carried to the other, so no binary enters the repository, and the
 | --- | --- |
 | x86-64 and emulated arm64, `neoverse-n2`, `cortex-a72` and `max`, this policy | Identical: every one of 78 bundles |
 | x86-64 and emulated arm64, the policy without `idct=simple` | 14 of 71 sources differ, in 101 of 144 frames: every MJPEG, MPEG-1, MPEG-2, MPEG-4, H.263, MSMPEG-4, DV and 8-bit DNxHD source. Decoded planes differed in exactly those frames, so the difference was decoding and not conversion |
-| x86-64 and arm64 hardware | Not run yet. `arm64-reproducibility` in the [plan](../plan.md#arm64-reproducibility) owns it |
+| x86-64 and GitHub-hosted arm64 hardware, `ubuntu-24.04-arm`, this policy | Identical: every one of 78 bundles, 879 frames |
 
 Emulation runs the wheel's real arm64 machine code through QEMU's user mode, and the three CPU profiles
-span NEON alone up to the newest features QEMU offers. It is strong evidence and not a hardware result,
-so nothing here claims arm64 hardware yet. Pinning the IDCT changed no x86-64
-pixel on any source. What moved is arm64, and the policy hash, as any option change does.
+span NEON alone up to the newest features QEMU offers. The hardware row is one hosted runner, whose CPU
+model the run does not record, and the workflow repeats it on every pull request and push to `main`,
+failing on any difference. Neither row reaches a host that did not stage the corpus:
+`select-reference-host` in the [plan](../plan.md#select-reference-host) compares each candidate on the
+candidate itself. Pinning the IDCT changed no x86-64 pixel on any source. What moved is arm64, and the
+policy hash, as any option change does.
 
 ### Reading frames
 

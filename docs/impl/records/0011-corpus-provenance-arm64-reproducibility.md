@@ -128,15 +128,19 @@ The emulated runs used the locked arm64 wheels, `av` 19.0.2 with FFmpeg 9.0.2 an
 `qemu-aarch64` 10.2.1 user mode on an arm64 `python:3.12-slim-bookworm` root. Tests that start Python
 ran through a wrapper. Scripts were not kept.
 
+The declared run is [run 41345028661](https://github.com/volod/ss-track/actions/runs/41345028661), on
+pull request 2 at `0bf3b9e`, on the same locked versions with Python 3.12.3 on both hosts. It was the
+workflow's first execution, and it passed unchanged.
+
 ## Acceptance evidence
 
 | Gate | Exact command, test or artifact | Result and limit |
 | --- | --- | --- |
-| A CI job on an arm64 runner | `.github/workflows/arm64-reproducibility.yml`, `tests/quality/test_workflows.py` | Written, shape pinned: not-run. The job has never executed |
-| The arm64 environment installs | One-off: `uv sync --locked --extra dev --python 3.12 --no-install-package shellcheck-py --python-platform aarch64-manylinux_2_28 --dry-run` | Pass: every locked package resolves to an arm64 wheel. A dry run, not an install on the runner |
-| Transform golden hashes match on arm64 | `tests/corpus/test_transform_golden.py` under QEMU on `neoverse-n2`, `cortex-a72` and `max` | Pass, emulated. Hardware: not-run |
-| Every test on arm64 | One-off: `python -m pytest tests` under QEMU on the three profiles | TESTS_RESULT |
-| An equal frame-set hash proves every bundle equal | Fixed corpus staged on x86-64, then on each profile from the same sources, then `ss-track corpus compare`; `tests/corpus/test_host_hashes.py::test_equal_frame_sets_compare_identical_and_keep_the_comparison` | Pass, emulated: exit 0, `identical`, frame set `c2f82c0b5c99ef1e60e28871b43dec835392331e5e8ccef7e9b3035469b102d0` on all four, 71 sources, 78 bundles. Hardware: not-run |
+| A CI job on an arm64 runner | Job `arm64` of run 41345028661, step `Refuse a runner that is not arm64`; `tests/quality/test_workflows.py` pins its shape | Pass, hardware: `ubuntu-24.04-arm`, image 20261025.165.1, machine `aarch64`. The event checked out merge `6eee3c2`, whose tree `1c52f9d` equals that of `0bf3b9e`. The log does not name the CPU model |
+| The arm64 environment installs | Step `Install locked environment` of the same job: `uv sync --locked --extra dev --python 3.12 --no-install-package shellcheck-py` | Pass, hardware: 39 packages, `av` 19.0.2 and `numpy` 2.5.4 |
+| Transform golden hashes match on arm64 | `tests/corpus/test_transform_golden.py`, 8 tests, inside the run's `make test`, and under QEMU on `neoverse-n2`, `cortex-a72` and `max` | Pass, hardware and emulated |
+| Every test on arm64 | `make test` in the same job; one-off: `python -m pytest tests` on an export of `0bf3b9e` under QEMU on the three profiles | Hardware: pass, 656 passed, none skipped. Emulated: TESTS_RESULT |
+| An equal frame-set hash proves every bundle equal | `hash-comparison` artifact of the same run, kept at `$DATA_DIR/run/arm64-hardware-41345028661/`, SHA-256 `99673febba394d7783dc5734172902d4f82ad73624e7d49b2f2744772e5a8b9b`; fixed corpus staged on x86-64, then on each profile from the same sources; `tests/corpus/test_host_hashes.py::test_equal_frame_sets_compare_identical_and_keep_the_comparison` | Pass, hardware: exit 0, `identical`, `x86_64` and `aarch64`, frame set `160e7c55468741b23f6c5149fd900fde04e11a761ac1071eb97025c5bee67a15`, 71 sources, 78 bundles. A one-off script comparing the two records directly found every bundle and all 879 frames equal. Pass, emulated: exit 0, `identical`, frame set `c2f82c0b5c99ef1e60e28871b43dec835392331e5e8ccef7e9b3035469b102d0` on all four |
 | A difference is recorded per source | The same comparison under the previous policy, without `idct=simple`, on x86-64 and `neoverse-n2` | Pass, a real negative: exit 1, `STAGED_HASHES_DIFFER`, 14 of 71 sources and 101 of 144 of their frames, each naming its codec, pixel format and first frame. No hand-edited record |
 | The fault is decoding and not conversion | One-off probe of 73 sources hashing decoded planes and converted pixels per frame, under the previous policy | 16 of 73 differed, with planes and pixels differing in the same frames. Under `idct=simple`, 73 of 73 matched on all three profiles, and x86-64 pixels were unchanged on all 73. Script not kept |
 | Regenerating sources is not a comparison | One-off: `write_sources` twice on x86-64 and once on `neoverse-n2`, hashing files and packet payloads | Two writes on one host: 45 of 71 files differ, all `.mkv` or `.webm`, and packets differ in 1. x86-64 and arm64: packets differ in 41 of 71. Script not kept |
@@ -152,11 +156,25 @@ sources encoded differently on arm64 was withdrawn: it compared whole files, and
 change on every write, so the table states packets. Tests ran on generated media through the pinned
 library. No external footage was needed.
 
+The two frame sets above differ because each run wrote its own sources, which a frame set covers: 26
+of 71 source hashes are shared between them, and frame hashes match on 77 of 78 streams. The other
+stream, `h264-wide-10-bit`, also differs between two x86-64 writes, so it is not an architecture
+result.
+
+The first full emulated run is not the evidence here. It piped pytest through `tail`, so its exit
+status was `tail`'s, and it began before the commit. Only `corpus.md` changed after it began and its
+output showed no failure, but the repeat in the table states each profile's own exit status.
+
 ## Audit handoff
 
-- `AUD-arm64-reproducibility-1`: Every arm64 result here is emulated, and the workflow has never
-  executed, so a defect in the job itself or a difference on real silicon stays unseen. Blocking for
-  acceptance. Owner: `arm64-reproducibility`, amended in this change to hold exactly that run.
+- `AUD-arm64-reproducibility-1`: Every arm64 result was emulated when this work was committed, and the
+  workflow had never executed, so a defect in the job itself or a difference on real silicon stayed
+  unseen. Blocking for acceptance. Closed: run 41345028661 executed the job on `aarch64` and every
+  gate passed, so `arm64-reproducibility` left the plan and nothing further is owed.
+- `AUD-arm64-reproducibility-3`: The hardware result is one hosted runner, not the reference host,
+  whose CPU may differ, and no open task compared staged hashes there. Nonblocking: this task scoped
+  itself to one runner. Owner: `select-reference-host`, amended in this change to stage the fixed
+  corpus and compare it on each candidate.
 - `AUD-arm64-reproducibility-2`: This change's own policy revision shows that a new decode policy
   strands every import, with deleting the stored source as the only route, and no task covered it.
   Nonblocking: no data root exists yet. Owner: `decode-policy-reimport`, added in this change with the
@@ -174,20 +192,28 @@ library. No external footage was needed.
   diagnostic, and a scenario's pin stays the check against a rewritten frame set.
 - The same host's H.264 packets differed once across two writes of one 10-bit row. Dropped, needing
   no work: sources are carried, so a comparison never depends on it.
+- The run does not name the runner's CPU, and a staged-hash record holds only machine, system and
+  Python. Dropped, needing no work: a hosted pool is not a product host, and `ss-track hardware-probe`
+  states the CPU of a real one.
+- The run's artifacts expire on 2027-01-30. Dropped, needing no work: its three records stay under
+  `$DATA_DIR/run/arm64-hardware-41345028661/`, and the table states the hashes they prove.
+- `source-terms-enforcement`, `corpus-verify-rights`, `corpus-version-lineage`, `staged-frame-set` and
+  `duplicate-frame-detection` are still listed as fixture-level cases in the test plan with no task
+  left, against that page's own rule. Dropped as a chore this task does not need: each still names
+  what it protects, and only this task's case moved.
 - Reviewed malformed, other-schema, incomplete and mismatched records, a corpus never staged, a
   damaged frame, invalid run ids, and each host-difference shape. No additional work identified.
 
 ## Close or resume
 
-Remaining gate: the declared run. Next action: push this work, let
-`.github/workflows/arm64-reproducibility.yml` run, and read its `hash-comparison` artifact. On
-`identical`, set `accepted` with the run's link, state the hardware result in the
-[corpus page](../current/corpus.md#across-hosts), and remove the task from the plan. On `different`,
-record each source here and state the narrower claim there, which is a valid negative result.
+All required gates passed, the declared run among them with a comparison of `identical`. Work after
+`0bf3b9e` changes documentation only, so that run's evidence stands for it.
 
 The current corpus and developer tooling pages, the records index, the specification and the test plan
-are updated. Amended `arm64-reproducibility` and added `decode-policy-reimport`. Remaining plan: 88
-tasks (67 agent, 21 human); next agent is `arm64-reproducibility`, next human is
-`select-development-workload`. `corpus-provenance` remains planned. No service, port or external
-resource stayed active: the arm64 image was pulled through Docker and remains in the local image
-cache, and scratch evidence stayed outside the repository.
+are updated, and this task's case moved to existing behavior in the test plan. Removed
+`arm64-reproducibility`, which no task depended on, added `decode-policy-reimport` and amended
+`select-reference-host`. Remaining plan: 87 tasks (66 agent, 21 human); next agent is
+`source-terms-amendment`, next human is `select-development-workload`. `corpus-provenance` remains
+planned because its other tasks remain. No service, port or external resource stayed active, and no
+QEMU handler was registered with the kernel: the arm64 image was pulled through Docker and remains in
+the local image cache, and scratch evidence stayed outside the repository.
