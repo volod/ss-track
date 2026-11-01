@@ -28,26 +28,6 @@ neither blocks M3. Fixture implementation proceeds without physical hardware or 
 
 ### Corpus provenance -- `corpus-provenance`
 
-#### corpus-manifest-import
-
-Recordings need stable identity before anything can be replayed or compared.
-
-- Serves: `corpus-provenance` -- [Corpus identity](../design/spec.md#41-corpus-identity-and-input-handling)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: An operator imports a source and gets a hashed manifest with rights,
-  sensitivity and timestamp-quality fields, or a structured refusal.
-- Scope boundary: Import, hashing and the canonical decode policy. One pinned decoder is chosen here
-  and must have arm64 wheels. Staging and annotation are later tasks.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/corpus/<corpus-id>/`.
-- Execution path: Add `ss-track import` and `ss-track corpus build` in `src/ss_track/cli.py`, keeping
-  logic in `src/ss_track/corpus/`, with small synthetic media fixtures and the smallest justified
-  decoder dependency in `uv.lock`.
-- Acceptance gates: Truncated, zero-length, wrong-hash, non-increasing PTS and selection-past-end
-  fixtures yield a structured failure and never a fabricated value. `make ci` passes.
-- Documentation target: [Current implementation](current.md#areas), new page `current/corpus.md`.
-
 #### frame-bundle-staging
 
 Every module must see exactly the same decoded frames.
@@ -55,7 +35,7 @@ Every module must see exactly the same decoded frames.
 - Serves: `corpus-provenance` -- [Corpus identity](../design/spec.md#41-corpus-identity-and-input-handling)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: corpus-manifest-import.
+- Dependencies: none.
 - User-visible outcome: An operator stages one immutable decoded-frame bundle with a frame index and
   per-frame hashes.
 - Scope boundary: Staged raw frames, `FrameRef` data and random access by frame index. Network
@@ -74,7 +54,7 @@ Related frames must stay together, or evaluation leaks across splits.
 - Serves: `corpus-provenance` -- [Corpus identity](../design/spec.md#41-corpus-identity-and-input-handling)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: corpus-manifest-import.
+- Dependencies: none.
 - User-visible outcome: Corpus versions keep each encounter intact across development, calibration
   and locked splits, including every stream of a multi-stream encounter.
 - Scope boundary: Grouping, split membership, stream identity and scenario rights. A locked test and
@@ -111,7 +91,7 @@ Labels need stable identity and a frozen mask before scores can mean anything.
 - Serves: `annotation-selection` -- [Annotation contract](../design/spec.md#42-annotation-contract)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: corpus-manifest-import.
+- Dependencies: none.
 - User-visible outcome: An operator validates visibility status, geometry, instance identity, motion
   events, operator seeds and masks against a versioned schema.
 - Scope boundary: Schema, validation and frozen seed replay. Labelling itself is human work.

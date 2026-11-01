@@ -45,26 +45,34 @@ specific files must link here and keep only integration-specific routing.
 
 `docs/impl/plan.md` is FORWARD-ONLY: it contains only work that remains. Delivered behavior lives
 under `docs/impl/current/`, indexed by `docs/impl/current.md`. Product behavior and boundaries live
-in `docs/design/spec.md`.
+in `docs/design/spec.md`. What happened to a finished task lives in `docs/impl/records/`.
+
+When starting a task from the plan, create its record first: copy `docs/impl/records/template.md`
+using the [naming rules](docs/guide/planning-workflow.md#record-file-naming), add it to the records
+index, and paste the task block verbatim. A plan task cannot leave the plan without a record, because
+the record is the only place its text survives.
 
 After every product or developer-facing change, before reporting completion:
 
 1. Update the narrowest current-state page with available behavior, interfaces, module locations,
    and verification methods. Retain measured findings when they inform implementation decisions.
-2. Remove the completed task from `docs/impl/plan.md`; retain only residual future work.
-3. Route anything surfaced during implementation exactly once:
+2. Close the task record with its implementation notes, acceptance evidence, audit handoff and plan
+   counts, and link it from the current-state page. Set `accepted` only when every gate has passed.
+3. Remove the completed task from `docs/impl/plan.md`; retain only residual future work.
+4. Route anything surfaced during implementation exactly once:
    - a chore: do it now when necessary, otherwise drop it;
    - an audit of the work just produced: perform it as part of completion, then drop it;
    - more work for a registered capability: add a future task, optional when it is a refinement;
    - a new product capability: use the lifecycle below before creating a task.
-4. Update current-doc indexes when adding a page and run `make lint-doc-links`.
+5. Update current-doc indexes when adding a page and run `make lint-doc-links`.
 
-Keep documentation focused on current contracts, constraints, rationale, and actionable limitations.
-Do not retain task-count snapshots, migration narratives, completed audit logs, or routine check
-results. Update existing descriptions in place instead of appending completion history.
+Keep current-state documentation focused on current contracts, constraints, rationale, and actionable
+limitations. Do not retain task-count snapshots, migration narratives, completed audit logs, or
+routine check results there; the task record holds them. Update existing descriptions in place
+instead of appending completion history. A closed record is history and is not rewritten later.
 
-Do not put completion notes, dates, measurements, or history in the plan. A plan task may use one
-line to link a prerequisite fact in current docs without restating it.
+Do not put completion notes, dates, measurements, history, or record links in the plan. A plan task
+may use one line to link a prerequisite fact in current docs without restating it.
 
 ## Product capability lifecycle
 
@@ -120,10 +128,10 @@ Fix document disagreements when `make lint-spec-plan` fails. Do not loosen the c
 
 ## Completion discipline
 
-Before declaring work complete, run the relevant tests and `make ci`, update current docs, remove
-finished plan scope, and inspect `git status`. Confirm that only intended files changed and that no
-process, port, temporary scaffold, or external resource started by the work remains active. Runtime
-artifacts under `DATA_DIR` are evidence, not temporary files; retain them unless the task explicitly
-says otherwise.
+Before declaring work complete, run the relevant tests and `make ci`, update current docs, close the
+task record, remove finished plan scope, and inspect `git status`. Confirm that only intended files
+changed and that no process, port, temporary scaffold, or external resource started by the work
+remains active. Runtime artifacts under `DATA_DIR` are evidence, not temporary files; retain them
+unless the task explicitly says otherwise.
 
 Use ASCII in code, logs, comments, documentation, and generated output.

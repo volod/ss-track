@@ -10,6 +10,7 @@ This directory separates product intent, forward work, current behavior, and con
   test plan and test-stand requirements.
 - [Forward implementation plan](impl/plan.md) contains only work that remains.
 - [Current implementation](impl/current.md) indexes behavior available in the repository.
+- [Task records](impl/records/README.md) keep each finished task's text and acceptance evidence.
 - [Planning workflow](guide/planning-workflow.md) explains task lanes and the capability lifecycle.
 - [Development guide](guide/development.md) lists setup and quality workflows.
 - [Project rules](../AGENTS.md) govern agent and contributor behavior.
@@ -21,6 +22,7 @@ This directory separates product intent, forward work, current behavior, and con
 | What should the product do? | [Design specification](design/spec.md) |
 | What work remains? | [Implementation plan](impl/plan.md) |
 | What exists and where? | [Current implementation](impl/current.md) |
+| What happened to a finished task? | [Task records](impl/records/README.md) |
 | How should work be performed? | [Contributor guide](guide/README.md) and [AGENTS.md](../AGENTS.md) |
 
 ## Repository boundary

@@ -11,6 +11,8 @@ change therefore has one canonical edit.
 `docs/design/spec.md` owns capabilities, boundaries, evaluations, and registry order.
 `docs/impl/plan.md` owns only work that remains and separates independent agent work from
 human-gated acceptance. This current tree owns available behavior and durable results.
+`docs/impl/records/` keeps each started task's verbatim text, implementation notes and acceptance
+evidence after it leaves the plan. Current-state pages link records; the plan never does.
 
 `src/ss_track/quality/plan_integrity.py` parses the registry and plan. It rejects unknown or
 misfiled capabilities, missing task fields, status-lane mismatches, missing evaluations or current

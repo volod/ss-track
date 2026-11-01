@@ -4,20 +4,20 @@ Requirements for the [engine design](perception-bench-engine.md) and
 [spec section 16](spec.md#16-benchmark-extensions-hardware-selection-and-reference-sensor-mesh).
 Each case
 names the [plan](../impl/plan.md) task that owns it. Value lines state what the test protects, what
-makes it fail, and what it does not prove. Every test is new, because no engine code exists yet.
+makes it fail, and what it does not prove. A case with no task left is listed as existing behavior.
 
 ## Existing behavior to protect
 
 - `ss-track info` stays unchanged as subcommands are added. `tests/test_cli.py` already covers it.
+- Truncated, zero-length, wrong-hash, non-increasing PTS and selection-past-end inputs stay
+  structured refusals. `tests/corpus/` covers them.
+  Value: protects=structured refusal; fails_when=a bad source yields a score; no_claim=real decoder
+  coverage.
 
 ## Fixture-level cases
 
 ### Input and evidence
 
-- `corpus-manifest-import`: truncated, zero-length, wrong-hash, non-increasing PTS and
-  selection-past-end inputs.
-  Value: protects=structured refusal; fails_when=a bad source yields a score; no_claim=real decoder
-  coverage.
 - `corpus-split-grouping`: an encounter with two streams, and a rights conflict.
   Value: protects=no leakage across splits; fails_when=a stream crosses a split; no_claim=grouping
   judgment on real footage.

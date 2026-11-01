@@ -127,12 +127,13 @@ execution. A binary event format alone does not prove a latency bound.
 A corpus version contains immutable source-media hashes, source rights and sensitivity, independent
 encounter grouping and split, scenario-pack class taxonomy, annotation revision, canonical decode
 policy, generated-case recipes and transform revisions. A metric suite is versioned separately. Each
-sequence records container/codec, original and decoded dimensions, pixel format, frame index and
-PTS, timestamp quality (`measured`, `derived`, `missing`), camera/lens/exposure/focus/FOV when
-known, camera-control mode, lighting/background/motion notes, object pixel extent and measured
-versus estimated versus unknown range. Never infer measured range from lens metadata alone. Class
-names and hierarchy live in the scenario pack; stable class IDs and instance/track IDs are distinct.
-The generic contract must not require a biological species or a drone.
+sequence records container/codec, original and decoded dimensions, display rotation, pixel format,
+frame index and PTS, timestamp quality (`measured`, `derived`, `missing`),
+camera/lens/exposure/focus/FOV when known, camera-control mode, lighting/background/motion notes,
+object pixel extent and measured versus estimated versus unknown range. Never infer measured range
+from lens metadata alone. Class names and hierarchy live in the scenario pack; stable class IDs and
+instance/track IDs are distinct. The generic contract must not require a biological species or a
+drone.
 
 A multi-sensor encounter identifies **every declared sensor stream**, including camera, audio,
 radar, range, trigger/contact and platform-state streams, by source hash and modality-specific raw
@@ -151,12 +152,19 @@ a run-specific `AcquisitionDecision`, not a source gap or scene-level absence. A
 timeline is built from source event time with an audited uncertainty, while the raw event order
 remains recoverable.
 
-The corpus declares a canonical decoder, its version/options and output pixel format. G0 modules
-consume one staged, immutable decoded-frame bundle. This makes their actual input identical without
-requiring cross-platform decoders to produce identical pixels. Later external modules may consume
-the same bundle or original packets. The latter path matches source hash, packet/frame identity and
-PTS, and validates a declared sample of decoded pixels under a measured tolerance. If exact input
-correspondence cannot be established, `EXTERNAL_EVENTS` reports contract conformance only.
+Stored PTS alone is `derived`, because a file cannot show that its times came from a capture clock.
+`measured` also requires declared capture-clock evidence, and `missing` means at least one frame
+stores no PTS. Import records these states and never fills in a timestamp.
+
+The corpus declares a canonical decoder, its version/options and output pixel format. The canonical
+decode is strict: a source is refused when decoding shows truncation or corruption that a tolerant
+decoder would conceal, and a source whose completeness cannot be established says so in its record.
+G0 modules consume one staged, immutable decoded-frame bundle. This makes their actual input
+identical without requiring cross-platform decoders to produce identical pixels. Later external
+modules may consume the same bundle or original packets. The latter path matches source hash,
+packet/frame identity and PTS, and validates a declared sample of decoded pixels under a measured
+tolerance. If exact input correspondence cannot be established, `EXTERNAL_EVENTS` reports contract
+conformance only.
 
 For fusion suites, a staged bundle preserves all raw or canonicalized streams and each event's
 **availability time**. Replay releases an event only when it would have arrived, respecting the
@@ -1210,8 +1218,8 @@ real-world safety without independent field evidence.
 
 ## 10. Run artifacts and comparison dashboard
 
-Proposed command names define user-facing behavior, not existing software. They are subcommands of
-the installed `ss-track` entry point:
+Command names define user-facing behavior; [current documentation](../impl/current.md#areas) states
+which exist. They are subcommands of the installed `ss-track` entry point:
 
 ```text
 ss-track import --source recording.yaml
