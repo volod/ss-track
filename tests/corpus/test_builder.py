@@ -52,6 +52,8 @@ def test_build_binds_each_sequence_to_its_verified_source(
                 "holder": "Project Contributors",
                 "basis": "owned",
                 "retention": "project duration",
+                "retain_until": None,
+                "derived_frames": True,
                 "sharing": "restricted",
             },
             "sensitivity": {"level": "low", "notes": None},

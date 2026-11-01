@@ -10,5 +10,6 @@ Copy the [template](template.md) using the
 | 0003 | `corpus-split-grouping` | [0003-corpus-provenance-corpus-split-grouping](0003-corpus-provenance-corpus-split-grouping.md) |
 | 0004 | `generated-fixture-cases` | [0004-corpus-provenance-generated-fixture-cases](0004-corpus-provenance-generated-fixture-cases.md) |
 | 0005 | `audit-follow-up-routing` | [0005-adhoc-audit-follow-up-routing](0005-adhoc-audit-follow-up-routing.md) |
+| 0006 | `source-terms-enforcement` | [0006-corpus-provenance-source-terms-enforcement](0006-corpus-provenance-source-terms-enforcement.md) |
 
-Next unused sequence: `0006`.
+Next unused sequence: `0007`.

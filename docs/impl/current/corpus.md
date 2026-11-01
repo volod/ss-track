@@ -11,7 +11,8 @@ evidence:
 [import and corpus build](../records/0001-corpus-provenance-corpus-manifest-import.md),
 [frame staging](../records/0002-corpus-provenance-frame-bundle-staging.md),
 [split grouping](../records/0003-corpus-provenance-corpus-split-grouping.md) and
-[generated cases](../records/0004-corpus-provenance-generated-fixture-cases.md).
+[generated cases](../records/0004-corpus-provenance-generated-fixture-cases.md), and
+[source terms](../records/0006-corpus-provenance-source-terms-enforcement.md).
 
 ## Commands
 
@@ -35,20 +36,22 @@ the project root, then `.data`. Relative values resolve against the project root
 ## Declarations
 
 Both files reject unknown fields, repeated keys and any other schema version, so a misspelled key
-cannot silently drop a fact. A recording is schema 1 and a corpus is schema 3. There are no defaults
+cannot silently drop a fact. A recording is schema 2 and a corpus is schema 3. There are no defaults
 for rights, sensitivity, split or scenario rights: a declaration without them is refused, and `basis`
 has no `unknown` value.
 
 ```yaml
 # recording.yaml
-schema_version: 1
+schema_version: 2
 source:
   path: clip.mkv             # relative to this file
   sha256: "<64 hex>"         # optional; declare it at capture, see Integrity limits
 rights:
   holder: Project Contributors
   basis: owned               # owned, licensed, consented or public_domain
-  retention: project duration
+  retention: project duration # descriptive terms
+  retain_until: null          # required: YYYY-MM-DD or null for no end
+  derived_frames: true        # required boolean: may generated cases use this source?
   sharing: restricted        # restricted or public
 sensitivity:
   level: low                 # low, moderate or high
@@ -185,12 +188,32 @@ A conflict is `RIGHTS_CONFLICT`, and the refusal names all of them at once:
 
 A public source in a restricted corpus is no conflict: it stays recorded as public, and the corpus
 stays restricted, so an encounter may mix both. `holder`, `basis` and `retention` are recorded terms
-that are never compared, and an expired retention period goes unnoticed.
+that are never compared. `rights.retain_until` supplies the enforceable deadline independently of
+the descriptive retention text. A date is inclusive: build, stage and verify refuse with
+`RETENTION_EXPIRED` starting the next UTC day, including when bundles already exist. Explicit
+`null` means no end. Refusal deletes nothing; removing expired material is an operator action.
+
+`src/ss_track/corpus/terms.py` owns the shared check. The Python build, stage and verify functions
+accept keyword-only `today: date | None` for deterministic evaluation; commands use the UTC day
+captured once at operation start. This evaluation day is never sealed, so valid reruns keep the same
+bytes and hashes. The declared deadline is retained in source and corpus records.
+
+`rights.derived_frames: false` permits ordinary stream staging but refuses any generated-case recipe
+with `RIGHTS_CONFLICT`, naming its parent stream and source. `grouping.py` checks this before recipe
+execution or corpus publication. Both new fields are required. Quoted and unquoted YAML dates
+normalize to the same ISO string. Numbers, timestamps, invalid dates and string booleans are refused.
+
+Source manifests now use schema 2. Old source manifests and corpus records missing the new terms
+are refused with `RECORD_SCHEMA_UNSUPPORTED`; their terms are never guessed. Existing imports are
+immutable, so migration requires explicitly declaring the terms and importing into a fresh data root
+(or operator-managed replacement), then building a new corpus version. No automatic migration runs.
 
 The manifest pins each source record. `corpus stage` first re-reads every source record, before
 writing or skipping anything, and a re-imported source is `SOURCE_RECORD_CHANGED`, so withdrawn
-rights cannot pass under the rights a corpus recorded earlier. `corpus verify` checks frames alone and
-does not look at source records.
+rights cannot pass under the rights a corpus recorded earlier. `corpus verify` checks frames and
+retention pinned in the corpus; it
+does not yet re-read source records. Detecting subsequently changed terms during verification is
+owned by `corpus-verify-rights` in the [plan](../plan.md#corpus-verify-rights).
 
 ## Canonical decode policy
 
@@ -424,11 +447,12 @@ MPEG program streams import as `missing`, because they do not store a presentati
 | `SOURCE_RECORD_CHANGED` | A source was re-imported after the corpus that pins its record was built |
 | `SPLIT_LEAKAGE` | A group, encounter, stream or case name is declared in two splits, or two groups share a source |
 | `STREAM_OVERLAP` | Two streams use the same frames of one source |
-| `RIGHTS_CONFLICT` | A source's recorded rights do not cover the corpus's scenario rights |
+| `RIGHTS_CONFLICT` | Scenario sharing/sensitivity conflicts or a generated case lacks derivation permission |
+| `RETENTION_EXPIRED` | The evaluation day is after a source's inclusive retention deadline |
 | `CASE_INVALID` | A generated case does not fit its parent, or changes no frame of it |
 | `TRANSFORM_REVISION_MISMATCH` | A stored case needs a transform revision this code does not provide |
 | `RECORD_TAMPERED` | A manifest is missing, malformed or fails its seal, or a re-import finds changed stored bytes |
-| `RECORD_SCHEMA_UNSUPPORTED` | An intact corpus or bundle record was written under another schema |
+| `RECORD_SCHEMA_UNSUPPORTED` | A source, corpus or bundle uses an unsupported schema, or corpus source terms are absent |
 | `DECODE_POLICY_MISMATCH` | A source or pin uses a decode policy other than the installed one |
 | `IMPORT_CONFLICT` | The same source was imported with another declaration or decoder |
 | `CORPUS_CONFLICT` | The `corpus_id` already exists with different content |
@@ -503,6 +527,8 @@ MP4 clips, and tests that default decoding hides damage the policy refuses.
 staging, and `test_pixels.py` includes the comparison with FFmpeg's SIMD disabled.
 `tests/corpus/test_grouping.py`, `test_scenario_rights.py` and `test_stream_identity.py` cover
 membership, rights and each stream's identity from build to `FrameRef`.
+`tests/corpus/test_source_terms.py` covers retention boundaries at every entrypoint, unchanged
+evidence across evaluation dates, explicit permission, strict declarations and legacy records.
 `tests/corpus/test_transforms.py`, `test_transform_recipes.py` and `test_transform_golden.py` cover
 each transform on hand-checkable frames and pin its bytes, and `test_recipes.py`,
 `test_generated_cases.py`, `test_case_membership.py` and `test_case_frames.py` cover recipes and

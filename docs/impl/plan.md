@@ -28,29 +28,6 @@ neither blocks M3. Fixture implementation proceeds without physical hardware or 
 
 ### Corpus provenance -- `corpus-provenance`
 
-#### source-terms-enforcement
-
-Recorded terms protect nothing while an expired source, or one that forbids derived frames, passes
-every check.
-
-- Serves: `corpus-provenance` -- [Corpus
-  identity](../design/spec.md#41-corpus-identity-and-input-handling)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: A recording declares when its retention ends and whether derived frames are
-  permitted, and a source outside those terms cannot enter or stay in a corpus.
-- Scope boundary: Recording schema 2 with `rights.retain_until` and `rights.derived_frames`, neither
-  with a default. `holder` and `basis` stay uncompared, and refusal deletes nothing.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`.
-- Execution path: Add both fields to `declaration.py`, a retention check shared by build, stage and
-  verify with an injected date so fixtures stay deterministic, and the derived-frame rule in
-  `grouping.py`.
-- Acceptance gates: An expired source is `RETENTION_EXPIRED` at build, stage and verify, one day
-  either side of its date. A generated case of a source that forbids derived frames is
-  `RIGHTS_CONFLICT`. A date never enters a sealed record, so a rerun stays byte-identical.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
 #### corpus-verify-rights
 
 A corpus can verify cleanly after the rights it was built on were withdrawn.
@@ -59,7 +36,7 @@ A corpus can verify cleanly after the rights it was built on were withdrawn.
   identity](../design/spec.md#41-corpus-identity-and-input-handling)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: source-terms-enforcement.
+- Dependencies: none.
 - User-visible outcome: `corpus verify` proves that frames are intact and that the source records
   they rest on still hold.
 - Scope boundary: Source records and retention, read without re-hashing stored sources. Frame checks
@@ -1397,7 +1374,7 @@ Software development needs authorized footage with a declared task and useful ne
 - Serves: `corpus-provenance` -- [Corpus identity](../design/spec.md#41-corpus-identity-and-input-handling)
 - Agent status: HUMAN-GATED
 - Milestone: M1
-- Dependencies: source-terms-enforcement.
+- Dependencies: none.
 - User-visible outcome: One candidate workload has recorded terms, and the owner knows how close it
   is to the small-target stress case.
 - Scope boundary: Authorized private or public development sources, benchmarking rights, retention and

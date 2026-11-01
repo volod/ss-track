@@ -20,12 +20,14 @@ type WriteCorpus = Callable[..., Path]
 def recording_declaration(source: str = "clip.mkv") -> Recording:
     """Return a complete recording declaration that a test may then damage."""
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "source": {"path": source},
         "rights": {
             "holder": "Project Contributors",
             "basis": "owned",
             "retention": "project duration",
+            "retain_until": None,
+            "derived_frames": True,
             "sharing": "restricted",
         },
         "sensitivity": {"level": "low"},

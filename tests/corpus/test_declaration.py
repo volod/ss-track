@@ -8,9 +8,9 @@ from ss_track.corpus.refusal import CorpusRefusal, RefusalCode
 
 SHA256 = "a" * 64
 RECORDING = """\
-schema_version: 1
+schema_version: 2
 source: {path: clip.mkv}
-rights: {holder: Owner, basis: owned, retention: one year, sharing: restricted}
+rights: {holder: Owner, basis: owned, retention: one year, sharing: restricted, retain_until: null, derived_frames: true}
 sensitivity: {level: low}
 """
 CORPUS = f"""\
@@ -81,7 +81,7 @@ def test_full_recording_is_read(declare: Callable[[str], Path]) -> None:
     ("old", "new", "message"),
     [
         pytest.param(
-            "rights: {holder: Owner, basis: owned, retention: one year, sharing: restricted}\n",
+            "rights: {holder: Owner, basis: owned, retention: one year, sharing: restricted, retain_until: null, derived_frames: true}\n",
             "",
             "rights",
             id="no-rights",
@@ -91,12 +91,12 @@ def test_full_recording_is_read(declare: Callable[[str], Path]) -> None:
         pytest.param("holder: Owner", "holder: '  '", "holder", id="blank-holder"),
         pytest.param("sharing: restricted", "sharing: maybe", "sharing", id="bad-sharing"),
         pytest.param("level: low", "level: 3", "level", id="number-as-text"),
-        pytest.param("schema_version: 1", "schema_version: 2", "schema_version", id="new-schema"),
+        pytest.param("schema_version: 2", "schema_version: 1", "schema_version", id="old-schema"),
         pytest.param(
-            "schema_version: 1", "schema_version: true", "schema_version", id="bool-schema"
+            "schema_version: 2", "schema_version: true", "schema_version", id="bool-schema"
         ),
         pytest.param(
-            "schema_version: 1", "schema_version: 1.0", "schema_version", id="float-schema"
+            "schema_version: 2", "schema_version: 2.0", "schema_version", id="float-schema"
         ),
         pytest.param(
             "{path: clip.mkv}", "{path: clip.mkv, sha256: abc}", "sha256", id="short-hash"

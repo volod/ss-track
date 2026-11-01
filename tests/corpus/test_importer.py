@@ -32,6 +32,8 @@ def test_import_writes_a_hashed_manifest_with_every_required_field(
         "holder": "Project Contributors",
         "basis": "owned",
         "retention": "project duration",
+        "retain_until": None,
+        "derived_frames": True,
         "sharing": "restricted",
     }
     assert manifest["sensitivity"] == {"level": "low", "notes": None}

@@ -119,6 +119,22 @@ def _require_disjoint_windows(source_sha256: str, streams: Sequence[StreamRecord
             )
 
 
+def require_derived_frames(streams: Sequence[StreamRecord], declaration: CorpusDeclaration) -> None:
+    """Only sources explicitly permitting derivation may parent generated cases."""
+    parents = {stream_id for stream_id, _ in declaration.recipes()}
+    conflicts = [
+        _conflict(stream, "derived_frames", False, True)
+        for stream in streams
+        if stream["stream_id"] in parents and not stream["rights"]["derived_frames"]
+    ]
+    if conflicts:
+        raise CorpusRefusal(
+            RefusalCode.RIGHTS_CONFLICT,
+            "source rights forbid generated cases",
+            {"conflicts": conflicts},
+        )
+
+
 def require_scenario_rights(streams: Sequence[StreamRecord], rights: ScenarioRights) -> None:
     """Refuse a corpus that asks more of any source than its recorded rights allow."""
     conflicts = [conflict for stream in streams for conflict in _rights_conflicts(stream, rights)]
@@ -141,7 +157,9 @@ def _rights_conflicts(stream: StreamRecord, rights: ScenarioRights) -> list[Json
     return conflicts
 
 
-def _conflict(stream: StreamRecord, field: str, found: str, allowed: str) -> JsonValue:
+def _conflict(
+    stream: StreamRecord, field: str, found: str | bool, allowed: str | bool
+) -> JsonValue:
     return {
         "stream_id": stream["stream_id"],
         "source_sha256": stream["source_sha256"],

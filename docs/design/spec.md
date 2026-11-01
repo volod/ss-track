@@ -223,7 +223,11 @@ from, so a source re-imported under other terms needs a new corpus version.
 
 A recording also declares when its retention ends, or that it has no end, and whether derived frames
 are permitted. A source past its retention date is refused at build, staging and verification, and a
-generated case of a source that forbids derived frames is a rights conflict. Refusal does not delete
+generated case of a source that forbids derived frames is a rights conflict. Recording schema 2
+requires `rights.retain_until` (an ISO calendar date or explicit `null` for no end) and
+`rights.derived_frames` (a boolean), with no defaults. Retention includes the declared day and expires
+the next UTC day. The evaluation date never enters sealed evidence. Ordinary decoding into staged
+frames does not require generated-case permission. Refusal does not delete
 anything: removing expired material stays an operator action. `corpus verify` re-reads the source
 records it pins, so a verified corpus is one whose rights still hold, not only one whose frames are
 intact.

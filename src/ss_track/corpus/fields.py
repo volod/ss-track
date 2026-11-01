@@ -4,6 +4,7 @@ import math
 import re
 from collections.abc import Collection, Hashable
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 from types import TracebackType
 from typing import Self
@@ -103,6 +104,29 @@ class Fields:
         if not isinstance(value, str) or not value.strip():
             raise invalid(f"{self._where}.{key} must be a non-empty string")
         return value
+
+    def boolean(self, key: str) -> bool:
+        """Read an explicit boolean, never a number or string."""
+        value = self._take(key)
+        if not isinstance(value, bool):
+            raise invalid(f"{self._where}.{key} must be a boolean")
+        return value
+
+    def nullable_date(self, key: str) -> str | None:
+        """Read a required ISO calendar date or explicit null for no end."""
+        value = self._take(key)
+        if value is None:
+            return None
+        if type(value) is date:
+            return value.isoformat()
+        if isinstance(value, str):
+            try:
+                parsed = date.fromisoformat(value)
+                if parsed.isoformat() == value:
+                    return value
+            except ValueError:
+                pass
+        raise invalid(f"{self._where}.{key} must be YYYY-MM-DD or null")
 
     def optional_text(self, key: str) -> str | None:
         return self.text(key) if self.has(key) else None

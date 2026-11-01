@@ -24,11 +24,13 @@ def _refused(path: Path, data_root: Path) -> CorpusRefusal:
     return caught.value
 
 
-def _sharing(scope: str) -> dict[str, str]:
+def _sharing(scope: str) -> dict[str, object]:
     return {
         "holder": "Project Contributors",
         "basis": "owned",
         "retention": "project duration",
+        "retain_until": None,
+        "derived_frames": True,
         "sharing": scope,
     }
 

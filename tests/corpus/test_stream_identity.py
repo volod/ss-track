@@ -24,6 +24,8 @@ _PUBLIC = {
     "holder": "Project Contributors",
     "basis": "owned",
     "retention": "project duration",
+    "retain_until": None,
+    "derived_frames": True,
     "sharing": "public",
 }
 

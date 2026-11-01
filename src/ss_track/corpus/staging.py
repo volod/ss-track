@@ -5,6 +5,7 @@ import shutil
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -22,6 +23,7 @@ from ss_track.corpus.generated import write_case_bundle
 from ss_track.corpus.importer import MANIFEST_NAME, decode_policy_sha256
 from ss_track.corpus.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.sealed import SEAL_FIELD
+from ss_track.corpus.terms import evaluation_date, require_retention
 from ss_track.corpus.transforms import require_transform_revision
 
 STAGED = "staged"
@@ -84,9 +86,12 @@ def _cases(corpus: dict[str, Any]) -> list[dict[str, Any]]:
     return cases
 
 
-def stage_corpus(corpus_id: str, data_root: Path) -> FramesResult:
+def stage_corpus(corpus_id: str, data_root: Path, *, today: date | None = None) -> FramesResult:
     """Stage every stream and generated case, leaving each bundle complete or absent."""
+    checked_on = evaluation_date(today)
     corpus = load_corpus_manifest(corpus_id, data_root)
+    for stream in _streams(corpus):
+        require_retention(stream, checked_on)
     policy = current_decode_policy()
     policy_sha256 = decode_policy_sha256(policy.as_record())
     require_policy(corpus["decode_policy_sha256"], policy_sha256, f"corpus {corpus_id}")
@@ -126,9 +131,14 @@ def _exclusive_staging(root: Path, corpus_id: str) -> Iterator[None]:
         yield
 
 
-def verify_corpus_frames(corpus_id: str, data_root: Path) -> FramesResult:
+def verify_corpus_frames(
+    corpus_id: str, data_root: Path, *, today: date | None = None
+) -> FramesResult:
     """Compare every staged frame of a corpus version with its sealed index."""
+    checked_on = evaluation_date(today)
     corpus = load_corpus_manifest(corpus_id, data_root)
+    for stream in _streams(corpus):
+        require_retention(stream, checked_on)
     root = frames_root(data_root, corpus_id)
     bundles = [_open_for_corpus(stream["stream_id"], corpus, root) for stream in _streams(corpus)]
     bundles += [_open_case(case, corpus, root) for case in _cases(corpus)]

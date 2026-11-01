@@ -2,6 +2,7 @@
 
 from collections.abc import Mapping
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -17,6 +18,7 @@ from ss_track.corpus.decode import current_decode_policy
 from ss_track.corpus.fields import IDENTIFIER_PATTERN
 from ss_track.corpus.grouping import (
     SplitSummary,
+    require_derived_frames,
     require_one_membership,
     require_scenario_rights,
     require_separate_sources,
@@ -28,6 +30,9 @@ from ss_track.corpus.importer import (
     decode_policy_sha256,
     source_directory,
 )
+from ss_track.corpus.importer import (
+    SCHEMA_VERSION as SOURCE_SCHEMA_VERSION,
+)
 from ss_track.corpus.recipes import case_records
 from ss_track.corpus.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.sealed import (
@@ -38,6 +43,7 @@ from ss_track.corpus.sealed import (
     sha256_file,
     write_sealed,
 )
+from ss_track.corpus.terms import evaluation_date, require_retention
 
 CORPUS_MANIFEST_KIND = "ss-track.corpus-manifest"
 CORPUS_DIRECTORY = "corpus"
@@ -81,8 +87,11 @@ def load_corpus_manifest(corpus_id: str, data_root: Path) -> dict[str, JsonValue
     return manifest
 
 
-def build_corpus(declaration_path: Path, data_root: Path) -> BuildResult:
+def build_corpus(
+    declaration_path: Path, data_root: Path, *, today: date | None = None
+) -> BuildResult:
     """Verify every declared source again, then write the corpus version."""
+    checked_on = evaluation_date(today)
     declaration = load_corpus_declaration(declaration_path)
     policy_record = current_decode_policy().as_record()
     policy_sha256 = decode_policy_sha256(policy_record)
@@ -95,6 +104,9 @@ def build_corpus(declaration_path: Path, data_root: Path) -> BuildResult:
         ),
         key=lambda record: str(record["stream_id"]),
     )
+    for stream in streams:
+        require_retention(stream, checked_on)
+    require_derived_frames(streams, declaration)
     require_separate_sources(streams)
     require_scenario_rights(streams, declaration.scenario_rights)
     cases = case_records(list(declaration.recipes()), streams)
@@ -150,7 +162,9 @@ def _load_source_record(source_sha256: str, data_root: Path) -> dict[str, JsonVa
             "the corpus names a source that has not been imported",
             {"source_sha256": source_sha256},
         )
-    return read_sealed(manifest_path, SOURCE_MANIFEST_KIND)
+    manifest = read_sealed(manifest_path, SOURCE_MANIFEST_KIND)
+    require_schema(manifest, SOURCE_SCHEMA_VERSION, manifest_path)
+    return manifest
 
 
 def require_source_record(stream: Mapping[str, Any], data_root: Path) -> None:

@@ -8,6 +8,7 @@ from ss_track.corpus.fields import Fields, Selection, invalid, load_yaml_mapping
 from ss_track.corpus.recipes import CaseRecipe, read_recipe
 from ss_track.corpus.refusal import JsonValue
 
+RECORDING_SCHEMA_VERSION = 2
 CORPUS_SCHEMA_VERSION = 3
 RIGHTS_BASES = frozenset({"owned", "licensed", "consented", "public_domain"})
 SHARING_SCOPES = ("restricted", "public")  # narrowest first
@@ -35,6 +36,8 @@ class Rights:
     holder: str
     basis: str
     retention: str
+    retain_until: str | None
+    derived_frames: bool
     sharing: str
 
 
@@ -119,7 +122,7 @@ class CorpusDeclaration:
 def load_recording_declaration(path: Path) -> RecordingDeclaration:
     """Parse and validate a recording declaration."""
     with Fields(load_yaml_mapping(path), "recording") as fields:
-        fields.schema_version()
+        fields.schema_version(RECORDING_SCHEMA_VERSION)
         with fields.child("source") as source:
             relative_path = Path(source.text("path"))
             expected_sha256 = source.sha256("sha256") if source.has("sha256") else None
@@ -160,6 +163,8 @@ def _read_rights(fields: Fields) -> Rights:
             holder=fields.text("holder"),
             basis=fields.choice("basis", RIGHTS_BASES),
             retention=fields.text("retention"),
+            retain_until=fields.nullable_date("retain_until"),
+            derived_frames=fields.boolean("derived_frames"),
             sharing=fields.choice("sharing", SHARING_SCOPES),
         )
 

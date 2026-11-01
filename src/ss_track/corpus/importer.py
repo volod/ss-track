@@ -5,7 +5,11 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from ss_track.corpus.declaration import RecordingDeclaration, load_recording_declaration
+from ss_track.corpus.declaration import (
+    RECORDING_SCHEMA_VERSION,
+    RecordingDeclaration,
+    load_recording_declaration,
+)
 from ss_track.corpus.decode import (
     DecodePolicy,
     MediaInspection,
@@ -27,7 +31,7 @@ from ss_track.corpus.sealed import (
 from ss_track.corpus.timestamps import assess_timestamps
 
 SOURCE_MANIFEST_KIND = "ss-track.source-manifest"
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = RECORDING_SCHEMA_VERSION
 IMPORT_DIRECTORY = "import"
 MANIFEST_NAME = "manifest.json"
 _SOURCE_STEM = "source"
