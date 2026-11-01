@@ -78,6 +78,18 @@ def write_clip(
     return path
 
 
+def remux(source: Path, target: Path, start_packet: int = 0) -> Path:
+    """Copy a clip's packets into another container, as `ffmpeg -c copy` does, re-encoding nothing."""
+    with av.open(source) as reader, av.open(target, "w") as writer:
+        video = reader.streams.video[0]
+        copied = writer.add_stream_from_template(video)
+        packets = [packet for packet in reader.demux(video) if packet.size]
+        for packet in packets[start_packet:]:
+            packet.stream = copied
+            writer.mux(packet)
+    return target
+
+
 def write_rotated_clip(path: Path, degrees: int) -> Path:
     """Write an MP4 that asks players to rotate it, leaving its stored pixels upright."""
     with av.open(path, "w") as container:

@@ -199,8 +199,14 @@ recording are not independent, and a source frame belongs to one stream, because
 twice distorts anything aggregated by encounter. Sharing a source is detected by byte hash, and a
 remux is detected after staging: two groups holding a run of identical decoded frames are refused,
 within one version or across linked versions, because a different container does not make different
-evidence. A uniform or repeated frame shared by independent clips is not such a run. A re-encoded copy
-stays a different source until near-duplicate detection exists. Declaring `locked` records membership
+evidence. A run is a named number of different frames in a row, so a uniform, held or blinking frame
+shared by independent clips is not one. A predecessor that cannot be compared is reported, because it
+is unknown rather than clear, and verification repeats the check because a predecessor can be staged
+after its successor. A version that never finished staging was never evidence, so it cannot refuse
+the version that repairs it. A remux inside one group repeats
+frames without crossing a group, so it stays accepted until that is refused as a frame counted twice.
+A re-encoded copy stays a different source until near-duplicate detection exists, and a copy cut to
+windows sharing no frame stays invisible to frame hashes. Declaring `locked` records membership
 only: it creates no locked test and grants no held-out claim. A development scenario that names a
 locked stream is refused, and a locked evaluation needs the section 15 custodian and access policy,
 with each read recorded.

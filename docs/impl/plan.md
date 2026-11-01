@@ -28,34 +28,6 @@ neither blocks M3. Fixture implementation proceeds without physical hardware or 
 
 ### Corpus provenance -- `corpus-provenance`
 
-#### duplicate-frame-detection
-
-A remuxed copy of one recording crosses a split with every frame identical, because sources are
-compared by byte hash.
-
-- Serves: `corpus-provenance` -- [Corpus
-  identity](../design/spec.md#41-corpus-identity-and-input-handling)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: `corpus stage` refuses two groups that hold a run of identical decoded
-  frames, within one corpus version or against the versions it supersedes. A source hash cannot see
-  a remux, so version lineage alone lets one change split between versions.
-- Scope boundary: Exact frame hashes from sealed indexes, over a named minimum run of frames that
-  are not all alike. No new decode. Re-encoded copies belong to `near-duplicate-detection`. A
-  predecessor whose bundles were removed cannot be compared, and is reported rather than treated as
-  clear.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`.
-- Execution path: Add a pure run search over frame indexes to `grouping.py`, called before the frame
-  set is written, with remuxed real-media fixtures. Walk the chain with `read_predecessors` in
-  `lineage.py`, and open each predecessor's indexes through `open_frame_bundle`.
-- Acceptance gates: A remux of one recording in `development` and `locked` is `SPLIT_LEAKAGE`,
-  naming both streams and the first shared frame. So is a remux that a linked version places in
-  another group than its original, naming both versions. Two independent clips sharing a black frame
-  stage normally, and a generated case never compares against its own parent. A predecessor with no
-  staged bundles is named as not compared.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
 #### arm64-reproducibility
 
 Likely reference hosts are arm64, and no decode, staged hash or transform has run on one.
@@ -102,6 +74,30 @@ verifying, until an operator deletes a sealed record by hand, and the stored sou
   `SOURCE_RECORD_CHANGED`, with its stored source byte-identical. A declaration that changes the file,
   capture facts or decoder stays `IMPORT_CONFLICT`. A repeat reports `unchanged`, an interrupted
   amendment leaves one whole record, and a replaced record stays readable.
+- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
+
+#### group-repeated-frames (optional)
+
+A remux of one recording held twice inside one group counts each frame twice, in anything aggregated
+by encounter, and only a frame in two streams of one source is refused today.
+
+- Serves: `corpus-provenance` -- [Corpus
+  identity](../design/spec.md#41-corpus-identity-and-input-handling)
+- Agent status: CLEAR
+- Milestone: M1
+- Dependencies: none.
+- User-visible outcome: `corpus stage` and `corpus verify` refuse a run of identical frames in two
+  streams of one group of one version with `STREAM_OVERLAP`, naming both streams and the first shared
+  frame.
+- Scope boundary: The run definition that `shared_runs.py` already applies, in one version. A copy
+  replacing its original across linked versions stays accepted, because no version counts a frame
+  twice.
+- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`.
+- Execution path: Report same-group pairs from `find_shared_runs` for streams of one version, and
+  raise them in `require_unshared_runs` beside the cross-group refusal.
+- Acceptance gates: A remux in two encounters of one group and in one encounter are each
+  `STREAM_OVERLAP`. A cross-group pair stays `SPLIT_LEAKAGE`, a copy replacing its original in a linked
+  version stages normally, and adjacent windows of one recording still share nothing.
 - Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
 
 #### unlinked-version-report (optional)
@@ -296,7 +292,7 @@ A re-encoded copy of a recording shares no bytes or frame hashes, so it can stil
 - Agent status: RUN NEEDED
 - Research: yes
 - Milestone: M2
-- Dependencies: duplicate-frame-detection.
+- Dependencies: none.
 - User-visible outcome: A corpus build reports likely near-duplicates across groups for an
   operator's decision.
 - Scope boundary: A perceptual comparison at a measured threshold. It reports and does not refuse
@@ -531,7 +527,8 @@ noticing.
 - Acceptance gates: A locked stream in a development scenario is `RUNNER_INVALID`. Each approved
   read and re-score leaves one record, and output never calls a stream held-out without a declared
   custodian policy. A corpus version with no declared predecessor is reported as having no lineage,
-  so nothing calls its locked material unseen.
+  and one whose `corpus verify` names a predecessor under `shared_frames.not_compared` is reported
+  with each one named, so nothing calls its locked material unseen.
 - Documentation target: [Current implementation](current.md#areas), page `current/runner.md`.
 
 #### tracker-compatibility-preflight (optional)

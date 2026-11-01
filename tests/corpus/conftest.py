@@ -10,7 +10,7 @@ import yaml
 from ss_track.corpus import import_source
 from ss_track.corpus.importer import ImportResult
 from ss_track.corpus.sealed import seal, sha256_file
-from tests.corpus._media import WIDTH, write_clip
+from tests.corpus._media import WIDTH, X264_WITH_B_FRAMES, remux, write_clip
 
 type Recording = dict[str, object]
 type WriteRecording = Callable[..., Path]
@@ -172,3 +172,26 @@ def second(media: Path, write_recording: WriteRecording, data_root: Path) -> Imp
 @pytest.fixture
 def third(media: Path, write_recording: WriteRecording, data_root: Path) -> ImportResult:
     return import_clip(media, write_recording, data_root, 6)
+
+
+@pytest.fixture
+def original(media: Path, write_recording: WriteRecording, data_root: Path) -> ImportResult:
+    """A clip with B-frames, so its packets are not in presentation order."""
+    write_clip(
+        media / "original.mkv",
+        codec="libx264",
+        pixel_format="yuv420p",
+        options=X264_WITH_B_FRAMES,
+    )
+    return import_source(write_recording("original.mkv"), data_root)
+
+
+@pytest.fixture
+def copy(
+    original: ImportResult, media: Path, write_recording: WriteRecording, data_root: Path
+) -> ImportResult:
+    """The same recording in another container: other bytes, other source, the same frames."""
+    remux(media / "original.mkv", media / "copy.mp4")
+    result = import_source(write_recording("copy.mp4"), data_root)
+    assert result.source_sha256 != original.source_sha256
+    return result

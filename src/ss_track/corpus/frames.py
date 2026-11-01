@@ -14,6 +14,7 @@ from ss_track.corpus.builder import CORPUS_DIRECTORY
 from ss_track.corpus.importer import MANIFEST_NAME
 from ss_track.corpus.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.sealed import (
+    SEAL_FIELD,
     canonical_json,
     read_sealed,
     require_schema,
@@ -221,6 +222,35 @@ def open_frame_bundle(directory: Path) -> FrameBundle:
             RefusalCode.RECORD_TAMPERED,
             "bundle hash does not cover this frame index",
             {"record": MANIFEST_NAME},
+        )
+    return bundle
+
+
+def open_corpus_bundle(stream_id: str, corpus: Mapping[str, Any], root: Path) -> FrameBundle:
+    """Open one bundle, which must have been staged from this exact corpus version."""
+    directory = root / stream_id
+    if not directory.is_dir():
+        raise CorpusRefusal(
+            RefusalCode.BUNDLE_NOT_STAGED,
+            "this stream has no staged frame bundle",
+            {"stream_id": stream_id},
+        )
+    bundle = open_frame_bundle(directory)
+    if bundle.corpus_manifest_sha256 != corpus[SEAL_FIELD]:
+        raise CorpusRefusal(
+            RefusalCode.BUNDLE_CONFLICT,
+            "this bundle was staged from a different corpus version",
+            {
+                "stream_id": stream_id,
+                "bundle_corpus_manifest_sha256": bundle.corpus_manifest_sha256,
+                "corpus_manifest_sha256": corpus[SEAL_FIELD],
+            },
+        )
+    if bundle.stream_id != stream_id:
+        raise CorpusRefusal(
+            RefusalCode.BUNDLE_CONFLICT,
+            "this bundle belongs to another stream, which may sit in another split",
+            {"stream_id": stream_id, "bundle_stream_id": bundle.stream_id},
         )
     return bundle
 

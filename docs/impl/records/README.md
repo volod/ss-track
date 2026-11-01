@@ -14,5 +14,6 @@ Copy the [template](template.md) using the
 | 0007 | `corpus-verify-rights` | [0007-corpus-provenance-corpus-verify-rights](0007-corpus-provenance-corpus-verify-rights.md) |
 | 0008 | `corpus-version-lineage` | [0008-corpus-provenance-corpus-version-lineage](0008-corpus-provenance-corpus-version-lineage.md) |
 | 0009 | `staged-frame-set` | [0009-corpus-provenance-staged-frame-set](0009-corpus-provenance-staged-frame-set.md) |
+| 0010 | `duplicate-frame-detection` | [0010-corpus-provenance-duplicate-frame-detection](0010-corpus-provenance-duplicate-frame-detection.md) |
 
-Next unused sequence: `0010`.
+Next unused sequence: `0011`.

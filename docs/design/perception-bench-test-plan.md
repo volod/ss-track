@@ -21,7 +21,7 @@ makes it fail, and what it does not prove. A case with no task left is listed as
   moved to another stream, and a rights conflict all stay structured refusals. `tests/corpus/` covers
   them.
   Value: protects=no leakage across splits; fails_when=a stream crosses a split; no_claim=grouping
-  judgment on real footage, or a remuxed copy of one recording.
+  judgment on real footage.
 - A generated case rerun with one seed stays byte-identical, stays in its parent's encounter and split
   and adds nothing to any evidence count. `tests/corpus/` covers them.
   Value: protects=reproducible cases that are not encounters; fails_when=a case counts as new
@@ -60,10 +60,16 @@ makes it fail, and what it does not prove. A case with no task left is listed as
   Value: protects=one pin for all staged input; fails_when=a changed bundle keeps its frame set, or a
   partial stage leaves one; no_claim=undeclared files outside the corpus, or a rewrite that no pin
   held elsewhere can see.
-- `duplicate-frame-detection`: a remux across two splits, in one version and across linked versions,
-  and two clips sharing a black frame.
-  Value: protects=split isolation for remuxed copies; fails_when=identical frames cross a split or a
-  shared black frame is refused; no_claim=re-encoded copies, or a version whose bundles are gone.
+- `duplicate-frame-detection`: a remux across two groups, in one version and across linked versions,
+  two clips sharing a black frame or a longer uniform lead-in, and each predecessor that cannot be
+  compared. `tests/corpus/` covers them.
+  Value: protects=split isolation for remuxed copies; fails_when=identical frames cross a group, a
+  shared lead-in is refused, or a version not compared goes unnamed; no_claim=re-encoded copies, a
+  version whose bundles are gone, windows sharing no frame, or copies inside one group.
+- `group-repeated-frames`: a remux in two encounters of one group, and in one encounter, and a copy
+  replacing its original across linked versions.
+  Value: protects=each frame counted once; fails_when=a frame counts twice in one version;
+  no_claim=re-encoded copies.
 - `arm64-reproducibility`: golden transforms and tree hashes of one corpus on x86-64 and arm64.
   Value: protects=a stated cross-architecture boundary; fails_when=a difference goes unrecorded;
   no_claim=macOS, or timing.

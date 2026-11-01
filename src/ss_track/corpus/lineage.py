@@ -7,7 +7,7 @@ and it reads only source hashes, groups and splits: a source's rights or frame w
 between versions without moving the source.
 """
 
-from collections.abc import Callable, Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 from dataclasses import asdict, dataclass, replace
 from typing import Any
 
@@ -70,15 +70,21 @@ def lineage_record(lineage: Lineage | None) -> dict[str, JsonValue]:
 
 
 def read_predecessors(supersedes: str | None, load: ManifestLoader) -> list[Manifest]:
-    """Follow sealed links back from the named version, nearest first.
-
-    Each link pins the older version's seal, so a replaced version is refused, and a loop is
-    impossible because it would need a manifest to contain its own hash.
-    """
+    """Return the named version and every version linked behind it, nearest first."""
     if supersedes is None:
         return []
-    chain = [load(supersedes)]
-    while (link := chain[-1].get(SUPERSEDES_FIELD)) is not None:
+    nearest = load(supersedes)
+    return [nearest, *follow_links(nearest, load)]
+
+
+def follow_links(version: Manifest, load: ManifestLoader) -> Iterator[Manifest]:
+    """Yield the versions linked behind one, nearest first.
+
+    Each link pins the older version's seal, so a replaced version is refused, and a loop is
+    impossible because it would need a manifest to contain its own hash. Yielding one at a time
+    lets a caller keep what it reached when a version further back is gone.
+    """
+    while (link := version.get(SUPERSEDES_FIELD)) is not None:
         older = load(link["corpus_id"])
         if older[SEAL_FIELD] != link["manifest_sha256"]:
             raise CorpusRefusal(
@@ -86,13 +92,13 @@ def read_predecessors(supersedes: str | None, load: ManifestLoader) -> list[Mani
                 "a superseded version differs from the one its successor pinned",
                 {
                     "corpus_id": link["corpus_id"],
-                    "successor_corpus_id": chain[-1]["corpus_id"],
+                    "successor_corpus_id": version["corpus_id"],
                     "pinned_manifest_sha256": link["manifest_sha256"],
                     "manifest_sha256": older[SEAL_FIELD],
                 },
             )
-        chain.append(older)
-    return chain
+        yield older
+        version = older
 
 
 def link_field(predecessors: Sequence[Manifest]) -> dict[str, JsonValue]:
