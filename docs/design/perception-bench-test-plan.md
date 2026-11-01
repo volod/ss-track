@@ -66,13 +66,21 @@ makes it fail, and what it does not prove. A case with no task left is listed as
   Value: protects=split isolation for remuxed copies; fails_when=identical frames cross a group, a
   shared lead-in is refused, or a version not compared goes unnamed; no_claim=re-encoded copies, a
   version whose bundles are gone, windows sharing no frame, or copies inside one group.
+- `decode-policy-reimport`: a record of an older policy re-decoded from its stored bytes, a corpus
+  version pinning the old record, a damaged stored source, a repeat and an interrupted run.
+  Value: protects=a decoder change without losing a stored source; fails_when=terms change, stored
+  bytes change, or a pinned corpus keeps verifying; no_claim=that new pixels equal old ones.
 - `group-repeated-frames`: a remux in two encounters of one group, and in one encounter, and a copy
   replacing its original across linked versions.
   Value: protects=each frame counted once; fails_when=a frame counts twice in one version;
   no_claim=re-encoded copies.
-- `arm64-reproducibility`: golden transforms and tree hashes of one corpus on x86-64 and arm64.
-  Value: protects=a stated cross-architecture boundary; fails_when=a difference goes unrecorded;
-  no_claim=macOS, or timing.
+- `arm64-reproducibility`: golden transforms and the full test suite on arm64, and one fixed corpus
+  staged from one set of stored sources on x86-64 and arm64, compared through `frame_set_sha256` and
+  then per source. The corpus holds every decoder family the wheel can encode, and each codec with no
+  normative inverse DCT.
+  Value: protects=a stated cross-architecture boundary; fails_when=a difference goes unrecorded, a
+  source is regenerated on one host, or a row does not decode as the format it claims; no_claim=macOS,
+  timing, or a decoder or pixel format outside the fixed corpus.
 - `generated-case-labels`: hand-built labels through each transform, and a plate showing a target.
   Value: protects=labels that follow pixels; fails_when=a covered target stays visible or a wrong
   region yields `absent`; no_claim=parent label quality.

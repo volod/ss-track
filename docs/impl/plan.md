@@ -30,7 +30,7 @@ neither blocks M3. Fixture implementation proceeds without physical hardware or 
 
 #### arm64-reproducibility
 
-Likely reference hosts are arm64, and no decode, staged hash or transform has run on one.
+Likely reference hosts are arm64, and staged hashes have been compared with one only under emulation.
 
 - Serves: `corpus-provenance` -- [Corpus
   identity](../design/spec.md#41-corpus-identity-and-input-handling)
@@ -38,16 +38,16 @@ Likely reference hosts are arm64, and no decode, staged hash or transform has ru
 - Milestone: M2
 - Dependencies: none.
 - User-visible outcome: Maintainers know exactly which staged hashes and generated cases hold on
-  arm64.
-- Scope boundary: Decode, conversion and transform bytes on one arm64 Linux runner. Timing is out of
-  scope, and macOS is a separate claim.
-- Data and artifact paths: `tests/corpus/`, `.github/workflows/`, `$DATA_DIR/run/<run-id>/`.
-- Execution path: Add a CI job on an arm64 runner that runs the golden tests and stages a fixed
-  corpus from stored sources. Declared run: compare its `frame_set_sha256` with an x86-64 run, then
-  each bundle hash when they differ.
-- Acceptance gates: Transform golden hashes match. An equal frame-set hash proves every bundle equal.
-  A staged hash that differs is recorded per source, and cross-architecture bundle identity is then
-  not claimed: that is a valid negative result.
+  arm64 hardware.
+- Scope boundary: The declared run of `.github/workflows/arm64-reproducibility.yml` on one hosted
+  arm64 Linux runner. Timing is out of scope, and macOS is a separate claim.
+- Data and artifact paths: `.github/workflows/`, `$DATA_DIR/run/<run-id>/`.
+- Execution path: Declared run: the workflow on a pushed branch, then read its `hash-comparison`
+  artifact.
+- Acceptance gates: The job runs on an `aarch64` machine, and the tests pass with the transform golden
+  hashes among them. A comparison of `identical` proves every bundle equal. A comparison of `different`
+  names each source, and cross-architecture bundle identity is then not claimed for those sources: that
+  is a valid negative result.
 - Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
 
 #### source-terms-amendment (optional)
@@ -74,6 +74,32 @@ verifying, until an operator deletes a sealed record by hand, and the stored sou
   `SOURCE_RECORD_CHANGED`, with its stored source byte-identical. A declaration that changes the file,
   capture facts or decoder stays `IMPORT_CONFLICT`. A repeat reports `unchanged`, an interrupted
   amendment leaves one whole record, and a replaced record stays readable.
+- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
+
+#### decode-policy-reimport (optional)
+
+A new decode policy strands every import: `corpus build` refuses the old record with
+`DECODE_POLICY_MISMATCH`, `import` refuses a new one with `IMPORT_CONFLICT`, and the only route deletes
+the stored source.
+
+- Serves: `corpus-provenance` -- [Corpus
+  identity](../design/spec.md#41-corpus-identity-and-input-handling)
+- Agent status: CLEAR
+- Milestone: M1
+- Dependencies: none.
+- User-visible outcome: `ss-track import --redecode` records an imported source under the installed
+  decode policy from its stored bytes, and every corpus version pinning the old record then refuses.
+- Scope boundary: One imported source. Its stored bytes, rights, sensitivity and capture facts carry
+  over unchanged, and the replaced record is kept beside the new one. Corpus versions are not rebuilt,
+  and frames stay on disk.
+- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`,
+  `$DATA_DIR/import/<source-sha256>/`.
+- Execution path: Decode the stored copy under the installed policy and re-seal the record under one
+  atomic replace, keeping the replaced record under its own seal.
+- Acceptance gates: A record of an older policy gains the installed one with its stored source
+  byte-identical, and `corpus build` of a new version accepts it. A corpus version pinning the old
+  record refuses with `SOURCE_RECORD_CHANGED`. A stored source that no longer matches its hash is
+  refused, a repeat reports `unchanged`, and an interrupted run leaves one whole record.
 - Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
 
 #### group-repeated-frames (optional)

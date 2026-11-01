@@ -23,6 +23,16 @@ and plan integrity, and tests.
 or after changing project infrastructure. `make quality-report` reports files over the 250-line soft
 limit without turning cohesion into a numeric failure.
 
+To compare two hosts by hand, write the sources once and carry them, because writing media again gives
+other bytes:
+
+```bash
+make fixed-corpus-sources RUN_ID=host-a          # on one host only
+make fixed-corpus-stage RUN_ID=host-a            # on each host, with its own run id and
+                                                 # the sources under $DATA_DIR/run/<run-id>/sources
+make fixed-corpus-compare RUN_ID=host-a LEFT=<staged-hashes.json> RIGHT=<staged-hashes.json>
+```
+
 ## Direct uv commands
 
 Make targets are the stable workflow. For one-off dependency debugging:

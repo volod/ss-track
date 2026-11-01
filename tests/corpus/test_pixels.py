@@ -179,13 +179,18 @@ def _digest(path: Path, library: str) -> str:
     [
         pytest.param("libx264", "yuv420p", {"preset": "ultrafast"}, id="h264-yuv420p"),
         pytest.param("mjpeg", "yuvj420p", None, id="mjpeg-yuvj420p"),
+        pytest.param("mpeg2video", "yuv420p", None, id="mpeg2-yuv420p"),
+        pytest.param("mpeg4", "yuv420p", None, id="mpeg4-yuv420p"),
         pytest.param("ffv1", "yuv420p10le", None, id="ffv1-10-bit"),
     ],
 )
 def test_pixels_do_not_depend_on_the_cpu_code_path(
     tmp_path: Path, codec: str, pixel_format: str, options: dict[str, str] | None
 ) -> None:
-    """FFmpeg's default conversion rounds differently with and without SIMD."""
+    """FFmpeg's default conversion and inverse DCT both depend on the SIMD path.
+
+    Regression: on arm64 the MJPEG, MPEG-2 and MPEG-4 cases fail unless the policy pins the IDCT.
+    """
     library = _bundled_avutil()
     if library is None:
         pytest.skip("this wheel layout does not expose libavutil")

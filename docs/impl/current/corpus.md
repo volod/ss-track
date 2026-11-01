@@ -6,8 +6,9 @@ version. `ss-track corpus stage` decodes each stream into one immutable frame bu
 module reads, plus one derived bundle for each declared generated case, and seals them into one
 frame set whose hash a scenario can pin. `ss-track corpus verify` proves those frames are intact, are
 the ones the frame set names, and that the source records they rest on still hold. Both refuse one
-recording held by two groups under different source hashes. Each command produces a complete record
-or a structured refusal, and none invents a value it could not establish.
+recording held by two groups under different source hashes. `ss-track corpus hashes` and
+`ss-track corpus compare` show whether two hosts staged the same bytes. Each command produces a
+complete record or a structured refusal, and none invents a value it could not establish.
 Annotation does not exist yet; the [plan](../plan.md) schedules it. The task records keep the accepted
 tasks, their decisions and their acceptance evidence:
 [import and corpus build](../records/0001-corpus-provenance-corpus-manifest-import.md),
@@ -17,8 +18,9 @@ tasks, their decisions and their acceptance evidence:
 [source terms](../records/0006-corpus-provenance-source-terms-enforcement.md),
 [rights verification](../records/0007-corpus-provenance-corpus-verify-rights.md),
 [version lineage](../records/0008-corpus-provenance-corpus-version-lineage.md),
-[frame sets](../records/0009-corpus-provenance-staged-frame-set.md) and
-[shared frames](../records/0010-corpus-provenance-duplicate-frame-detection.md).
+[frame sets](../records/0009-corpus-provenance-staged-frame-set.md),
+[shared frames](../records/0010-corpus-provenance-duplicate-frame-detection.md) and
+[arm64 reproducibility](../records/0011-corpus-provenance-arm64-reproducibility.md).
 
 ## Commands
 
@@ -27,6 +29,8 @@ ss-track import --source recording.yaml
 ss-track corpus build --manifest corpus.yaml
 ss-track corpus stage --corpus pilot-v1
 ss-track corpus verify --corpus pilot-v1
+ss-track corpus hashes --corpus pilot-v1 --run-id host-a
+ss-track corpus compare --left a/staged-hashes.json --right b/staged-hashes.json --run-id compare-1
 ```
 
 Each command logs one JSON record. A result has a `status`, its hashes and its manifest path, and
@@ -109,6 +113,8 @@ groups:
 | `$DATA_DIR/corpus/<corpus-id>/frame-set.json` | Sealed record of every staged bundle |
 | `$DATA_DIR/corpus/<corpus-id>/frames/<stream-id>/` | One read-only frame bundle |
 | `$DATA_DIR/corpus/<corpus-id>/frames/<case-id>/` | One read-only bundle of a generated case |
+| `$DATA_DIR/run/<run-id>/staged-hashes.json` | Sealed record of what one host staged |
+| `$DATA_DIR/run/<run-id>/hash-comparison.json` | Sealed comparison of two hosts' records |
 
 Import copies the source first, then hashes and decodes that copy, so the record describes exactly
 the bytes retained. The finished directory is published by one rename, so a failure leaves nothing
@@ -400,6 +406,7 @@ nobody recorded stays invisible to it.
 | `fflags=nofillin` | Without it the demuxer invents PTS from a guessed frame rate for files that store none |
 | `err_detect=explode` | Without it decoders conceal damaged blocks and return a frame as if nothing happened |
 | `flags=bitexact`, one thread | Removes decoder choices that can vary between runs |
+| `idct=simple` | `bitexact` leaves the inverse DCT to the CPU, so without this MJPEG, MPEG-1, MPEG-2, MPEG-4, H.263, MSMPEG-4, DV and DNxHD decode differently on arm64 |
 | `ACCURATE_RND`, `BITEXACT` conversion | Without them FFmpeg's SIMD and C paths round differently, so pixels depend on the CPU |
 | `FULL_CHR_H_INT`, `FULL_CHR_H_INP` conversion | Without them chroma is repeated instead of interpolated and lands in the wrong place |
 
@@ -426,6 +433,12 @@ This corpus needs a decoder version fixed by `uv.lock`, its behavior covered by 
 and packet corruption flags; a system binary provides none of these. Their `-c copy` recordings
 import normally, and an interrupted one is refused: a cut faststart MP4 as `SOURCE_DAMAGED`, and a
 killed recording with no `moov` as `SOURCE_UNREADABLE`.
+
+A record states the policy that produced it. A new policy revision therefore refuses every earlier
+record: `corpus build` and `corpus stage` with `DECODE_POLICY_MISMATCH`, and `import` of the same
+source with `IMPORT_CONFLICT`. A new policy needs a fresh data root today, and
+`decode-policy-reimport` in the [plan](../plan.md#decode-policy-reimport-optional) schedules a route
+that keeps the stored source.
 
 ## Frame bundles
 
@@ -528,6 +541,70 @@ A seal is not a signature. It shows a record matches itself, so that deletion, o
 record, is visible only to a hash held elsewhere. The frame set therefore protects a run through the
 scenario that pins it. It does not bind a bundle's own record to the corpus declaration beyond the
 checks that open it, and `open_frame_bundle` opens any bundle directory without consulting it.
+
+### Across hosts
+
+A pin says only that two hosts differ. `ss-track corpus hashes` first runs everything `corpus verify`
+does, then writes what this host staged to `$DATA_DIR/run/<run-id>/staged-hashes.json`: each bundle and
+every frame's index, PTS and hash, each source's codec and pixel format, and the host's machine, system
+and Python. `src/ss_track/corpus/host_hashes.py` owns it. Host facts stay out of the frame set, which
+must be one hash on any host, and no frame moves between hosts.
+
+`ss-track corpus compare` reads two such records and keeps its result in `hash-comparison.json`, under
+its own run. `src/ss_track/corpus/hash_comparison.py` owns it. It compares frame sets first, because
+an equal hash proves every bundle equal:
+
+```json
+{"status": "identical", "corpus_id": "pilot-v1", "source_count": 71, "bundle_count": 78,
+ "sources": [], "left": {"host": {"machine": "x86_64", "system": "Linux", "python": "3.12.15"},
+  "frame_set_sha256": "...", "corpus_manifest_sha256": "..."}, "right": {"...": "..."}}
+```
+
+Unequal hashes are a valid negative result, not a fault. The record is written first, then the command
+refuses with `STAGED_HASHES_DIFFER` and exits 1, naming each source:
+
+```json
+{"status": "refused", "code": "STAGED_HASHES_DIFFER", "message": "...", "details": {
+ "status": "different", "sources": [{"source_sha256": "...", "codec": "mjpeg",
+  "source_pixel_format": "yuvj420p", "source_record_differs": false, "bundles": [{
+   "stream_id": "enc01-cam0", "parent_stream_id": null, "left_bundle_sha256": "...",
+   "right_bundle_sha256": "...", "frame_count": 12, "differing_frames": 9,
+   "first_differing_frame": 1}]}]}}
+```
+
+| Found | Meaning |
+| --- | --- |
+| `differing_frames` above 0 | These frames differ in PTS or hash, or only one host has them |
+| `differing_frames` of 0, with a `parent_stream_id` | Only a case's parent moved |
+| `source_record_differs` with no `bundles` | The hosts agree on every frame and disagree on what import recorded |
+| `sources` empty | The frame sets differ for a reason neither record holds. It stays `different` |
+
+Records of different corpora, decode policies, sources or bundles are `HASHES_NOT_COMPARABLE`, naming
+which, and write nothing, because no byte comparison answers that question. Both records must come
+from one set of source bytes. Two writes of the fixed corpus on one host differ in 45 of 71 files, all
+Matroska or WebM, whose random identifiers change, and a write on arm64 differs from x86-64 in the
+packets of 41 of 71, so a host that regenerates its media compares different sources.
+
+`corpus compare` treats any two hosts alike and `left` and `right` name them, so a cross-architecture
+claim also needs two different `machine` values.
+A record is sealed against accidents, not against a person, like every seal here.
+
+`tests/corpus/_fixed_corpus.py` holds the fixed corpus, `arch-fixed-v1`: 71 sources through 20 decoders
+and 28 pixel formats, with odd and short-row sizes, several color matrices and chroma sitings, plus all
+seven transforms. Each row states the format it must decode as. Its sources are written by one host and
+carried to the other, so no binary enters the repository, and the
+[developer tooling page](developer-tooling.md#quality-gates) describes the job that does this.
+
+| Host pair | Result |
+| --- | --- |
+| x86-64 and emulated arm64, `neoverse-n2`, `cortex-a72` and `max`, this policy | Identical: every one of 78 bundles |
+| x86-64 and emulated arm64, the policy without `idct=simple` | 14 of 71 sources differ, in 101 of 144 frames: every MJPEG, MPEG-1, MPEG-2, MPEG-4, H.263, MSMPEG-4, DV and 8-bit DNxHD source. Decoded planes differed in exactly those frames, so the difference was decoding and not conversion |
+| x86-64 and arm64 hardware | Not run yet. `arm64-reproducibility` in the [plan](../plan.md#arm64-reproducibility) owns it |
+
+Emulation runs the wheel's real arm64 machine code through QEMU's user mode, and the three CPU profiles
+span NEON alone up to the newest features QEMU offers. It is strong evidence and not a hardware result,
+so nothing here claims arm64 hardware yet. Pinning the IDCT changed no x86-64
+pixel on any source. What moved is arm64, and the policy hash, as any option change does.
 
 ### Reading frames
 
@@ -705,6 +782,8 @@ MPEG program streams import as `missing`, because they do not store a presentati
 | `BUNDLE_CONFLICT` | A bundle was staged from a different corpus version, for a different stream, or from other parent frames |
 | `FRAME_SET_NOT_STAGED` | Every bundle is staged but no frame set exists, so staging has not finished |
 | `FRAME_SET_MISMATCH` | Staged bundles differ from the frame set, or something undeclared sits among them |
+| `HASHES_NOT_COMPARABLE` | Two staged-hash records state different corpora, decode policies, sources or bundles |
+| `STAGED_HASHES_DIFFER` | Two hosts staged different bytes. The comparison is kept and names each source |
 | `STAGING_IN_PROGRESS` | Another run is staging this corpus version |
 | `FRAME_CORRUPTED` | A staged file differs from the sealed index, is gone, or is not in it |
 | `FRAME_NOT_IN_BUNDLE` | A bundle does not hold a frame index, including a frame a case dropped |
@@ -737,8 +816,9 @@ settles which is right: the pinned path lands within 0.02 pixels when the tag is
 binary therefore sees different pixels from a bundle on those sources.
 
 Bundle hashes matched on all 32 files with FFmpeg's SIMD disabled, and the bit-exact flags are what
-make that true. That is the only cross-CPU evidence: it has not been run on arm64 hardware, and
-bundles are not claimed to be identical across decoders.
+make that true. [Across hosts](#across-hosts) states the arm64 evidence. Bundles are not claimed to be
+identical across decoders, on macOS, or for a decoder or pixel format outside the fixed corpus: there,
+a comparison on the host in question answers.
 
 An empty `completeness_checks` means completeness is unverified, not that the file is short. Import
 logs a warning and keeps the empty list in both manifests.
@@ -772,6 +852,8 @@ MP4 clips, and tests that default decoding hides damage the policy refuses.
 staging, and `test_pixels.py` includes the comparison with FFmpeg's SIMD disabled.
 `tests/corpus/test_frame_set.py` covers the frame set across data roots and processes, each refusal
 by name, an interrupted stage, and that the record is written under the staging lock.
+`tests/corpus/test_host_hashes.py` covers each comparison result from the record to the exit status,
+and `test_fixed_corpus.py` stages the whole fixed corpus and pins each row's decoded format.
 `tests/corpus/test_grouping.py`, `test_scenario_rights.py` and `test_stream_identity.py` cover
 membership, rights and each stream's identity from build to `FrameRef`. `tests/corpus/test_lineage.py`
 compares hand-built versions, and `test_lineage_build.py` covers linked builds from the declaration

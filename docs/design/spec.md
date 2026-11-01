@@ -170,6 +170,18 @@ packet/frame identity and PTS, and validates a declared sample of decoded pixels
 tolerance. If exact input correspondence cannot be established, `EXTERNAL_EVENTS` reports contract
 conformance only.
 
+A canonical decode names everything that can choose a pixel, including the inverse transform of codecs
+whose standards leave it open, so one pinned decoder gives one set of bytes on x86-64 and arm64 Linux
+for the formats a fixed corpus covers. That is a measured claim, not a property of a decoder: it
+reaches only the decoders and pixel formats that corpus holds and the hosts that staged it, and says
+nothing of macOS, another decoder or another format. Two hosts compare what each staged, not their
+frames. An equal frame-set hash proves every bundle equal. Unequal hashes are named per source, because
+a source record can differ with every bundle equal, and identical bundles are then not claimed for that
+source: a valid negative result, kept on disk as well as reported. A comparison needs one set of source
+bytes, and writing media again gives other bytes, so sources are carried between hosts and never
+regenerated. Records of different corpora, decoders or sources answer different questions and
+are refused.
+
 For fusion suites, a staged bundle preserves all raw or canonicalized streams and each event's
 **availability time**. Replay releases an event only when it would have arrived, respecting the
 declared clock and queue model; a policy cannot inspect a later measurement before choosing an
@@ -264,6 +276,11 @@ records nothing. Changed terms are recorded by an explicit amendment, which repl
 and sensitivity of a record, keeps the stored bytes untouched and retains the replaced record. Every
 corpus version that pins the old record then refuses at staging and verification. An amendment
 deletes no frames.
+
+A record states the decode policy that produced it, so a new policy needs the stored bytes decoded
+again under an explicit re-import, which carries the record's terms over, keeps the replaced record and
+has the same effect on corpus versions pinning it. Until that exists, a new policy needs a fresh data
+root.
 
 ### 4.2 Annotation contract
 

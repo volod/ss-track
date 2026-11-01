@@ -27,9 +27,9 @@ from ss_track.corpus.pixels import (
 )
 from ss_track.corpus.refusal import CorpusRefusal, JsonValue, RefusalCode
 
-POLICY_REVISION = 2
+POLICY_REVISION = 3
 _FORMAT_OPTIONS = {"fflags": "nofillin", "err_detect": "explode"}
-_CODEC_OPTIONS = {"err_detect": "explode", "flags": "bitexact"}
+_CODEC_OPTIONS = {"err_detect": "explode", "flags": "bitexact", "idct": "simple"}
 _THREAD_COUNT = 1
 _MATROSKA_FORMAT = "matroska"
 FRAME_COUNT_CHECK = "frame_count"

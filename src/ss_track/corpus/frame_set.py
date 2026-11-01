@@ -70,6 +70,11 @@ def _read(path: Path) -> dict[str, JsonValue]:
     return record
 
 
+def read_frame_set(data_root: Path, corpus_id: str) -> dict[str, JsonValue]:
+    """Return a corpus version's sealed record, refusing a missing or damaged one."""
+    return _read(frame_set_path(data_root, corpus_id))
+
+
 def _lines(record: Mapping[str, Any]) -> Lines:
     """Index a record's bundles. A seal proves only that a record matches itself."""
     try:

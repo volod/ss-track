@@ -8,10 +8,14 @@ from pathlib import Path
 
 from ss_track.corpus import (
     BuildResult,
+    ComparisonResult,
     CorpusRefusal,
     FramesResult,
     ImportResult,
     RefusalCode,
+    StagedHashesResult,
+    compare_staged_hashes,
+    record_staged_hashes,
     stage_corpus,
     verify_corpus_frames,
 )
@@ -35,7 +39,12 @@ def _refuse(refusal: CorpusRefusal) -> int:
     return EXIT_REFUSED
 
 
-def _report(action: Callable[[Path], ImportResult | BuildResult | FramesResult]) -> int:
+type CorpusResult = (
+    ImportResult | BuildResult | FramesResult | StagedHashesResult | ComparisonResult
+)
+
+
+def _report(action: Callable[[Path], CorpusResult]) -> int:
     """Run one corpus action and report one JSON record for its result or its refusal."""
     try:
         result = action(resolve_data_root())
@@ -69,6 +78,16 @@ def _run_corpus_verify(args: argparse.Namespace) -> int:
     return _report(lambda data_root: verify_corpus_frames(args.corpus, data_root))
 
 
+def _run_corpus_hashes(args: argparse.Namespace) -> int:
+    return _report(lambda data_root: record_staged_hashes(args.corpus, args.run_id, data_root))
+
+
+def _run_corpus_compare(args: argparse.Namespace) -> int:
+    return _report(
+        lambda data_root: compare_staged_hashes(args.left, args.right, args.run_id, data_root)
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the command parser independently for tests and future subcommands."""
     parser = argparse.ArgumentParser(prog="ss-track")
@@ -94,6 +113,19 @@ def build_parser() -> argparse.ArgumentParser:
     )
     verify.add_argument("--corpus", required=True, help="built corpus_id")
     verify.set_defaults(handler=_run_corpus_verify)
+    hashes = corpus_commands.add_parser(
+        "hashes", help="record a verified corpus's hashes and this host, for comparison"
+    )
+    hashes.add_argument("--corpus", required=True, help="staged corpus_id")
+    hashes.add_argument("--run-id", required=True, help="run that keeps the record")
+    hashes.set_defaults(handler=_run_corpus_hashes)
+    compare = corpus_commands.add_parser(
+        "compare", help="compare the staged hashes that two hosts recorded"
+    )
+    compare.add_argument("--left", type=Path, required=True, help="one staged-hashes.json")
+    compare.add_argument("--right", type=Path, required=True, help="the other staged-hashes.json")
+    compare.add_argument("--run-id", required=True, help="run that keeps the comparison")
+    compare.set_defaults(handler=_run_corpus_compare)
     return parser
 
 

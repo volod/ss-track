@@ -6,6 +6,8 @@ PY := $(VENV)/bin/python
 PYTHON_VERSION ?= 3.12
 DATA_DIR ?= .data
 DATA_ROOT := $(if $(filter /%,$(DATA_DIR)),$(DATA_DIR),$(PROJECT_ROOT)/$(DATA_DIR))
+RUN_ID ?= local
+FIXED_SOURCES ?= $(DATA_ROOT)/run/$(RUN_ID)/sources
 PYTEST_CACHE := -o cache_dir=$(DATA_ROOT)/cache/pytest
 
 export RUFF_CACHE_DIR := $(DATA_ROOT)/cache/ruff
@@ -15,7 +17,8 @@ export MYPY_CACHE_DIR := $(DATA_ROOT)/cache/mypy
 
 .PHONY: help bootstrap venv lock run doctor format format-check lint typecheck test coverage \
 	complexity-gate shell-lint-gate lint-md lint-doc-links lint-spec-plan plan-status \
-	ci-checks ci ci-github build quality code-quality quality-report
+	ci-checks ci ci-github build quality code-quality quality-report \
+	fixed-corpus-sources fixed-corpus-stage fixed-corpus-compare
 
 help: ## List available targets
 	@awk 'BEGIN {FS = ":.*## "; print "Usage: make <target>\n"} /^[a-zA-Z0-9_.-]+:.*## / {printf "  %-20s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -93,6 +96,15 @@ ci-checks: format-check lint typecheck complexity-gate shell-lint-gate lint-doc-
 ci: ci-checks test ## Run the required local and GitHub CI gate
 
 ci-github: ci ## Explicit GitHub Actions entrypoint
+
+fixed-corpus-sources: ## Write the fixed corpus sources once, for every host to stage
+	@"$(PY)" -m tests.corpus._fixed_corpus write --output "$(FIXED_SOURCES)"
+
+fixed-corpus-stage: ## Stage stored fixed corpus sources and record this host's hashes
+	@"$(PY)" -m tests.corpus._fixed_corpus stage --sources "$(FIXED_SOURCES)" --run-id "$(RUN_ID)"
+
+fixed-corpus-compare: ## Compare two hosts' records: LEFT=<staged-hashes.json> RIGHT=<...>
+	@"$(VENV)/bin/ss-track" corpus compare --left "$(LEFT)" --right "$(RIGHT)" --run-id "$(RUN_ID)"
 
 build: ## Build source and wheel distributions
 	@source "$(PROJECT_ROOT)/scripts/shared/common.sh"; sst_load_env; uv build

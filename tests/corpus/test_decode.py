@@ -36,7 +36,8 @@ from tests.corpus._media import (
 POLICY = current_decode_policy()
 _MATROSKA_CLUSTER_ID = bytes.fromhex("1F43B675")
 _CLUSTER_HEADER_BYTES = 8
-_FLIP_FRACTIONS = tuple(step / 20 for step in range(6, 19))
+# Early enough for short streams, whose payload ends where a late fraction would reach the header.
+_FLIP_FRACTIONS = tuple(step / 20 for step in range(1, 19))
 
 
 def _inspect(path: Path) -> MediaInspection:
@@ -82,6 +83,25 @@ def test_policy_turns_off_the_behaviors_that_fabricate_evidence() -> None:
     assert POLICY.codec_options["err_detect"] == "explode"
     assert POLICY.thread_count == 1
     assert POLICY.output_pixel_format == "rgb24"
+
+
+def test_policy_pins_the_inverse_dct_that_bitexact_leaves_to_the_cpu() -> None:
+    """Regression: 14 of 71 fixed sources decoded differently on arm64 without this option."""
+    assert POLICY.codec_options["flags"] == "bitexact"
+    assert POLICY.codec_options["idct"] == "simple"
+
+
+def test_the_inverse_dct_option_reaches_the_decoder(media: Path) -> None:
+    """x86-64 gives the same pixels with or without the pin, so only another IDCT can show this."""
+    clip = write_clip(media / "clip.mkv")
+    other = replace(POLICY, codec_options=dict(POLICY.codec_options) | {"idct": "faani"})
+
+    def decoded(policy: DecodePolicy) -> str:
+        digest = hashlib.sha256()
+        inspect_media(clip, policy, lambda _, frame: digest.update(bytes(frame.planes[0])))
+        return digest.hexdigest()
+
+    assert decoded(POLICY) != decoded(other)
 
 
 @pytest.mark.parametrize(
@@ -180,9 +200,11 @@ def test_non_media_is_unreadable(media: Path) -> None:
 
 
 def _default_decoder_frames(path: Path) -> int:
+    """Count frames. A flip can land in a header, whose position depends on the encoder's bytes."""
     try:
         with av.open(path) as container:
-            return sum(1 for _ in container.decode(video=0))
+            video = container.streams.video
+            return sum(1 for _ in container.decode(video[0])) if video else 0
     except av.FFmpegError:
         return 0
 
