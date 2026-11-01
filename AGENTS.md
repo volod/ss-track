@@ -59,12 +59,23 @@ After every product or developer-facing change, before reporting completion:
 2. Close the task record with its implementation notes, acceptance evidence, audit handoff and plan
    counts, and link it from the current-state page. Set `accepted` only when every gate has passed.
 3. Remove the completed task from `docs/impl/plan.md`; retain only residual future work.
-4. Route anything surfaced during implementation exactly once:
+4. Route everything surfaced during implementation exactly once, in the same change:
    - a chore: do it now when necessary, otherwise drop it;
    - an audit of the work just produced: perform it as part of completion, then drop it;
-   - more work for a registered capability: add a future task, optional when it is a refinement;
+   - more work for a registered capability, including a gap, limitation, risk or follow-up: amend the
+     open task that owns it so its text states the work, or add a future task, optional when it is a
+     refinement;
    - a new product capability: use the lifecycle below before creating a task.
 5. Update current-doc indexes when adding a page and run `make lint-doc-links`.
+
+The specification is living, and improving the product is part of every task. When a deep dive
+reveals a gap, a wrong boundary, a risk or a directly usable feature, amend the specification and add
+plan tasks in the same change, without waiting to be asked. Writing a concrete task is never a
+separate session.
+
+A note in a task record is not routing. Every audit handoff entry and every limitation that affects a
+result must reach an open task whose text states it, or be recorded as dropped with its reason.
+"No plan task exists" is not a valid owner, and an owner task that does not mention the item loses it.
 
 Keep current-state documentation focused on current contracts, constraints, rationale, and actionable
 limitations. Do not retain task-count snapshots, migration narratives, completed audit logs, or
@@ -72,7 +83,9 @@ routine check results there; the task record holds them. Update existing descrip
 instead of appending completion history. A closed record is history and is not rewritten later.
 
 Do not put completion notes, dates, measurements, history, or record links in the plan. A plan task
-may use one line to link a prerequisite fact in current docs without restating it.
+may use one line to link a prerequisite fact in current docs without restating it. Removing a task
+also updates every task that depended on it: drop the dependency, or replace it when the dependent
+still needs work that the removed task did not finish.
 
 ## Product capability lifecycle
 

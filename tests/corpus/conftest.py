@@ -49,10 +49,18 @@ def group_of(
     return {"group_id": group_id, "split": split, "encounters": list(encounters)} | fields
 
 
+def case_of(
+    case_id: str, transform: str, seed: int, parameters: dict[str, object], **fields: object
+) -> dict[str, object]:
+    """Return one generated-case recipe for a stream's `generated_cases` list."""
+    recipe = {"case_id": case_id, "transform": transform, "seed": seed, "parameters": parameters}
+    return recipe | fields
+
+
 def corpus_declaration(groups: list[dict[str, object]], **overrides: object) -> dict[str, object]:
     """Return a complete corpus declaration whose scenario asks nothing of its sources."""
     return {
-        "schema_version": 2,
+        "schema_version": 3,
         "corpus_id": "pilot-v1",
         "scenario_rights": {"sharing": "restricted", "max_sensitivity": "high"},
         "groups": groups,

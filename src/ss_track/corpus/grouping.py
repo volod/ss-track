@@ -30,6 +30,7 @@ class SplitSummary:
     group_count: int
     encounter_count: int
     stream_count: int
+    generated_case_count: int
 
     def to_record(self) -> dict[str, JsonValue]:
         """Return the JSON-compatible form."""
@@ -49,9 +50,14 @@ def require_one_membership(declaration: CorpusDeclaration) -> None:
             for encounter in group.encounters
         ],
     )
+    # A generated case is a bundle beside the streams, so the two share one set of names.
     _require_unique(
         "stream_id",
-        [(stream.stream_id, group.split) for group, _, stream in declaration.members()],
+        [
+            (identifier, group.split)
+            for group, _, stream in declaration.members()
+            for identifier in (stream.stream_id, *(c.case_id for c in stream.generated_cases))
+        ],
     )
 
 
@@ -145,8 +151,14 @@ def _conflict(stream: StreamRecord, field: str, found: str, allowed: str) -> Jso
     }
 
 
-def summarize_splits(streams: Sequence[StreamRecord]) -> dict[str, SplitSummary]:
-    """Count what each populated split holds. A split with no streams is absent."""
+def summarize_splits(
+    streams: Sequence[StreamRecord], cases: Sequence[StreamRecord]
+) -> dict[str, SplitSummary]:
+    """Count what each populated split holds. A split with no streams is absent.
+
+    Group, encounter and stream counts read only streams, so a generated case is never independent
+    evidence: it is counted on its own line and adds nothing to the others.
+    """
     members: dict[str, list[StreamRecord]] = defaultdict(list)
     for stream in streams:
         members[stream["split"]].append(stream)
@@ -155,6 +167,7 @@ def summarize_splits(streams: Sequence[StreamRecord]) -> dict[str, SplitSummary]
             group_count=len({stream["group_id"] for stream in held}),
             encounter_count=len({stream["encounter_id"] for stream in held}),
             stream_count=len(held),
+            generated_case_count=sum(case["split"] == split for case in cases),
         )
         for split, held in sorted(members.items())
     }

@@ -8,7 +8,7 @@ from ss_track.corpus.builder import load_corpus_manifest
 from ss_track.corpus.decode import current_decode_policy
 from ss_track.corpus.importer import decode_policy_sha256
 from ss_track.corpus.sealed import read_sealed
-from tests.corpus._media import FRAME_COUNT
+from tests.corpus._media import FRAME_COUNT, HEIGHT, WIDTH
 from tests.corpus.conftest import WriteCorpus, reseal, stream_of
 
 CORPUS_KIND = "ss-track.corpus-manifest"
@@ -44,6 +44,8 @@ def test_build_binds_each_sequence_to_its_verified_source(
             "source_manifest_sha256": imported.manifest_sha256,
             "selection": window,
             "frame_count": FRAME_COUNT,
+            "width": WIDTH,
+            "height": HEIGHT,
             "timestamp_quality": "derived",
             "completeness_checks": ["matroska_segment_size"],
             "rights": {
@@ -186,7 +188,7 @@ def test_a_corpus_from_another_schema_is_refused_by_name(
     assert caught.value.details == {
         "record": "manifest.json",
         "found_schema_version": 1,
-        "schema_version": 2,
+        "schema_version": 3,
     }
 
 

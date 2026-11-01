@@ -8,5 +8,7 @@ Copy the [template](template.md) using the
 | 0001 | `corpus-manifest-import` | [0001-corpus-provenance-corpus-manifest-import](0001-corpus-provenance-corpus-manifest-import.md) |
 | 0002 | `frame-bundle-staging` | [0002-corpus-provenance-frame-bundle-staging](0002-corpus-provenance-frame-bundle-staging.md) |
 | 0003 | `corpus-split-grouping` | [0003-corpus-provenance-corpus-split-grouping](0003-corpus-provenance-corpus-split-grouping.md) |
+| 0004 | `generated-fixture-cases` | [0004-corpus-provenance-generated-fixture-cases](0004-corpus-provenance-generated-fixture-cases.md) |
+| 0005 | `audit-follow-up-routing` | [0005-adhoc-audit-follow-up-routing](0005-adhoc-audit-follow-up-routing.md) |
 
-Next unused sequence: `0004`.
+Next unused sequence: `0006`.

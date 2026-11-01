@@ -51,7 +51,7 @@ def _corpus_yaml(source_sha256: object, sharing: str = "restricted") -> str:
     stream = {"stream_id": "one", "source_sha256": source_sha256}
     encounter = {"encounter_id": "enc01", "streams": [stream]}
     declaration = {
-        "schema_version": 2,
+        "schema_version": 3,
         "corpus_id": "c1",
         "scenario_rights": {"sharing": sharing, "max_sensitivity": "high"},
         "groups": [{"group_id": "g1", "split": "development", "encounters": [encounter]}],
@@ -73,8 +73,14 @@ def test_import_then_build_report_json_results(
     assert imported["status"] == "imported"
     assert built["status"] == "built"
     assert built["stream_count"] == 1
+    assert built["generated_case_count"] == 0
     assert built["splits"] == {
-        "development": {"group_count": 1, "encounter_count": 1, "stream_count": 1}
+        "development": {
+            "group_count": 1,
+            "encounter_count": 1,
+            "stream_count": 1,
+            "generated_case_count": 0,
+        }
     }
     assert Path(str(built["manifest_path"])).is_file()
 
@@ -115,6 +121,7 @@ def test_stage_then_verify_report_json_results(
     assert isinstance(bundles, list)
     assert staged["status"] == "staged"
     assert bundles[0]["stream_id"] == "one"
+    assert bundles[0]["transform"] == "identity"
     assert Path(bundles[0]["manifest_path"]).is_file()
     assert verified["status"] == "verified"
     assert verified["bundles"][0]["bundle_sha256"] == bundles[0]["bundle_sha256"]  # type: ignore[index]

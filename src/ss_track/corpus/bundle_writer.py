@@ -2,6 +2,8 @@
 
 import logging
 import shutil
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
@@ -59,28 +61,46 @@ def write_bundle(
     policy_sha256 = decode_policy_sha256(policy.as_record())
     media: dict[str, Any] = source["sequence"]
     stored = source_directory(data_root, stream["source_sha256"]) / source["source"]["stored_name"]
-    _require_space(root, media, stream["selection"])
+    selection = stream["selection"]
+    width, height = media["decoded_width"], media["decoded_height"]
+    require_space(root, selection["end_frame"] - selection["start_frame"], width, height)
     target = root / stream["stream_id"]
-    with TemporaryDirectory(prefix=SCRATCH_PREFIX, dir=root) as scratch:
-        staged = Path(scratch) / "staged"
-        staged.mkdir()
+    with publish_bundle(root, target) as staged:
         converter = PixelConverter(policy.conversion_flags, policy.thread_count)
         writer = _FrameWriter(staged, stream["selection"], converter)
         inspection = inspect_media(stored, policy, writer.accept)
         _require_same_decode(decoded_facts(inspection), media, stream)
         body = _bundle_body(stream, corpus, media, policy_sha256, writer)
         write_sealed(staged / MANIFEST_NAME, seal(body))
-        # Moving a directory rewrites its parent link, so it must stay writable until it arrives.
-        staged.rename(target)
-    target.chmod(READ_ONLY_DIRECTORY_MODE)
     _warn_about_conversion(stream["stream_id"], media)
     return open_frame_bundle(target)
 
 
-def _require_space(root: Path, media: dict[str, Any], selection: dict[str, int]) -> None:
-    """Refuse before a long decode that could not finish. Raw frames dwarf their source."""
-    frames = selection["end_frame"] - selection["start_frame"]
-    required = frames * frame_size_bytes(media["decoded_width"], media["decoded_height"])
+@contextmanager
+def publish_bundle(root: Path, target: Path) -> Iterator[Path]:
+    """Yield a scratch directory and publish it complete by one rename, or leave nothing."""
+    with TemporaryDirectory(prefix=SCRATCH_PREFIX, dir=root) as scratch:
+        staged = Path(scratch) / "staged"
+        staged.mkdir()
+        yield staged
+        # Moving a directory rewrites its parent link, so it must stay writable until it arrives.
+        staged.rename(target)
+    target.chmod(READ_ONLY_DIRECTORY_MODE)
+
+
+def store_frame(
+    directory: Path, frame_index: int, pts: int | None, pixels: bytes
+) -> dict[str, JsonValue]:
+    """Write one read-only frame and return its line of the sealed index."""
+    path = directory / frame_name(frame_index, OUTPUT_PIXEL_FORMAT)
+    path.write_bytes(pixels)
+    path.chmod(READ_ONLY_FILE_MODE)
+    return {"frame_index": frame_index, "pts": pts, "sha256": sha256_bytes(pixels)}
+
+
+def require_space(root: Path, frames: int, width: int, height: int) -> None:
+    """Refuse before work that could not finish. Raw frames dwarf their source."""
+    required = frames * frame_size_bytes(width, height)
     free = shutil.disk_usage(root).free
     if free < required:
         raise CorpusRefusal(
@@ -104,12 +124,7 @@ class _FrameWriter:
         if frame_index not in self._window:
             return
         pixels = self._converter.pixels(frame)
-        path = self._directory / frame_name(frame_index, OUTPUT_PIXEL_FORMAT)
-        path.write_bytes(pixels)
-        path.chmod(READ_ONLY_FILE_MODE)
-        self.frames.append(
-            {"frame_index": frame_index, "pts": frame.pts, "sha256": sha256_bytes(pixels)}
-        )
+        self.frames.append(store_frame(self._directory, frame_index, frame.pts, pixels))
 
 
 def _require_same_decode(
@@ -161,6 +176,7 @@ def _bundle_body(
         "interlaced_frames": media["interlaced_frames"],
         "timestamp_quality": media["timestamp_quality"],
         "capture_clock_evidence": media["capture_clock_evidence"],
+        "generated": None,
     }
 
 

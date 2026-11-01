@@ -14,7 +14,7 @@ rights: {holder: Owner, basis: owned, retention: one year, sharing: restricted}
 sensitivity: {level: low}
 """
 CORPUS = f"""\
-schema_version: 2
+schema_version: 3
 corpus_id: pilot-v1
 scenario_rights: {{sharing: restricted, max_sensitivity: moderate}}
 groups:
@@ -180,7 +180,7 @@ def test_minimal_corpus(declare: Callable[[str], Path]) -> None:
         pytest.param("encounter_id: enc01", "encounter_id: E1", "encounter_id", id="encounter"),
         pytest.param("split: development", "split: test", "split", id="unknown-split"),
         pytest.param("split: development", "split: no", "split", id="yaml-boolean-split"),
-        pytest.param("schema_version: 2", "schema_version: 1", "schema_version", id="old-schema"),
+        pytest.param("schema_version: 3", "schema_version: 2", "schema_version", id="old-schema"),
         pytest.param("sharing: restricted", "sharing: open", "sharing", id="unknown-sharing"),
         pytest.param(
             "scenario_rights: {sharing: restricted, max_sensitivity: moderate}\n",

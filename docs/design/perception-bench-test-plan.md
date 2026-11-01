@@ -22,6 +22,10 @@ makes it fail, and what it does not prove. A case with no task left is listed as
   them.
   Value: protects=no leakage across splits; fails_when=a stream crosses a split; no_claim=grouping
   judgment on real footage, or a remuxed copy of one recording.
+- A generated case rerun with one seed stays byte-identical, stays in its parent's encounter and split
+  and adds nothing to any evidence count. `tests/corpus/` covers them.
+  Value: protects=reproducible cases that are not encounters; fails_when=a case counts as new
+  evidence; no_claim=realism.
 
 ## Fixture-level cases
 
@@ -32,9 +36,28 @@ makes it fail, and what it does not prove. A case with no task left is listed as
 - `annotation-review-tools`: hand-built disagreements between two label sets.
   Value: protects=review before freezing; fails_when=an unresolved case freezes; no_claim=reviewer
   skill.
-- `generated-fixture-cases`: a generated case on rerun with one seed.
-  Value: protects=reproducible cases that are not encounters; fails_when=a case counts as new
-  evidence; no_claim=realism.
+- `source-terms-enforcement`: a source one day either side of its retention date, and a generated case
+  of a source that forbids derived frames.
+  Value: protects=recorded terms; fails_when=a source outside its terms is staged; no_claim=legal
+  sufficiency of the declared terms.
+- `corpus-verify-rights`: a source re-imported under narrower rights after staging.
+  Value: protects=a verified corpus means valid rights; fails_when=verify passes on withdrawn rights;
+  no_claim=the truth of a declaration.
+- `corpus-version-lineage`: a source moved between splits, and a source added, across linked versions.
+  Value: protects=split isolation over time; fails_when=a moved source builds; no_claim=versions that
+  declare no predecessor.
+- `staged-frame-set`: two stagings of one corpus, a replaced bundle and an interrupted stage.
+  Value: protects=one pin for all staged input; fails_when=a changed bundle keeps its frame set;
+  no_claim=undeclared files outside the corpus.
+- `duplicate-frame-detection`: a remux across two splits, and two clips sharing a black frame.
+  Value: protects=split isolation for remuxed copies; fails_when=identical frames cross a split or a
+  shared black frame is refused; no_claim=re-encoded copies.
+- `arm64-reproducibility`: golden transforms and tree hashes of one corpus on x86-64 and arm64.
+  Value: protects=a stated cross-architecture boundary; fails_when=a difference goes unrecorded;
+  no_claim=macOS, or timing.
+- `generated-case-labels`: hand-built labels through each transform, and a plate showing a target.
+  Value: protects=labels that follow pixels; fails_when=a covered target stays visible or a wrong
+  region yields `absent`; no_claim=parent label quality.
 - `event-schema-contract`: golden fixtures, unknown fields, malformed payloads and regenerated
   bindings.
   Value: protects=one meaning for every event; fails_when=generated code drifts from `.proto`;
@@ -51,6 +74,9 @@ makes it fail, and what it does not prove. A case with no task left is listed as
 - `lockstep-runner`: oracle, null, dropper, crash, schema and class-identity modules.
   Value: protects=exact frame accounting; fails_when=a dropped frame leaves the denominator;
   no_claim=paced behavior.
+- `locked-split-guard`: a development scenario naming a locked stream, and an approved re-score.
+  Value: protects=held-out material and its audit trail; fails_when=the run starts or a read goes
+  unrecorded; no_claim=access control against someone with disk access.
 - `paced-frame-release`: a fixture module attempts to read a future frame.
   Value: protects=causal input; fails_when=the read succeeds; no_claim=defense beyond the channel.
 - `paced-frame-release`: a slow module against an injected clock.

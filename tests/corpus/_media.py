@@ -1,6 +1,6 @@
 """Small synthetic media, generated at test time so no binary enters the repository."""
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from fractions import Fraction
 from pathlib import Path
 
@@ -30,11 +30,21 @@ def expected_rgb(index: int, width: int = WIDTH, height: int = HEIGHT) -> bytes:
     )
 
 
-def _frame(index: int, width: int = WIDTH, height: int = HEIGHT) -> av.VideoFrame:
+def flat_rgb(_: int, width: int = WIDTH, height: int = HEIGHT) -> bytes:
+    """Return one uniform frame, which every blur leaves exactly as it is."""
+    return bytes((90, 120, 150)) * (width * height)
+
+
+def _frame(
+    index: int,
+    width: int = WIDTH,
+    height: int = HEIGHT,
+    content: Callable[[int, int, int], bytes] = expected_rgb,
+) -> av.VideoFrame:
     frame = av.VideoFrame(width, height, "rgb24")
     plane = frame.planes[0]
     row_bytes = width * 3
-    pixels = expected_rgb(index, width, height)
+    pixels = content(index, width, height)
     padding = bytes(plane.line_size - row_bytes)
     plane.update(
         b"".join(pixels[row * row_bytes : (row + 1) * row_bytes] + padding for row in range(height))
@@ -52,6 +62,7 @@ def write_clip(
     frames: int = FRAME_COUNT,
     width: int = WIDTH,
     height: int = HEIGHT,
+    content: Callable[[int, int, int], bytes] = expected_rgb,
 ) -> Path:
     """Encode a short deterministic clip."""
     with av.open(path, "w", format=container_format, options=container_options or {}) as container:
@@ -60,7 +71,7 @@ def write_clip(
         stream.thread_count = 1
         stream.options = options or {}
         for index in range(frames):
-            frame = _frame(index, width, height).reformat(format=pixel_format)
+            frame = _frame(index, width, height, content).reformat(format=pixel_format)
             frame.pts, frame.time_base = index, Fraction(1, FRAME_RATE)
             container.mux(stream.encode(frame))
         container.mux(stream.encode(None))

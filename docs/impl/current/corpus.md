@@ -3,13 +3,15 @@
 `ss-track import` turns one declared recording into an immutable, hashed source record.
 `ss-track corpus build` groups imported sources into encounters and splits in one immutable corpus
 version. `ss-track corpus stage` decodes each stream into one immutable frame bundle that every
-module reads, and `ss-track corpus verify` proves those frames are intact. Each command produces a
-complete record or a structured refusal, and none invents a value it could not establish. Generated
-cases and annotation do not exist yet; the [plan](../plan.md) schedules them. The task records keep
-the accepted tasks, their decisions and their acceptance evidence:
+module reads, plus one derived bundle for each declared generated case, and `ss-track corpus verify`
+proves those frames are intact. Each command produces a complete record or a structured refusal, and
+none invents a value it could not establish. Annotation does not exist yet; the [plan](../plan.md)
+schedules it. The task records keep the accepted tasks, their decisions and their acceptance
+evidence:
 [import and corpus build](../records/0001-corpus-provenance-corpus-manifest-import.md),
-[frame staging](../records/0002-corpus-provenance-frame-bundle-staging.md) and
-[split grouping](../records/0003-corpus-provenance-corpus-split-grouping.md).
+[frame staging](../records/0002-corpus-provenance-frame-bundle-staging.md),
+[split grouping](../records/0003-corpus-provenance-corpus-split-grouping.md) and
+[generated cases](../records/0004-corpus-provenance-generated-fixture-cases.md).
 
 ## Commands
 
@@ -33,7 +35,7 @@ the project root, then `.data`. Relative values resolve against the project root
 ## Declarations
 
 Both files reject unknown fields, repeated keys and any other schema version, so a misspelled key
-cannot silently drop a fact. A recording is schema 1 and a corpus is schema 2. There are no defaults
+cannot silently drop a fact. A recording is schema 1 and a corpus is schema 3. There are no defaults
 for rights, sensitivity, split or scenario rights: a declaration without them is refused, and `basis`
 has no `unknown` value.
 
@@ -63,7 +65,7 @@ capture:                     # optional; every absent fact is stored as unknown
 
 ```yaml
 # corpus.yaml
-schema_version: 2
+schema_version: 3
 corpus_id: pilot-v1
 decode_policy_sha256: "<64 hex>"   # optional pin on the installed decoder
 scenario_rights:
@@ -78,6 +80,11 @@ groups:
           - stream_id: enc01-cam0  # unique in the corpus
             source_sha256: "<64 hex>"
             selection: {start_frame: 0, end_frame: 240}   # optional, half-open; absent means all
+            generated_cases:       # optional; see Generated cases
+              - case_id: enc01-cam0-shake
+                transform: camera_shake
+                seed: 7
+                parameters: {amplitude: 3}
           - stream_id: enc01-cam1
             source_sha256: "<64 hex>"
 ```
@@ -90,6 +97,7 @@ groups:
 | `$DATA_DIR/import/<source-sha256>/manifest.json` | Sealed source manifest |
 | `$DATA_DIR/corpus/<corpus-id>/manifest.json` | Sealed corpus manifest |
 | `$DATA_DIR/corpus/<corpus-id>/frames/<stream-id>/` | One read-only frame bundle |
+| `$DATA_DIR/corpus/<corpus-id>/frames/<case-id>/` | One read-only bundle of a generated case |
 
 Import copies the source first, then hashes and decodes that copy, so the record describes exactly
 the bytes retained. The finished directory is published by one rename, so a failure leaves nothing
@@ -134,12 +142,14 @@ Grouping is the operator's judgment, and nothing detects that two groups are in 
   encounter.
 
 Each entry of the manifest's `streams` list carries `stream_id`, `modality`, `encounter_id`,
-`group_id` and `split`, and a build result counts the groups, encounters and streams of each split:
+`group_id`, `split`, `width` and `height`, and a build result counts each split's groups, encounters
+and streams, with generated cases on a line of their own:
 
 ```json
-{"status": "built", "stream_count": 3, "splits": {"calibration": {"group_count": 1,
- "encounter_count": 1, "stream_count": 1}, "development": {"group_count": 1,
- "encounter_count": 1, "stream_count": 2}}}
+{"status": "built", "stream_count": 3, "generated_case_count": 2, "splits": {"calibration":
+ {"group_count": 1, "encounter_count": 1, "stream_count": 1, "generated_case_count": 0},
+ "development": {"group_count": 1, "encounter_count": 1, "stream_count": 2,
+ "generated_case_count": 2}}}
 ```
 
 `modality` is always `camera`, because import accepts only video. Streams of one encounter are not
@@ -273,8 +283,10 @@ pixels = bundle.read_frame(12)     # packed RGB bytes, compared with the sealed 
 `src/ss_track/corpus/frames.py` owns this access. `frame_refs()` yields every reference in
 presentation order. A `FrameRef` carries stream, source hash, frame index, PTS, time base, timestamp
 quality and capture-clock evidence, dimensions, pixel format, transform, bundle hash, frame name and
-frame hash. `transform` is always `identity`: pixels are as stored, and display rotation stays a
-record fact. An absent PTS stays `null`. An index outside the bundle is `FRAME_NOT_IN_BUNDLE`.
+frame hash, plus `content_frame_index`, the parent frame whose pixels it shows. `transform` is
+`identity` for a stream, whose pixels are as stored, with display rotation staying a record fact, and
+the transform name for a generated case. An absent PTS stays `null`. An index the bundle does not
+hold is `FRAME_NOT_IN_BUNDLE`.
 
 ### Verification
 
@@ -288,6 +300,96 @@ record fact. An absent PTS stays `null`. An index outside the bundle is `FRAME_N
 The reason is `hash_mismatch`, `missing` or `unexpected_file`. `damaged_count` is always complete; the
 list names the first 32. A stage over a damaged bundle and a read of a damaged frame refuse the same
 way, so a changed frame cannot reach a module.
+
+## Generated cases
+
+A generated case tests one failure mechanism with frames derived from a staged stream. It is
+synthetic: nothing here claims realism, and a case is never field evidence. A recipe sits under its
+parent stream and has no other home:
+
+| Field | Meaning |
+| --- | --- |
+| `case_id` | Unique across every stream and case of the corpus, because it names a bundle |
+| `transform` | One of the table below |
+| `seed` | Required, from 0 to 2^63 - 1 |
+| `window` | Optional half-open frame window inside the parent's selection; absent means all of it |
+| `parameters` | Exactly the keys of that transform, with no defaults |
+
+| Transform | Parameters | The seed decides | Label transform |
+| --- | --- | --- | --- |
+| `target_absence` | `region`, `plate_frame`, `noise` (0 to 255) | Per-frame noise | `region_status`: `absent` inside, `unknown` overlapping |
+| `moving_background` | `region`, `sprite_count` (up to 256), `sprite_size`, `max_speed` | Each sprite's start, direction, speed and color | `region_status`: `unknown`, and `added_objects: distractor` |
+| `camera_shake` | `amplitude` | Each frame's whole-pixel offset | `translate`, with `camera_motion: shake` and every offset |
+| `blur` | `max_radius` | Each frame's radius, from 1 | `identity` |
+| `dropped_frames` | `count` | Which frames | `frame_map`, listing `removed` |
+| `duplicated_frames` | `count` | Which frames | `frame_map`, listing `repeated` |
+| `short_occlusion` | `region` | One rigid noise texture | `region_status`: `fully_occluded` inside, `partially_occluded` overlapping |
+
+`region` is `{x, y, width, height}` in stored orientation, and each `region_status` also carries
+`frames`, `region` and `overlap_geometry: unlocalizable`. Pixels outside a case's window keep their
+parent's exact bytes. `short_occlusion` needs parent frames on both sides of its window, so a window
+is required in practice. One `blur` draw is an edge-repeating box filter of `2 * radius + 1`, applied
+per axis. `camera_shake` repeats the nearest pixel at an exposed edge.
+
+Nothing here knows where a target is. A `region` must cover the target for the whole window, and for
+`target_absence` the plate frame must not show it there. Both are the operator's claims, and a wrong
+one makes a false negative interval. A moving target needs a rectangle covering its whole path.
+
+### Membership
+
+`corpus build` copies a case's `encounter_id`, `group_id` and `split` from its parent, into a sorted
+`generated_cases` list beside `streams`. The recipe has no such keys, and declaring one is
+`MANIFEST_INVALID`. A case therefore cannot leave its parent's split, and because split and rights
+rules and every group, encounter and stream count read only `streams`, a case is never a new
+encounter. A case holds its parent's rights by reference: `parent_stream_id` names them.
+
+Each record also stores `source_sha256`, `transform`, `transform_revision`, `seed`, the resolved
+`window`, `parameters` and `label_transform`. `src/ss_track/corpus/recipes.py` reads recipes and
+builds these records. A build runs every transform without pixels, so a recipe its parent cannot
+satisfy is refused before anything is staged, and `corpus build` needs no staged frames.
+
+### Staging
+
+`corpus stage` stages the streams, then each case from its parent's verified frames, under the same
+lock, scratch and publish steps. `src/ss_track/corpus/generated.py` writes a case, and a repeated
+stage reports it `unchanged`. A case is an ordinary bundle, read through `open_frame_bundle`, and
+`corpus verify` covers it. Its record is the parent's with these differences:
+
+| Field | Value |
+| --- | --- |
+| `stream_id` | The `case_id` |
+| `generated` | Its `parent_stream_id`, `encounter_id`, `group_id` and `split`. `null` on a stream |
+| `identity` | The parent's, plus `parent_bundle_sha256`, `recipe` and `label_transform`, with its own frames |
+
+`bundle_sha256` covers that identity, so one recipe over one parent gives one hash whatever the
+corpus or case is called. A case whose `parent_bundle_sha256` is not its parent's current bundle is
+`BUNDLE_CONFLICT`. A case that changes no frame, such as a blur over a uniform clip, is `CASE_INVALID`
+at staging, and that corpus version then needs replacing. Streams and cases finished before a refusal
+stay staged.
+
+A case keeps each frame's source index and PTS. `dropped_frames` leaves a gap in both, and reading a
+removed frame is `FRAME_NOT_IN_BUNDLE`, so a removed operator seed frame needs a window that avoids
+it. `duplicated_frames` repeats the previous frame's pixels at a frame's own index and PTS, with
+`content_frame_index` naming the frame shown; a run of repeats all show the last real frame, and the
+first frame of a selection is never repeated. Labels follow pixels, so a repeated frame takes the
+labels of the frame it shows. Such a frame's PTS is no longer a capture time, so a `measured` parent
+gives a `derived` case with no capture-clock evidence. A `missing` parent stays `missing`.
+
+On the development host, on tmpfs, four cases of 300 1080p frames took 37 s on top of staging their
+parent, about 33 frames per second, with a 227 MB peak. A blur of radius 9 costs about 65 ms per
+frame. Each case holds a full copy of its raw frames: 1.8 GB here, the same as its parent.
+
+### Reproducibility
+
+`src/ss_track/corpus/transforms.py` and `region_transforms.py` hold the transforms. Each is a pure
+function of frames, parameters and seed, in integer arithmetic only, and `seeded.py` derives every
+random value with SHAKE-256 rather than a library generator whose stream may change.
+
+`TRANSFORM_REVISIONS` versions each transform. A change to what one produces must raise its revision,
+and `tests/corpus/test_transform_golden.py` fails until it does. The installed revision is stored in
+each case, and a stored case of another revision, or of a transform that no longer exists, is
+`TRANSFORM_REVISION_MISMATCH` before anything is written. A case is never silently regenerated as
+different evidence.
 
 ## Timestamp quality
 
@@ -320,9 +422,11 @@ MPEG program streams import as `missing`, because they do not store a presentati
 | `SELECTION_OUT_OF_RANGE` | A selection runs past the end of its sequence |
 | `SOURCE_NOT_IMPORTED` | A corpus names a source with no import record |
 | `SOURCE_RECORD_CHANGED` | A source was re-imported after the corpus that pins its record was built |
-| `SPLIT_LEAKAGE` | A group, encounter or stream is declared in two splits, or two groups share a source |
+| `SPLIT_LEAKAGE` | A group, encounter, stream or case name is declared in two splits, or two groups share a source |
 | `STREAM_OVERLAP` | Two streams use the same frames of one source |
 | `RIGHTS_CONFLICT` | A source's recorded rights do not cover the corpus's scenario rights |
+| `CASE_INVALID` | A generated case does not fit its parent, or changes no frame of it |
+| `TRANSFORM_REVISION_MISMATCH` | A stored case needs a transform revision this code does not provide |
 | `RECORD_TAMPERED` | A manifest is missing, malformed or fails its seal, or a re-import finds changed stored bytes |
 | `RECORD_SCHEMA_UNSUPPORTED` | An intact corpus or bundle record was written under another schema |
 | `DECODE_POLICY_MISMATCH` | A source or pin uses a decode policy other than the installed one |
@@ -331,10 +435,10 @@ MPEG program streams import as `missing`, because they do not store a presentati
 | `CORPUS_NOT_BUILT` | The named corpus version does not exist, or the identifier cannot name one |
 | `DECODE_DRIFT` | A staging decode disagrees with the import record of its source |
 | `BUNDLE_NOT_STAGED` | A stream has no staged frame bundle |
-| `BUNDLE_CONFLICT` | A bundle was staged from a different corpus version, or for a different stream |
+| `BUNDLE_CONFLICT` | A bundle was staged from a different corpus version, for a different stream, or from other parent frames |
 | `STAGING_IN_PROGRESS` | Another run is staging this corpus version |
 | `FRAME_CORRUPTED` | A staged file differs from the sealed index, is gone, or is not in it |
-| `FRAME_NOT_IN_BUNDLE` | A frame index lies outside a bundle |
+| `FRAME_NOT_IN_BUNDLE` | A bundle does not hold a frame index, including a frame a case dropped |
 | `STORAGE_FAILED` | The data root cannot be written, or lacks the space for raw frames |
 
 ## Integrity limits
@@ -399,6 +503,10 @@ MP4 clips, and tests that default decoding hides damage the policy refuses.
 staging, and `test_pixels.py` includes the comparison with FFmpeg's SIMD disabled.
 `tests/corpus/test_grouping.py`, `test_scenario_rights.py` and `test_stream_identity.py` cover
 membership, rights and each stream's identity from build to `FrameRef`.
+`tests/corpus/test_transforms.py`, `test_transform_recipes.py` and `test_transform_golden.py` cover
+each transform on hand-checkable frames and pin its bytes, and `test_recipes.py`,
+`test_generated_cases.py`, `test_case_membership.py` and `test_case_frames.py` cover recipes and
+cases from declaration to staged frames.
 
 ```bash
 make test

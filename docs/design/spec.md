@@ -196,9 +196,23 @@ A corpus version declares this structure directly. An independent encounter grou
 stream is one sensor's frames of one encounter, taken from one source and frame window, and its
 `stream_id` is unique in the corpus. A source belongs to one group, because groups that share a
 recording are not independent, and a source frame belongs to one stream, because a frame counted
-twice distorts anything aggregated by encounter. Sharing a source is detected by byte hash; a remux
-or re-encoded copy is a different source until near-duplicate detection exists. Declaring `locked`
-records membership only: it creates no locked test and grants no held-out claim.
+twice distorts anything aggregated by encounter. Sharing a source is detected by byte hash, and a
+remux is detected after staging: two groups holding a run of identical decoded frames are refused,
+because a different container does not make different evidence. A uniform or repeated frame shared by
+independent clips is not such a run. A re-encoded copy stays a different source until near-duplicate
+detection exists. Declaring `locked` records membership only: it creates no locked test and grants no
+held-out claim. A development scenario that names a locked stream is refused, and a locked evaluation
+needs the section 15 custodian and access policy, with each read recorded.
+
+A corpus version may name the version it supersedes. Material already evaluated in one split has been
+seen, so a source that a new version places in another split is refused, as is one moved to another
+group. New sources are accepted, and the build reports what was added, removed and kept. This compares
+only versions linked by that declaration, so a version that names no predecessor says so in its
+result.
+
+Staging ends with one sealed frame-set record that names every stream and generated-case bundle hash
+of a corpus version and the source records they rest on. A scenario pins that one hash rather than a
+list of bundles, and a bundle no frame set names is not part of the corpus.
 
 A corpus also declares its **scenario rights**: the widest sharing it intends and the highest
 sensitivity it accepts. A build that asks more of any source than its recorded rights allow is
@@ -206,6 +220,13 @@ refused and names each conflict. It compares only these two ordered facts; holde
 retention stay recorded terms. A public source in a restricted corpus stays recorded as public while
 the corpus remains restricted. A corpus version states the rights of the source records it was built
 from, so a source re-imported under other terms needs a new corpus version.
+
+A recording also declares when its retention ends, or that it has no end, and whether derived frames
+are permitted. A source past its retention date is refused at build, staging and verification, and a
+generated case of a source that forbids derived frames is a rights conflict. Refusal does not delete
+anything: removing expired material stays an operator action. `corpus verify` re-reads the source
+records it pins, so a verified corpus is one whose rights still hold, not only one whose frames are
+intact.
 
 ### 4.2 Annotation contract
 
@@ -236,6 +257,15 @@ resolving disagreements with a recorded rationale or retaining `unknown`. Larger
 predeclared review sample plus all difficult cases. Ground truth, episode eligibility and exclusion
 masks are frozen and hashed **before** module execution.
 
+Label coordinates use the stored orientation that modules receive. Display rotation is a recorded
+fact, so a tool that shows a rotated view maps coordinates back before a label is validated, and a
+label that declares any other orientation is refused.
+
+A generated case takes its labels from its parent's frozen revision through the stored label
+transform, as a hashed revision of its own that nobody edits by hand. Frozen labels also check the
+rectangle a case rests on: a plate frame that shows a target inside that rectangle is refused, and a
+target the rectangle does not cover stays `unknown` rather than becoming `absent`.
+
 Fusion labels distinguish the object/event's **scene-level identity** from visibility or
 detectability in each sensor. A camera may see an object while a microphone has no attributable
 sound, a PIR sensor may have no thermal contrast, and a ground-contact sensor cannot observe a
@@ -257,9 +287,38 @@ enter with their owning capability. Each case stores parent sequence, transform,
 transform. Geometry-changing cases update geometry/calibration or invalidate dependent labels.
 Synthetic cases test failure mechanisms and are never counted as independent field encounters.
 
+A corpus version declares each generated case under its parent stream, so a case states no split,
+encounter or group: it inherits all three and adds nothing to any group, encounter or stream count.
+It is staged as a frame bundle derived from its parent's staged frames, and modules read it as they
+read a stream. Its hash covers the parent bundle, transform revision, seed, parameters, label
+transform and frames, and no corpus or case name, so one recipe over one parent gives identical
+bytes. A transform that would produce other bytes takes a new revision, and a stored case of another
+revision is refused rather than regenerated. A case that changes no frame of its parent is refused,
+because it would test nothing while claiming to.
+
+Labels follow pixels. A case keeps each frame's source index, so a shifted frame translates its
+labels, a removed frame takes no label, and a repeated frame takes the labels of the frame it shows.
+A repeated frame keeps its own presentation time, which stops being a measured capture time, so such
+a case is at best `derived`. Absence, occlusion and moving-background cases act on a declared
+rectangle. That rectangle is the operator's claim: a label inside it takes the case's status, and a
+label that only overlaps it loses its geometry rather than keeping a box that may be wrong.
+
+A case does not claim realism and does not chain from another case. A section 4.1 source term decides
+whether derived frames may exist at all.
+
+With frozen labels, a case can follow a target's own track instead of one rectangle: an occluder that
+crosses the target, a removal that follows it, a similar object beside it, and out-of-view and
+re-entry intervals. These cases need no operator rectangle, so they carry no such claim.
+
+A recipe may declare a graded list of one parameter, which expands to one case per level. The local
+report then shows each module's quality against that severity, so a comparison shows where a module
+degrades, not only whether it does. The curve is one parameter on one encounter set. It is a
+diagnostic, it enters no composite score, and it is never field evidence.
+
 Fusion fixtures add controlled timestamp skew, jitter, late and out-of-order packets, complete or
 intermittent modality loss, degraded/noisy measurements, calibration perturbation, shared artifacts,
-duplicate source events, contradictory observations and sensor-health misreports. A generated
+duplicate source events, contradictory observations and sensor-health misreports. These act on a
+whole encounter, because a fusion failure is a relation between streams. A generated
 perturbation declares whether the independent reference remains valid; any altered physical geometry
 or time relation updates the dependent calibration and labels or makes that metric `NOT_SCOREABLE`.
 Real and simulated failures remain separate report slices.
@@ -284,7 +343,8 @@ metric suite, module binary/configuration, schema, decoder, host, kernel/schedul
 compute variant and evaluator revisions. A compute variant identifies its scalar or vector kernel
 and ISA, or its tensor graph/model, precision, backend and device, as applicable; the detailed
 provenance contract is in section 7. `FrameRef` identifies stream, source-media hash, zero-based frame
-index, PTS, decoded dimensions/pixel format, transform, time evidence and staged-bundle access.
+index, the frame whose pixels it shows, PTS, decoded dimensions/pixel format, transform, time evidence
+and staged-bundle access.
 `Detection` carries class ID, confidence and geometry; `TrackState` carries instance/track ID,
 presence confidence and geometry. `FrameResult` acknowledges exactly one input frame and contains
 zero or more outputs; an empty valid result is different from a missing result. `PowerSample`
@@ -367,6 +427,13 @@ malformed output, unsupported schema after an accepted handshake, or premature s
 failures. `UNSUPPORTED` may be returned before a run begins for an unavailable camera/mode/contract.
 `NOT_SCOREABLE` arises only from frozen source/ground-truth limitations. A module cannot declare its
 own difficult frames ineligible. Every report shows counts and elapsed exposure for these statuses.
+
+A corpus refusal that shows broken or undeclared input, such as a corrupted frame, a tampered record,
+an unstaged bundle or a bundle conflict, is `RUNNER_INVALID` and never a module fault. A frame that a
+generated case removed never reaches a module: it is not scheduled, takes no `FrameResult` and enters
+no denominator, and the report shows its count and exposure as undelivered. This differs from a
+module-side drop of a delivered frame, which stays a miss. A paced run verifies frames before their
+release time, or reports verification as runner time, so hashing cannot pass as module latency.
 
 Time fields distinguish media PTS, camera/driver buffer time, receive time, processing start/end,
 event publication and display. Every clock value declares its domain, source and uncertainty;
@@ -1246,7 +1313,9 @@ ss-track import --source recording.yaml
 ss-track corpus build --manifest corpus.yaml
 ss-track corpus stage --corpus <id>
 ss-track corpus verify --corpus <id>
+ss-track corpus preview --corpus <id> --stream <id> --frame <index> --out sheet.png
 ss-track annotate validate --corpus <id>
+ss-track annotate derive --corpus <id>
 ss-track hardware-probe --out host.json
 ss-track hardware-measure --protocol hardware-trial.yaml --out trial/
 ss-track hardware-select --requirements stand.yaml --trials <trial-ids> --out selection/
@@ -1260,9 +1329,10 @@ ss-track ingest --manifest external-run.yaml --events <event bundle>
 ss-track compare --runs <run-a>,<run-b> --out report/
 ```
 
-The scenario pins the domain pack/class taxonomy, corpus/split, annotation and eligibility-mask
-hashes, selection set, canonical decode/frame delivery, replay mode, module configuration, metric
-suite, seed, camera/host profile where applicable, deadlines, sensor-absence policy, energy boundary
+The scenario pins the domain pack/class taxonomy, corpus/split, frame-set hash, annotation and
+eligibility-mask hashes, selection set, canonical decode/frame delivery, replay mode, module
+configuration, metric suite, seed, camera/host profile where applicable, deadlines, sensor-absence
+policy, energy boundary
 and sampling protocol. A G1 or G2 hardware claim also pins the section 7.9 `HardwareTrial` protocol and
 instrument/calibration revision. A G2 scenario additionally pins **one of the four evaluation
 boundaries**, allowed inputs, upstream bundle/producer hashes, sensor opportunity profile, declared
@@ -1311,7 +1381,9 @@ deviations, deadline and budget misses, and energy measurement quality. The hard
 measured capture rate/drop cause, optical/temporal calibration, stage and end-to-end latency,
 memory/I/O pressure, temperature/throttling, measured motion spectrum, total energy and uncertainty,
 with instrument/trace links and `NOT_MEASURABLE`/`inconclusive` statuses. It distinguishes isolated
-kernel/operator timing from full pipeline timing and never edits or recomputes source metrics. G2
+kernel/operator timing from full pipeline timing and never edits or recomputes source metrics.
+Generated cases form their own slice, named by transform, and never merge with field encounters or
+count toward an encounter minimum. A source whose completeness is unverified is listed. G2
 shows **four separate panels** for sensor-set/front-end evidence, fixed-input fusion/analysis,
 fixed-input tracking and full installed-system output; a component score is never displayed as a
 whole-system score. Shareable exports require explicitly public input; missing visibility is
@@ -1798,7 +1870,7 @@ Group order alone never establishes readiness.
 | --- | --- | --- | --- | --- |
 | 1 | `reproducible-environment` | shipped | A fresh locked environment reaches the complete CI gate without manual repair | [Developer tooling](../impl/current/developer-tooling.md) |
 | 2 | `project-identity` | shipped | Import, CLI, and distribution-build tests agree on the project identity | [Product core](../impl/current/product-core.md) |
-| 3 | `corpus-provenance` | planned | Import/hash/canonical-decode, staged frame bundles, synchronized multi-stream grouping, generated cases and scenario-rights/split fixtures; malformed source yields structured failure | - |
+| 3 | `corpus-provenance` | planned | Import/hash/canonical-decode, staged frame bundles, synchronized multi-stream grouping, generated cases, version lineage, duplicate-frame and source-term refusals and scenario-rights/split fixtures; malformed source yields structured failure | - |
 | 4 | `annotation-selection` | planned | Two-reviewer G0 labels, stable class/instance IDs, frozen mask and identical seed replay | - |
 | 5 | `module-contract-runner` | planned | Oracle, null, dropper, crash, schema and class-identity fixtures pass with exact frame accounting | - |
 | 6 | `motion-sot-evaluation` | planned | Hand-computed fixture metrics, denominators and time weights match evaluator output | - |

@@ -1,14 +1,14 @@
 """Typed forms of the operator-written recording and corpus declarations."""
 
-import re
 from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
-from ss_track.corpus.fields import Fields, invalid, load_yaml_mapping
+from ss_track.corpus.fields import Fields, Selection, invalid, load_yaml_mapping
+from ss_track.corpus.recipes import CaseRecipe, read_recipe
 from ss_track.corpus.refusal import JsonValue
 
-CORPUS_SCHEMA_VERSION = 2
+CORPUS_SCHEMA_VERSION = 3
 RIGHTS_BASES = frozenset({"owned", "licensed", "consented", "public_domain"})
 SHARING_SCOPES = ("restricted", "public")  # narrowest first
 SENSITIVITY_LEVELS = ("low", "moderate", "high")  # least sensitive first
@@ -26,7 +26,6 @@ CAPTURE_FIELDS = (
     "motion",
     "object_pixel_extent",
 )
-IDENTIFIER_PATTERN = re.compile(r"[a-z0-9][a-z0-9._-]{0,63}")
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,20 +59,13 @@ class RecordingDeclaration:
 
 
 @dataclass(frozen=True, slots=True)
-class Selection:
-    """A half-open frame window `[start_frame, end_frame)` over one sequence."""
-
-    start_frame: int
-    end_frame: int
-
-
-@dataclass(frozen=True, slots=True)
 class StreamDeclaration:
     """One sensor's recording of an encounter, taken from one imported source."""
 
     stream_id: str
     source_sha256: str
     selection: Selection | None
+    generated_cases: tuple[CaseRecipe, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -117,6 +109,12 @@ class CorpusDeclaration:
                 for stream in encounter.streams:
                     yield group, encounter, stream
 
+    def recipes(self) -> Iterator[tuple[str, CaseRecipe]]:
+        """Return every generated case with the `stream_id` of its parent."""
+        for _, _, stream in self.members():
+            for recipe in stream.generated_cases:
+                yield stream.stream_id, recipe
+
 
 def load_recording_declaration(path: Path) -> RecordingDeclaration:
     """Parse and validate a recording declaration."""
@@ -144,7 +142,7 @@ def load_corpus_declaration(path: Path) -> CorpusDeclaration:
     """Parse and validate a corpus declaration."""
     with Fields(load_yaml_mapping(path), "corpus") as fields:
         fields.schema_version(CORPUS_SCHEMA_VERSION)
-        corpus_id = _identifier(fields, "corpus_id")
+        corpus_id = fields.identifier("corpus_id")
         policy_sha256 = (
             fields.sha256("decode_policy_sha256") if fields.has("decode_policy_sha256") else None
         )
@@ -154,13 +152,6 @@ def load_corpus_declaration(path: Path) -> CorpusDeclaration:
             for position, raw in enumerate(fields.items("groups"))
         )
     return CorpusDeclaration(corpus_id, policy_sha256, scenario_rights, groups)
-
-
-def _identifier(fields: Fields, key: str) -> str:
-    value = fields.text(key)
-    if not IDENTIFIER_PATTERN.fullmatch(value):
-        raise invalid(f"{key} must match {IDENTIFIER_PATTERN.pattern}")
-    return value
 
 
 def _read_rights(fields: Fields) -> Rights:
@@ -210,7 +201,7 @@ def _read_scenario_rights(fields: Fields) -> ScenarioRights:
 
 def _read_group(raw: object, where: str) -> GroupDeclaration:
     with Fields(raw, where) as fields:
-        group_id = _identifier(fields, "group_id")
+        group_id = fields.identifier("group_id")
         split = fields.choice("split", SPLITS)
         encounters = tuple(
             _read_encounter(item, f"{where}.encounters[{position}]")
@@ -221,7 +212,7 @@ def _read_group(raw: object, where: str) -> GroupDeclaration:
 
 def _read_encounter(raw: object, where: str) -> EncounterDeclaration:
     with Fields(raw, where) as fields:
-        encounter_id = _identifier(fields, "encounter_id")
+        encounter_id = fields.identifier("encounter_id")
         streams = tuple(
             _read_stream(item, f"{where}.streams[{position}]")
             for position, item in enumerate(fields.items("streams"))
@@ -231,15 +222,17 @@ def _read_encounter(raw: object, where: str) -> EncounterDeclaration:
 
 def _read_stream(raw: object, where: str) -> StreamDeclaration:
     with Fields(raw, where) as fields:
-        stream_id = _identifier(fields, "stream_id")
+        stream_id = fields.identifier("stream_id")
         source_sha256 = fields.sha256("source_sha256")
-        selection = _read_selection(fields, where) if fields.has("selection") else None
-    return StreamDeclaration(stream_id, source_sha256, selection)
+        selection = fields.selection("selection") if fields.has("selection") else None
+        generated_cases = _read_recipes(fields, where)
+    return StreamDeclaration(stream_id, source_sha256, selection, generated_cases)
 
 
-def _read_selection(fields: Fields, where: str) -> Selection:
-    with fields.child("selection") as window:
-        selection = Selection(window.index("start_frame"), window.index("end_frame"))
-    if selection.start_frame >= selection.end_frame:
-        raise invalid(f"{where}.selection must have start_frame before end_frame")
-    return selection
+def _read_recipes(fields: Fields, where: str) -> tuple[CaseRecipe, ...]:
+    if not fields.has("generated_cases"):
+        return ()
+    return tuple(
+        read_recipe(item, f"{where}.generated_cases[{position}]")
+        for position, item in enumerate(fields.items("generated_cases"))
+    )

@@ -7,7 +7,6 @@ from typing import Any
 
 from ss_track.corpus.declaration import (
     CORPUS_SCHEMA_VERSION,
-    IDENTIFIER_PATTERN,
     CorpusDeclaration,
     EncounterDeclaration,
     GroupDeclaration,
@@ -15,6 +14,7 @@ from ss_track.corpus.declaration import (
     load_corpus_declaration,
 )
 from ss_track.corpus.decode import current_decode_policy
+from ss_track.corpus.fields import IDENTIFIER_PATTERN
 from ss_track.corpus.grouping import (
     SplitSummary,
     require_one_membership,
@@ -28,6 +28,7 @@ from ss_track.corpus.importer import (
     decode_policy_sha256,
     source_directory,
 )
+from ss_track.corpus.recipes import case_records
 from ss_track.corpus.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.sealed import (
     SEAL_FIELD,
@@ -52,6 +53,7 @@ class BuildResult:
     manifest_sha256: str
     manifest_path: Path
     stream_count: int
+    generated_case_count: int
     splits: dict[str, SplitSummary]
 
     def to_record(self) -> dict[str, JsonValue]:
@@ -62,6 +64,7 @@ class BuildResult:
             "manifest_sha256": self.manifest_sha256,
             "manifest_path": str(self.manifest_path),
             "stream_count": self.stream_count,
+            "generated_case_count": self.generated_case_count,
             "splits": {name: summary.to_record() for name, summary in self.splits.items()},
         }
 
@@ -94,7 +97,8 @@ def build_corpus(declaration_path: Path, data_root: Path) -> BuildResult:
     )
     require_separate_sources(streams)
     require_scenario_rights(streams, declaration.scenario_rights)
-    sealed = seal(_corpus_body(declaration, policy_record, policy_sha256, streams))
+    cases = case_records(list(declaration.recipes()), streams)
+    sealed = seal(_corpus_body(declaration, policy_record, policy_sha256, streams, cases))
     target = data_root / CORPUS_DIRECTORY / declaration.corpus_id / MANIFEST_NAME
     status = _commit(target, sealed)
     return BuildResult(
@@ -103,7 +107,8 @@ def build_corpus(declaration_path: Path, data_root: Path) -> BuildResult:
         manifest_sha256=str(sealed[SEAL_FIELD]),
         manifest_path=target,
         stream_count=len(streams),
-        splits=summarize_splits(streams),
+        generated_case_count=len(cases),
+        splits=summarize_splits(streams, cases),
     )
 
 
@@ -112,6 +117,7 @@ def _corpus_body(
     policy_record: dict[str, JsonValue],
     policy_sha256: str,
     streams: list[dict[str, Any]],
+    cases: list[dict[str, Any]],
 ) -> dict[str, JsonValue]:
     rights = declaration.scenario_rights
     return {
@@ -122,6 +128,7 @@ def _corpus_body(
         "decode_policy_sha256": policy_sha256,
         "scenario_rights": {"sharing": rights.sharing, "max_sensitivity": rights.max_sensitivity},
         "streams": list(streams),
+        "generated_cases": list(cases),
     }
 
 
@@ -220,6 +227,8 @@ def _stream_record(
         "source_manifest_sha256": manifest[SEAL_FIELD],
         "selection": _resolve_selection(stream, media["frame_count"]),
         "frame_count": media["frame_count"],
+        "width": media["decoded_width"],
+        "height": media["decoded_height"],
         "timestamp_quality": media["timestamp_quality"],
         "completeness_checks": media["completeness_checks"],
         "rights": manifest["rights"],

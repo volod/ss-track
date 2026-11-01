@@ -16,8 +16,14 @@ The documentation lifecycle keeps product intent, future work, and available beh
    finished plan scope, update the registry, and classify anything newly surfaced.
 
 A chore is handled during the change when necessary or dropped. An audit of the work just produced
-is part of completion and does not become a permanent task. More work for an existing capability may
-become a task; mark a refinement `(optional)`. A new capability always returns to specification.
+is part of completion and does not become a permanent task. More work for an existing capability
+amends the open task that owns it or becomes a new task; mark a refinement `(optional)`. A new
+capability always returns to specification.
+
+Discovery is part of implementation. A gap, wrong boundary, risk or directly usable feature found in
+a deep dive changes the specification and the plan in the same change, unasked. A task record explains
+what happened; it does not schedule anything. An item is routed only when an open task's text states
+it, or when the record says why it was dropped.
 
 ## Task lanes
 
@@ -100,7 +106,9 @@ leaves the plan. Current-state pages link the record; the plan never does.
 An amended task keeps its original block, followed by each revised block with its reason and who
 authorized it. Name exact commands and tests as evidence; missing, mocked or stale evidence does not
 prove acceptance, and a one-off investigation says that its scripts were not kept. The audit handoff
-gives each observation exactly one owner. A closed record is history and is not rewritten later.
+gives each observation exactly one owner: an open task whose text states it, created in the same
+change if necessary. A closed record is history and is not rewritten later. Later routing of an old
+item goes in a new `adhoc` record.
 
 ### Record file naming
 

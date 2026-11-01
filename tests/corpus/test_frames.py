@@ -230,6 +230,7 @@ def test_a_frame_ref_identifies_the_frame_and_how_to_reach_it(
         "stream_id": "one",
         "source_sha256": imported.source_sha256,
         "frame_index": 3,
+        "content_frame_index": 3,
         "pts": 120,
         "time_base": "1/1000",
         "timestamp_quality": "derived",

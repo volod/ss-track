@@ -3,6 +3,7 @@
 import math
 import re
 from collections.abc import Collection, Hashable
+from dataclasses import dataclass
 from pathlib import Path
 from types import TracebackType
 from typing import Self
@@ -13,6 +14,15 @@ from ss_track.corpus.refusal import CorpusRefusal, RefusalCode
 
 SCHEMA_VERSION = 1
 SHA256_PATTERN = re.compile(r"[0-9a-f]{64}")
+IDENTIFIER_PATTERN = re.compile(r"[a-z0-9][a-z0-9._-]{0,63}")
+
+
+@dataclass(frozen=True, slots=True)
+class Selection:
+    """A half-open frame window `[start_frame, end_frame)` over one sequence."""
+
+    start_frame: int
+    end_frame: int
 
 
 class _UniqueKeyLoader(yaml.SafeLoader):
@@ -74,6 +84,11 @@ class Fields:
             names = sorted(str(key) for key in self._raw)
             raise invalid(f"{self._where} has unknown fields: {', '.join(names)}")
 
+    @property
+    def where(self) -> str:
+        """Return this mapping's place in its declaration, for a refusal message."""
+        return self._where
+
     def has(self, key: str) -> bool:
         return key in self._raw
 
@@ -91,6 +106,13 @@ class Fields:
 
     def optional_text(self, key: str) -> str | None:
         return self.text(key) if self.has(key) else None
+
+    def identifier(self, key: str) -> str:
+        """Read a required name that is safe in a path and stable in a record."""
+        value = self.text(key)
+        if not IDENTIFIER_PATTERN.fullmatch(value):
+            raise invalid(f"{key} must match {IDENTIFIER_PATTERN.pattern}")
+        return value
 
     def choice(self, key: str, allowed: Collection[str]) -> str:
         """Read a string limited to a closed vocabulary."""
@@ -139,6 +161,14 @@ class Fields:
         if not isinstance(value, list) or not value:
             raise invalid(f"{self._where}.{key} must be a non-empty list")
         return value
+
+    def selection(self, key: str) -> Selection:
+        """Read a required, non-empty frame window."""
+        with self.child(key) as window:
+            selection = Selection(window.index("start_frame"), window.index("end_frame"))
+        if selection.start_frame >= selection.end_frame:
+            raise invalid(f"{self._where}.{key} must have start_frame before end_frame")
+        return selection
 
     def schema_version(self, expected: int = SCHEMA_VERSION) -> None:
         """Refuse any declaration written for another schema."""

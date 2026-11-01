@@ -28,21 +28,317 @@ neither blocks M3. Fixture implementation proceeds without physical hardware or 
 
 ### Corpus provenance -- `corpus-provenance`
 
-#### generated-fixture-cases
+#### source-terms-enforcement
 
-Failure mechanisms need cheap, repeatable cases that do not count as field evidence.
+Recorded terms protect nothing while an expired source, or one that forbids derived frames, passes
+every check.
 
-- Serves: `corpus-provenance` -- [Deterministic cases](../design/spec.md#43-deterministic-cases-and-negative-evidence)
+- Serves: `corpus-provenance` -- [Corpus
+  identity](../design/spec.md#41-corpus-identity-and-input-handling)
 - Agent status: CLEAR
 - Milestone: M1
 - Dependencies: none.
-- User-visible outcome: A recipe generates target absence, moving background, shake, blur, dropped
-  frames and short occlusion cases from a parent sequence and seed.
-- Scope boundary: The spec section 4.3 initial cases. Fusion perturbations are out of scope.
+- User-visible outcome: A recording declares when its retention ends and whether derived frames are
+  permitted, and a source outside those terms cannot enter or stay in a corpus.
+- Scope boundary: Recording schema 2 with `rights.retain_until` and `rights.derived_frames`, neither
+  with a default. `holder` and `basis` stay uncompared, and refusal deletes nothing.
 - Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`.
-- Execution path: Add versioned transforms that store parent, seed and label transform.
-- Acceptance gates: A rerun with one seed is byte-identical. A generated case inherits its parent's
-  encounter and split and never counts as a new encounter.
+- Execution path: Add both fields to `declaration.py`, a retention check shared by build, stage and
+  verify with an injected date so fixtures stay deterministic, and the derived-frame rule in
+  `grouping.py`.
+- Acceptance gates: An expired source is `RETENTION_EXPIRED` at build, stage and verify, one day
+  either side of its date. A generated case of a source that forbids derived frames is
+  `RIGHTS_CONFLICT`. A date never enters a sealed record, so a rerun stays byte-identical.
+- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
+
+#### corpus-verify-rights
+
+A corpus can verify cleanly after the rights it was built on were withdrawn.
+
+- Serves: `corpus-provenance` -- [Corpus
+  identity](../design/spec.md#41-corpus-identity-and-input-handling)
+- Agent status: CLEAR
+- Milestone: M1
+- Dependencies: source-terms-enforcement.
+- User-visible outcome: `corpus verify` proves that frames are intact and that the source records
+  they rest on still hold.
+- Scope boundary: Source records and retention, read without re-hashing stored sources. Frame checks
+  are unchanged.
+- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`.
+- Execution path: Reuse `require_source_record` and the retention check inside
+  `verify_corpus_frames`, with a re-import fixture.
+- Acceptance gates: A source re-imported as `restricted` makes `corpus verify` refuse with
+  `SOURCE_RECORD_CHANGED` and exit 1, and an expired source is `RETENTION_EXPIRED`. An unchanged
+  corpus still reports `verified`.
+- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
+
+#### corpus-version-lineage
+
+A later corpus version can move material that was already evaluated into a held-out split, and
+nothing compares versions.
+
+- Serves: `corpus-provenance` -- [Corpus
+  identity](../design/spec.md#41-corpus-identity-and-input-handling)
+- Agent status: CLEAR
+- Milestone: M1
+- Dependencies: none.
+- User-visible outcome: A corpus may declare the version it supersedes. A source moved to another
+  split or group is refused, and the build result lists what was added, removed and kept.
+- Scope boundary: Declared predecessors only, by source hash. A version that names none reports that
+  it has no lineage. Near-duplicates are out of scope.
+- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`.
+- Execution path: Add an optional `supersedes` key to the corpus declaration, a pure comparison of
+  two sealed manifests in `grouping.py`, and hand-built version pairs.
+- Acceptance gates: A source moved from `development` to `locked` is `SPLIT_LEAKAGE`, naming both
+  versions. Added sources build, and a missing predecessor is `CORPUS_NOT_BUILT`.
+- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
+
+#### staged-frame-set
+
+Nothing pins which frames a corpus version staged, so a run could read a bundle no scenario
+declared.
+
+- Serves: `corpus-provenance` -- [Corpus
+  identity](../design/spec.md#41-corpus-identity-and-input-handling)
+- Agent status: CLEAR
+- Milestone: M1
+- Dependencies: none.
+- User-visible outcome: `corpus stage` writes one sealed frame-set record naming every stream and
+  generated-case bundle hash and each source record, and a scenario can pin its single hash.
+- Scope boundary: One record per corpus version, beside its manifest. Runner enforcement belongs to
+  the scenario and runner tasks.
+- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`,
+  `$DATA_DIR/corpus/<corpus-id>/frame-set.json`.
+- Execution path: Write the record after the last bundle under the staging lock, and compare it in
+  `corpus verify`.
+- Acceptance gates: Two stagings give one frame-set hash, across data roots. A replaced or missing
+  bundle fails `corpus verify` by name, and an interrupted stage leaves no frame set.
+- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
+
+#### duplicate-frame-detection
+
+A remuxed copy of one recording crosses a split with every frame identical, because sources are
+compared by byte hash.
+
+- Serves: `corpus-provenance` -- [Corpus
+  identity](../design/spec.md#41-corpus-identity-and-input-handling)
+- Agent status: CLEAR
+- Milestone: M1
+- Dependencies: staged-frame-set.
+- User-visible outcome: `corpus stage` refuses two groups that hold a run of identical decoded
+  frames.
+- Scope boundary: Exact frame hashes from sealed indexes, over a named minimum run of frames that
+  are not all alike. No new decode. Re-encoded copies belong to `near-duplicate-detection`.
+- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`.
+- Execution path: Add a pure run search over frame indexes to `grouping.py`, called before the frame
+  set is written, with remuxed real-media fixtures.
+- Acceptance gates: A remux of one recording in `development` and `locked` is `SPLIT_LEAKAGE`,
+  naming both streams and the first shared frame. Two independent clips sharing a black frame stage
+  normally, and a generated case never compares against its own parent.
+- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
+
+#### arm64-reproducibility
+
+Likely reference hosts are arm64, and no decode, staged hash or transform has run on one.
+
+- Serves: `corpus-provenance` -- [Corpus
+  identity](../design/spec.md#41-corpus-identity-and-input-handling)
+- Agent status: RUN NEEDED
+- Milestone: M2
+- Dependencies: none.
+- User-visible outcome: Maintainers know exactly which staged hashes and generated cases hold on
+  arm64.
+- Scope boundary: Decode, conversion and transform bytes on one arm64 Linux runner. Timing is out of
+  scope, and macOS is a separate claim.
+- Data and artifact paths: `tests/corpus/`, `.github/workflows/`, `$DATA_DIR/run/<run-id>/`.
+- Execution path: Add a CI job on an arm64 runner that runs the golden tests and writes tree hashes
+  of a fixed corpus. Declared run: compare them with an x86-64 run.
+- Acceptance gates: Transform golden hashes match. A staged hash that differs is recorded per
+  source, and cross-architecture bundle identity is then not claimed: that is a valid negative
+  result.
+- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
+
+#### case-preview (optional)
+
+A declared region is a claim that an operator can only check by eye, and no tool shows it.
+
+- Serves: `corpus-provenance` -- [Deterministic
+  cases](../design/spec.md#43-deterministic-cases-and-negative-evidence)
+- Agent status: CLEAR
+- Milestone: M1
+- Dependencies: none.
+- User-visible outcome: `ss-track corpus preview` writes a sheet of a parent frame beside its
+  generated cases, with each region outlined.
+- Scope boundary: One frame of staged bundles, read-only, as a PNG. No labelling interface.
+- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`.
+- Execution path: Add the command with the pinned encoder and a hand-checked outline position.
+- Acceptance gates: One input gives identical PNG bytes. The outline lies on the declared pixels,
+  and a frame a case removed is marked, not skipped.
+- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
+
+#### staging-single-pass (optional)
+
+A long recording cut into many streams is decoded in full once per stream.
+
+- Serves: `corpus-provenance` -- [Corpus
+  identity](../design/spec.md#41-corpus-identity-and-input-handling)
+- Agent status: CLEAR
+- Milestone: M1
+- Dependencies: none.
+- User-visible outcome: `corpus stage` decodes each source once, however many streams it feeds.
+- Scope boundary: Fan-out of one strict decode. Seeking is out of scope, because the whole decode
+  proves a source still matches its import.
+- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`.
+- Execution path: Group pending streams by source and let one `inspect_media` consumer write several
+  bundles.
+- Acceptance gates: Bundle hashes match per-stream staging exactly, a failure leaves no partial
+  bundle, and decode count equals source count on a multi-encounter fixture.
+- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
+
+#### bundle-frame-sharing (optional)
+
+A generated case stores a full raw copy of every frame, even frames identical to its parent.
+
+- Serves: `corpus-provenance` -- [Deterministic
+  cases](../design/spec.md#43-deterministic-cases-and-negative-evidence)
+- Agent status: CLEAR
+- Milestone: M1
+- Dependencies: none.
+- User-visible outcome: Frames a case leaves untouched take no extra disk space.
+- Scope boundary: Hard links within one corpus version, falling back to a copy across filesystems.
+  Hashes, records and read paths are unchanged.
+- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`.
+- Execution path: Link in `store_frame` when a frame hash equals its parent's, with a
+  scratch-to-bundle fixture.
+- Acceptance gates: Bundle hashes match unlinked staging. Disk use on a short-window case falls by
+  the untouched share, as measured, and `corpus verify` still names a damaged frame.
+- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
+
+#### import-stream-selection (optional)
+
+A container with two video streams imports only the first, and a dual-camera file loses a sensor
+unnoticed.
+
+- Serves: `corpus-provenance` -- [Corpus
+  identity](../design/spec.md#41-corpus-identity-and-input-handling)
+- Agent status: CLEAR
+- Milestone: M1
+- Dependencies: none.
+- User-visible outcome: A recording names the video stream it means, and an ambiguous container is
+  refused.
+- Scope boundary: One video stream per recording, with a stream index that the decode policy honors.
+  Audio and sidecars belong to G2 bundles.
+- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`.
+- Execution path: Add an index to the recording declaration, required when `video_stream_count`
+  exceeds one, with a two-stream fixture.
+- Acceptance gates: A two-stream file with no index is refused with both streams listed, and each
+  index imports its own frames.
+- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
+
+#### declared-color-tags (optional)
+
+A source with no color matrix tag converts as BT.601, which misreads BT.709 content.
+
+- Serves: `corpus-provenance` -- [Corpus
+  identity](../design/spec.md#41-corpus-identity-and-input-handling)
+- Agent status: CLEAR
+- Milestone: M1
+- Dependencies: none.
+- User-visible outcome: An operator can declare a missing color tag, recorded as declared and used
+  in conversion.
+- Scope boundary: Absent tags only. A declared value never overrides a stored tag, and nothing is
+  guessed from resolution.
+- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`.
+- Execution path: Add an optional `color` declaration, record its origin, and pass it to
+  `PixelConverter`.
+- Acceptance gates: A declared BT.709 source converts pure red within two levels of its true value.
+  A declaration that disagrees with a stored tag is refused, and an undeclared source behaves as
+  before.
+- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
+
+#### decode-interruption-safety (optional)
+
+Ctrl-C ends a long run with a traceback, and a pathological file can decode with no limit.
+
+- Serves: `corpus-provenance` -- [Corpus
+  identity](../design/spec.md#41-corpus-identity-and-input-handling)
+- Agent status: CLEAR
+- Milestone: M1
+- Dependencies: none.
+- User-visible outcome: An interrupted or over-limit import or stage ends with a structured refusal
+  and leaves nothing partial.
+- Scope boundary: SIGINT and a declared decode time limit. A hung native call stays a known limit if
+  it never returns to Python.
+- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`.
+- Execution path: Report `KeyboardInterrupt` through the command path and check a deadline in the
+  decode loop, with an injected clock.
+- Acceptance gates: SIGINT exits 1 with one JSON record and no traceback, leaving no scratch behind.
+  A fixture past its limit is refused with the elapsed time.
+- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
+
+#### compression-and-timing-cases (optional)
+
+Field video also fails through heavy compression and uneven frame timing, which no generated case
+covers.
+
+- Serves: `corpus-provenance` -- [Deterministic
+  cases](../design/spec.md#43-deterministic-cases-and-negative-evidence)
+- Agent status: CLEAR
+- Milestone: M1
+- Dependencies: none.
+- User-visible outcome: Recipes generate compression artifacts and variable frame timing from a
+  parent and seed.
+- Scope boundary: The spec section 4.3 further cases that need no labels. Sensor loss belongs to
+  `fusion-generated-fixtures`.
+- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`.
+- Execution path: Add versioned transforms, pinning the encoder in the compression revision, and
+  declare what a timing change does to `timestamp_quality`.
+- Acceptance gates: A rerun with one seed is byte-identical, golden hashes pin each revision, and a
+  changed PTS never stays `measured`.
+- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
+
+#### label-driven-cases (optional)
+
+One static rectangle cannot follow a moving target, and an occluder that appears in one frame is
+unlike a real crossing.
+
+- Serves: `corpus-provenance` -- [Deterministic
+  cases](../design/spec.md#43-deterministic-cases-and-negative-evidence)
+- Agent status: CLEAR
+- Milestone: M1
+- Dependencies: generated-case-labels.
+- User-visible outcome: Recipes take a target's frozen track to generate a crossing occluder, a
+  moving removal, a similar distractor and out-of-view and re-entry intervals.
+- Scope boundary: Per-frame boxes from one frozen label revision, in a new transform revision. No
+  realism claim.
+- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`.
+- Execution path: Add a track input to the region transforms and derive labels through
+  `generated-case-labels`.
+- Acceptance gates: A rerun with one seed is byte-identical, and the case's bundle hash covers the
+  label revision. A hand-audited occluder covers the target exactly in its declared frames, and a
+  frame with no scorable box stays `unknown`.
+- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
+
+#### near-duplicate-detection (optional)
+
+A re-encoded copy of a recording shares no bytes or frame hashes, so it can still cross a split.
+
+- Serves: `corpus-provenance` -- [Corpus
+  identity](../design/spec.md#41-corpus-identity-and-input-handling)
+- Agent status: RUN NEEDED
+- Research: yes
+- Milestone: M2
+- Dependencies: duplicate-frame-detection.
+- User-visible outcome: A corpus build reports likely near-duplicates across groups for an
+  operator's decision.
+- Scope boundary: A perceptual comparison at a measured threshold. It reports and does not refuse
+  until its false-match rate is known.
+- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`.
+- Execution path: Compare a small perceptual fingerprint on re-encoded fixtures across codecs and
+  bitrates, in a declared run over the development corpus.
+- Acceptance gates: The threshold states measured recall and false-match rate. If no threshold
+  separates copies from independent clips, that negative result is recorded and grouping stays
+  manual.
 - Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
 
 ### Annotation and selection -- `annotation-selection`
@@ -57,11 +353,14 @@ Labels need stable identity and a frozen mask before scores can mean anything.
 - Dependencies: none.
 - User-visible outcome: An operator validates visibility status, geometry, instance identity, motion
   events, operator seeds and masks against a versioned schema.
-- Scope boundary: Schema, validation and frozen seed replay. Labelling itself is human work.
+- Scope boundary: Schema, validation and frozen seed replay, in the stored orientation modules
+  receive. Labelling itself is human work.
 - Data and artifact paths: `src/ss_track/annotate/`, `tests/annotate/`.
-- Execution path: Add `ss-track annotate validate` with positive and malformed fixtures.
+- Execution path: Add `ss-track annotate validate` with positive and malformed fixtures, including a
+  source with display rotation.
 - Acceptance gates: Identical seeds replay identically, and invalid labels are rejected with a reason.
-  An unverifiable label stays unscorable and is never scored as zero.
+  An unverifiable label stays unscorable and is never scored as zero. A label in any orientation other
+  than the stored one is refused.
 - Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
 
 #### annotation-review-tools
@@ -82,6 +381,28 @@ Two reviewers must be able to compare labels and settle disagreement.
   the freeze or stays `unknown`.
 - Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
 
+#### generated-case-labels
+
+A generated case cannot be scored until its labels follow its pixels, and a wrong region must not
+create a false negative.
+
+- Serves: `annotation-selection` -- [Annotation contract](../design/spec.md#42-annotation-contract)
+- Agent status: CLEAR
+- Milestone: M1
+- Dependencies: annotation-review-tools.
+- User-visible outcome: `ss-track annotate derive` gives each generated case a hashed label revision
+  from its parent's frozen labels and stored label transform.
+- Scope boundary: Every stored label transform: region status, translation with clipping and
+  `out_of_view`, and frame maps. Derived labels are never edited by hand.
+- Data and artifact paths: `src/ss_track/annotate/`, `tests/annotate/`,
+  `$DATA_DIR/corpus/<corpus-id>/labels/`.
+- Execution path: Apply each label-transform kind to hand-built parent labels, then check plates and
+  regions against those labels.
+- Acceptance gates: Hand-computed labels match for all seven transforms. A plate showing a target
+  inside its region is refused, and a target the region does not fully cover stays `unknown`. A
+  parent with no frozen labels leaves its cases unscorable, never scored as zero.
+- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
+
 ### Module contract and runner -- `module-contract-runner`
 
 #### event-schema-contract
@@ -99,7 +420,8 @@ Python and later C++ modules need one versioned meaning for every event.
   that regenerates bindings and a CI drift check, keep generated files out of the size and lint
   gates, and add the smallest justified dependency to `uv.lock`.
 - Acceptance gates: Golden fixtures cover absent and unknown fields, malformed payloads, coordinates,
-  timestamps and power units. A malformed event is rejected with a reason.
+  timestamps and power units. A malformed event is rejected with a reason. `FrameRef` round-trips every
+  field the staged bundle reports, including `transform` and `content_frame_index`, with those meanings.
 - Documentation target: [Current implementation](current.md#areas), new page `current/runner.md`.
 
 #### scenario-contract
@@ -109,15 +431,16 @@ A comparison must pin everything that can change its result.
 - Serves: `module-contract-runner` -- [Run artifacts](../design/spec.md#10-run-artifacts-and-comparison-dashboard)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: event-schema-contract, annotation-contract.
-- User-visible outcome: A scenario file pins corpus, labels, selection, replay mode, metric suite,
-  seed and deadlines, and yields one cohort key.
+- Dependencies: event-schema-contract, annotation-contract, staged-frame-set, corpus-verify-rights.
+- User-visible outcome: A scenario file pins corpus, frame set, labels, selection, replay mode, metric
+  suite, seed and deadlines, and yields one cohort key.
 - Scope boundary: The scenario schema, one cohort-key function, and one type that owns windows and
   runs. G2 boundaries are out of scope.
 - Data and artifact paths: `src/ss_track/contract/`, `scenarios/`, `tests/contract/`.
 - Execution path: Add the schema and example scenarios, with table-driven cohort-key fixtures.
 - Acceptance gates: Changing any key field changes the cohort key. A scenario with a missing hash
-  refuses to run.
+  refuses to run, as does one whose frame set no longer matches the staged bundles or whose corpus
+  fails `corpus verify`. A source with empty `completeness_checks` is reported, never assumed complete.
 - Documentation target: [Current implementation](current.md#areas), page `current/runner.md`.
 
 #### run-bundle-store
@@ -151,7 +474,9 @@ G0 needs a runner that accounts for every frame.
 - Execution path: Add the runner with oracle, null, dropper, crash, schema and class-identity
   fixture modules. The null module becomes a reusable module, not only a test double.
 - Acceptance gates: The G0a anti-gaming and null rows of the acceptance matrix pass. A crash is
-  `MODULE_FAULT` with remaining scorable input missed, and a wrong source hash is `RUNNER_INVALID`.
+  `MODULE_FAULT` with remaining scorable input missed, and a wrong source hash is `RUNNER_INVALID`, as
+  are `FRAME_CORRUPTED`, `RECORD_TAMPERED`, `BUNDLE_NOT_STAGED` and `BUNDLE_CONFLICT`. A frame a generated
+  case removed is unscheduled and reported as undelivered, while a module drop stays a miss.
 - Documentation target: [Current implementation](current.md#areas), page `current/runner.md`.
 
 #### paced-frame-release
@@ -165,12 +490,13 @@ A module must not see a frame before its time, or paced results are false.
 - User-visible outcome: Paced runs score late and dropped frames as misses, and a read-ahead attempt
   fails conformance.
 - Scope boundary: Fixed schedule, per-frame deadline, one-frame release channel, lifecycle messages,
-  and a pacing jitter log. Real-time scheduling claims are out of scope.
+  a pacing jitter log, and frame hashing before release or reported as runner time. Real-time
+  scheduling claims are out of scope.
 - Data and artifact paths: `src/ss_track/runner/`, `tests/runner/`.
 - Execution path: Add runner-controlled release with an injected clock, so tests stay deterministic,
   plus lookahead and slow-module fixtures.
 - Acceptance gates: The lookahead fixture cannot read a future frame. The slow fixture records exact
-  late and miss counts with no wall-clock dependence.
+  late and miss counts with no wall-clock dependence. Frame hashing never counts as module latency.
 - Documentation target: [Current implementation](current.md#areas), page `current/runner.md`.
 
 #### container-module-sandbox
@@ -204,13 +530,35 @@ Anyone re-running a row needs the exact module that was measured.
 - Dependencies: container-module-sandbox, reference-sot-tracker.
 - User-visible outcome: Reference and null modules have reproducible recipes, pinned image digests and
   license notices; candidate adapters follow the same contract.
-- Scope boundary: Recipes, digests and license notices. Tracker tuning and registry hosting are
-  out of scope.
+- Scope boundary: Recipes, digests and license notices, including the FFmpeg, libx264 and libx265
+  notices of any image that carries PyAV wheels. Tracker tuning and registry hosting are out of scope.
 - Data and artifact paths: `modules/<name>/`.
 - Execution path: Record recipes and digests in the manifest. Keep third-party dependencies outside the
   core lock; add a recipe when an adapter is introduced.
 - Acceptance gates: The declared image digest can be obtained or rebuilt with any difference explained.
   Missing image access is reported as unavailable; no different image silently substitutes for it.
+- Documentation target: [Current implementation](current.md#areas), page `current/runner.md`.
+
+#### locked-split-guard (optional)
+
+`locked` records membership only, so a development run can read held-out material with nothing
+noticing.
+
+- Serves: `module-contract-runner` -- [Corpus
+  identity](../design/spec.md#41-corpus-identity-and-input-handling)
+- Agent status: CLEAR
+- Milestone: M2
+- Dependencies: lockstep-runner.
+- User-visible outcome: A development scenario that names a locked stream is refused, and an
+  approved locked evaluation leaves an append-only access record.
+- Scope boundary: Runner enforcement and audit records. This is no access control against a person
+  with disk access, and it creates no locked test.
+- Data and artifact paths: `src/ss_track/runner/`, `tests/runner/`, `$DATA_DIR/run/<run-id>/`.
+- Execution path: Check split membership when a run starts, and add refused, approved and re-scored
+  fixtures.
+- Acceptance gates: A locked stream in a development scenario is `RUNNER_INVALID`. Each approved
+  read and re-score leaves one record, and output never calls a stream held-out without a declared
+  custodian policy.
 - Documentation target: [Current implementation](current.md#areas), page `current/runner.md`.
 
 #### tracker-compatibility-preflight (optional)
@@ -267,7 +615,9 @@ Operators need tracking scores that cannot be gamed by omission.
 - Data and artifact paths: `src/ss_track/suites/`, `tests/suites/`.
 - Execution path: Add hand-computed fixtures for every metric, in table-driven tests.
 - Acceptance gates: Hand-computed metrics, denominators and time weights match, and a late result
-  counts as a miss in `sot-paced-v1`. An episode with no scorable frame is `NOT_SCOREABLE`.
+  counts as a miss in `sot-paced-v1`. An episode with no scorable frame is `NOT_SCOREABLE`. A stream
+  with `missing` timestamp quality reports time-based scores as unavailable, with its cause, on a real
+  AVI fixture.
 - Documentation target: [Current implementation](current.md#areas), page `current/evaluation.md`.
 
 #### motion-suite
@@ -361,7 +711,8 @@ Maintainers need to inspect two versions and see every exclusion.
 - Execution path: Build the report from saved metrics with compatible and incompatible fixtures,
   including frame-linked failure references.
 - Acceptance gates: An incompatible cohort is refused with its reason, and the report never edits or
-  recomputes source metrics.
+  recomputes source metrics. Generated cases appear in their own slice by transform, never in a field
+  aggregate or an encounter count, and undelivered frames and unverified completeness are shown.
 - Documentation target: [Current implementation](current.md#areas), page `current/evaluation.md`.
 
 #### g0a-pipeline-run
@@ -372,7 +723,7 @@ The whole offline path must work on real labelled video.
 - Agent status: RUN NEEDED
 - Milestone: M1
 - Dependencies: local-comparison-report, reference-sot-tracker, motion-suite,
-  generated-fixture-cases, label-pilot-encounters.
+  label-pilot-encounters, generated-case-labels.
 - User-visible outcome: Two reference versions produce an inspectable G0a report on one positive and
   one negative encounter.
 - Scope boundary: G0a pipeline validity. No improvement, real-time or energy claim.
@@ -413,6 +764,28 @@ Maintainers may want a real development decision before any bench exists.
 - Execution path: Declared run of three same-version repeats plus the paired comparison.
 - Acceptance gates: The G0b row of the acceptance matrix passes. An overlapping interval reports
   `inconclusive`.
+- Documentation target: [Current implementation](current.md#areas), page `current/evaluation.md`.
+
+#### robustness-severity-sweep (optional)
+
+A pass or fail on one generated case does not show where a module starts to degrade.
+
+- Serves: `comparison-report` -- [Deterministic
+  cases](../design/spec.md#43-deterministic-cases-and-negative-evidence)
+- Agent status: CLEAR
+- Milestone: M2
+- Dependencies: local-comparison-report, generated-case-labels.
+- User-visible outcome: A recipe declares graded levels of one parameter, and the local report shows
+  each module's quality against that severity.
+- Scope boundary: One parameter, one encounter set and one saved metric per curve. No composite
+  score or field claim.
+- Data and artifact paths: `src/ss_track/corpus/`, `src/ss_track/report/`, `tests/corpus/`,
+  `tests/report/`.
+- Execution path: Expand a `levels` list into ordinary cases at build, then plot saved metrics
+  without recomputing them.
+- Acceptance gates: A sweep expands to the same bundles as hand-declared cases. A hand-built curve
+  matches its source metrics exactly, and a run that faulted at one level stays visible at that
+  level.
 - Documentation target: [Current implementation](current.md#areas), page `current/evaluation.md`.
 
 ### Hardware probe -- `hardware-probe-adaptive-launch`
@@ -587,8 +960,9 @@ The G0 scenario excludes G2 boundaries, so component comparisons need an explici
 - Dependencies: sensor-observation-contract, run-bundle-store, annotation-review-tools.
 - User-visible outcome: Four boundary-specific scenarios freeze raw/observation inputs, producers,
   clocks, calibration, opportunity labels and epoch schedules into hashed bundles.
-- Scope boundary: Extend the existing scenario and bundle code, including mixed-modality raw attachments.
-  No second cohort-key implementation or live capture driver.
+- Scope boundary: Extend the existing scenario and bundle code, including mixed-modality raw attachments,
+  stream clock, calibration and raw-format fields, and permitted modalities in scenario rights. No
+  second cohort-key implementation or live capture driver.
 - Data and artifact paths: `src/ss_track/contract/`, `src/ss_track/corpus/`, `tests/contract/`, `tests/corpus/`.
 - Execution path: Reuse the bundle store and split rules. Extend annotation validation and review for
   modality-specific truth and opportunity masks. Add immutable observation staging and per-boundary
@@ -611,7 +985,8 @@ The mesh needs cameras as typed sources.
 - Data and artifact paths: `src/ss_track/frontends/`, `tests/frontends/`.
 - Execution path: Add the adapter with recorded inputs and calibration fixtures.
 - Acceptance gates: Conformance fixtures pass, and a stale calibration is reported, never used
-  silently.
+  silently. Frames convert like staged bundles, so a left-sited H.264 or HEVC source matches its bundle
+  within a measured tolerance; a system `ffmpeg` conversion that misplaces chroma is not accepted.
 - Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
 
 #### non-camera-front-end
@@ -672,6 +1047,29 @@ Fusion must only see what would have arrived by then.
   past its cutoff never enters a result.
 - Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
 
+#### fusion-generated-fixtures
+
+Fusion needs repeatable failures across streams, and no generated case acts on a whole encounter.
+
+- Serves: `fusion-analysis` -- [Deterministic
+  cases](../design/spec.md#43-deterministic-cases-and-negative-evidence)
+- Agent status: CLEAR
+- Milestone: M3
+- Dependencies: event-time-replay.
+- User-visible outcome: Recipes perturb a whole encounter with skew, jitter, late and reordered
+  packets, modality loss, degraded measurements, calibration errors, shared artifacts, duplicates,
+  contradictions and health misreports.
+- Scope boundary: The fusion fixtures of spec section 4.3, including sensor loss. Each declares
+  whether its independent reference stays valid. Live capture faults belong to
+  `synchronized-sensor-capture`.
+- Data and artifact paths: `src/ss_track/fusion/`, `src/ss_track/corpus/`, `tests/fusion/`.
+- Execution path: Extend recipes and transform revisions to observation bundles, reusing seeded
+  draws and case membership.
+- Acceptance gates: A rerun with one seed is byte-identical. A case stays in its encounter and
+  split, and an altered geometry or time relation updates its reference or makes that metric
+  `NOT_SCOREABLE`. Real and simulated failures stay separate report slices.
+- Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
+
 #### fusion-calibration-suite
 
 The fusion contract requires calibrated evidence, but raw detector scores cannot supply it.
@@ -716,7 +1114,7 @@ A fusion change must be judged on identical inputs.
 - Serves: `fusion-analysis` -- [Evaluation boundaries](../design/spec.md#66-four-independent-g2-evaluation-boundaries)
 - Agent status: CLEAR
 - Milestone: M3
-- Dependencies: late-fusion-baseline, plugin-evaluator-core.
+- Dependencies: late-fusion-baseline, plugin-evaluator-core, fusion-generated-fixtures.
 - User-visible outcome: The `FIXED_OBSERVATION_FUSION` boundary reports association, false merges,
   deduplication and abstention.
 - Scope boundary: Fixed hashed bundles, existence/class calibration where independently labelled, and
@@ -999,7 +1397,7 @@ Software development needs authorized footage with a declared task and useful ne
 - Serves: `corpus-provenance` -- [Corpus identity](../design/spec.md#41-corpus-identity-and-input-handling)
 - Agent status: HUMAN-GATED
 - Milestone: M1
-- Dependencies: none.
+- Dependencies: source-terms-enforcement.
 - User-visible outcome: One candidate workload has recorded terms, and the owner knows how close it
   is to the small-target stress case.
 - Scope boundary: Authorized private or public development sources, benchmarking rights, retention and
@@ -1007,8 +1405,29 @@ Software development needs authorized footage with a declared task and useful ne
 - Data and artifact paths: `$DATA_DIR/corpus/<corpus-id>/`, with source terms and hashes.
 - Execution path: The owner checks source terms and selects positive/negative encounters; original
   controlled recordings are an alternative when no existing source fits.
-- Acceptance gates: Every source has recorded rights and task suitability. With no authorized source,
+- Acceptance gates: Every source has recorded rights, a retention date, a derived-frame permission and
+  task suitability. With no authorized source,
   real-data claims remain unavailable while fixture implementation continues.
+- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
+
+#### define-locked-test-policy (optional)
+
+A locked test needs a named custodian and access rules that no software can supply.
+
+- Serves: `corpus-provenance` -- [Corpus
+  identity](../design/spec.md#41-corpus-identity-and-input-handling)
+- Agent status: HUMAN-GATED
+- Milestone: M4
+- Dependencies: select-development-workload.
+- User-visible outcome: A named custodian holds a written access policy, so a locked split can
+  support a held-out claim.
+- Scope boundary: The spec section 15 custodian and access inputs. Runner enforcement belongs to
+  `locked-split-guard`.
+- Data and artifact paths: `$DATA_DIR/corpus/<corpus-id>/`, with the policy hash.
+- Execution path: The owner names a custodian and records who may read, tune against or re-score
+  locked material.
+- Acceptance gates: A hashed policy exists before any locked evaluation. With no custodian, a
+  `locked` split stays membership only and no held-out claim is made.
 - Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
 
 ### Annotation and selection -- `annotation-selection`

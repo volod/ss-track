@@ -4,6 +4,7 @@ Every read and every verification compares bytes with the sealed per-frame hash,
 changed on disk cannot reach a module, and a failure names the exact frame.
 """
 
+from bisect import bisect_left
 from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -21,7 +22,7 @@ from ss_track.corpus.sealed import (
 )
 
 FRAME_BUNDLE_KIND = "ss-track.frame-bundle"
-BUNDLE_SCHEMA_VERSION = 2
+BUNDLE_SCHEMA_VERSION = 3
 FRAMES_DIRECTORY = "frames"
 IDENTITY_TRANSFORM = "identity"
 MISSING = "missing"
@@ -52,6 +53,7 @@ class FrameRef:
     stream_id: str
     source_sha256: str
     frame_index: int
+    content_frame_index: int
     pts: int | None
     time_base: str | None
     timestamp_quality: str
@@ -75,6 +77,7 @@ class FrameEntry:
     """One line of the frame index."""
 
     frame_index: int
+    content_frame_index: int
     pts: int | None
     sha256: str
 
@@ -119,26 +122,29 @@ class FrameBundle:
     time_base: str | None
     timestamp_quality: str
     capture_clock_evidence: str | None
-    start_frame: int
+    selection: range
     entries: tuple[FrameEntry, ...]
+    transform: str
+    parent_bundle_sha256: str | None
 
     def __len__(self) -> int:
         return len(self.entries)
 
     def _entry(self, frame_index: int) -> FrameEntry:
-        position = frame_index - self.start_frame
-        if not 0 <= position < len(self.entries):
-            raise CorpusRefusal(
-                RefusalCode.FRAME_NOT_IN_BUNDLE,
-                "frame index is outside this bundle",
-                {
-                    "stream_id": self.stream_id,
-                    "frame_index": frame_index,
-                    "start_frame": self.start_frame,
-                    "end_frame": self.start_frame + len(self.entries),
-                },
-            )
-        return self.entries[position]
+        """Find an entry by index. A generated case can have gaps, so position proves nothing."""
+        position = bisect_left(self.entries, frame_index, key=lambda entry: entry.frame_index)
+        if position < len(self.entries) and self.entries[position].frame_index == frame_index:
+            return self.entries[position]
+        raise CorpusRefusal(
+            RefusalCode.FRAME_NOT_IN_BUNDLE,
+            "frame index is not in this bundle",
+            {
+                "stream_id": self.stream_id,
+                "frame_index": frame_index,
+                "start_frame": self.selection.start,
+                "end_frame": self.selection.stop,
+            },
+        )
 
     def _name(self, entry: FrameEntry) -> str:
         return frame_name(entry.frame_index, self.pixel_format)
@@ -148,6 +154,7 @@ class FrameBundle:
             stream_id=self.stream_id,
             source_sha256=self.source_sha256,
             frame_index=entry.frame_index,
+            content_frame_index=entry.content_frame_index,
             pts=entry.pts,
             time_base=self.time_base,
             timestamp_quality=self.timestamp_quality,
@@ -155,7 +162,7 @@ class FrameBundle:
             width=self.width,
             height=self.height,
             pixel_format=self.pixel_format,
-            transform=IDENTITY_TRANSFORM,
+            transform=self.transform,
             bundle_sha256=self.bundle_sha256,
             frame_name=self._name(entry),
             sha256=entry.sha256,
@@ -225,6 +232,9 @@ def _identity(manifest: Mapping[str, Any]) -> dict[str, JsonValue]:
 
 def _parse_bundle(directory: Path, manifest: Mapping[str, Any]) -> FrameBundle:
     identity: Mapping[str, Any] = _identity(manifest)
+    window = identity["selection"]
+    # Only a generated bundle has a recipe; its lookups stay inside this KeyError guard.
+    recipe = identity["recipe"] if manifest["generated"] is not None else None
     return FrameBundle(
         directory=directory,
         stream_id=manifest["stream_id"],
@@ -237,9 +247,16 @@ def _parse_bundle(directory: Path, manifest: Mapping[str, Any]) -> FrameBundle:
         time_base=identity["time_base"],
         timestamp_quality=manifest["timestamp_quality"],
         capture_clock_evidence=manifest["capture_clock_evidence"],
-        start_frame=identity["selection"]["start_frame"],
+        selection=range(window["start_frame"], window["end_frame"]),
         entries=tuple(
-            FrameEntry(entry["frame_index"], entry["pts"], entry["sha256"])
+            FrameEntry(
+                entry["frame_index"],
+                entry.get("content_frame_index", entry["frame_index"]),
+                entry["pts"],
+                entry["sha256"],
+            )
             for entry in identity["frames"]
         ),
+        transform=IDENTITY_TRANSFORM if recipe is None else recipe["transform"],
+        parent_bundle_sha256=None if recipe is None else identity["parent_bundle_sha256"],
     )

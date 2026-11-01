@@ -68,8 +68,18 @@ def test_every_stream_of_an_encounter_inherits_its_group_and_split(
         "enc02-cam0": ("enc02", "site-b", "calibration"),
     }
     assert {split: summary.to_record() for split, summary in result.splits.items()} == {
-        "calibration": {"group_count": 1, "encounter_count": 1, "stream_count": 1},
-        "development": {"group_count": 1, "encounter_count": 1, "stream_count": 2},
+        "calibration": {
+            "group_count": 1,
+            "encounter_count": 1,
+            "stream_count": 1,
+            "generated_case_count": 0,
+        },
+        "development": {
+            "group_count": 1,
+            "encounter_count": 1,
+            "stream_count": 2,
+            "generated_case_count": 0,
+        },
     }
 
 
@@ -304,5 +314,5 @@ def test_a_built_manifest_states_each_membership_once_per_stream(
     record = json.loads(result.manifest_path.read_text(encoding="ascii"))
 
     assert "sequences" not in record
-    assert record["schema_version"] == 2
+    assert record["schema_version"] == 3
     assert [stream["modality"] for stream in record["streams"]] == ["camera"]

@@ -18,9 +18,11 @@ from ss_track.corpus.frames import (
     frames_root,
     open_frame_bundle,
 )
+from ss_track.corpus.generated import write_case_bundle
 from ss_track.corpus.importer import MANIFEST_NAME, decode_policy_sha256
 from ss_track.corpus.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.sealed import SEAL_FIELD
+from ss_track.corpus.transforms import require_transform_revision
 
 STAGED = "staged"
 UNCHANGED = "unchanged"
@@ -34,6 +36,7 @@ class BundleSummary:
 
     stream_id: str
     status: str
+    transform: str
     bundle_sha256: str
     frame_count: int
     pixel_format: str
@@ -61,6 +64,7 @@ def _summary(bundle: FrameBundle, status: str) -> BundleSummary:
     return BundleSummary(
         stream_id=bundle.stream_id,
         status=status,
+        transform=bundle.transform,
         bundle_sha256=bundle.bundle_sha256,
         frame_count=len(bundle),
         pixel_format=bundle.pixel_format,
@@ -75,20 +79,28 @@ def _streams(corpus: dict[str, Any]) -> list[dict[str, Any]]:
     return streams
 
 
+def _cases(corpus: dict[str, Any]) -> list[dict[str, Any]]:
+    cases: list[dict[str, Any]] = corpus["generated_cases"]
+    return cases
+
+
 def stage_corpus(corpus_id: str, data_root: Path) -> FramesResult:
-    """Stage every stream of a corpus version, leaving each bundle complete or absent."""
+    """Stage every stream and generated case, leaving each bundle complete or absent."""
     corpus = load_corpus_manifest(corpus_id, data_root)
     policy = current_decode_policy()
     policy_sha256 = decode_policy_sha256(policy.as_record())
     require_policy(corpus["decode_policy_sha256"], policy_sha256, f"corpus {corpus_id}")
     for stream in _streams(corpus):
         require_source_record(stream, data_root)
+    for case in _cases(corpus):
+        require_transform_revision(case)
     root = frames_root(data_root, corpus_id)
     root.mkdir(parents=True, exist_ok=True)
     with _exclusive_staging(root, corpus_id):
-        bundles = tuple(
+        streams = [
             _stage_stream(stream, corpus, policy, root, data_root) for stream in _streams(corpus)
-        )
+        ]
+        bundles = (*streams, *(_stage_case(case, corpus, root) for case in _cases(corpus)))
     changed = any(bundle.status == STAGED for bundle in bundles)
     return FramesResult(STAGED if changed else UNCHANGED, corpus_id, bundles)
 
@@ -118,7 +130,8 @@ def verify_corpus_frames(corpus_id: str, data_root: Path) -> FramesResult:
     """Compare every staged frame of a corpus version with its sealed index."""
     corpus = load_corpus_manifest(corpus_id, data_root)
     root = frames_root(data_root, corpus_id)
-    bundles = [_open_for_corpus(stream, corpus, root) for stream in _streams(corpus)]
+    bundles = [_open_for_corpus(stream["stream_id"], corpus, root) for stream in _streams(corpus)]
+    bundles += [_open_case(case, corpus, root) for case in _cases(corpus)]
     damage: list[FrameDamage] = [item for bundle in bundles for item in bundle.damage()]
     if damage:
         raise frames_corrupted(damage)
@@ -127,16 +140,14 @@ def verify_corpus_frames(corpus_id: str, data_root: Path) -> FramesResult:
     )
 
 
-def _open_for_corpus(
-    stream: dict[str, Any], corpus: dict[str, JsonValue], root: Path
-) -> FrameBundle:
-    """Open one stream's bundle, which must have been staged from this exact corpus version."""
-    directory = root / stream["stream_id"]
+def _open_for_corpus(stream_id: str, corpus: dict[str, JsonValue], root: Path) -> FrameBundle:
+    """Open one bundle, which must have been staged from this exact corpus version."""
+    directory = root / stream_id
     if not directory.is_dir():
         raise CorpusRefusal(
             RefusalCode.BUNDLE_NOT_STAGED,
             "this stream has no staged frame bundle",
-            {"stream_id": stream["stream_id"]},
+            {"stream_id": stream_id},
         )
     bundle = open_frame_bundle(directory)
     if bundle.corpus_manifest_sha256 != corpus[SEAL_FIELD]:
@@ -144,16 +155,34 @@ def _open_for_corpus(
             RefusalCode.BUNDLE_CONFLICT,
             "this bundle was staged from a different corpus version",
             {
-                "stream_id": stream["stream_id"],
+                "stream_id": stream_id,
                 "bundle_corpus_manifest_sha256": bundle.corpus_manifest_sha256,
                 "corpus_manifest_sha256": corpus[SEAL_FIELD],
             },
         )
-    if bundle.stream_id != stream["stream_id"]:
+    if bundle.stream_id != stream_id:
         raise CorpusRefusal(
             RefusalCode.BUNDLE_CONFLICT,
             "this bundle belongs to another stream, which may sit in another split",
-            {"stream_id": stream["stream_id"], "bundle_stream_id": bundle.stream_id},
+            {"stream_id": stream_id, "bundle_stream_id": bundle.stream_id},
+        )
+    return bundle
+
+
+def _open_case(case: dict[str, Any], corpus: dict[str, JsonValue], root: Path) -> FrameBundle:
+    """Open one case's bundle, which must derive from the parent frames staged here now."""
+    bundle = _open_for_corpus(case["case_id"], corpus, root)
+    parent = _open_for_corpus(case["parent_stream_id"], corpus, root)
+    if bundle.parent_bundle_sha256 != parent.bundle_sha256:
+        raise CorpusRefusal(
+            RefusalCode.BUNDLE_CONFLICT,
+            "this generated case derives from frames other than its parent's",
+            {
+                "stream_id": case["case_id"],
+                "parent_stream_id": case["parent_stream_id"],
+                "case_parent_bundle_sha256": bundle.parent_bundle_sha256,
+                "parent_bundle_sha256": parent.bundle_sha256,
+            },
         )
     return bundle
 
@@ -166,8 +195,19 @@ def _stage_stream(
     data_root: Path,
 ) -> BundleSummary:
     if (root / stream["stream_id"]).exists():
-        bundle = _open_for_corpus(stream, corpus, root)
-        if damage := bundle.damage():
-            raise frames_corrupted(damage)
-        return _summary(bundle, UNCHANGED)
+        return _unchanged(_open_for_corpus(stream["stream_id"], corpus, root))
     return _summary(write_bundle(stream, corpus, policy, root, data_root), STAGED)
+
+
+def _stage_case(case: dict[str, Any], corpus: dict[str, JsonValue], root: Path) -> BundleSummary:
+    if (root / case["case_id"]).exists():
+        return _unchanged(_open_case(case, corpus, root))
+    parent = _open_for_corpus(case["parent_stream_id"], corpus, root)
+    return _summary(write_case_bundle(case, parent, root), STAGED)
+
+
+def _unchanged(bundle: FrameBundle) -> BundleSummary:
+    """Re-hash a bundle that already exists, because staging repairs nothing."""
+    if damage := bundle.damage():
+        raise frames_corrupted(damage)
+    return _summary(bundle, UNCHANGED)
