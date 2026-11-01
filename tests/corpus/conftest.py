@@ -77,6 +77,11 @@ def write_groups(media: Path, groups: list[dict[str, object]], **overrides: obje
     return path
 
 
+def place_of(corpus_id: str, group_id: str, split: str) -> dict[str, str]:
+    """Return one side of a move, as a lineage refusal states it."""
+    return {"corpus_id": corpus_id, "group_id": group_id, "split": split}
+
+
 def reseal(path: Path, **changes: object) -> None:
     """Change a record and repair its seal, as a wrong but self-consistent record would be."""
     record = json.loads(path.read_text(encoding="ascii"))

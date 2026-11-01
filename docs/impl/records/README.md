@@ -12,5 +12,6 @@ Copy the [template](template.md) using the
 | 0005 | `audit-follow-up-routing` | [0005-adhoc-audit-follow-up-routing](0005-adhoc-audit-follow-up-routing.md) |
 | 0006 | `source-terms-enforcement` | [0006-corpus-provenance-source-terms-enforcement](0006-corpus-provenance-source-terms-enforcement.md) |
 | 0007 | `corpus-verify-rights` | [0007-corpus-provenance-corpus-verify-rights](0007-corpus-provenance-corpus-verify-rights.md) |
+| 0008 | `corpus-version-lineage` | [0008-corpus-provenance-corpus-version-lineage](0008-corpus-provenance-corpus-version-lineage.md) |
 
-Next unused sequence: `0008`.
+Next unused sequence: `0009`.

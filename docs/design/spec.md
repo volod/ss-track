@@ -198,17 +198,29 @@ stream is one sensor's frames of one encounter, taken from one source and frame 
 recording are not independent, and a source frame belongs to one stream, because a frame counted
 twice distorts anything aggregated by encounter. Sharing a source is detected by byte hash, and a
 remux is detected after staging: two groups holding a run of identical decoded frames are refused,
-because a different container does not make different evidence. A uniform or repeated frame shared by
-independent clips is not such a run. A re-encoded copy stays a different source until near-duplicate
-detection exists. Declaring `locked` records membership only: it creates no locked test and grants no
-held-out claim. A development scenario that names a locked stream is refused, and a locked evaluation
-needs the section 15 custodian and access policy, with each read recorded.
+within one version or across linked versions, because a different container does not make different
+evidence. A uniform or repeated frame shared by independent clips is not such a run. A re-encoded copy
+stays a different source until near-duplicate detection exists. Declaring `locked` records membership
+only: it creates no locked test and grants no held-out claim. A development scenario that names a
+locked stream is refused, and a locked evaluation needs the section 15 custodian and access policy,
+with each read recorded.
 
 A corpus version may name the version it supersedes. Material already evaluated in one split has been
 seen, so a source that a new version places in another split is refused, as is one moved to another
-group. New sources are accepted, and the build reports what was added, removed and kept. This compares
-only versions linked by that declaration, so a version that names no predecessor says so in its
-result.
+group. A group also keeps its split, because a group's name claims that its encounters are related,
+so a new source in it is no more independent than the ones it held. These rules cover the whole
+declared chain, so a source one version drops cannot return elsewhere in the next, and a source may
+return to the place it left. New sources are accepted, and the build reports what was added, removed
+and kept against the named version.
+
+Each version seals the hash of the version it names, so a replaced predecessor is refused rather than
+compared, and a chain with a version missing cannot be compared and is refused. A superseded
+version's manifest therefore outlives its frames. This comparison reads only versions linked by that
+declaration, so a version that names no predecessor says so in its result, and a locked evaluation of
+such a version repeats it, because nothing has shown its locked material to be unseen. An unlinked
+version or a sibling branch cannot be refused, since independent work may reuse a recording, but a
+build lists every other version on its data root that places one of its sources elsewhere, for the
+operator's decision.
 
 Staging ends with one sealed frame-set record that names every stream and generated-case bundle hash
 of a corpus version and the source records they rest on. A scenario pins that one hash rather than a

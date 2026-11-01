@@ -33,6 +33,14 @@ from ss_track.corpus.importer import (
 from ss_track.corpus.importer import (
     SCHEMA_VERSION as SOURCE_SCHEMA_VERSION,
 )
+from ss_track.corpus.lineage import (
+    Lineage,
+    lineage_record,
+    link_field,
+    read_predecessors,
+    require_same_places,
+    trace_lineage,
+)
 from ss_track.corpus.recipes import case_records
 from ss_track.corpus.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.sealed import (
@@ -61,6 +69,7 @@ class BuildResult:
     stream_count: int
     generated_case_count: int
     splits: dict[str, SplitSummary]
+    lineage: Lineage | None
 
     def to_record(self) -> dict[str, JsonValue]:
         """Return the JSON-compatible result shown to the operator."""
@@ -72,6 +81,7 @@ class BuildResult:
             "stream_count": self.stream_count,
             "generated_case_count": self.generated_case_count,
             "splits": {name: summary.to_record() for name, summary in self.splits.items()},
+            "lineage": lineage_record(self.lineage),
         }
 
 
@@ -97,6 +107,9 @@ def build_corpus(
     policy_sha256 = decode_policy_sha256(policy_record)
     require_policy(declaration.decode_policy_sha256, policy_sha256, "corpus declaration")
     require_one_membership(declaration)
+    predecessors = read_predecessors(
+        declaration.supersedes, lambda corpus_id: load_corpus_manifest(corpus_id, data_root)
+    )
     streams = sorted(
         (
             _stream_record(group, encounter, stream, data_root, policy_sha256)
@@ -109,8 +122,10 @@ def build_corpus(
     require_derived_frames(streams, declaration)
     require_separate_sources(streams)
     require_scenario_rights(streams, declaration.scenario_rights)
+    require_same_places(declaration.corpus_id, streams, predecessors)
     cases = case_records(list(declaration.recipes()), streams)
-    sealed = seal(_corpus_body(declaration, policy_record, policy_sha256, streams, cases))
+    body = _corpus_body(declaration, policy_record, policy_sha256, streams, cases)
+    sealed = seal(body | link_field(predecessors))
     target = data_root / CORPUS_DIRECTORY / declaration.corpus_id / MANIFEST_NAME
     status = _commit(target, sealed)
     return BuildResult(
@@ -121,6 +136,7 @@ def build_corpus(
         stream_count=len(streams),
         generated_case_count=len(cases),
         splits=summarize_splits(streams, cases),
+        lineage=trace_lineage(streams, predecessors),
     )
 
 

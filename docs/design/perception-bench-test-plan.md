@@ -47,15 +47,21 @@ makes it fail, and what it does not prove. A case with no task left is listed as
   declared as an amendment.
   Value: protects=a withdrawal that can be recorded; fails_when=stored bytes change or an amendment
   carries more than terms; no_claim=removal of frames already staged.
-- `corpus-version-lineage`: a source moved between splits, and a source added, across linked versions.
-  Value: protects=split isolation over time; fails_when=a moved source builds; no_claim=versions that
-  declare no predecessor.
+- `corpus-version-lineage`: a source moved between splits or groups, a source dropped and brought back
+  elsewhere, a group changing split with new sources, and a source added, across linked versions.
+  Value: protects=split isolation over time; fails_when=a moved source builds, or a replaced
+  predecessor is compared; no_claim=versions that declare no predecessor.
+- `unlinked-version-report`: a source placed in `locked` by an unlinked version and by a sibling
+  branch.
+  Value: protects=an operator's sight of reuse no declaration links; fails_when=either goes unlisted
+  or an independent reuse is refused; no_claim=that a listed reuse is leakage.
 - `staged-frame-set`: two stagings of one corpus, a replaced bundle and an interrupted stage.
   Value: protects=one pin for all staged input; fails_when=a changed bundle keeps its frame set;
   no_claim=undeclared files outside the corpus.
-- `duplicate-frame-detection`: a remux across two splits, and two clips sharing a black frame.
+- `duplicate-frame-detection`: a remux across two splits, in one version and across linked versions,
+  and two clips sharing a black frame.
   Value: protects=split isolation for remuxed copies; fails_when=identical frames cross a split or a
-  shared black frame is refused; no_claim=re-encoded copies.
+  shared black frame is refused; no_claim=re-encoded copies, or a version whose bundles are gone.
 - `arm64-reproducibility`: golden transforms and tree hashes of one corpus on x86-64 and arm64.
   Value: protects=a stated cross-architecture boundary; fails_when=a difference goes unrecorded;
   no_claim=macOS, or timing.

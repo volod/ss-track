@@ -102,6 +102,7 @@ class CorpusDeclaration:
 
     corpus_id: str
     decode_policy_sha256: str | None
+    supersedes: str | None
     scenario_rights: ScenarioRights
     groups: tuple[GroupDeclaration, ...]
 
@@ -149,12 +150,15 @@ def load_corpus_declaration(path: Path) -> CorpusDeclaration:
         policy_sha256 = (
             fields.sha256("decode_policy_sha256") if fields.has("decode_policy_sha256") else None
         )
+        supersedes = fields.identifier("supersedes") if fields.has("supersedes") else None
+        if supersedes == corpus_id:
+            raise invalid(f"corpus {corpus_id} cannot supersede itself")
         scenario_rights = _read_scenario_rights(fields.child("scenario_rights"))
         groups = tuple(
             _read_group(raw, f"corpus.groups[{position}]")
             for position, raw in enumerate(fields.items("groups"))
         )
-    return CorpusDeclaration(corpus_id, policy_sha256, scenario_rights, groups)
+    return CorpusDeclaration(corpus_id, policy_sha256, supersedes, scenario_rights, groups)
 
 
 def _read_rights(fields: Fields) -> Rights:

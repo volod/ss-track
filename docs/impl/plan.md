@@ -28,27 +28,6 @@ neither blocks M3. Fixture implementation proceeds without physical hardware or 
 
 ### Corpus provenance -- `corpus-provenance`
 
-#### corpus-version-lineage
-
-A later corpus version can move material that was already evaluated into a held-out split, and
-nothing compares versions.
-
-- Serves: `corpus-provenance` -- [Corpus
-  identity](../design/spec.md#41-corpus-identity-and-input-handling)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: A corpus may declare the version it supersedes. A source moved to another
-  split or group is refused, and the build result lists what was added, removed and kept.
-- Scope boundary: Declared predecessors only, by source hash. A version that names none reports that
-  it has no lineage. Near-duplicates are out of scope.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`.
-- Execution path: Add an optional `supersedes` key to the corpus declaration, a pure comparison of
-  two sealed manifests in `grouping.py`, and hand-built version pairs.
-- Acceptance gates: A source moved from `development` to `locked` is `SPLIT_LEAKAGE`, naming both
-  versions. Added sources build, and a missing predecessor is `CORPUS_NOT_BUILT`.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
 #### staged-frame-set
 
 Nothing pins which frames a corpus version staged, so a run could read a bundle no scenario
@@ -82,15 +61,21 @@ compared by byte hash.
 - Milestone: M1
 - Dependencies: staged-frame-set.
 - User-visible outcome: `corpus stage` refuses two groups that hold a run of identical decoded
-  frames.
+  frames, within one corpus version or against the versions it supersedes. A source hash cannot see
+  a remux, so version lineage alone lets one change split between versions.
 - Scope boundary: Exact frame hashes from sealed indexes, over a named minimum run of frames that
-  are not all alike. No new decode. Re-encoded copies belong to `near-duplicate-detection`.
+  are not all alike. No new decode. Re-encoded copies belong to `near-duplicate-detection`. A
+  predecessor whose bundles were removed cannot be compared, and is reported rather than treated as
+  clear.
 - Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`.
 - Execution path: Add a pure run search over frame indexes to `grouping.py`, called before the frame
-  set is written, with remuxed real-media fixtures.
+  set is written, with remuxed real-media fixtures. Walk the chain with `read_predecessors` in
+  `lineage.py`, and open each predecessor's indexes through `open_frame_bundle`.
 - Acceptance gates: A remux of one recording in `development` and `locked` is `SPLIT_LEAKAGE`,
-  naming both streams and the first shared frame. Two independent clips sharing a black frame stage
-  normally, and a generated case never compares against its own parent.
+  naming both streams and the first shared frame. So is a remux that a linked version places in
+  another group than its original, naming both versions. Two independent clips sharing a black frame
+  stage normally, and a generated case never compares against its own parent. A predecessor with no
+  staged bundles is named as not compared.
 - Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
 
 #### arm64-reproducibility
@@ -138,6 +123,28 @@ verifying, until an operator deletes a sealed record by hand, and the stored sou
   `SOURCE_RECORD_CHANGED`, with its stored source byte-identical. A declaration that changes the file,
   capture facts or decoder stays `IMPORT_CONFLICT`. A repeat reports `unchanged`, an interrupted
   amendment leaves one whole record, and a replaced record stays readable.
+- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
+
+#### unlinked-version-report (optional)
+
+A version that names no predecessor, or branches from one, can place an evaluated source in another
+split, and its build says only that it has no lineage.
+
+- Serves: `corpus-provenance` -- [Corpus
+  identity](../design/spec.md#41-corpus-identity-and-input-handling)
+- Agent status: CLEAR
+- Milestone: M1
+- Dependencies: none.
+- User-visible outcome: `corpus build` lists every other built version on its data root that places
+  one of its sources in another group or split, for an operator's decision.
+- Scope boundary: A report that refuses nothing, because independent work may reuse a recording.
+  Source hashes on one data root only. Versions in the declared chain stay with the refusal.
+- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/corpus/`.
+- Execution path: Scan `$DATA_DIR/corpus/*/manifest.json` and reuse the placement comparison in
+  `lineage.py`, naming a manifest it cannot read rather than skipping it.
+- Acceptance gates: A source placed in `locked` by an unlinked version and by a sibling branch are
+  each listed with both versions, and both builds succeed. One state gives one listing in one order,
+  and a version in the declared chain is never listed.
 - Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
 
 #### case-preview (optional)
@@ -540,7 +547,8 @@ noticing.
   fixtures.
 - Acceptance gates: A locked stream in a development scenario is `RUNNER_INVALID`. Each approved
   read and re-score leaves one record, and output never calls a stream held-out without a declared
-  custodian policy.
+  custodian policy. A corpus version with no declared predecessor is reported as having no lineage,
+  so nothing calls its locked material unseen.
 - Documentation target: [Current implementation](current.md#areas), page `current/runner.md`.
 
 #### tracker-compatibility-preflight (optional)

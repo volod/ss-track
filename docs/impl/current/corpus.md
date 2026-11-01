@@ -12,8 +12,9 @@ tasks, their decisions and their acceptance evidence:
 [frame staging](../records/0002-corpus-provenance-frame-bundle-staging.md),
 [split grouping](../records/0003-corpus-provenance-corpus-split-grouping.md),
 [generated cases](../records/0004-corpus-provenance-generated-fixture-cases.md),
-[source terms](../records/0006-corpus-provenance-source-terms-enforcement.md) and
-[rights verification](../records/0007-corpus-provenance-corpus-verify-rights.md).
+[source terms](../records/0006-corpus-provenance-source-terms-enforcement.md),
+[rights verification](../records/0007-corpus-provenance-corpus-verify-rights.md) and
+[version lineage](../records/0008-corpus-provenance-corpus-version-lineage.md).
 
 ## Commands
 
@@ -72,6 +73,7 @@ capture:                     # optional; every absent fact is stored as unknown
 schema_version: 3
 corpus_id: pilot-v1
 decode_policy_sha256: "<64 hex>"   # optional pin on the installed decoder
+supersedes: pilot-v0               # optional; see Version lineage
 scenario_rights:
   sharing: restricted              # widest use of this corpus: restricted or public
   max_sensitivity: moderate        # most sensitive source accepted: low, moderate or high
@@ -160,14 +162,71 @@ and streams, with generated cases on a line of their own:
 declared synchronized: no clock relation between them is recorded.
 
 `locked` records membership only. Nothing restricts who reads a locked stream, so no output may call
-it held-out. Changing any membership needs a new corpus version, and nothing compares versions: a
-source moved from `development` to `locked` by a later version is accepted.
+it held-out. Changing any membership needs a new corpus version, and
+[version lineage](#version-lineage) compares a version with the ones it names.
 
 The source rule compares bytes. An `ffmpeg -c copy` remux of one recording imports as a different
 source: put into `development` and `locked`, it built and staged with 100 of 100 identical frames, so
 keep every copy of a recording in one group. Their bundle hashes differ, because a bundle's identity
 includes its source hash and time base, so comparing bundle hashes does not find them either.
 Near-duplicate detection does not exist.
+
+### Version lineage
+
+A version may name the one it supersedes with `supersedes`. Material already evaluated has been seen,
+so `corpus build` compares the new version with that version and with every older version linked
+behind it. `src/ss_track/corpus/lineage.py` owns these rules, and reads only source hashes, groups and
+splits:
+
+| Across the declared chain | Result |
+| --- | --- |
+| A source in another split or another group | `SPLIT_LEAKAGE` |
+| A group in another split, even holding only new sources | `SPLIT_LEAKAGE` |
+| A new source, or a new group in any split | Accepted, and listed as `added` |
+| A source a version dropped, back in the place it left | Accepted |
+| A source a version dropped, back anywhere else | `SPLIT_LEAKAGE`, naming the version that held it |
+
+A refusal names every move at once, with the nearest version that held each one:
+
+```json
+{"status": "refused", "code": "SPLIT_LEAKAGE", "message": "...", "details": {"corpus_id": "pilot-v2",
+ "moved_sources": [{"source_sha256": "...",
+  "from": {"corpus_id": "pilot-v1", "group_id": "site-a", "split": "development"},
+  "to": {"corpus_id": "pilot-v2", "group_id": "held-out", "split": "locked"}}],
+ "moved_groups": []}}
+```
+
+`moved_groups` entries have the same `from` and `to`. Renaming a group moves its sources, so a group
+keeps its `group_id` across linked versions. A group whose name was reused for unrelated material
+needs a new name. Encounter and stream names are not compared, and a kept source may change its
+frame window, its streams or its source record, whose terms are not a place.
+
+A build result always has `lineage`. `added`, `removed` and `kept` compare sources with the named
+version only, so a source returning after two versions is `added`, while `compared_versions` lists
+everything the rules read, nearest first:
+
+```json
+{"status": "built", "lineage": {"status": "linked", "supersedes": "pilot-v1",
+ "supersedes_manifest_sha256": "...", "compared_versions": ["pilot-v1"],
+ "added": [{"source_sha256": "...", "group_id": "site-c", "split": "locked"}],
+ "removed": [], "kept": [{"source_sha256": "...", "group_id": "site-a", "split": "development"}]}}
+```
+
+A version that names nothing reports `{"status": "no_lineage"}`, and nothing compared it with anything:
+the same source can sit in `locked` there, and so can it in a sibling that branches from one
+predecessor. `unlinked-version-report` in the [plan](../plan.md) schedules a listing of those.
+
+The manifest seals `supersedes` as `{"corpus_id", "manifest_sha256"}`, and only when one was named, so
+a version that names none keeps its hash and corpus manifests stay schema 3. Naming a predecessor on
+an existing version is `CORPUS_CONFLICT`, as any change is. A named version that does not exist is
+`CORPUS_NOT_BUILT` before any source is read, and so is one missing further back. A version rebuilt
+differently under its old name no longer matches the seal its successor pinned, which is
+`CORPUS_CONFLICT`. A superseded version therefore stays useful only while its `manifest.json` exists:
+remove its frames, not its manifest. Only `corpus build` reads the chain, so `corpus stage` and
+`corpus verify` work on a version whose predecessors are gone.
+
+The comparison is by source hash, so it does not see a remux placed elsewhere by a later version.
+`duplicate-frame-detection` in the [plan](../plan.md) covers that.
 
 ### Scenario rights
 
@@ -488,7 +547,7 @@ MPEG program streams import as `missing`, because they do not store a presentati
 | `SELECTION_OUT_OF_RANGE` | A selection runs past the end of its sequence |
 | `SOURCE_NOT_IMPORTED` | A corpus names a source with no import record |
 | `SOURCE_RECORD_CHANGED` | A source's record differs from the one its corpus pinned, at stage or verify |
-| `SPLIT_LEAKAGE` | A group, encounter, stream or case name is declared in two splits, or two groups share a source |
+| `SPLIT_LEAKAGE` | A group, encounter, stream or case name is declared in two splits, two groups share a source, or a source or group sits elsewhere than a declared predecessor placed it |
 | `STREAM_OVERLAP` | Two streams use the same frames of one source |
 | `RIGHTS_CONFLICT` | Scenario sharing/sensitivity conflicts or a generated case lacks derivation permission |
 | `RETENTION_EXPIRED` | The evaluation day is after a source's inclusive retention deadline |
@@ -498,8 +557,8 @@ MPEG program streams import as `missing`, because they do not store a presentati
 | `RECORD_SCHEMA_UNSUPPORTED` | A source, corpus or bundle uses an unsupported schema, or corpus source terms are absent |
 | `DECODE_POLICY_MISMATCH` | A source or pin uses a decode policy other than the installed one |
 | `IMPORT_CONFLICT` | The same source was imported with another declaration or decoder |
-| `CORPUS_CONFLICT` | The `corpus_id` already exists with different content |
-| `CORPUS_NOT_BUILT` | The named corpus version does not exist, or the identifier cannot name one |
+| `CORPUS_CONFLICT` | The `corpus_id` already exists with different content, or a superseded version differs from the seal its successor pinned |
+| `CORPUS_NOT_BUILT` | The named corpus version or a version of its declared chain does not exist, or the identifier cannot name one |
 | `DECODE_DRIFT` | A staging decode disagrees with the import record of its source |
 | `BUNDLE_NOT_STAGED` | A stream has no staged frame bundle |
 | `BUNDLE_CONFLICT` | A bundle was staged from a different corpus version, for a different stream, or from other parent frames |
@@ -569,7 +628,9 @@ MP4 clips, and tests that default decoding hides damage the policy refuses.
 `tests/corpus/test_bundle_writer.py`, `test_staging.py`, `test_frames.py` and `test_pixels.py` cover
 staging, and `test_pixels.py` includes the comparison with FFmpeg's SIMD disabled.
 `tests/corpus/test_grouping.py`, `test_scenario_rights.py` and `test_stream_identity.py` cover
-membership, rights and each stream's identity from build to `FrameRef`.
+membership, rights and each stream's identity from build to `FrameRef`. `tests/corpus/test_lineage.py`
+compares hand-built versions, and `test_lineage_build.py` covers linked builds from the declaration
+to the exit status.
 `tests/corpus/test_source_terms.py` covers retention boundaries at every entrypoint, unchanged
 evidence across evaluation dates, explicit permission, strict declarations and legacy records.
 `tests/corpus/test_verify_rights.py` replaces source records through the real importer and covers
