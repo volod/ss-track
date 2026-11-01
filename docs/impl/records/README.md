@@ -13,5 +13,6 @@ Copy the [template](template.md) using the
 | 0006 | `source-terms-enforcement` | [0006-corpus-provenance-source-terms-enforcement](0006-corpus-provenance-source-terms-enforcement.md) |
 | 0007 | `corpus-verify-rights` | [0007-corpus-provenance-corpus-verify-rights](0007-corpus-provenance-corpus-verify-rights.md) |
 | 0008 | `corpus-version-lineage` | [0008-corpus-provenance-corpus-version-lineage](0008-corpus-provenance-corpus-version-lineage.md) |
+| 0009 | `staged-frame-set` | [0009-corpus-provenance-staged-frame-set](0009-corpus-provenance-staged-frame-set.md) |
 
-Next unused sequence: `0009`.
+Next unused sequence: `0010`.

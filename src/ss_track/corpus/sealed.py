@@ -10,6 +10,7 @@ from tempfile import NamedTemporaryFile
 from ss_track.corpus.refusal import CorpusRefusal, JsonValue, RefusalCode
 
 SEAL_FIELD = "manifest_sha256"
+SCRATCH_PREFIX = ".incoming-"
 READ_ONLY_FILE_MODE = 0o444
 READ_ONLY_DIRECTORY_MODE = 0o555
 _CHUNK_BYTES = 1024 * 1024
@@ -58,7 +59,7 @@ def write_sealed(path: Path, sealed: Mapping[str, JsonValue]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = json.dumps(sealed, ensure_ascii=True, allow_nan=False, indent=2, sort_keys=True)
     with NamedTemporaryFile(
-        "w", encoding="ascii", dir=path.parent, prefix=".incoming-", delete=False
+        "w", encoding="ascii", dir=path.parent, prefix=SCRATCH_PREFIX, delete=False
     ) as handle:
         handle.write(payload + "\n")
         handle.flush()

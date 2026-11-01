@@ -125,6 +125,7 @@ def test_stage_then_verify_report_json_results(
     assert Path(bundles[0]["manifest_path"]).is_file()
     assert verified["status"] == "verified"
     assert verified["bundles"][0]["bundle_sha256"] == bundles[0]["bundle_sha256"]  # type: ignore[index]
+    assert verified["frame_set_sha256"] == staged["frame_set_sha256"]
 
 
 def test_a_corrupted_frame_is_named_with_a_failing_status(

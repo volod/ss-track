@@ -224,7 +224,13 @@ operator's decision.
 
 Staging ends with one sealed frame-set record that names every stream and generated-case bundle hash
 of a corpus version and the source records they rest on. A scenario pins that one hash rather than a
-list of bundles, and a bundle no frame set names is not part of the corpus.
+list of bundles, and a bundle no frame set names is not part of the corpus. The record exists only
+once every bundle does, and is never rewritten: a stage or a verification that finds other bundles is
+refused and names each one, so a changed bundle cannot carry the frame set along with it. Its hash is
+the same on any data root, and it changes with a source's identity as well as its pixels, so a remuxed
+source gives a new hash over identical frames. A seal is not a signature: the record detects change
+only against a hash held elsewhere, which is why a scenario pins it and why it does not by itself stop
+a process opening a bundle directly.
 
 A corpus also declares its **scenario rights**: the widest sharing it intends and the highest
 sensitivity it accepts. A build that asks more of any source than its recorded rights allow is

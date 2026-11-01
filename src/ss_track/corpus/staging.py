@@ -2,7 +2,7 @@
 
 import fcntl
 import shutil
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass
 from datetime import date
@@ -10,8 +10,9 @@ from pathlib import Path
 from typing import Any
 
 from ss_track.corpus.builder import load_corpus_manifest, require_policy, require_source_record
-from ss_track.corpus.bundle_writer import SCRATCH_PREFIX, write_bundle
+from ss_track.corpus.bundle_writer import write_bundle
 from ss_track.corpus.decode import DecodePolicy, current_decode_policy
+from ss_track.corpus.frame_set import commit_frame_set, require_frame_set
 from ss_track.corpus.frames import (
     FrameBundle,
     FrameDamage,
@@ -22,7 +23,7 @@ from ss_track.corpus.frames import (
 from ss_track.corpus.generated import write_case_bundle
 from ss_track.corpus.importer import MANIFEST_NAME, decode_policy_sha256
 from ss_track.corpus.refusal import CorpusRefusal, JsonValue, RefusalCode
-from ss_track.corpus.sealed import SEAL_FIELD
+from ss_track.corpus.sealed import SCRATCH_PREFIX, SEAL_FIELD
 from ss_track.corpus.terms import evaluation_date, require_retention
 from ss_track.corpus.transforms import require_transform_revision
 
@@ -53,6 +54,7 @@ class FramesResult:
 
     status: str
     corpus_id: str
+    frame_set_sha256: str
     bundles: tuple[BundleSummary, ...]
 
     def to_record(self) -> dict[str, JsonValue]:
@@ -74,6 +76,10 @@ def _summary(bundle: FrameBundle, status: str) -> BundleSummary:
         height=bundle.height,
         manifest_path=str(bundle.directory / MANIFEST_NAME),
     )
+
+
+def _hashes(bundles: Iterable[BundleSummary | FrameBundle]) -> dict[str, str]:
+    return {bundle.stream_id: bundle.bundle_sha256 for bundle in bundles}
 
 
 def _streams(corpus: dict[str, Any]) -> list[dict[str, Any]]:
@@ -100,7 +106,7 @@ def _require_sources_hold(corpus: dict[str, Any], data_root: Path, today: date) 
 
 
 def stage_corpus(corpus_id: str, data_root: Path, *, today: date | None = None) -> FramesResult:
-    """Stage every stream and generated case, leaving each bundle complete or absent."""
+    """Stage every stream and case, then seal the frame set. A failure leaves it unwritten."""
     checked_on = evaluation_date(today)
     corpus = load_corpus_manifest(corpus_id, data_root)
     _require_sources_hold(corpus, data_root, checked_on)
@@ -116,8 +122,9 @@ def stage_corpus(corpus_id: str, data_root: Path, *, today: date | None = None) 
             _stage_stream(stream, corpus, policy, root, data_root) for stream in _streams(corpus)
         ]
         bundles = (*streams, *(_stage_case(case, corpus, root) for case in _cases(corpus)))
-    changed = any(bundle.status == STAGED for bundle in bundles)
-    return FramesResult(STAGED if changed else UNCHANGED, corpus_id, bundles)
+        frame_set_sha256, written = commit_frame_set(corpus, _hashes(bundles), data_root)
+    changed = written or any(bundle.status == STAGED for bundle in bundles)
+    return FramesResult(STAGED if changed else UNCHANGED, corpus_id, frame_set_sha256, bundles)
 
 
 @contextmanager
@@ -125,7 +132,8 @@ def _exclusive_staging(root: Path, corpus_id: str) -> Iterator[None]:
     """Hold a lock the kernel drops however a run ends, then clear what a killed run left.
 
     Holding the lock proves no other run owns a scratch directory, and a killed run's raw frames
-    could otherwise fill the disk with nothing to remove them.
+    could otherwise fill the disk with nothing to remove them. Only the frame set is written beside
+    the manifest, and a stage implies a finished build, so a partial file there is ours as well.
     """
     with (root / _LOCK_NAME).open("w") as lock:
         try:
@@ -138,13 +146,15 @@ def _exclusive_staging(root: Path, corpus_id: str) -> Iterator[None]:
             ) from error
         for leftover in root.glob(f"{SCRATCH_PREFIX}*"):
             shutil.rmtree(leftover)
+        for partial in root.parent.glob(f"{SCRATCH_PREFIX}*"):
+            partial.unlink()
         yield
 
 
 def verify_corpus_frames(
     corpus_id: str, data_root: Path, *, today: date | None = None
 ) -> FramesResult:
-    """Prove the recorded source terms still hold, then compare every frame with its sealed index.
+    """Prove the source terms hold, the bundles are the frame set's, and every frame is intact.
 
     Source records are read and stored sources are not: a frame's hash covers what modules receive,
     and staging is what ties those frames to the source bytes.
@@ -155,11 +165,15 @@ def verify_corpus_frames(
     root = frames_root(data_root, corpus_id)
     bundles = [_open_for_corpus(stream["stream_id"], corpus, root) for stream in _streams(corpus)]
     bundles += [_open_case(case, corpus, root) for case in _cases(corpus)]
+    frame_set_sha256 = require_frame_set(corpus, _hashes(bundles), data_root)
     damage: list[FrameDamage] = [item for bundle in bundles for item in bundle.damage()]
     if damage:
         raise frames_corrupted(damage)
     return FramesResult(
-        VERIFIED, corpus_id, tuple(_summary(bundle, VERIFIED) for bundle in bundles)
+        VERIFIED,
+        corpus_id,
+        frame_set_sha256,
+        tuple(_summary(bundle, VERIFIED) for bundle in bundles),
     )
 
 

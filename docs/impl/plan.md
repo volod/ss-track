@@ -28,28 +28,6 @@ neither blocks M3. Fixture implementation proceeds without physical hardware or 
 
 ### Corpus provenance -- `corpus-provenance`
 
-#### staged-frame-set
-
-Nothing pins which frames a corpus version staged, so a run could read a bundle no scenario
-declared.
-
-- Serves: `corpus-provenance` -- [Corpus
-  identity](../design/spec.md#41-corpus-identity-and-input-handling)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: `corpus stage` writes one sealed frame-set record naming every stream and
-  generated-case bundle hash and each source record, and a scenario can pin its single hash.
-- Scope boundary: One record per corpus version, beside its manifest. Runner enforcement belongs to
-  the scenario and runner tasks.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`,
-  `$DATA_DIR/corpus/<corpus-id>/frame-set.json`.
-- Execution path: Write the record after the last bundle under the staging lock, and compare it in
-  `corpus verify`.
-- Acceptance gates: Two stagings give one frame-set hash, across data roots. A replaced or missing
-  bundle fails `corpus verify` by name, and an interrupted stage leaves no frame set.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
 #### duplicate-frame-detection
 
 A remuxed copy of one recording crosses a split with every frame identical, because sources are
@@ -59,7 +37,7 @@ compared by byte hash.
   identity](../design/spec.md#41-corpus-identity-and-input-handling)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: staged-frame-set.
+- Dependencies: none.
 - User-visible outcome: `corpus stage` refuses two groups that hold a run of identical decoded
   frames, within one corpus version or against the versions it supersedes. A source hash cannot see
   a remux, so version lineage alone lets one change split between versions.
@@ -92,11 +70,12 @@ Likely reference hosts are arm64, and no decode, staged hash or transform has ru
 - Scope boundary: Decode, conversion and transform bytes on one arm64 Linux runner. Timing is out of
   scope, and macOS is a separate claim.
 - Data and artifact paths: `tests/corpus/`, `.github/workflows/`, `$DATA_DIR/run/<run-id>/`.
-- Execution path: Add a CI job on an arm64 runner that runs the golden tests and writes tree hashes
-  of a fixed corpus. Declared run: compare them with an x86-64 run.
-- Acceptance gates: Transform golden hashes match. A staged hash that differs is recorded per
-  source, and cross-architecture bundle identity is then not claimed: that is a valid negative
-  result.
+- Execution path: Add a CI job on an arm64 runner that runs the golden tests and stages a fixed
+  corpus from stored sources. Declared run: compare its `frame_set_sha256` with an x86-64 run, then
+  each bundle hash when they differ.
+- Acceptance gates: Transform golden hashes match. An equal frame-set hash proves every bundle equal.
+  A staged hash that differs is recorded per source, and cross-architecture bundle identity is then
+  not claimed: that is a valid negative result.
 - Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
 
 #### source-terms-amendment (optional)
@@ -420,7 +399,7 @@ A comparison must pin everything that can change its result.
 - Serves: `module-contract-runner` -- [Run artifacts](../design/spec.md#10-run-artifacts-and-comparison-dashboard)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: event-schema-contract, annotation-contract, staged-frame-set.
+- Dependencies: event-schema-contract, annotation-contract.
 - User-visible outcome: A scenario file pins corpus, frame set, labels, selection, replay mode, metric
   suite, seed and deadlines, and yields one cohort key.
 - Scope boundary: The scenario schema, one cohort-key function, and one type that owns windows and
@@ -428,8 +407,9 @@ A comparison must pin everything that can change its result.
 - Data and artifact paths: `src/ss_track/contract/`, `scenarios/`, `tests/contract/`.
 - Execution path: Add the schema and example scenarios, with table-driven cohort-key fixtures.
 - Acceptance gates: Changing any key field changes the cohort key. A scenario with a missing hash
-  refuses to run, as does one whose frame set no longer matches the staged bundles or whose corpus
-  fails `corpus verify`. A source with empty `completeness_checks` is reported, never assumed complete.
+  refuses to run, as does one whose corpus fails `corpus verify` or whose pinned frame-set hash differs
+  from the `frame_set_sha256` that command reports. The pin is the only check that sees a frame set
+  rewritten on disk. A source with empty `completeness_checks` is reported, never assumed complete.
 - Documentation target: [Current implementation](current.md#areas), page `current/runner.md`.
 
 #### run-bundle-store
@@ -464,8 +444,11 @@ G0 needs a runner that accounts for every frame.
   fixture modules. The null module becomes a reusable module, not only a test double.
 - Acceptance gates: The G0a anti-gaming and null rows of the acceptance matrix pass. A crash is
   `MODULE_FAULT` with remaining scorable input missed, and a wrong source hash is `RUNNER_INVALID`, as
-  are `FRAME_CORRUPTED`, `RECORD_TAMPERED`, `BUNDLE_NOT_STAGED` and `BUNDLE_CONFLICT`. A frame a generated
-  case removed is unscheduled and reported as undelivered, while a module drop stays a miss.
+  are `FRAME_CORRUPTED`, `RECORD_TAMPERED`, `BUNDLE_NOT_STAGED`, `BUNDLE_CONFLICT`,
+  `FRAME_SET_NOT_STAGED` and `FRAME_SET_MISMATCH`. `open_frame_bundle` reads any bundle directory, so
+  the runner opens only bundles its pinned frame set names, and a module given another is
+  `RUNNER_INVALID`. A frame a generated case removed is unscheduled and reported as undelivered, while
+  a module drop stays a miss.
 - Documentation target: [Current implementation](current.md#areas), page `current/runner.md`.
 
 #### paced-frame-release

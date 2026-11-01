@@ -38,13 +38,12 @@ from ss_track.corpus.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.sealed import (
     READ_ONLY_DIRECTORY_MODE,
     READ_ONLY_FILE_MODE,
+    SCRATCH_PREFIX,
     SEAL_FIELD,
     seal,
     sha256_bytes,
     write_sealed,
 )
-
-SCRATCH_PREFIX = ".incoming-"
 
 _LOG = logging.getLogger(__name__)
 

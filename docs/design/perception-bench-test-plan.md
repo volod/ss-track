@@ -55,9 +55,11 @@ makes it fail, and what it does not prove. A case with no task left is listed as
   branch.
   Value: protects=an operator's sight of reuse no declaration links; fails_when=either goes unlisted
   or an independent reuse is refused; no_claim=that a listed reuse is leakage.
-- `staged-frame-set`: two stagings of one corpus, a replaced bundle and an interrupted stage.
-  Value: protects=one pin for all staged input; fails_when=a changed bundle keeps its frame set;
-  no_claim=undeclared files outside the corpus.
+- `staged-frame-set`: two stagings of one corpus across data roots, a replaced, missing and undeclared
+  bundle, and a stage killed at each step of writing the record.
+  Value: protects=one pin for all staged input; fails_when=a changed bundle keeps its frame set, or a
+  partial stage leaves one; no_claim=undeclared files outside the corpus, or a rewrite that no pin
+  held elsewhere can see.
 - `duplicate-frame-detection`: a remux across two splits, in one version and across linked versions,
   and two clips sharing a black frame.
   Value: protects=split isolation for remuxed copies; fails_when=identical frames cross a split or a

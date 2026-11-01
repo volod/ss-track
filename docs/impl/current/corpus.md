@@ -3,8 +3,9 @@
 `ss-track import` turns one declared recording into an immutable, hashed source record.
 `ss-track corpus build` groups imported sources into encounters and splits in one immutable corpus
 version. `ss-track corpus stage` decodes each stream into one immutable frame bundle that every
-module reads, plus one derived bundle for each declared generated case, and `ss-track corpus verify`
-proves those frames are intact and that the source records they rest on still hold. Each command
+module reads, plus one derived bundle for each declared generated case, and seals them into one
+frame set whose hash a scenario can pin. `ss-track corpus verify` proves those frames are intact, are
+the ones the frame set names, and that the source records they rest on still hold. Each command
 produces a complete record or a structured refusal, and none invents a value it could not establish.
 Annotation does not exist yet; the [plan](../plan.md) schedules it. The task records keep the accepted
 tasks, their decisions and their acceptance evidence:
@@ -13,8 +14,9 @@ tasks, their decisions and their acceptance evidence:
 [split grouping](../records/0003-corpus-provenance-corpus-split-grouping.md),
 [generated cases](../records/0004-corpus-provenance-generated-fixture-cases.md),
 [source terms](../records/0006-corpus-provenance-source-terms-enforcement.md),
-[rights verification](../records/0007-corpus-provenance-corpus-verify-rights.md) and
-[version lineage](../records/0008-corpus-provenance-corpus-version-lineage.md).
+[rights verification](../records/0007-corpus-provenance-corpus-verify-rights.md),
+[version lineage](../records/0008-corpus-provenance-corpus-version-lineage.md) and
+[frame sets](../records/0009-corpus-provenance-staged-frame-set.md).
 
 ## Commands
 
@@ -102,6 +104,7 @@ groups:
 | `$DATA_DIR/import/<source-sha256>/source<ext>` | Read-only copy of the source bytes |
 | `$DATA_DIR/import/<source-sha256>/manifest.json` | Sealed source manifest |
 | `$DATA_DIR/corpus/<corpus-id>/manifest.json` | Sealed corpus manifest |
+| `$DATA_DIR/corpus/<corpus-id>/frame-set.json` | Sealed record of every staged bundle |
 | `$DATA_DIR/corpus/<corpus-id>/frames/<stream-id>/` | One read-only frame bundle |
 | `$DATA_DIR/corpus/<corpus-id>/frames/<case-id>/` | One read-only bundle of a generated case |
 
@@ -389,6 +392,68 @@ bundle cannot carry frames into another split. A bundle is immutable: frames are
 directory is `0555`, and a damaged one is never repaired in place. Remove it with
 `chmod -R u+w <bundle> && rm -rf <bundle>`, then stage again; the hash comes back the same.
 
+### Frame set
+
+A finished stage seals one record of what it staged, so a scenario pins a single hash rather than a
+list of bundles. `src/ss_track/corpus/frame_set.py` owns it. `corpus stage` writes it after the last
+bundle and under the staging lock, and both `corpus stage` and `corpus verify` report its seal as
+`frame_set_sha256`:
+
+```json
+{"kind": "ss-track.frame-set", "schema_version": 1, "corpus_id": "pilot-v1",
+ "corpus_manifest_sha256": "...", "manifest_sha256": "...", "bundles": [
+  {"stream_id": "enc01-cam0", "parent_stream_id": null, "bundle_sha256": "...",
+   "source_sha256": "...", "source_manifest_sha256": "..."},
+  {"stream_id": "enc01-cam0-shake", "parent_stream_id": "enc01-cam0", "bundle_sha256": "...",
+   "source_sha256": "...", "source_manifest_sha256": "..."}]}
+```
+
+`bundles` is sorted by name and holds every stream and generated case, and a case states the source
+record of its parent. The record holds no path, clock or run identity, so one corpus version staged on
+any data root gives identical bytes. The corpus manifest hash in it ties the frame set to the
+version's membership and splits, so two versions sharing every bundle still have different frame sets.
+A source's identity is part of it: a remux of a source gives a new hash over identical frames.
+
+The record is written once and never rewritten:
+
+| Found | `corpus stage` | `corpus verify` |
+| --- | --- | --- |
+| Every bundle, no frame set | Writes it, status `staged`, each bundle `unchanged` | `FRAME_SET_NOT_STAGED` |
+| A bundle missing | Stages it again, then compares | `BUNDLE_NOT_STAGED`, naming the first |
+| Another bundle under a named stream | `FRAME_SET_MISMATCH`, record untouched | `FRAME_SET_MISMATCH` |
+| Anything undeclared among the bundles | `FRAME_SET_MISMATCH`, writing no record | `FRAME_SET_MISMATCH` |
+
+A stage that stops early leaves no frame set, because the record is the last thing written. A finished
+bundle stays staged, and repeating the command writes the record. A frame set from an earlier complete
+stage stays when a bundle is later removed: it still states what the corpus staged, and `corpus
+verify` refuses until that bundle is back. A corpus staged before frame sets existed behaves as the
+first row, so one `corpus stage` adds the record without touching a bundle.
+
+A mismatch names every bundle at once, and also states both frame-set hashes and both corpus manifest
+hashes, because a record of another corpus state differs with an empty `bundles` list:
+
+```json
+{"status": "refused", "code": "FRAME_SET_MISMATCH", "message": "...", "details": {
+ "corpus_id": "pilot-v1", "frame_set_sha256": "...", "found_frame_set_sha256": "...",
+ "frame_set_corpus_manifest_sha256": "...", "corpus_manifest_sha256": "...", "bundles": [
+  {"stream_id": "enc01-cam1", "reason": "replaced", "frame_set_bundle_sha256": "...",
+   "bundle_sha256": "..."}, {"stream_id": "stray", "reason": "unnamed"}]}}
+```
+
+The reason is `replaced`, `unnamed` for something the frame set does not name, or `missing` for a line
+the corpus does not declare. A replaced parent of a generated case is `BUNDLE_CONFLICT` naming the case
+before this comparison runs. Names beginning with a dot are ignored, because an identifier cannot begin
+with one and they are the staging lock and scratch.
+
+To recover from `replaced`, remove the bundle and stage it again, and the hash comes back. If the
+mismatch stays, this host does not reproduce the bundle: build a new corpus version. Deleting
+`frame-set.json` instead writes a new hash over whatever is on disk.
+
+A seal is not a signature. It shows a record matches itself, so that deletion, or any rewrite of the
+record, is visible only to a hash held elsewhere. The frame set therefore protects a run through the
+scenario that pins it. It does not bind a bundle's own record to the corpus declaration beyond the
+checks that open it, and `open_frame_bundle` opens any bundle directory without consulting it.
+
 ### Reading frames
 
 ```python
@@ -409,8 +474,9 @@ hold is `FRAME_NOT_IN_BUNDLE`.
 
 ### Verification
 
-`corpus verify` first checks the [source terms](#withdrawing-rights), then re-hashes every frame of
-every stream and names each damaged file with its stream:
+`corpus verify` first checks the [source terms](#withdrawing-rights), then compares the bundles with
+the [frame set](#frame-set), then re-hashes every frame of every stream and names each damaged file
+with its stream:
 
 ```json
 {"status": "refused", "code": "FRAME_CORRUPTED", "message": "...", "details": {"damaged_count": 1,
@@ -562,6 +628,8 @@ MPEG program streams import as `missing`, because they do not store a presentati
 | `DECODE_DRIFT` | A staging decode disagrees with the import record of its source |
 | `BUNDLE_NOT_STAGED` | A stream has no staged frame bundle |
 | `BUNDLE_CONFLICT` | A bundle was staged from a different corpus version, for a different stream, or from other parent frames |
+| `FRAME_SET_NOT_STAGED` | Every bundle is staged but no frame set exists, so staging has not finished |
+| `FRAME_SET_MISMATCH` | Staged bundles differ from the frame set, or something undeclared sits among them |
 | `STAGING_IN_PROGRESS` | Another run is staging this corpus version |
 | `FRAME_CORRUPTED` | A staged file differs from the sealed index, is gone, or is not in it |
 | `FRAME_NOT_IN_BUNDLE` | A bundle does not hold a frame index, including a frame a case dropped |
@@ -627,6 +695,8 @@ repository. `tests/corpus/test_decode.py` includes the truncation sweep over sma
 MP4 clips, and tests that default decoding hides damage the policy refuses.
 `tests/corpus/test_bundle_writer.py`, `test_staging.py`, `test_frames.py` and `test_pixels.py` cover
 staging, and `test_pixels.py` includes the comparison with FFmpeg's SIMD disabled.
+`tests/corpus/test_frame_set.py` covers the frame set across data roots and processes, each refusal
+by name, an interrupted stage, and that the record is written under the staging lock.
 `tests/corpus/test_grouping.py`, `test_scenario_rights.py` and `test_stream_identity.py` cover
 membership, rights and each stream's identity from build to `FrameRef`. `tests/corpus/test_lineage.py`
 compares hand-built versions, and `test_lineage_build.py` covers linked builds from the declaration
