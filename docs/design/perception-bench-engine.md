@@ -104,7 +104,7 @@ person can re-run the reference baseline even when no external module qualifies 
 
 ## Open engineering choices
 
-- Decoder with the required host support, container runtime and pinned MOT evaluator.
+- Container runtime and pinned MOT evaluator.
 - Authorized development sources and independent references for the selected sensor candidates.
 - Per-stand budgets, measurement precision and acceptance tolerances before acquisition.
 - Non-camera evidence role and whether its measured contribution justifies keeping it.

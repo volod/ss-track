@@ -17,6 +17,16 @@ The Makefile exposes individual checks and two composed workflows:
 GitHub Actions runs `make ci-github`, an explicit alias of the same required gate, on Python 3.12
 and 3.13 after `uv sync --locked --extra dev`.
 
+`.github/workflows/arm64-reproducibility.yml` runs on the same events. Its `x86-64` job writes the
+fixed corpus sources once with `make fixed-corpus-sources`, stages them with
+`make fixed-corpus-stage` and uploads both the sources and its hashes. Its `arm64` job, on
+`ubuntu-24.04-arm`, refuses any other machine, runs `make test`, stages the same sources, and runs
+`make fixed-corpus-compare`, which fails the job on any difference. `hash-comparison.json` is uploaded
+whatever the result. That job installs the locked environment without `shellcheck-py`, which has no
+arm64 Linux wheel, because it runs no shell gate. `DATA_DIR` is `ci-data` there because an artifact
+upload skips hidden paths such as `.data`. `tests/quality/test_workflows.py` pins the workflow's shape.
+The [corpus page](corpus.md#across-hosts) states what the comparison means.
+
 Tests under `tests/quality/` exercise failure cases for the documentation checks rather than only
 asserting the repository passes. `make quality-report` reports source and shell files over the
 250-line soft limit.
