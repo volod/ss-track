@@ -191,6 +191,22 @@ locked-test material are disjoint by encounter; a separate calibration subset is
 calibrated probability or adaptive-policy claim. Calibration and policy thresholds are frozen before
 locked evaluation.
 
+A corpus version declares this structure directly. An independent encounter group names one split,
+`development`, `calibration` or `locked`, and holds encounters, and an encounter holds its streams. A
+stream is one sensor's frames of one encounter, taken from one source and frame window, and its
+`stream_id` is unique in the corpus. A source belongs to one group, because groups that share a
+recording are not independent, and a source frame belongs to one stream, because a frame counted
+twice distorts anything aggregated by encounter. Sharing a source is detected by byte hash; a remux
+or re-encoded copy is a different source until near-duplicate detection exists. Declaring `locked`
+records membership only: it creates no locked test and grants no held-out claim.
+
+A corpus also declares its **scenario rights**: the widest sharing it intends and the highest
+sensitivity it accepts. A build that asks more of any source than its recorded rights allow is
+refused and names each conflict. It compares only these two ordered facts; holder, basis and
+retention stay recorded terms. A public source in a restricted corpus stays recorded as public while
+the corpus remains restricted. A corpus version states the rights of the source records it was built
+from, so a source re-imported under other terms needs a new corpus version.
+
 ### 4.2 Annotation contract
 
 For each selected target instance and frame, the status is exactly one of `visible`,

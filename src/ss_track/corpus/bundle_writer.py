@@ -8,9 +8,10 @@ from typing import Any
 
 import av
 
-from ss_track.corpus.builder import load_verified_source, require_policy
+from ss_track.corpus.builder import load_verified_source
 from ss_track.corpus.decode import DecodePolicy, inspect_media
 from ss_track.corpus.frames import (
+    BUNDLE_SCHEMA_VERSION,
     FRAME_BUNDLE_KIND,
     FrameBundle,
     bundle_hash,
@@ -19,7 +20,6 @@ from ss_track.corpus.frames import (
 )
 from ss_track.corpus.importer import (
     MANIFEST_NAME,
-    SCHEMA_VERSION,
     decode_policy_sha256,
     decoded_facts,
     source_directory,
@@ -48,37 +48,32 @@ _LOG = logging.getLogger(__name__)
 
 
 def write_bundle(
-    sequence: dict[str, Any],
+    stream: dict[str, Any],
     corpus: dict[str, JsonValue],
     policy: DecodePolicy,
     root: Path,
     data_root: Path,
 ) -> FrameBundle:
     """Write into a scratch directory and publish with one rename, so a failure leaves nothing."""
-    source: dict[str, Any] = load_verified_source(sequence["source_sha256"], data_root)
+    source: dict[str, Any] = load_verified_source(stream["source_sha256"], data_root)
     policy_sha256 = decode_policy_sha256(policy.as_record())
-    require_policy(
-        source["decode_policy_sha256"], policy_sha256, f"source {sequence['source_sha256']}"
-    )
     media: dict[str, Any] = source["sequence"]
-    stored = (
-        source_directory(data_root, sequence["source_sha256"]) / source["source"]["stored_name"]
-    )
-    _require_space(root, media, sequence["selection"])
-    target = root / sequence["sequence_id"]
+    stored = source_directory(data_root, stream["source_sha256"]) / source["source"]["stored_name"]
+    _require_space(root, media, stream["selection"])
+    target = root / stream["stream_id"]
     with TemporaryDirectory(prefix=SCRATCH_PREFIX, dir=root) as scratch:
         staged = Path(scratch) / "staged"
         staged.mkdir()
         converter = PixelConverter(policy.conversion_flags, policy.thread_count)
-        writer = _FrameWriter(staged, sequence["selection"], converter)
+        writer = _FrameWriter(staged, stream["selection"], converter)
         inspection = inspect_media(stored, policy, writer.accept)
-        _require_same_decode(decoded_facts(inspection), media, sequence)
-        body = _bundle_body(sequence, corpus, media, policy_sha256, writer)
+        _require_same_decode(decoded_facts(inspection), media, stream)
+        body = _bundle_body(stream, corpus, media, policy_sha256, writer)
         write_sealed(staged / MANIFEST_NAME, seal(body))
         # Moving a directory rewrites its parent link, so it must stay writable until it arrives.
         staged.rename(target)
     target.chmod(READ_ONLY_DIRECTORY_MODE)
-    _warn_about_conversion(sequence["sequence_id"], media)
+    _warn_about_conversion(stream["stream_id"], media)
     return open_frame_bundle(target)
 
 
@@ -118,7 +113,7 @@ class _FrameWriter:
 
 
 def _require_same_decode(
-    decoded: dict[str, JsonValue], media: dict[str, Any], sequence: dict[str, Any]
+    decoded: dict[str, JsonValue], media: dict[str, Any], stream: dict[str, Any]
 ) -> None:
     """A decode that disagrees with the import record means the decoder is not reproducing it."""
     differing = sorted(key for key, value in decoded.items() if media[key] != value)
@@ -126,12 +121,12 @@ def _require_same_decode(
         raise CorpusRefusal(
             RefusalCode.DECODE_DRIFT,
             "this decode differs from the imported source record",
-            {"sequence_id": sequence["sequence_id"], "fields": list(differing)},
+            {"stream_id": stream["stream_id"], "fields": list(differing)},
         )
 
 
 def _bundle_body(
-    sequence: dict[str, Any],
+    stream: dict[str, Any],
     corpus: dict[str, JsonValue],
     media: dict[str, Any],
     policy_sha256: str,
@@ -139,23 +134,23 @@ def _bundle_body(
 ) -> dict[str, JsonValue]:
     """Build the record. Its identity block alone decides the bundle hash."""
     identity: dict[str, JsonValue] = {
-        "source_sha256": sequence["source_sha256"],
+        "source_sha256": stream["source_sha256"],
         "decode_policy_sha256": policy_sha256,
         "pixel_format": OUTPUT_PIXEL_FORMAT,
         "width": media["decoded_width"],
         "height": media["decoded_height"],
         "bytes_per_frame": frame_size_bytes(media["decoded_width"], media["decoded_height"]),
         "time_base": media["time_base"],
-        "selection": sequence["selection"],
+        "selection": stream["selection"],
         "frames": writer.frames,
     }
     return {
         "kind": FRAME_BUNDLE_KIND,
-        "schema_version": SCHEMA_VERSION,
+        "schema_version": BUNDLE_SCHEMA_VERSION,
         "corpus_id": corpus["corpus_id"],
         "corpus_manifest_sha256": corpus[SEAL_FIELD],
-        "sequence_id": sequence["sequence_id"],
-        "source_manifest_sha256": sequence["source_manifest_sha256"],
+        "stream_id": stream["stream_id"],
+        "source_manifest_sha256": stream["source_manifest_sha256"],
         "bundle_sha256": bundle_hash(identity),
         "identity": identity,
         "source_pixel_format": media["source_pixel_format"],
@@ -169,11 +164,11 @@ def _bundle_body(
     }
 
 
-def _warn_about_conversion(sequence_id: str, media: dict[str, Any]) -> None:
+def _warn_about_conversion(stream_id: str, media: dict[str, Any]) -> None:
     """Both facts stay in the bundle record; the operator should also hear them at staging."""
     bits = media["source_bits_per_component"]
     if bits > OUTPUT_BITS_PER_COMPONENT:
-        _LOG.warning("sequence %s: %d-bit source staged at 8 bits", sequence_id, bits)
+        _LOG.warning("stream %s: %d-bit source staged at 8 bits", stream_id, bits)
     unspecified = media["color"]["matrix"] == UNSPECIFIED_COLOR_MATRIX
     if unspecified and uses_color_matrix(media["source_pixel_format"]):
-        _LOG.warning("sequence %s: no color matrix tag, converted as BT.601", sequence_id)
+        _LOG.warning("stream %s: no color matrix tag, converted as BT.601", stream_id)

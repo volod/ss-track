@@ -1,4 +1,4 @@
-"""`ss-track corpus stage` and `corpus verify`: one immutable frame bundle per corpus sequence."""
+"""`ss-track corpus stage` and `corpus verify`: one immutable frame bundle per corpus stream."""
 
 import fcntl
 import shutil
@@ -8,7 +8,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
-from ss_track.corpus.builder import load_corpus_manifest, require_policy
+from ss_track.corpus.builder import load_corpus_manifest, require_policy, require_source_record
 from ss_track.corpus.bundle_writer import SCRATCH_PREFIX, write_bundle
 from ss_track.corpus.decode import DecodePolicy, current_decode_policy
 from ss_track.corpus.frames import (
@@ -30,9 +30,9 @@ _LOCK_NAME = ".staging.lock"
 
 @dataclass(frozen=True, slots=True)
 class BundleSummary:
-    """One sequence's bundle as reported to the operator."""
+    """One stream's bundle as reported to the operator."""
 
-    sequence_id: str
+    stream_id: str
     status: str
     bundle_sha256: str
     frame_count: int
@@ -59,7 +59,7 @@ class FramesResult:
 
 def _summary(bundle: FrameBundle, status: str) -> BundleSummary:
     return BundleSummary(
-        sequence_id=bundle.sequence_id,
+        stream_id=bundle.stream_id,
         status=status,
         bundle_sha256=bundle.bundle_sha256,
         frame_count=len(bundle),
@@ -70,23 +70,24 @@ def _summary(bundle: FrameBundle, status: str) -> BundleSummary:
     )
 
 
-def _sequences(corpus: dict[str, Any]) -> list[dict[str, Any]]:
-    sequences: list[dict[str, Any]] = corpus["sequences"]
-    return sequences
+def _streams(corpus: dict[str, Any]) -> list[dict[str, Any]]:
+    streams: list[dict[str, Any]] = corpus["streams"]
+    return streams
 
 
 def stage_corpus(corpus_id: str, data_root: Path) -> FramesResult:
-    """Stage every sequence of a corpus version, leaving each bundle complete or absent."""
+    """Stage every stream of a corpus version, leaving each bundle complete or absent."""
     corpus = load_corpus_manifest(corpus_id, data_root)
     policy = current_decode_policy()
     policy_sha256 = decode_policy_sha256(policy.as_record())
     require_policy(corpus["decode_policy_sha256"], policy_sha256, f"corpus {corpus_id}")
+    for stream in _streams(corpus):
+        require_source_record(stream, data_root)
     root = frames_root(data_root, corpus_id)
     root.mkdir(parents=True, exist_ok=True)
     with _exclusive_staging(root, corpus_id):
         bundles = tuple(
-            _stage_sequence(sequence, corpus, policy, root, data_root)
-            for sequence in _sequences(corpus)
+            _stage_stream(stream, corpus, policy, root, data_root) for stream in _streams(corpus)
         )
     changed = any(bundle.status == STAGED for bundle in bundles)
     return FramesResult(STAGED if changed else UNCHANGED, corpus_id, bundles)
@@ -117,7 +118,7 @@ def verify_corpus_frames(corpus_id: str, data_root: Path) -> FramesResult:
     """Compare every staged frame of a corpus version with its sealed index."""
     corpus = load_corpus_manifest(corpus_id, data_root)
     root = frames_root(data_root, corpus_id)
-    bundles = [_open_for_corpus(sequence, corpus, root) for sequence in _sequences(corpus)]
+    bundles = [_open_for_corpus(stream, corpus, root) for stream in _streams(corpus)]
     damage: list[FrameDamage] = [item for bundle in bundles for item in bundle.damage()]
     if damage:
         raise frames_corrupted(damage)
@@ -127,15 +128,15 @@ def verify_corpus_frames(corpus_id: str, data_root: Path) -> FramesResult:
 
 
 def _open_for_corpus(
-    sequence: dict[str, Any], corpus: dict[str, JsonValue], root: Path
+    stream: dict[str, Any], corpus: dict[str, JsonValue], root: Path
 ) -> FrameBundle:
-    """Open one sequence's bundle, which must have been staged from this exact corpus version."""
-    directory = root / sequence["sequence_id"]
+    """Open one stream's bundle, which must have been staged from this exact corpus version."""
+    directory = root / stream["stream_id"]
     if not directory.is_dir():
         raise CorpusRefusal(
             RefusalCode.BUNDLE_NOT_STAGED,
-            "this sequence has no staged frame bundle",
-            {"sequence_id": sequence["sequence_id"]},
+            "this stream has no staged frame bundle",
+            {"stream_id": stream["stream_id"]},
         )
     bundle = open_frame_bundle(directory)
     if bundle.corpus_manifest_sha256 != corpus[SEAL_FIELD]:
@@ -143,24 +144,30 @@ def _open_for_corpus(
             RefusalCode.BUNDLE_CONFLICT,
             "this bundle was staged from a different corpus version",
             {
-                "sequence_id": sequence["sequence_id"],
+                "stream_id": stream["stream_id"],
                 "bundle_corpus_manifest_sha256": bundle.corpus_manifest_sha256,
                 "corpus_manifest_sha256": corpus[SEAL_FIELD],
             },
         )
+    if bundle.stream_id != stream["stream_id"]:
+        raise CorpusRefusal(
+            RefusalCode.BUNDLE_CONFLICT,
+            "this bundle belongs to another stream, which may sit in another split",
+            {"stream_id": stream["stream_id"], "bundle_stream_id": bundle.stream_id},
+        )
     return bundle
 
 
-def _stage_sequence(
-    sequence: dict[str, Any],
+def _stage_stream(
+    stream: dict[str, Any],
     corpus: dict[str, JsonValue],
     policy: DecodePolicy,
     root: Path,
     data_root: Path,
 ) -> BundleSummary:
-    if (root / sequence["sequence_id"]).exists():
-        bundle = _open_for_corpus(sequence, corpus, root)
+    if (root / stream["stream_id"]).exists():
+        bundle = _open_for_corpus(stream, corpus, root)
         if damage := bundle.damage():
             raise frames_corrupted(damage)
         return _summary(bundle, UNCHANGED)
-    return _summary(write_bundle(sequence, corpus, policy, root, data_root), STAGED)
+    return _summary(write_bundle(stream, corpus, policy, root, data_root), STAGED)

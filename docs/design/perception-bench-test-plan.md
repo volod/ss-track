@@ -17,14 +17,16 @@ makes it fail, and what it does not prove. A case with no task left is listed as
   `tests/corpus/` covers them.
   Value: protects=identical input for every module; fails_when=the hash drifts or corruption passes;
   no_claim=cross-platform decoders.
+- An encounter with two streams, an encounter, stream, group or source that crosses a split, a bundle
+  moved to another stream, and a rights conflict all stay structured refusals. `tests/corpus/` covers
+  them.
+  Value: protects=no leakage across splits; fails_when=a stream crosses a split; no_claim=grouping
+  judgment on real footage, or a remuxed copy of one recording.
 
 ## Fixture-level cases
 
 ### Input and evidence
 
-- `corpus-split-grouping`: an encounter with two streams, and a rights conflict.
-  Value: protects=no leakage across splits; fails_when=a stream crosses a split; no_claim=grouping
-  judgment on real footage.
 - `annotation-contract`: malformed labels, an unverifiable label, and seed replay.
   Value: protects=frozen truth; fails_when=an unverifiable label scores zero; no_claim=label quality.
 - `annotation-review-tools`: hand-built disagreements between two label sets.

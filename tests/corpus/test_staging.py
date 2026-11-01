@@ -15,7 +15,7 @@ from ss_track.corpus import (
     stage_corpus,
 )
 from tests.corpus._media import FRAME_COUNT, write_clip
-from tests.corpus.conftest import WriteCorpus, WriteRecording, reseal, sequence_of
+from tests.corpus.conftest import WriteCorpus, WriteRecording, reseal, stream_of
 
 _CORPUS = "pilot-v1"
 
@@ -37,7 +37,7 @@ def _scratch(data_root: Path) -> list[Path]:
 
 @pytest.fixture
 def built(imported: ImportResult, write_corpus: WriteCorpus, data_root: Path) -> ImportResult:
-    build_corpus(write_corpus([sequence_of(imported)]), data_root)
+    build_corpus(write_corpus([stream_of(imported)]), data_root)
     return imported
 
 
@@ -48,7 +48,7 @@ def test_two_stagings_of_one_source_give_one_bundle_hash(
     for root, corpus, sequence in (("a", "first", "one"), ("b", "second", "renamed")):
         imported = import_source(write_recording(), tmp_path / root)
         build_corpus(
-            write_corpus([sequence_of(imported, sequence_id=sequence)], corpus_id=corpus),
+            write_corpus([stream_of(imported, stream_id=sequence)], corpus_id=corpus),
             tmp_path / root,
         )
         hashes.append(stage_corpus(corpus, tmp_path / root).bundles[0].bundle_sha256)
@@ -83,11 +83,11 @@ def test_a_different_source_gives_a_different_bundle_hash(
     first = import_source(write_recording(), data_root)
     write_clip(media / "other.mkv", frames=FRAME_COUNT - 1)
     second = import_source(write_recording("other.mkv"), data_root)
-    sequences = [
-        sequence_of(first, sequence_id="one"),
-        sequence_of(second, sequence_id="two"),
+    streams = [
+        stream_of(first, stream_id="one"),
+        stream_of(second, stream_id="two"),
     ]
-    build_corpus(write_corpus(sequences), data_root)
+    build_corpus(write_corpus(streams), data_root)
 
     one, two = stage_corpus(_CORPUS, data_root).bundles
 
@@ -103,18 +103,17 @@ def test_repeating_a_stage_changes_nothing(built: ImportResult, data_root: Path)
     assert first.bundles[0].bundle_sha256 == second.bundles[0].bundle_sha256
 
 
-def test_sequences_of_one_source_and_window_share_a_bundle_hash(
+def test_corpus_versions_of_one_source_and_window_share_a_bundle_hash(
     imported: ImportResult, write_corpus: WriteCorpus, data_root: Path
 ) -> None:
-    sequences = [
-        sequence_of(imported, sequence_id="one"),
-        sequence_of(imported, sequence_id="two"),
-    ]
-    build_corpus(write_corpus(sequences), data_root)
+    for corpus, stream in (("first", "one"), ("second", "two")):
+        declared = write_corpus([stream_of(imported, stream_id=stream)], corpus_id=corpus)
+        build_corpus(declared, data_root)
 
-    one, two = stage_corpus(_CORPUS, data_root).bundles
+    first = stage_corpus("first", data_root).bundles[0]
+    second = stage_corpus("second", data_root).bundles[0]
 
-    assert one.bundle_sha256 == two.bundle_sha256
+    assert first.bundle_sha256 == second.bundle_sha256
 
 
 @pytest.mark.parametrize("corpus", ["never-built", "", "UPPER"])

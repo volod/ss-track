@@ -10,7 +10,7 @@ import yaml
 from ss_track.corpus import import_source
 from ss_track.corpus.importer import ImportResult
 from ss_track.corpus.sealed import seal, sha256_file
-from tests.corpus._media import write_clip
+from tests.corpus._media import WIDTH, write_clip
 
 type Recording = dict[str, object]
 type WriteRecording = Callable[..., Path]
@@ -32,9 +32,39 @@ def recording_declaration(source: str = "clip.mkv") -> Recording:
     }
 
 
-def sequence_of(result: ImportResult, **fields: object) -> dict[str, object]:
-    """Return one corpus sequence entry naming an imported source."""
-    return {"sequence_id": "one", "source_sha256": result.source_sha256} | fields
+def stream_of(result: ImportResult, **fields: object) -> dict[str, object]:
+    """Return one corpus stream entry naming an imported source."""
+    return {"stream_id": "one", "source_sha256": result.source_sha256} | fields
+
+
+def encounter_of(encounter_id: str, *streams: dict[str, object]) -> dict[str, object]:
+    """Return one encounter holding the given streams."""
+    return {"encounter_id": encounter_id, "streams": list(streams)}
+
+
+def group_of(
+    group_id: str, split: str, *encounters: dict[str, object], **fields: object
+) -> dict[str, object]:
+    """Return one encounter group in one split."""
+    return {"group_id": group_id, "split": split, "encounters": list(encounters)} | fields
+
+
+def corpus_declaration(groups: list[dict[str, object]], **overrides: object) -> dict[str, object]:
+    """Return a complete corpus declaration whose scenario asks nothing of its sources."""
+    return {
+        "schema_version": 2,
+        "corpus_id": "pilot-v1",
+        "scenario_rights": {"sharing": "restricted", "max_sensitivity": "high"},
+        "groups": groups,
+    } | overrides
+
+
+def write_groups(media: Path, groups: list[dict[str, object]], **overrides: object) -> Path:
+    """Write a corpus declaration and return its path."""
+    path = media / "corpus.yaml"
+    declaration = corpus_declaration(groups, **overrides)
+    path.write_text(yaml.safe_dump(declaration), encoding="utf-8")
+    return path
 
 
 def reseal(path: Path, **changes: object) -> None:
@@ -77,11 +107,19 @@ def write_recording(media: Path) -> WriteRecording:
 
 @pytest.fixture
 def write_corpus(media: Path) -> WriteCorpus:
-    def write(sequences: list[dict[str, object]], **overrides: object) -> Path:
-        declaration = {"schema_version": 1, "corpus_id": "pilot-v1", "sequences": sequences}
-        path = media / "corpus.yaml"
-        path.write_text(yaml.safe_dump(declaration | overrides), encoding="utf-8")
-        return path
+    def write(streams: list[dict[str, object]], **overrides: object) -> Path:
+        """Declare each stream as its own encounter in one development group."""
+        encounters = [encounter_of(f"enc-{item['stream_id']}", item) for item in streams]
+        groups = [group_of("group-one", "development", *encounters)]
+        return write_groups(media, groups, **overrides)
+
+    return write
+
+
+@pytest.fixture
+def write_grouped_corpus(media: Path) -> WriteCorpus:
+    def write(groups: list[dict[str, object]], **overrides: object) -> Path:
+        return write_groups(media, groups, **overrides)
 
     return write
 
@@ -91,3 +129,31 @@ def imported(clip: Path, write_recording: WriteRecording, data_root: Path) -> Im
     result = import_source(write_recording(), data_root)
     assert result.source_sha256 == sha256_file(clip)
     return result
+
+
+def import_clip(
+    media: Path,
+    write_recording: WriteRecording,
+    data_root: Path,
+    extra_width: int,
+    **rights: object,
+) -> ImportResult:
+    """Import a clip that differs from every other by its width, so its hash differs too."""
+    name = f"clip-{extra_width}.mkv"
+    write_clip(media / name, width=WIDTH + extra_width)
+    return import_source(write_recording(name, **rights), data_root)
+
+
+@pytest.fixture
+def first(media: Path, write_recording: WriteRecording, data_root: Path) -> ImportResult:
+    return import_clip(media, write_recording, data_root, 2)
+
+
+@pytest.fixture
+def second(media: Path, write_recording: WriteRecording, data_root: Path) -> ImportResult:
+    return import_clip(media, write_recording, data_root, 4)
+
+
+@pytest.fixture
+def third(media: Path, write_recording: WriteRecording, data_root: Path) -> ImportResult:
+    return import_clip(media, write_recording, data_root, 6)

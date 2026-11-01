@@ -1,27 +1,46 @@
 """`ss-track corpus build`: bind imported sources into one immutable, hashed corpus version."""
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from ss_track.corpus.declaration import (
+    CORPUS_SCHEMA_VERSION,
     IDENTIFIER_PATTERN,
     CorpusDeclaration,
-    SequenceDeclaration,
+    EncounterDeclaration,
+    GroupDeclaration,
+    StreamDeclaration,
     load_corpus_declaration,
 )
 from ss_track.corpus.decode import current_decode_policy
+from ss_track.corpus.grouping import (
+    SplitSummary,
+    require_one_membership,
+    require_scenario_rights,
+    require_separate_sources,
+    summarize_splits,
+)
 from ss_track.corpus.importer import (
     MANIFEST_NAME,
-    SCHEMA_VERSION,
     SOURCE_MANIFEST_KIND,
     decode_policy_sha256,
     source_directory,
 )
 from ss_track.corpus.refusal import CorpusRefusal, JsonValue, RefusalCode
-from ss_track.corpus.sealed import SEAL_FIELD, read_sealed, seal, sha256_file, write_sealed
+from ss_track.corpus.sealed import (
+    SEAL_FIELD,
+    read_sealed,
+    require_schema,
+    seal,
+    sha256_file,
+    write_sealed,
+)
 
 CORPUS_MANIFEST_KIND = "ss-track.corpus-manifest"
 CORPUS_DIRECTORY = "corpus"
+CAMERA_MODALITY = "camera"
 
 
 @dataclass(frozen=True, slots=True)
@@ -32,7 +51,8 @@ class BuildResult:
     corpus_id: str
     manifest_sha256: str
     manifest_path: Path
-    sequence_count: int
+    stream_count: int
+    splits: dict[str, SplitSummary]
 
     def to_record(self) -> dict[str, JsonValue]:
         """Return the JSON-compatible result shown to the operator."""
@@ -41,7 +61,8 @@ class BuildResult:
             "corpus_id": self.corpus_id,
             "manifest_sha256": self.manifest_sha256,
             "manifest_path": str(self.manifest_path),
-            "sequence_count": self.sequence_count,
+            "stream_count": self.stream_count,
+            "splits": {name: summary.to_record() for name, summary in self.splits.items()},
         }
 
 
@@ -52,7 +73,9 @@ def load_corpus_manifest(corpus_id: str, data_root: Path) -> dict[str, JsonValue
         raise CorpusRefusal(
             RefusalCode.CORPUS_NOT_BUILT, "no such corpus version", {"corpus_id": corpus_id}
         )
-    return read_sealed(path, CORPUS_MANIFEST_KIND)
+    manifest = read_sealed(path, CORPUS_MANIFEST_KIND)
+    require_schema(manifest, CORPUS_SCHEMA_VERSION, path)
+    return manifest
 
 
 def build_corpus(declaration_path: Path, data_root: Path) -> BuildResult:
@@ -61,11 +84,17 @@ def build_corpus(declaration_path: Path, data_root: Path) -> BuildResult:
     policy_record = current_decode_policy().as_record()
     policy_sha256 = decode_policy_sha256(policy_record)
     require_policy(declaration.decode_policy_sha256, policy_sha256, "corpus declaration")
-    sequences: list[JsonValue] = [
-        _sequence_record(sequence, data_root, policy_sha256)
-        for sequence in sorted(declaration.sequences, key=lambda item: item.sequence_id)
-    ]
-    sealed = seal(_corpus_body(declaration, policy_record, policy_sha256, sequences))
+    require_one_membership(declaration)
+    streams = sorted(
+        (
+            _stream_record(group, encounter, stream, data_root, policy_sha256)
+            for group, encounter, stream in declaration.members()
+        ),
+        key=lambda record: str(record["stream_id"]),
+    )
+    require_separate_sources(streams)
+    require_scenario_rights(streams, declaration.scenario_rights)
+    sealed = seal(_corpus_body(declaration, policy_record, policy_sha256, streams))
     target = data_root / CORPUS_DIRECTORY / declaration.corpus_id / MANIFEST_NAME
     status = _commit(target, sealed)
     return BuildResult(
@@ -73,7 +102,8 @@ def build_corpus(declaration_path: Path, data_root: Path) -> BuildResult:
         corpus_id=declaration.corpus_id,
         manifest_sha256=str(sealed[SEAL_FIELD]),
         manifest_path=target,
-        sequence_count=len(sequences),
+        stream_count=len(streams),
+        splits=summarize_splits(streams),
     )
 
 
@@ -81,15 +111,17 @@ def _corpus_body(
     declaration: CorpusDeclaration,
     policy_record: dict[str, JsonValue],
     policy_sha256: str,
-    sequences: list[JsonValue],
+    streams: list[dict[str, Any]],
 ) -> dict[str, JsonValue]:
+    rights = declaration.scenario_rights
     return {
         "kind": CORPUS_MANIFEST_KIND,
-        "schema_version": SCHEMA_VERSION,
+        "schema_version": CORPUS_SCHEMA_VERSION,
         "corpus_id": declaration.corpus_id,
         "decode_policy": policy_record,
         "decode_policy_sha256": policy_sha256,
-        "sequences": sequences,
+        "scenario_rights": {"sharing": rights.sharing, "max_sensitivity": rights.max_sensitivity},
+        "streams": list(streams),
     }
 
 
@@ -103,21 +135,39 @@ def require_policy(found: JsonValue, expected: str, origin: str) -> None:
         )
 
 
-def load_verified_source(source_sha256: str, data_root: Path) -> dict[str, JsonValue]:
-    """Load a source record only if both the record and the stored bytes are still intact."""
-    directory = source_directory(data_root, source_sha256)
-    manifest_path = directory / MANIFEST_NAME
+def _load_source_record(source_sha256: str, data_root: Path) -> dict[str, JsonValue]:
+    manifest_path = source_directory(data_root, source_sha256) / MANIFEST_NAME
     if not manifest_path.is_file():
         raise CorpusRefusal(
             RefusalCode.SOURCE_NOT_IMPORTED,
             "the corpus names a source that has not been imported",
             {"source_sha256": source_sha256},
         )
-    manifest = read_sealed(manifest_path, SOURCE_MANIFEST_KIND)
+    return read_sealed(manifest_path, SOURCE_MANIFEST_KIND)
+
+
+def require_source_record(stream: Mapping[str, Any], data_root: Path) -> None:
+    """Refuse a stream whose source was re-imported, because the corpus states its old rights."""
+    manifest = _load_source_record(stream["source_sha256"], data_root)
+    if manifest[SEAL_FIELD] != stream["source_manifest_sha256"]:
+        raise CorpusRefusal(
+            RefusalCode.SOURCE_RECORD_CHANGED,
+            "this source's record changed after the corpus was built; build a new corpus version",
+            {
+                "stream_id": stream["stream_id"],
+                "corpus_source_manifest_sha256": stream["source_manifest_sha256"],
+                "source_manifest_sha256": manifest[SEAL_FIELD],
+            },
+        )
+
+
+def load_verified_source(source_sha256: str, data_root: Path) -> dict[str, JsonValue]:
+    """Load a source record only if both the record and the stored bytes are still intact."""
+    manifest = _load_source_record(source_sha256, data_root)
     source = manifest["source"]
     if not isinstance(source, dict):
         raise CorpusRefusal(RefusalCode.RECORD_TAMPERED, "source record has no source section")
-    stored = directory / str(source["stored_name"])
+    stored = source_directory(data_root, source_sha256) / str(source["stored_name"])
     if not stored.is_file() or sha256_file(stored) != source_sha256:
         raise CorpusRefusal(
             RefusalCode.SOURCE_HASH_MISMATCH,
@@ -127,9 +177,9 @@ def load_verified_source(source_sha256: str, data_root: Path) -> dict[str, JsonV
     return manifest
 
 
-def _resolve_selection(sequence: SequenceDeclaration, frame_count: int) -> dict[str, JsonValue]:
+def _resolve_selection(stream: StreamDeclaration, frame_count: int) -> dict[str, JsonValue]:
     """Return the frame window, which must lie inside the decoded sequence."""
-    selection = sequence.selection
+    selection = stream.selection
     if selection is None:
         return {"start_frame": 0, "end_frame": frame_count}
     if selection.end_frame > frame_count:
@@ -137,7 +187,7 @@ def _resolve_selection(sequence: SequenceDeclaration, frame_count: int) -> dict[
             RefusalCode.SELECTION_OUT_OF_RANGE,
             "selection runs past the end of the sequence",
             {
-                "sequence_id": sequence.sequence_id,
+                "stream_id": stream.stream_id,
                 "start_frame": selection.start_frame,
                 "end_frame": selection.end_frame,
                 "frame_count": frame_count,
@@ -146,21 +196,29 @@ def _resolve_selection(sequence: SequenceDeclaration, frame_count: int) -> dict[
     return {"start_frame": selection.start_frame, "end_frame": selection.end_frame}
 
 
-def _sequence_record(
-    sequence: SequenceDeclaration, data_root: Path, policy_sha256: str
+def _stream_record(
+    group: GroupDeclaration,
+    encounter: EncounterDeclaration,
+    stream: StreamDeclaration,
+    data_root: Path,
+    policy_sha256: str,
 ) -> dict[str, JsonValue]:
-    manifest = load_verified_source(sequence.source_sha256, data_root)
+    manifest = load_verified_source(stream.source_sha256, data_root)
     require_policy(
-        manifest["decode_policy_sha256"], policy_sha256, f"source {sequence.source_sha256}"
+        manifest["decode_policy_sha256"], policy_sha256, f"source {stream.source_sha256}"
     )
     media = manifest["sequence"]
     if not isinstance(media, dict) or not isinstance(media["frame_count"], int):
         raise CorpusRefusal(RefusalCode.RECORD_TAMPERED, "source record has no sequence section")
     return {
-        "sequence_id": sequence.sequence_id,
-        "source_sha256": sequence.source_sha256,
+        "stream_id": stream.stream_id,
+        "modality": CAMERA_MODALITY,
+        "encounter_id": encounter.encounter_id,
+        "group_id": group.group_id,
+        "split": group.split,
+        "source_sha256": stream.source_sha256,
         "source_manifest_sha256": manifest[SEAL_FIELD],
-        "selection": _resolve_selection(sequence, media["frame_count"]),
+        "selection": _resolve_selection(stream, media["frame_count"]),
         "frame_count": media["frame_count"],
         "timestamp_quality": media["timestamp_quality"],
         "completeness_checks": media["completeness_checks"],

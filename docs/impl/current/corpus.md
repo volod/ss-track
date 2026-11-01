@@ -1,14 +1,15 @@
 # Corpus
 
 `ss-track import` turns one declared recording into an immutable, hashed source record.
-`ss-track corpus build` binds imported sources into one immutable corpus version.
-`ss-track corpus stage` decodes each sequence into one immutable frame bundle that every module reads,
-and `ss-track corpus verify` proves those frames are intact. Each command produces a complete record
-or a structured refusal, and none invents a value it could not establish. Encounter grouping and
-splits, generated cases and annotation do not exist yet; the [plan](../plan.md) schedules them. The
-task records keep the accepted tasks, their decisions and their acceptance evidence:
-[import and corpus build](../records/0001-corpus-provenance-corpus-manifest-import.md) and
-[frame staging](../records/0002-corpus-provenance-frame-bundle-staging.md).
+`ss-track corpus build` groups imported sources into encounters and splits in one immutable corpus
+version. `ss-track corpus stage` decodes each stream into one immutable frame bundle that every
+module reads, and `ss-track corpus verify` proves those frames are intact. Each command produces a
+complete record or a structured refusal, and none invents a value it could not establish. Generated
+cases and annotation do not exist yet; the [plan](../plan.md) schedules them. The task records keep
+the accepted tasks, their decisions and their acceptance evidence:
+[import and corpus build](../records/0001-corpus-provenance-corpus-manifest-import.md),
+[frame staging](../records/0002-corpus-provenance-frame-bundle-staging.md) and
+[split grouping](../records/0003-corpus-provenance-corpus-split-grouping.md).
 
 ## Commands
 
@@ -32,8 +33,9 @@ the project root, then `.data`. Relative values resolve against the project root
 ## Declarations
 
 Both files reject unknown fields, repeated keys and any other schema version, so a misspelled key
-cannot silently drop a fact. There are no defaults for rights or sensitivity: a recording without
-them is refused, and `basis` has no `unknown` value.
+cannot silently drop a fact. A recording is schema 1 and a corpus is schema 2. There are no defaults
+for rights, sensitivity, split or scenario rights: a declaration without them is refused, and `basis`
+has no `unknown` value.
 
 ```yaml
 # recording.yaml
@@ -61,13 +63,23 @@ capture:                     # optional; every absent fact is stored as unknown
 
 ```yaml
 # corpus.yaml
-schema_version: 1
+schema_version: 2
 corpus_id: pilot-v1
 decode_policy_sha256: "<64 hex>"   # optional pin on the installed decoder
-sequences:
-  - sequence_id: enc01-cam0
-    source_sha256: "<64 hex>"
-    selection: {start_frame: 0, end_frame: 240}   # optional, half-open; absent means all frames
+scenario_rights:
+  sharing: restricted              # widest use of this corpus: restricted or public
+  max_sensitivity: moderate        # most sensitive source accepted: low, moderate or high
+groups:
+  - group_id: site-a-day1          # encounters that are not independent of each other
+    split: development             # development, calibration or locked
+    encounters:
+      - encounter_id: enc01
+        streams:
+          - stream_id: enc01-cam0  # unique in the corpus
+            source_sha256: "<64 hex>"
+            selection: {start_frame: 0, end_frame: 240}   # optional, half-open; absent means all
+          - stream_id: enc01-cam1
+            source_sha256: "<64 hex>"
 ```
 
 ## Stored evidence
@@ -77,7 +89,7 @@ sequences:
 | `$DATA_DIR/import/<source-sha256>/source<ext>` | Read-only copy of the source bytes |
 | `$DATA_DIR/import/<source-sha256>/manifest.json` | Sealed source manifest |
 | `$DATA_DIR/corpus/<corpus-id>/manifest.json` | Sealed corpus manifest |
-| `$DATA_DIR/corpus/<corpus-id>/frames/<sequence-id>/` | One read-only frame bundle |
+| `$DATA_DIR/corpus/<corpus-id>/frames/<stream-id>/` | One read-only frame bundle |
 
 Import copies the source first, then hashes and decodes that copy, so the record describes exactly
 the bytes retained. The finished directory is published by one rename, so a failure leaves nothing
@@ -97,8 +109,78 @@ completeness checks.
 
 `corpus build` trusts nothing from import time. It re-reads every source manifest, re-hashes every
 stored source, requires each source's decode policy to be the installed one, and checks each
-selection against the decoded frame count. The corpus manifest copies each sequence's rights and
-sensitivity, and lists sequences in sorted order so declaration order cannot change its hash.
+selection against the decoded frame count. The corpus manifest copies each stream's rights and
+sensitivity, and lists streams in sorted order so declaration order at any level cannot change its
+hash.
+
+## Grouping and splits
+
+| Level | Meaning |
+| --- | --- |
+| Group | Encounters that are not independent: one session, site, time, operator, camera trajectory or likely object. It is the only level that names a split |
+| Encounter | One event in front of the sensors. Every stream of it stays together |
+| Stream | One sensor's frames of one encounter, from one source and frame window. `stream_id` identifies it across the corpus, in its bundle path and in every `FrameRef` |
+
+Grouping is the operator's judgment, and nothing detects that two groups are in fact related.
+`src/ss_track/corpus/grouping.py` owns the rules that `corpus build` applies:
+
+- A split is stated once, on a group, so every encounter and stream inherits it.
+- An identifier declared in two splits is `SPLIT_LEAKAGE`. Repeated in one split it is
+  `MANIFEST_INVALID`.
+- A source used by two groups is `SPLIT_LEAKAGE` even inside one split, because groups that share a
+  recording are not independent.
+- One group may cut several encounters from one long recording, with adjacent windows. A source frame
+  in two streams is `STREAM_OVERLAP`, because it would count twice in anything aggregated by
+  encounter.
+
+Each entry of the manifest's `streams` list carries `stream_id`, `modality`, `encounter_id`,
+`group_id` and `split`, and a build result counts the groups, encounters and streams of each split:
+
+```json
+{"status": "built", "stream_count": 3, "splits": {"calibration": {"group_count": 1,
+ "encounter_count": 1, "stream_count": 1}, "development": {"group_count": 1,
+ "encounter_count": 1, "stream_count": 2}}}
+```
+
+`modality` is always `camera`, because import accepts only video. Streams of one encounter are not
+declared synchronized: no clock relation between them is recorded.
+
+`locked` records membership only. Nothing restricts who reads a locked stream, so no output may call
+it held-out. Changing any membership needs a new corpus version, and nothing compares versions: a
+source moved from `development` to `locked` by a later version is accepted.
+
+The source rule compares bytes. An `ffmpeg -c copy` remux of one recording imports as a different
+source: put into `development` and `locked`, it built and staged with 100 of 100 identical frames, so
+keep every copy of a recording in one group. Their bundle hashes differ, because a bundle's identity
+includes its source hash and time base, so comparing bundle hashes does not find them either.
+Near-duplicate detection does not exist.
+
+### Scenario rights
+
+`scenario_rights` says what a corpus asks of its sources, and each stream is compared with the rights
+in its verified source manifest:
+
+| Field | Conflict when |
+| --- | --- |
+| `sharing` | The corpus is `public` and a source is `restricted` |
+| `max_sensitivity` | A source is more sensitive than this level |
+
+A conflict is `RIGHTS_CONFLICT`, and the refusal names all of them at once:
+
+```json
+{"status": "refused", "code": "RIGHTS_CONFLICT", "message": "...", "details": {"conflicts": [
+ {"stream_id": "enc01-cam1", "source_sha256": "...", "field": "sharing",
+  "source_value": "restricted", "scenario_value": "public"}]}}
+```
+
+A public source in a restricted corpus is no conflict: it stays recorded as public, and the corpus
+stays restricted, so an encounter may mix both. `holder`, `basis` and `retention` are recorded terms
+that are never compared, and an expired retention period goes unnoticed.
+
+The manifest pins each source record. `corpus stage` first re-reads every source record, before
+writing or skipping anything, and a re-imported source is `SOURCE_RECORD_CHANGED`, so withdrawn
+rights cannot pass under the rights a corpus recorded earlier. `corpus verify` checks frames alone and
+does not look at source records.
 
 ## Canonical decode policy
 
@@ -141,7 +223,7 @@ killed recording with no `moov` as `SOURCE_UNREADABLE`.
 
 ## Frame bundles
 
-`corpus stage` writes one bundle per sequence of a built corpus, with the same strict decode as
+`corpus stage` writes one bundle per stream of a built corpus, with the same strict decode as
 import. `src/ss_track/corpus/bundle_writer.py` writes a bundle and `src/ss_track/corpus/staging.py`
 runs the command.
 
@@ -157,23 +239,24 @@ selection, even though staging decodes the whole source to prove it still matche
 `bundle_sha256` covers the `identity` block: source hash, decode policy hash, pixel format, width,
 height, bytes per frame, time base, selection and the ordered index of frame index, PTS and frame
 hash. Nothing else enters it, so two stagings of one source and window under one policy give one
-hash, whatever the corpus or sequence is called. The record separately holds the source pixel format
+hash, whatever the corpus or stream is called. The record separately holds the source pixel format
 and bit depth, `precision_reduced`, stored color tags, display rotation, interlaced frame count,
-timestamp quality and the links to its corpus and source manifests.
+timestamp quality, its `stream_id` and the links to its corpus and source manifests.
 
 Staging trusts nothing from before it ran. It re-hashes the stored source, requires the installed
-decode policy for both corpus and source, and refuses with `DECODE_DRIFT` if this decode disagrees
-with the import record in any field. It checks free space first, because raw frames dwarf their
-source: 14 MB of H.264 became 3.5 GB at 1080p. On the development host that clip staged at 74 frames
-per second with an 87 MB peak.
+decode policy, requires the source record the corpus pinned, and refuses with `DECODE_DRIFT` if this
+decode disagrees with the import record in any field. It checks free space first, because raw frames
+dwarf their source: 14 MB of H.264 became 3.5 GB at 1080p. On the development host that clip staged
+at 74 frames per second with an 87 MB peak.
 
 Frames are written to a scratch directory and published by one rename, so a failure leaves no bundle.
 One staging runs per corpus, under a lock the kernel releases however a run ends. A second run gets
 `STAGING_IN_PROGRESS`, and the next run to take the lock removes what a killed run left behind.
-Sequences finished before a refusal stay staged, and repeating the command skips them.
+Streams finished before a refusal stay staged, and repeating the command skips them.
 
 Repeating `corpus stage` re-hashes each existing bundle and reports `unchanged`. A bundle staged from
-another corpus version is `BUNDLE_CONFLICT`. A bundle is immutable: frames are mode `0444`, the
+another corpus version, or one sitting under another stream's path, is `BUNDLE_CONFLICT`, so moving a
+bundle cannot carry frames into another split. A bundle is immutable: frames are mode `0444`, the
 directory is `0555`, and a damaged one is never repaired in place. Remove it with
 `chmod -R u+w <bundle> && rm -rf <bundle>`, then stage again; the hash comes back the same.
 
@@ -190,17 +273,16 @@ pixels = bundle.read_frame(12)     # packed RGB bytes, compared with the sealed 
 `src/ss_track/corpus/frames.py` owns this access. `frame_refs()` yields every reference in
 presentation order. A `FrameRef` carries stream, source hash, frame index, PTS, time base, timestamp
 quality and capture-clock evidence, dimensions, pixel format, transform, bundle hash, frame name and
-frame hash. `stream_id` is the sequence id until `corpus-split-grouping` adds stream identity.
-`transform` is always `identity`: pixels are as stored, and display rotation stays a record fact.
-An absent PTS stays `null`. An index outside the bundle is `FRAME_NOT_IN_BUNDLE`.
+frame hash. `transform` is always `identity`: pixels are as stored, and display rotation stays a
+record fact. An absent PTS stays `null`. An index outside the bundle is `FRAME_NOT_IN_BUNDLE`.
 
 ### Verification
 
-`corpus verify` re-hashes every frame of every sequence and names each damaged file with its sequence:
+`corpus verify` re-hashes every frame of every stream and names each damaged file with its stream:
 
 ```json
 {"status": "refused", "code": "FRAME_CORRUPTED", "message": "...", "details": {"damaged_count": 1,
- "frames": [{"sequence_id": "enc01-cam0", "frame": "00000003.rgb24", "reason": "hash_mismatch"}]}}
+ "frames": [{"stream_id": "enc01-cam0", "frame": "00000003.rgb24", "reason": "hash_mismatch"}]}}
 ```
 
 The reason is `hash_mismatch`, `missing` or `unexpected_file`. `damaged_count` is always complete; the
@@ -237,14 +319,19 @@ MPEG program streams import as `missing`, because they do not store a presentati
 | `TIMESTAMP_CLAIM_UNSUPPORTED` | Capture-clock evidence was declared without complete PTS |
 | `SELECTION_OUT_OF_RANGE` | A selection runs past the end of its sequence |
 | `SOURCE_NOT_IMPORTED` | A corpus names a source with no import record |
+| `SOURCE_RECORD_CHANGED` | A source was re-imported after the corpus that pins its record was built |
+| `SPLIT_LEAKAGE` | A group, encounter or stream is declared in two splits, or two groups share a source |
+| `STREAM_OVERLAP` | Two streams use the same frames of one source |
+| `RIGHTS_CONFLICT` | A source's recorded rights do not cover the corpus's scenario rights |
 | `RECORD_TAMPERED` | A manifest is missing, malformed or fails its seal, or a re-import finds changed stored bytes |
+| `RECORD_SCHEMA_UNSUPPORTED` | An intact corpus or bundle record was written under another schema |
 | `DECODE_POLICY_MISMATCH` | A source or pin uses a decode policy other than the installed one |
 | `IMPORT_CONFLICT` | The same source was imported with another declaration or decoder |
 | `CORPUS_CONFLICT` | The `corpus_id` already exists with different content |
 | `CORPUS_NOT_BUILT` | The named corpus version does not exist, or the identifier cannot name one |
 | `DECODE_DRIFT` | A staging decode disagrees with the import record of its source |
-| `BUNDLE_NOT_STAGED` | A sequence has no staged frame bundle |
-| `BUNDLE_CONFLICT` | A bundle was staged from a different corpus version |
+| `BUNDLE_NOT_STAGED` | A stream has no staged frame bundle |
+| `BUNDLE_CONFLICT` | A bundle was staged from a different corpus version, or for a different stream |
 | `STAGING_IN_PROGRESS` | Another run is staging this corpus version |
 | `FRAME_CORRUPTED` | A staged file differs from the sealed index, is gone, or is not in it |
 | `FRAME_NOT_IN_BUNDLE` | A frame index lies outside a bundle |
@@ -310,6 +397,8 @@ repository. `tests/corpus/test_decode.py` includes the truncation sweep over sma
 MP4 clips, and tests that default decoding hides damage the policy refuses.
 `tests/corpus/test_bundle_writer.py`, `test_staging.py`, `test_frames.py` and `test_pixels.py` cover
 staging, and `test_pixels.py` includes the comparison with FFmpeg's SIMD disabled.
+`tests/corpus/test_grouping.py`, `test_scenario_rights.py` and `test_stream_identity.py` cover
+membership, rights and each stream's identity from build to `FrameRef`.
 
 ```bash
 make test

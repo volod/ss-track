@@ -86,5 +86,16 @@ def read_sealed(path: Path, kind: str) -> dict[str, JsonValue]:
     return loaded
 
 
+def require_schema(record: Mapping[str, JsonValue], expected: int, path: Path) -> None:
+    """Refuse an intact record whose fields mean something else under this code."""
+    found = record.get("schema_version")
+    if found != expected:
+        raise CorpusRefusal(
+            RefusalCode.RECORD_SCHEMA_UNSUPPORTED,
+            f"{path.name} uses schema {found}; this version reads schema {expected}",
+            {"record": path.name, "found_schema_version": found, "schema_version": expected},
+        )
+
+
 def _tampered(path: Path, message: str) -> CorpusRefusal:
     return CorpusRefusal(RefusalCode.RECORD_TAMPERED, message, {"record": path.name})

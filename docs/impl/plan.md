@@ -28,24 +28,6 @@ neither blocks M3. Fixture implementation proceeds without physical hardware or 
 
 ### Corpus provenance -- `corpus-provenance`
 
-#### corpus-split-grouping
-
-Related frames must stay together, or evaluation leaks across splits.
-
-- Serves: `corpus-provenance` -- [Corpus identity](../design/spec.md#41-corpus-identity-and-input-handling)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: Corpus versions keep each encounter intact across development, calibration
-  and locked splits, including every stream of a multi-stream encounter.
-- Scope boundary: Grouping, split membership, stream identity and scenario rights. A locked test and
-  near-duplicate detection are out of scope.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`.
-- Execution path: Add encounter and stream records and split rules with deterministic fixtures.
-- Acceptance gates: Fixtures prove no encounter or stream crosses a split. A rights conflict refuses
-  the corpus build.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
 #### generated-fixture-cases
 
 Failure mechanisms need cheap, repeatable cases that do not count as field evidence.
@@ -53,7 +35,7 @@ Failure mechanisms need cheap, repeatable cases that do not count as field evide
 - Serves: `corpus-provenance` -- [Deterministic cases](../design/spec.md#43-deterministic-cases-and-negative-evidence)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: corpus-split-grouping.
+- Dependencies: none.
 - User-visible outcome: A recipe generates target absence, moving background, shake, blur, dropped
   frames and short occlusion cases from a parent sequence and seed.
 - Scope boundary: The spec section 4.3 initial cases. Fusion perturbations are out of scope.
@@ -127,7 +109,7 @@ A comparison must pin everything that can change its result.
 - Serves: `module-contract-runner` -- [Run artifacts](../design/spec.md#10-run-artifacts-and-comparison-dashboard)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: event-schema-contract, corpus-split-grouping, annotation-contract.
+- Dependencies: event-schema-contract, annotation-contract.
 - User-visible outcome: A scenario file pins corpus, labels, selection, replay mode, metric suite,
   seed and deadlines, and yields one cohort key.
 - Scope boundary: The scenario schema, one cohort-key function, and one type that owns windows and
@@ -602,8 +584,7 @@ The G0 scenario excludes G2 boundaries, so component comparisons need an explici
 - Serves: `sensor-adapter-frontends` -- [Specification](../design/spec.md#5-module-contract-execution-and-fault-semantics)
 - Agent status: CLEAR
 - Milestone: M3
-- Dependencies: sensor-observation-contract, run-bundle-store, corpus-split-grouping,
-  annotation-review-tools.
+- Dependencies: sensor-observation-contract, run-bundle-store, annotation-review-tools.
 - User-visible outcome: Four boundary-specific scenarios freeze raw/observation inputs, producers,
   clocks, calibration, opportunity labels and epoch schedules into hashed bundles.
 - Scope boundary: Extend the existing scenario and bundle code, including mixed-modality raw attachments.
@@ -1056,7 +1037,7 @@ Within-corpus comparisons need reviewed labels across independent encounters.
 - Serves: `annotation-selection` -- [Annotation contract](../design/spec.md#42-annotation-contract)
 - Agent status: HUMAN-GATED
 - Milestone: M1
-- Dependencies: label-pilot-encounters, corpus-split-grouping.
+- Dependencies: label-pilot-encounters.
 - User-visible outcome: At least 10 independent encounter groups have frozen labels.
 - Scope boundary: Labelling and review. The sample-size pilot may add groups, and larger corpora may
   use a declared review sample plus all difficult cases.

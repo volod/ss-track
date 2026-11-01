@@ -1,15 +1,18 @@
 """Typed forms of the operator-written recording and corpus declarations."""
 
 import re
+from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
 from ss_track.corpus.fields import Fields, invalid, load_yaml_mapping
 from ss_track.corpus.refusal import JsonValue
 
+CORPUS_SCHEMA_VERSION = 2
 RIGHTS_BASES = frozenset({"owned", "licensed", "consented", "public_domain"})
-SHARING_SCOPES = frozenset({"restricted", "public"})
-SENSITIVITY_LEVELS = frozenset({"low", "moderate", "high"})
+SHARING_SCOPES = ("restricted", "public")  # narrowest first
+SENSITIVITY_LEVELS = ("low", "moderate", "high")  # least sensitive first
+SPLITS = ("development", "calibration", "locked")
 RANGE_STATUSES = frozenset({"measured", "estimated", "unknown"})
 CAPTURE_FIELDS = (
     "camera",
@@ -65,12 +68,37 @@ class Selection:
 
 
 @dataclass(frozen=True, slots=True)
-class SequenceDeclaration:
-    """One imported source as used by a corpus."""
+class StreamDeclaration:
+    """One sensor's recording of an encounter, taken from one imported source."""
 
-    sequence_id: str
+    stream_id: str
     source_sha256: str
     selection: Selection | None
+
+
+@dataclass(frozen=True, slots=True)
+class EncounterDeclaration:
+    """Every stream of one event in front of the sensors."""
+
+    encounter_id: str
+    streams: tuple[StreamDeclaration, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class GroupDeclaration:
+    """Related encounters that are not independent, so one split holds all of them."""
+
+    group_id: str
+    split: str
+    encounters: tuple[EncounterDeclaration, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class ScenarioRights:
+    """What the corpus's scenario asks of every source. Nothing here has a default."""
+
+    sharing: str
+    max_sensitivity: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -79,7 +107,15 @@ class CorpusDeclaration:
 
     corpus_id: str
     decode_policy_sha256: str | None
-    sequences: tuple[SequenceDeclaration, ...]
+    scenario_rights: ScenarioRights
+    groups: tuple[GroupDeclaration, ...]
+
+    def members(self) -> Iterator[tuple[GroupDeclaration, EncounterDeclaration, StreamDeclaration]]:
+        """Return every stream with the encounter and group that hold it."""
+        for group in self.groups:
+            for encounter in group.encounters:
+                for stream in encounter.streams:
+                    yield group, encounter, stream
 
 
 def load_recording_declaration(path: Path) -> RecordingDeclaration:
@@ -107,19 +143,17 @@ def load_recording_declaration(path: Path) -> RecordingDeclaration:
 def load_corpus_declaration(path: Path) -> CorpusDeclaration:
     """Parse and validate a corpus declaration."""
     with Fields(load_yaml_mapping(path), "corpus") as fields:
-        fields.schema_version()
+        fields.schema_version(CORPUS_SCHEMA_VERSION)
         corpus_id = _identifier(fields, "corpus_id")
         policy_sha256 = (
             fields.sha256("decode_policy_sha256") if fields.has("decode_policy_sha256") else None
         )
-        sequences = tuple(
-            _read_sequence(raw, f"corpus.sequences[{position}]")
-            for position, raw in enumerate(fields.items("sequences"))
+        scenario_rights = _read_scenario_rights(fields.child("scenario_rights"))
+        groups = tuple(
+            _read_group(raw, f"corpus.groups[{position}]")
+            for position, raw in enumerate(fields.items("groups"))
         )
-    names = [sequence.sequence_id for sequence in sequences]
-    if len(set(names)) != len(names):
-        raise invalid("corpus.sequences repeats a sequence_id")
-    return CorpusDeclaration(corpus_id, policy_sha256, sequences)
+    return CorpusDeclaration(corpus_id, policy_sha256, scenario_rights, groups)
 
 
 def _identifier(fields: Fields, key: str) -> str:
@@ -166,12 +200,41 @@ def _read_range(fields: Fields) -> dict[str, JsonValue]:
     return {"status": status, "value_m": value_m, "method": method}
 
 
-def _read_sequence(raw: object, where: str) -> SequenceDeclaration:
+def _read_scenario_rights(fields: Fields) -> ScenarioRights:
+    with fields:
+        return ScenarioRights(
+            sharing=fields.choice("sharing", SHARING_SCOPES),
+            max_sensitivity=fields.choice("max_sensitivity", SENSITIVITY_LEVELS),
+        )
+
+
+def _read_group(raw: object, where: str) -> GroupDeclaration:
     with Fields(raw, where) as fields:
-        sequence_id = _identifier(fields, "sequence_id")
+        group_id = _identifier(fields, "group_id")
+        split = fields.choice("split", SPLITS)
+        encounters = tuple(
+            _read_encounter(item, f"{where}.encounters[{position}]")
+            for position, item in enumerate(fields.items("encounters"))
+        )
+    return GroupDeclaration(group_id, split, encounters)
+
+
+def _read_encounter(raw: object, where: str) -> EncounterDeclaration:
+    with Fields(raw, where) as fields:
+        encounter_id = _identifier(fields, "encounter_id")
+        streams = tuple(
+            _read_stream(item, f"{where}.streams[{position}]")
+            for position, item in enumerate(fields.items("streams"))
+        )
+    return EncounterDeclaration(encounter_id, streams)
+
+
+def _read_stream(raw: object, where: str) -> StreamDeclaration:
+    with Fields(raw, where) as fields:
+        stream_id = _identifier(fields, "stream_id")
         source_sha256 = fields.sha256("source_sha256")
         selection = _read_selection(fields, where) if fields.has("selection") else None
-    return SequenceDeclaration(sequence_id, source_sha256, selection)
+    return StreamDeclaration(stream_id, source_sha256, selection)
 
 
 def _read_selection(fields: Fields, where: str) -> Selection:

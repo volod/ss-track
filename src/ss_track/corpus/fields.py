@@ -140,8 +140,8 @@ class Fields:
             raise invalid(f"{self._where}.{key} must be a non-empty list")
         return value
 
-    def schema_version(self) -> None:
+    def schema_version(self, expected: int = SCHEMA_VERSION) -> None:
         """Refuse any declaration written for another schema."""
         version = self._take("schema_version")
-        if type(version) is not int or version != SCHEMA_VERSION:
-            raise invalid(f"{self._where}.schema_version must be {SCHEMA_VERSION}")
+        if type(version) is not int or version != expected:
+            raise invalid(f"{self._where}.schema_version must be {expected}")

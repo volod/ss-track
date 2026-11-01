@@ -18,7 +18,7 @@ from ss_track.corpus import (
 from ss_track.corpus.frames import FRAME_BUNDLE_KIND
 from ss_track.corpus.sealed import read_sealed, sha256_bytes
 from tests.corpus._media import FRAME_COUNT, HEIGHT, WIDTH, expected_rgb, write_clip
-from tests.corpus.conftest import WriteCorpus, WriteRecording, reseal, sequence_of
+from tests.corpus.conftest import WriteCorpus, WriteRecording, reseal, stream_of
 
 _CORPUS = "pilot-v1"
 _ODD_WIDTH = 65
@@ -53,7 +53,7 @@ def _scratch(data_root: Path) -> list[Path]:
 
 @pytest.fixture
 def built(imported: ImportResult, write_corpus: WriteCorpus, data_root: Path) -> ImportResult:
-    build_corpus(write_corpus([sequence_of(imported)]), data_root)
+    build_corpus(write_corpus([stream_of(imported)]), data_root)
     return imported
 
 
@@ -85,7 +85,7 @@ def test_a_clean_decode_reproduces_the_original_pixels_exactly(
 ) -> None:
     write_clip(media / "clip.mkv", "ffv1", "bgr0")
     imported = import_source(write_recording(), data_root)
-    build_corpus(write_corpus([sequence_of(imported)]), data_root)
+    build_corpus(write_corpus([stream_of(imported)]), data_root)
 
     stage_corpus(_CORPUS, data_root)
 
@@ -112,7 +112,7 @@ def test_an_odd_width_stages_with_no_row_padding(
     size = {"width": _ODD_WIDTH, "height": _ODD_HEIGHT}
     write_clip(media / name, codec, pixel_format, frames=3, **size)
     imported = import_source(write_recording(name), data_root)
-    build_corpus(write_corpus([sequence_of(imported)]), data_root)
+    build_corpus(write_corpus([stream_of(imported)]), data_root)
 
     stage_corpus(_CORPUS, data_root)
 
@@ -124,16 +124,14 @@ def test_a_selection_stages_only_its_window_under_source_frame_indices(
     imported: ImportResult, write_corpus: WriteCorpus, data_root: Path
 ) -> None:
     window = {"start_frame": 5, "end_frame": 9}
-    sequences = [
-        sequence_of(imported, sequence_id="one", selection=window),
-        sequence_of(imported, sequence_id="whole"),
-    ]
-    build_corpus(write_corpus(sequences), data_root)
+    build_corpus(write_corpus([stream_of(imported, selection=window)]), data_root)
+    build_corpus(write_corpus([stream_of(imported)], corpus_id="whole"), data_root)
 
     stage_corpus(_CORPUS, data_root)
+    stage_corpus("whole", data_root)
 
     partial = open_frame_bundle(_bundle_path(data_root))
-    whole = open_frame_bundle(_bundle_path(data_root, "whole"))
+    whole = open_frame_bundle(data_root / "corpus" / "whole" / "frames" / "one")
     assert sorted(path.name for path in partial.directory.glob("*.rgb24")) == [
         f"0000000{index}.rgb24" for index in range(5, 9)
     ]
@@ -178,7 +176,7 @@ def test_a_deep_source_is_staged_and_flagged_as_reduced(
 ) -> None:
     write_clip(media / "clip.mkv", "ffv1", "yuv420p10le", frames=3)
     imported = import_source(write_recording(), data_root)
-    build_corpus(write_corpus([sequence_of(imported)]), data_root)
+    build_corpus(write_corpus([stream_of(imported)]), data_root)
 
     with caplog.at_level(logging.WARNING, _WRITER_MODULE):
         stage_corpus(_CORPUS, data_root)
@@ -209,7 +207,7 @@ def test_an_untagged_matrix_is_reported_only_when_conversion_used_one(
 ) -> None:
     write_clip(media / "clip.mkv", codec, pixel_format, frames=3)
     imported = import_source(write_recording(), data_root)
-    build_corpus(write_corpus([sequence_of(imported)]), data_root)
+    build_corpus(write_corpus([stream_of(imported)]), data_root)
 
     with caplog.at_level(logging.WARNING, _WRITER_MODULE):
         stage_corpus(_CORPUS, data_root)
@@ -222,7 +220,7 @@ def test_a_missing_pts_stays_absent_in_the_frame_index(
 ) -> None:
     write_clip(media / "clip.mjpeg", container_format="mjpeg")
     imported = import_source(write_recording("clip.mjpeg"), data_root)
-    build_corpus(write_corpus([sequence_of(imported)]), data_root)
+    build_corpus(write_corpus([stream_of(imported)]), data_root)
 
     stage_corpus(_CORPUS, data_root)
 
@@ -242,20 +240,23 @@ def test_changed_stored_source_is_refused(built: ImportResult, data_root: Path) 
     assert not _bundle_path(data_root).exists()
 
 
-def test_a_source_from_another_decoder_is_refused(built: ImportResult, data_root: Path) -> None:
+def test_a_source_redecoded_after_the_build_is_refused(
+    built: ImportResult, data_root: Path
+) -> None:
     reseal(built.manifest_path, decode_policy_sha256="d" * 64)
 
-    _refused(data_root, RefusalCode.DECODE_POLICY_MISMATCH)
+    _refused(data_root, RefusalCode.SOURCE_RECORD_CHANGED)
 
     assert not _bundle_path(data_root).exists()
 
 
 def test_a_decode_that_disagrees_with_the_import_record_is_refused(
-    built: ImportResult, data_root: Path
+    imported: ImportResult, write_corpus: WriteCorpus, data_root: Path
 ) -> None:
-    record = json.loads(built.manifest_path.read_text(encoding="ascii"))
+    record = json.loads(imported.manifest_path.read_text(encoding="ascii"))
     sequence = record["sequence"] | {"pts": [pts + 1 for pts in record["sequence"]["pts"]]}
-    reseal(built.manifest_path, sequence=sequence)
+    reseal(imported.manifest_path, sequence=sequence)
+    build_corpus(write_corpus([stream_of(imported)]), data_root)
 
     refusal = _refused(data_root, RefusalCode.DECODE_DRIFT)
 

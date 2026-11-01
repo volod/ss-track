@@ -12,9 +12,16 @@ from typing import Any
 from ss_track.corpus.builder import CORPUS_DIRECTORY
 from ss_track.corpus.importer import MANIFEST_NAME
 from ss_track.corpus.refusal import CorpusRefusal, JsonValue, RefusalCode
-from ss_track.corpus.sealed import canonical_json, read_sealed, sha256_bytes, sha256_file
+from ss_track.corpus.sealed import (
+    canonical_json,
+    read_sealed,
+    require_schema,
+    sha256_bytes,
+    sha256_file,
+)
 
 FRAME_BUNDLE_KIND = "ss-track.frame-bundle"
+BUNDLE_SCHEMA_VERSION = 2
 FRAMES_DIRECTORY = "frames"
 IDENTITY_TRANSFORM = "identity"
 MISSING = "missing"
@@ -34,7 +41,7 @@ def frame_name(frame_index: int, pixel_format: str) -> str:
 
 
 def bundle_hash(identity: Mapping[str, JsonValue]) -> str:
-    """Hash what makes frames the same frames, so a corpus or sequence name cannot change it."""
+    """Hash what makes frames the same frames, so a corpus or stream name cannot change it."""
     return sha256_bytes(canonical_json(identity))
 
 
@@ -76,7 +83,7 @@ class FrameEntry:
 class FrameDamage:
     """A file in a bundle that does not match its sealed index."""
 
-    sequence_id: str
+    stream_id: str
     frame: str
     reason: str
 
@@ -102,7 +109,7 @@ class FrameBundle:
     """A sealed bundle opened for reading."""
 
     directory: Path
-    sequence_id: str
+    stream_id: str
     corpus_manifest_sha256: str
     bundle_sha256: str
     source_sha256: str
@@ -125,7 +132,7 @@ class FrameBundle:
                 RefusalCode.FRAME_NOT_IN_BUNDLE,
                 "frame index is outside this bundle",
                 {
-                    "sequence_id": self.sequence_id,
+                    "stream_id": self.stream_id,
                     "frame_index": frame_index,
                     "start_frame": self.start_frame,
                     "end_frame": self.start_frame + len(self.entries),
@@ -138,7 +145,7 @@ class FrameBundle:
 
     def _ref(self, entry: FrameEntry) -> FrameRef:
         return FrameRef(
-            stream_id=self.sequence_id,
+            stream_id=self.stream_id,
             source_sha256=self.source_sha256,
             frame_index=entry.frame_index,
             pts=entry.pts,
@@ -169,9 +176,9 @@ class FrameBundle:
         try:
             pixels = (self.directory / name).read_bytes()
         except FileNotFoundError as error:
-            raise frames_corrupted([FrameDamage(self.sequence_id, name, MISSING)]) from error
+            raise frames_corrupted([FrameDamage(self.stream_id, name, MISSING)]) from error
         if sha256_bytes(pixels) != entry.sha256:
-            raise frames_corrupted([FrameDamage(self.sequence_id, name, HASH_MISMATCH)])
+            raise frames_corrupted([FrameDamage(self.stream_id, name, HASH_MISMATCH)])
         return pixels
 
     def damage(self) -> list[FrameDamage]:
@@ -179,22 +186,21 @@ class FrameBundle:
         found = [item for entry in self.entries if (item := self._entry_damage(entry)) is not None]
         expected = {self._name(entry) for entry in self.entries} | {MANIFEST_NAME}
         extras = sorted(path.name for path in self.directory.iterdir() if path.name not in expected)
-        return found + [FrameDamage(self.sequence_id, name, UNEXPECTED_FILE) for name in extras]
+        return found + [FrameDamage(self.stream_id, name, UNEXPECTED_FILE) for name in extras]
 
     def _entry_damage(self, entry: FrameEntry) -> FrameDamage | None:
         name = self._name(entry)
         try:
             actual = sha256_file(self.directory / name)
         except FileNotFoundError:
-            return FrameDamage(self.sequence_id, name, MISSING)
-        return (
-            None if actual == entry.sha256 else FrameDamage(self.sequence_id, name, HASH_MISMATCH)
-        )
+            return FrameDamage(self.stream_id, name, MISSING)
+        return None if actual == entry.sha256 else FrameDamage(self.stream_id, name, HASH_MISMATCH)
 
 
 def open_frame_bundle(directory: Path) -> FrameBundle:
     """Open a bundle directory, refusing one whose record is not intact."""
     manifest = read_sealed(directory / MANIFEST_NAME, FRAME_BUNDLE_KIND)
+    require_schema(manifest, BUNDLE_SCHEMA_VERSION, directory / MANIFEST_NAME)
     try:
         bundle = _parse_bundle(directory, manifest)
     except (KeyError, TypeError) as error:
@@ -221,7 +227,7 @@ def _parse_bundle(directory: Path, manifest: Mapping[str, Any]) -> FrameBundle:
     identity: Mapping[str, Any] = _identity(manifest)
     return FrameBundle(
         directory=directory,
-        sequence_id=manifest["sequence_id"],
+        stream_id=manifest["stream_id"],
         corpus_manifest_sha256=manifest["corpus_manifest_sha256"],
         bundle_sha256=manifest["bundle_sha256"],
         source_sha256=identity["source_sha256"],

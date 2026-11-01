@@ -14,10 +14,16 @@ rights: {holder: Owner, basis: owned, retention: one year, sharing: restricted}
 sensitivity: {level: low}
 """
 CORPUS = f"""\
-schema_version: 1
+schema_version: 2
 corpus_id: pilot-v1
-sequences:
-  - {{sequence_id: one, source_sha256: "{SHA256}"}}
+scenario_rights: {{sharing: restricted, max_sensitivity: moderate}}
+groups:
+  - group_id: site-a
+    split: development
+    encounters:
+      - encounter_id: enc01
+        streams:
+          - {{stream_id: one, source_sha256: "{SHA256}"}}
 """
 
 
@@ -155,7 +161,13 @@ def test_minimal_corpus(declare: Callable[[str], Path]) -> None:
 
     assert declaration.corpus_id == "pilot-v1"
     assert declaration.decode_policy_sha256 is None
-    assert declaration.sequences[0].selection is None
+    assert declaration.scenario_rights.sharing == "restricted"
+    assert declaration.scenario_rights.max_sensitivity == "moderate"
+    [(group, encounter, stream)] = list(declaration.members())
+    assert (group.group_id, group.split) == ("site-a", "development")
+    assert encounter.encounter_id == "enc01"
+    assert (stream.stream_id, stream.source_sha256) == ("one", SHA256)
+    assert stream.selection is None
 
 
 @pytest.mark.parametrize(
@@ -163,31 +175,61 @@ def test_minimal_corpus(declare: Callable[[str], Path]) -> None:
     [
         pytest.param("corpus_id: pilot-v1", "corpus_id: ../escape", "corpus_id", id="traversal"),
         pytest.param("corpus_id: pilot-v1", "corpus_id: UPPER", "corpus_id", id="uppercase"),
-        pytest.param("sequence_id: one", "sequence_id: a/b", "sequence_id", id="slash"),
+        pytest.param("stream_id: one", "stream_id: a/b", "stream_id", id="stream-slash"),
+        pytest.param("group_id: site-a", "group_id: ../up", "group_id", id="group-traversal"),
+        pytest.param("encounter_id: enc01", "encounter_id: E1", "encounter_id", id="encounter"),
+        pytest.param("split: development", "split: test", "split", id="unknown-split"),
+        pytest.param("split: development", "split: no", "split", id="yaml-boolean-split"),
+        pytest.param("schema_version: 2", "schema_version: 1", "schema_version", id="old-schema"),
+        pytest.param("sharing: restricted", "sharing: open", "sharing", id="unknown-sharing"),
+        pytest.param(
+            "scenario_rights: {sharing: restricted, max_sensitivity: moderate}\n",
+            "",
+            "scenario_rights",
+            id="no-scenario-rights",
+        ),
+        pytest.param(
+            ", max_sensitivity: moderate", "", "max_sensitivity", id="no-sensitivity-limit"
+        ),
+        pytest.param("    split: development\n", "", "split", id="no-split"),
+        pytest.param("groups:", "sequences:", "groups", id="old-sequences-key"),
+        pytest.param(
+            "    encounters:\n      - encounter_id: enc01\n        streams:\n"
+            f'          - {{stream_id: one, source_sha256: "{SHA256}"}}\n',
+            "    encounters: []\n",
+            "non-empty",
+            id="no-encounters",
+        ),
+        pytest.param(
+            f'        streams:\n          - {{stream_id: one, source_sha256: "{SHA256}"}}\n',
+            "        streams: []\n",
+            "non-empty",
+            id="no-streams",
+        ),
         pytest.param(SHA256, "../../etc", "source_sha256", id="hash-traversal"),
         pytest.param(
-            "sequence_id: one,",
-            "selection: {start_frame: 5, end_frame: 5}, sequence_id: one,",
+            "stream_id: one,",
+            "selection: {start_frame: 5, end_frame: 5}, stream_id: one,",
             "start_frame",
             id="empty-window",
         ),
         pytest.param(
-            "sequence_id: one,",
-            "selection: {start_frame: -1, end_frame: 5}, sequence_id: one,",
+            "stream_id: one,",
+            "selection: {start_frame: -1, end_frame: 5}, stream_id: one,",
             "non-negative",
             id="negative",
         ),
         pytest.param(
-            "sequence_id: one,",
-            "selection: {start_frame: true, end_frame: 5}, sequence_id: one,",
+            "stream_id: one,",
+            "selection: {start_frame: true, end_frame: 5}, stream_id: one,",
             "non-negative",
             id="bool-index",
         ),
         pytest.param(
-            'sequences:\n  - {sequence_id: one, source_sha256: "' + SHA256 + '"}\n',
-            "sequences: []\n",
+            CORPUS[CORPUS.index("groups:") :],
+            "groups: []\n",
             "non-empty",
-            id="no-sequences",
+            id="no-groups",
         ),
     ],
 )
@@ -200,10 +242,3 @@ def test_malformed_corpora_are_refused(
 
     assert caught.value.code is RefusalCode.MANIFEST_INVALID
     assert message in caught.value.message
-
-
-def test_repeated_sequence_id_is_refused(declare: Callable[[str], Path]) -> None:
-    text = CORPUS + f'  - {{sequence_id: one, source_sha256: "{"b" * 64}"}}\n'
-
-    with pytest.raises(CorpusRefusal, match="repeats a sequence_id"):
-        load_corpus_declaration(declare(text))

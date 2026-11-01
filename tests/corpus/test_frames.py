@@ -8,24 +8,33 @@ from ss_track.corpus import (
     ImportResult,
     RefusalCode,
     build_corpus,
+    import_source,
     open_frame_bundle,
     stage_corpus,
     verify_corpus_frames,
 )
 from ss_track.corpus.frames import FrameDamage, frame_name, frames_corrupted
 from ss_track.corpus.sealed import seal, sha256_bytes, sha256_file
-from tests.corpus._media import FRAME_COUNT, HEIGHT, WIDTH
-from tests.corpus.conftest import WriteCorpus, reseal, sequence_of
+from tests.corpus._media import FRAME_COUNT, HEIGHT, WIDTH, write_clip
+from tests.corpus.conftest import WriteCorpus, WriteRecording, reseal, stream_of
 
 _CORPUS = "pilot-v1"
 _NAMED_FRAME_LIMIT = 32
 
 
 @pytest.fixture
-def staged(imported: ImportResult, write_corpus: WriteCorpus, data_root: Path) -> Path:
+def staged(
+    imported: ImportResult,
+    media: Path,
+    write_recording: WriteRecording,
+    write_corpus: WriteCorpus,
+    data_root: Path,
+) -> Path:
     """Return the directory of one staged bundle, writable so a test can damage it."""
-    sequences = [sequence_of(imported, sequence_id=name) for name in ("one", "two")]
-    build_corpus(write_corpus(sequences), data_root)
+    write_clip(media / "other.mkv", width=WIDTH + 2)
+    other = import_source(write_recording("other.mkv"), data_root)
+    streams = [stream_of(imported), stream_of(other, stream_id="two")]
+    build_corpus(write_corpus(streams), data_root)
     stage_corpus(_CORPUS, data_root)
     directory = data_root / "corpus" / _CORPUS / "frames" / "one"
     directory.chmod(0o755)
@@ -62,11 +71,20 @@ def _refusal_of(data_root: Path) -> CorpusRefusal:
     return caught.value
 
 
+def test_a_bundle_from_another_schema_is_refused_by_name(staged: Path) -> None:
+    reseal(staged / "manifest.json", schema_version=1)
+
+    with pytest.raises(CorpusRefusal) as caught:
+        open_frame_bundle(staged)
+
+    assert caught.value.code is RefusalCode.RECORD_SCHEMA_UNSUPPORTED
+
+
 def test_a_clean_bundle_verifies(staged: Path, data_root: Path) -> None:
     result = verify_corpus_frames(_CORPUS, data_root)
 
     assert result.status == "verified"
-    assert [bundle.sequence_id for bundle in result.bundles] == ["one", "two"]
+    assert [bundle.stream_id for bundle in result.bundles] == ["one", "two"]
     assert {bundle.frame_count for bundle in result.bundles} == {FRAME_COUNT}
 
 
@@ -88,12 +106,12 @@ def test_a_corrupted_frame_fails_verification_by_name(
 
     assert refusal.details == {
         "damaged_count": 1,
-        "frames": [{"sequence_id": "one", "frame": "00000003.rgb24", "reason": reason}],
+        "frames": [{"stream_id": "one", "frame": "00000003.rgb24", "reason": reason}],
     }
     assert "00000003.rgb24" in refusal.message
 
 
-def test_verification_names_every_damaged_frame_across_sequences(
+def test_verification_names_every_damaged_frame_across_streams(
     staged: Path, data_root: Path
 ) -> None:
     _flip_byte(staged / "00000001.rgb24")
@@ -105,7 +123,7 @@ def test_verification_names_every_damaged_frame_across_sequences(
     frames = _refusal_of(data_root).details["frames"]
 
     assert isinstance(frames, list)
-    assert [(item["sequence_id"], item["frame"]) for item in frames] == [  # type: ignore[index,call-overload]
+    assert [(item["stream_id"], item["frame"]) for item in frames] == [  # type: ignore[index,call-overload]
         ("one", "00000001.rgb24"),
         ("one", "00000002.rgb24"),
         ("two", "00000005.rgb24"),
@@ -117,7 +135,7 @@ def test_a_file_the_index_does_not_list_fails_verification(staged: Path, data_ro
 
     frames = _refusal_of(data_root).details["frames"]
 
-    assert frames == [{"sequence_id": "one", "frame": "extra.rgb24", "reason": "unexpected_file"}]
+    assert frames == [{"stream_id": "one", "frame": "extra.rgb24", "reason": "unexpected_file"}]
 
 
 def test_a_large_damage_report_stays_bounded_and_keeps_the_count() -> None:
@@ -143,13 +161,13 @@ def test_staging_again_over_a_damaged_bundle_is_refused(staged: Path, data_root:
 def test_verifying_an_unstaged_sequence_is_refused(
     imported: ImportResult, write_corpus: WriteCorpus, data_root: Path
 ) -> None:
-    build_corpus(write_corpus([sequence_of(imported)]), data_root)
+    build_corpus(write_corpus([stream_of(imported)]), data_root)
 
     with pytest.raises(CorpusRefusal) as caught:
         verify_corpus_frames(_CORPUS, data_root)
 
     assert caught.value.code is RefusalCode.BUNDLE_NOT_STAGED
-    assert caught.value.details == {"sequence_id": "one"}
+    assert caught.value.details == {"stream_id": "one"}
 
 
 def test_verifying_an_unbuilt_corpus_is_refused(data_root: Path) -> None:
@@ -185,7 +203,7 @@ def test_a_damaged_frame_cannot_be_read(staged: Path, damage, reason: str) -> No
 
     assert caught.value.code is RefusalCode.FRAME_CORRUPTED
     assert caught.value.details["frames"] == [
-        {"sequence_id": "one", "frame": "00000004.rgb24", "reason": reason}
+        {"stream_id": "one", "frame": "00000004.rgb24", "reason": reason}
     ]
     assert bundle.read_frame(5)
 
