@@ -8,6 +8,7 @@ import pytest
 
 from ss_track.corpus import CorpusRefusal, RefusalCode, import_source
 from ss_track.corpus.decode import DecodePolicy
+from ss_track.corpus.importer import SOURCE_MANIFEST
 from ss_track.corpus.sealed import read_sealed, sha256_file
 from tests.corpus._media import FRAME_COUNT, write_clip
 from tests.corpus.conftest import WriteRecording
@@ -18,7 +19,7 @@ def test_import_writes_a_hashed_manifest_with_every_required_field(
 ) -> None:
     result = import_source(write_recording(), data_root)
 
-    manifest = read_sealed(result.manifest_path, "ss-track.source-manifest")
+    manifest = read_sealed(result.manifest_path, SOURCE_MANIFEST)
     sequence = manifest["sequence"]
     assert isinstance(sequence, dict)
     assert result.status == "imported"
@@ -79,7 +80,7 @@ def test_declared_hash_is_verified_and_recorded(
 ) -> None:
     result = import_source(write_recording(sha256=sha256_file(clip)), data_root)
 
-    manifest = read_sealed(result.manifest_path, "ss-track.source-manifest")
+    manifest = read_sealed(result.manifest_path, SOURCE_MANIFEST)
     assert isinstance(manifest["source"], dict)
     assert manifest["source"]["sha256_declared"] is True
 
@@ -91,7 +92,7 @@ def test_missing_pts_imports_as_missing_with_no_invented_values(
 
     result = import_source(write_recording("clip.mjpeg"), data_root)
 
-    manifest = read_sealed(result.manifest_path, "ss-track.source-manifest")
+    manifest = read_sealed(result.manifest_path, SOURCE_MANIFEST)
     assert isinstance(manifest["sequence"], dict)
     assert result.timestamp_quality == "missing"
     assert manifest["sequence"]["pts"] == [None] * FRAME_COUNT
@@ -192,4 +193,4 @@ def test_a_second_process_writes_identical_bytes(
         manifests.append(next(root.glob("import/*/manifest.json")).read_bytes())
 
     assert manifests[0] == manifests[1]
-    assert json.loads(manifests[0])["kind"] == "ss-track.source-manifest"
+    assert json.loads(manifests[0])["kind"] == SOURCE_MANIFEST.kind

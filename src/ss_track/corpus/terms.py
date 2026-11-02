@@ -6,6 +6,7 @@ from typing import Any
 
 from ss_track.corpus.refusal import CorpusRefusal, RefusalCode
 
+AMEND_COMMAND = "ss-track import --amend-terms"
 TERM_SECTIONS = ("rights", "sensitivity")
 _ABSENT = object()
 
@@ -32,8 +33,12 @@ def require_retention(stream: Mapping[str, Any], today: date) -> None:
     if "retain_until" not in rights or "derived_frames" not in rights:
         raise CorpusRefusal(
             RefusalCode.RECORD_SCHEMA_UNSUPPORTED,
-            "source terms are missing; import a schema-2 recording and build a new corpus",
-            {"source_sha256": stream["source_sha256"]},
+            "this corpus version has no source terms for one of its sources",
+            {
+                "stream_id": stream["stream_id"],
+                "source_sha256": stream["source_sha256"],
+                "remedy": f"record them with {AMEND_COMMAND} and build a new corpus version",
+            },
         )
     until = rights["retain_until"]
     if until is not None and today > date.fromisoformat(until):

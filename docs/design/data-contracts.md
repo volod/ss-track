@@ -50,7 +50,7 @@ already lives in a declaration or a pinned scenario.
 
 These are the reasons this work comes before labels and events.
 
-1. **One integer answers three questions.** `require_schema` in `src/ss_track/corpus/sealed.py`
+1. **One integer answers three questions.** `read_sealed` in `src/ss_track/corpus/sealed.py`
    accepts one exact value, so a format change has only one possible outcome. The refusal is deliberate
    and safe, and what it costs is in [reading older records](#reading-older-records).
 2. **Version constants are shared across formats.** `CORPUS_SCHEMA_VERSION` versions both a
@@ -162,11 +162,11 @@ and an amended later record is byte-identical to one the first schema 2 code wri
 | Case on current code | Result |
 | --- | --- |
 | `stage`, `verify` and `hashes` on any older era | `RECORD_SCHEMA_UNSUPPORTED`, as designed |
-| Re-import over an older source | `IMPORT_CONFLICT`, which misnames the cause. Four of nine sealed reads have no schema check |
+| Re-import over an older source | `RECORD_SCHEMA_UNSUPPORTED`, naming `--amend-terms`, before any decode |
 | Source moved to `locked`, predecessor at the current major | `SPLIT_LEAKAGE`, as designed |
 | Same move, predecessor at another major | `RECORD_SCHEMA_UNSUPPORTED`, and no version can link to it |
 | Same move, `supersedes` dropped | **Builds and stages as `no_lineage`.** The guard's only exit goes around it |
-| Successor whose predecessor holds another major's bundle | Stage refused, where section 4.1 says such a predecessor is reported |
+| Successor whose predecessor holds another major's bundle | Stages, naming that bundle under `other_schema`, because section 4.1 says such a predecessor is reported |
 | Same source as a new corpus version | `bundle_sha256` equal across all four eras, while corpus seal, frame set and bundle seal differ and every frame is stored again |
 
 The last row sets the price: a million 1080p frames is 6 TB and about four hours of staging. A decode

@@ -12,7 +12,7 @@ from typing import Any
 from ss_track.corpus.bundle_writer import publish_bundle, require_space, store_frame
 from ss_track.corpus.case_model import Pixels, ReadFrame, Rendering, Slot, as_pixels
 from ss_track.corpus.frames import (
-    FRAME_BUNDLE_KIND,
+    FRAME_BUNDLE,
     FrameBundle,
     bundle_hash,
     open_frame_bundle,
@@ -114,7 +114,7 @@ def write_case_bundle(case: Mapping[str, Any], parent: FrameBundle, root: Path) 
     read = _frame_reader(parent)
     rendering = prepare_case(case, parent.selection, parent.width, parent.height, read)
     require_space(root, len(rendering.slots), parent.width, parent.height)
-    parent_record = read_sealed(parent.directory / MANIFEST_NAME, FRAME_BUNDLE_KIND)
+    parent_record = read_sealed(parent.directory / MANIFEST_NAME, FRAME_BUNDLE)
     window = range(case["window"]["start_frame"], case["window"]["end_frame"])
     target = root / case["case_id"]
     with publish_bundle(root, target) as staged:

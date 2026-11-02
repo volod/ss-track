@@ -1,7 +1,5 @@
 """`import --amend-terms` records new terms for an imported source and changes nothing else."""
 
-import json
-import logging
 import stat
 from pathlib import Path
 
@@ -17,18 +15,19 @@ from ss_track.corpus import (
     stage_corpus,
     verify_corpus_frames,
 )
+from ss_track.corpus.builder import CORPUS_MANIFEST
 from ss_track.corpus.decode import DecodePolicy
 from ss_track.corpus.sealed import read_sealed
 from tests.corpus._amending import (
     CORPUS,
-    SOURCE_KIND,
     evidence,
+    read_source,
     refused,
     rights_with,
     staged,
     stored_source,
 )
-from tests.corpus.conftest import WriteCorpus, WriteRecording, stream_of
+from tests.corpus.conftest import WriteCorpus, WriteRecording, last_record, stream_of
 
 _PUBLIC_SCENARIO = {"sharing": "public", "max_sensitivity": "high"}
 
@@ -97,9 +96,7 @@ def test_a_new_corpus_version_builds_on_the_amended_record(
     assert build_corpus(declared, data_root).status == "built"
     assert stage_corpus("pilot-v2", data_root).status == "staged"
     assert verify_corpus_frames("pilot-v2", data_root).status == "verified"
-    corpus = read_sealed(
-        data_root / "corpus" / "pilot-v2" / "manifest.json", "ss-track.corpus-manifest"
-    )
+    corpus = read_sealed(data_root / "corpus" / "pilot-v2" / "manifest.json", CORPUS_MANIFEST)
     assert isinstance(corpus["streams"], list)
     assert corpus["streams"][0]["source_manifest_sha256"] == amended.manifest_sha256
 
@@ -195,13 +192,13 @@ def test_an_installed_decoder_change_neither_blocks_nor_enters_an_amendment(
     data_root: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    old = read_sealed(imported.manifest_path, SOURCE_KIND)
+    old = read_source(imported.manifest_path)
     upgraded = DecodePolicy(decoder="pyav", decoder_version="99", ffmpeg_version="99")
     monkeypatch.setattr("ss_track.corpus.amendment.current_decode_policy", lambda: upgraded)
 
     result = amend_source_terms(write_recording(sensitivity={"level": "high"}), data_root)
 
-    new = read_sealed(result.manifest_path, SOURCE_KIND)
+    new = read_source(result.manifest_path)
     assert result.decode_policy_current is False
     assert new["decode_policy"] == old["decode_policy"]
     assert new["decode_policy_sha256"] == old["decode_policy_sha256"]
@@ -216,20 +213,6 @@ def test_the_result_says_when_the_record_is_under_the_installed_decoder(
     assert amended.decode_policy_current is True
 
 
-@pytest.fixture
-def cli_root(
-    data_root: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
-) -> Path:
-    caplog.set_level(logging.INFO)
-    monkeypatch.setenv("DATA_DIR", str(data_root))
-    return data_root
-
-
-def _last_record(caplog: pytest.LogCaptureFixture) -> dict[str, object]:
-    record: dict[str, object] = json.loads(caplog.records[-1].getMessage())
-    return record
-
-
 def test_the_command_reports_one_record_and_its_refusal_exits_one(
     imported: ImportResult,
     write_recording: WriteRecording,
@@ -239,17 +222,17 @@ def test_the_command_reports_one_record_and_its_refusal_exits_one(
     narrowed = write_recording(sensitivity={"level": "high"})
 
     assert main(["import", "--source", str(narrowed), "--amend-terms"]) == EXIT_OK
-    record = _last_record(caplog)
+    record = last_record(caplog)
     assert record["status"] == "amended"
     assert record["changed_terms"] == ["sensitivity.level"]
     assert record["replaced_manifest_sha256"] == imported.manifest_sha256
 
     assert main(["import", "--source", str(narrowed), "--amend-terms"]) == EXIT_OK
-    assert _last_record(caplog)["status"] == "unchanged"
+    assert last_record(caplog)["status"] == "unchanged"
 
     changed = write_recording(capture={"camera": "bench camera"})
     assert main(["import", "--source", str(changed), "--amend-terms"]) == EXIT_REFUSED
-    assert _last_record(caplog)["code"] == "IMPORT_CONFLICT"
+    assert last_record(caplog)["code"] == "IMPORT_CONFLICT"
 
 
 def test_the_flag_is_off_unless_given() -> None:

@@ -14,14 +14,12 @@ from ss_track.corpus import (
     ImportResult,
     RefusalCode,
     amend_source_terms,
-    import_source,
     verify_corpus_frames,
 )
 from ss_track.corpus.amendment import replaced_record_path
-from ss_track.corpus.importer import SEQUENCE_KEYS
-from ss_track.corpus.sealed import read_sealed
-from tests.corpus._amending import CORPUS, SOURCE_KIND, evidence, refused, rights_with, staged
-from tests.corpus.conftest import WriteCorpus, WriteRecording, reseal
+from ss_track.corpus.importer import SEQUENCE_KEYS, SOURCE_MANIFEST
+from tests.corpus._amending import CORPUS, evidence, read_source, refused, rights_with, staged
+from tests.corpus.conftest import WriteCorpus, WriteRecording
 
 
 def test_a_repeat_reports_unchanged_and_keeps_one_replaced_record(
@@ -51,7 +49,7 @@ def test_a_replaced_record_stays_readable_under_its_own_seal(
     )
     assert result.replaced_path.read_bytes() == before
     assert stat.S_IMODE(result.replaced_path.stat().st_mode) == 0o444
-    record = read_sealed(result.replaced_path, SOURCE_KIND)
+    record = read_source(result.replaced_path)
     assert record["manifest_sha256"] == imported.manifest_sha256
 
 
@@ -70,7 +68,7 @@ def test_restoring_the_old_terms_restores_the_pin_and_keeps_both_records(
     assert verify_corpus_frames(CORPUS, data_root).status == "verified"
     directory = imported.manifest_path.parent
     for sealed in (imported.manifest_sha256, narrowed.manifest_sha256):
-        assert read_sealed(replaced_record_path(directory, sealed), SOURCE_KIND)
+        assert read_source(replaced_record_path(directory, sealed))
 
 
 _KILLED_RUN = """
@@ -104,18 +102,13 @@ def test_a_killed_amendment_leaves_one_whole_record_and_a_rerun_finishes_it(
 
     assert run.returncode == 9
     directory = imported.manifest_path.parent
-    assert (
-        read_sealed(imported.manifest_path, SOURCE_KIND)["manifest_sha256"]
-        == imported.manifest_sha256
-    )
+    assert read_source(imported.manifest_path)["manifest_sha256"] == imported.manifest_sha256
     assert list(directory.rglob(".incoming-*"))
     result = amend_source_terms(narrowed, data_root)
     assert result.status == "amended"
     assert not list(directory.rglob(".incoming-*"))
-    assert (
-        read_sealed(result.manifest_path, SOURCE_KIND)["manifest_sha256"] == result.manifest_sha256
-    )
-    assert read_sealed(result.replaced_path or Path(), SOURCE_KIND)
+    assert read_source(result.manifest_path)["manifest_sha256"] == result.manifest_sha256
+    assert read_source(result.replaced_path or Path())
 
 
 def test_concurrent_amendments_lose_no_record(
@@ -133,7 +126,7 @@ def test_concurrent_amendments_lose_no_record(
 
     directory = imported.manifest_path.parent
     kept = {path.stem for path in (directory / "replaced").iterdir()}
-    current = read_sealed(imported.manifest_path, SOURCE_KIND)["manifest_sha256"]
+    current = read_source(imported.manifest_path)["manifest_sha256"]
     every = {result.manifest_sha256 for result in results} | {imported.manifest_sha256}
     assert kept | {current} == every
     assert current not in kept
@@ -154,12 +147,12 @@ def test_a_real_record_without_terms_gains_them_and_the_current_major(
     write_recording: WriteRecording, data_root: Path
 ) -> None:
     sha256, path = _older_record("source-schema-1-d6b704d.json", data_root)
-    old = read_sealed(path, SOURCE_KIND)
+    old = read_source(path)
     declared = write_recording(sha256=sha256, rights=rights_with(sharing="public"))
 
     result = amend_source_terms(declared, data_root)
 
-    new = read_sealed(path, SOURCE_KIND)
+    new = read_source(path)
     assert new["schema_version"] == 2
     assert result.changed_terms == ["rights.derived_frames", "rights.retain_until"]
     assert result.decode_policy_current is False
@@ -167,22 +160,7 @@ def test_a_real_record_without_terms_gains_them_and_the_current_major(
     assert {k: v for k, v in new.items() if k not in unchanged} == {
         k: v for k, v in old.items() if k not in unchanged
     }
-    assert read_sealed(result.replaced_path or Path(), SOURCE_KIND) == old
-
-
-def test_a_plain_import_over_a_record_without_terms_offers_the_command(
-    clip: Path, write_recording: WriteRecording, data_root: Path
-) -> None:
-    source = import_source(write_recording(), data_root)
-    rights = rights_with()
-    del rights["retain_until"], rights["derived_frames"]
-    reseal(source.manifest_path, schema_version=1, rights=rights)
-    declared = write_recording()
-
-    refusal = refused(lambda: import_source(declared, data_root), RefusalCode.IMPORT_CONFLICT)
-
-    assert refusal.details["changed_terms"] == ["rights.derived_frames", "rights.retain_until"]
-    assert "--amend-terms" in refusal.message
+    assert read_source(result.replaced_path or Path()) == old
 
 
 def test_a_real_record_short_of_the_current_major_is_refused_by_name(
@@ -202,12 +180,16 @@ def test_a_real_record_short_of_the_current_major_is_refused_by_name(
         "sequence.source_bits_per_component",
         "decode_policy.conversion_flags",
     ]
+    assert refusal.details["age"] == "older"
+    assert refusal.details["found_schema_version"] == 1
+    assert refusal.details["kind"] == SOURCE_MANIFEST.kind
+    assert "import it again" in str(refusal.details["remedy"])
     assert path.read_bytes() == before
     assert not (path.parent / "replaced").exists()
 
 
 def test_the_sequence_keys_are_the_ones_an_import_writes(imported: ImportResult) -> None:
-    sequence = read_sealed(imported.manifest_path, SOURCE_KIND)["sequence"]
+    sequence = read_source(imported.manifest_path)["sequence"]
 
     assert isinstance(sequence, dict)
     assert set(sequence) == SEQUENCE_KEYS

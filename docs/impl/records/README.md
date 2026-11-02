@@ -20,5 +20,6 @@ Copy the [template](template.md) using the
 | 0013 | `record-version-refusal` | [0013-adhoc-record-version-refusal](0013-adhoc-record-version-refusal.md) |
 | 0014 | `source-terms-amendment` | [0014-corpus-provenance-source-terms-amendment](0014-corpus-provenance-source-terms-amendment.md) |
 | 0015 | `group-audit-tasks` | [0015-adhoc-group-audit-tasks](0015-adhoc-group-audit-tasks.md) |
+| 0016 | `record-read-gate` | [0016-data-contracts-record-read-gate](0016-data-contracts-record-read-gate.md) |
 
-Next unused sequence: `0016`.
+Next unused sequence: `0017`.

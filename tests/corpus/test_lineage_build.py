@@ -18,7 +18,7 @@ from ss_track.corpus import (
     stage_corpus,
     verify_corpus_frames,
 )
-from ss_track.corpus.builder import BuildResult
+from ss_track.corpus.builder import CORPUS_MANIFEST, BuildResult
 from ss_track.corpus.sealed import read_sealed
 from tests.corpus.conftest import (
     WriteCorpus,
@@ -31,7 +31,6 @@ from tests.corpus.conftest import (
     stream_of,
 )
 
-_CORPUS_KIND = "ss-track.corpus-manifest"
 _HEAD = {"start_frame": 0, "end_frame": 4}
 _TAIL = {"start_frame": 4, "end_frame": 8}
 type Group = dict[str, object]
@@ -151,7 +150,7 @@ def test_the_manifest_seals_the_predecessor_it_was_compared_with(
 
     v2 = _built(write_grouped_corpus, data_root, "pilot-v2", groups, supersedes="pilot-v1")
 
-    manifest = read_sealed(v2.manifest_path, _CORPUS_KIND)
+    manifest = read_sealed(v2.manifest_path, CORPUS_MANIFEST)
     assert manifest["supersedes"] == {
         "corpus_id": "pilot-v1",
         "manifest_sha256": v1.manifest_sha256,
@@ -169,7 +168,7 @@ def test_a_version_naming_no_predecessor_says_so_and_stores_no_link(
     )
 
     assert result.to_record()["lineage"] == {"status": "no_lineage"}
-    assert "supersedes" not in read_sealed(result.manifest_path, _CORPUS_KIND)
+    assert "supersedes" not in read_sealed(result.manifest_path, CORPUS_MANIFEST)
 
 
 def test_a_version_that_links_nothing_is_not_compared_with_anything(

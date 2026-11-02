@@ -12,8 +12,8 @@ from ss_track.corpus import (
     open_frame_bundle,
     stage_corpus,
 )
-from ss_track.corpus.builder import CORPUS_MANIFEST_KIND
-from ss_track.corpus.frames import FRAME_BUNDLE_KIND
+from ss_track.corpus.builder import CORPUS_MANIFEST
+from ss_track.corpus.frames import FRAME_BUNDLE
 from ss_track.corpus.sealed import read_sealed
 from tests.corpus.conftest import WriteCorpus, case_of, encounter_of, group_of, stream_of
 
@@ -48,7 +48,7 @@ def test_a_case_inherits_its_parents_encounter_group_and_split(
 ) -> None:
     result = build_corpus(write_grouped_corpus(_two_splits(first, second, True)), data_root)
 
-    manifest = read_sealed(result.manifest_path, CORPUS_MANIFEST_KIND)
+    manifest = read_sealed(result.manifest_path, CORPUS_MANIFEST)
     membership = {
         case["case_id"]: (case["parent_stream_id"], case["encounter_id"], case["split"])
         for case in manifest["generated_cases"]
@@ -60,7 +60,7 @@ def test_a_case_inherits_its_parents_encounter_group_and_split(
     }
     stage_corpus(_CORPUS, data_root)
     bundle = data_root / "corpus" / _CORPUS / "frames" / "b1" / "manifest.json"
-    assert read_sealed(bundle, FRAME_BUNDLE_KIND)["generated"] == {
+    assert read_sealed(bundle, FRAME_BUNDLE)["generated"] == {
         "parent_stream_id": "cam-b",
         "encounter_id": "enc-b",
         "group_id": "site-b",
@@ -105,8 +105,8 @@ def test_a_case_does_not_change_a_stream_record(
     )
 
     assert (
-        read_sealed(plain.manifest_path, CORPUS_MANIFEST_KIND)["streams"]
-        == read_sealed(cased.manifest_path, CORPUS_MANIFEST_KIND)["streams"]
+        read_sealed(plain.manifest_path, CORPUS_MANIFEST)["streams"]
+        == read_sealed(cased.manifest_path, CORPUS_MANIFEST)["streams"]
     )
 
 

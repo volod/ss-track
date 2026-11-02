@@ -1,6 +1,7 @@
 """Shared corpus fixtures: a clean data root and written operator declarations."""
 
 import json
+import logging
 from collections.abc import Callable
 from pathlib import Path
 
@@ -90,9 +91,24 @@ def reseal(path: Path, **changes: object) -> None:
     path.write_text(json.dumps(seal(record | changes)), encoding="ascii")
 
 
+def last_record(caplog: pytest.LogCaptureFixture) -> dict[str, object]:
+    """Return the one JSON record a command reported last."""
+    record: dict[str, object] = json.loads(caplog.records[-1].getMessage())
+    return record
+
+
 @pytest.fixture
 def data_root(tmp_path: Path) -> Path:
     return tmp_path / "data"
+
+
+@pytest.fixture
+def cli_root(
+    data_root: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> Path:
+    caplog.set_level(logging.INFO)
+    monkeypatch.setenv("DATA_DIR", str(data_root))
+    return data_root
 
 
 @pytest.fixture

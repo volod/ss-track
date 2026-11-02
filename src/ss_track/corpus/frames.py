@@ -15,15 +15,18 @@ from ss_track.corpus.importer import MANIFEST_NAME
 from ss_track.corpus.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.sealed import (
     SEAL_FIELD,
+    RecordFormat,
     canonical_json,
     read_sealed,
-    require_schema,
     sha256_bytes,
     sha256_file,
 )
 
 FRAME_BUNDLE_KIND = "ss-track.frame-bundle"
 BUNDLE_SCHEMA_VERSION = 3
+FRAME_BUNDLE = RecordFormat(
+    FRAME_BUNDLE_KIND, BUNDLE_SCHEMA_VERSION, "build and stage a new corpus version"
+)
 FRAMES_DIRECTORY = "frames"
 IDENTITY_TRANSFORM = "identity"
 MISSING = "missing"
@@ -207,8 +210,7 @@ class FrameBundle:
 
 def open_frame_bundle(directory: Path) -> FrameBundle:
     """Open a bundle directory, refusing one whose record is not intact."""
-    manifest = read_sealed(directory / MANIFEST_NAME, FRAME_BUNDLE_KIND)
-    require_schema(manifest, BUNDLE_SCHEMA_VERSION, directory / MANIFEST_NAME)
+    manifest = read_sealed(directory / MANIFEST_NAME, FRAME_BUNDLE)
     try:
         bundle = _parse_bundle(directory, manifest)
     except (KeyError, TypeError) as error:

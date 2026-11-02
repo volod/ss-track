@@ -4,8 +4,6 @@ Terms change through the real amendment. A record that changes in anything else 
 those fixtures remove the source's directory and import it again, through the real importer.
 """
 
-import json
-import logging
 import shutil
 from collections.abc import Callable
 from datetime import date
@@ -28,6 +26,7 @@ from tests.corpus.conftest import (
     WriteCorpus,
     WriteRecording,
     case_of,
+    last_record,
     recording_declaration,
     reseal,
     stream_of,
@@ -63,20 +62,6 @@ def _staged(source: ImportResult, write_corpus: WriteCorpus, data_root: Path) ->
     stage_corpus(_CORPUS, data_root, today=_BEFORE)
 
 
-def _last_record(caplog: pytest.LogCaptureFixture) -> dict[str, object]:
-    record: dict[str, object] = json.loads(caplog.records[-1].getMessage())
-    return record
-
-
-@pytest.fixture
-def cli_root(
-    data_root: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
-) -> Path:
-    caplog.set_level(logging.INFO)
-    monkeypatch.setenv("DATA_DIR", str(data_root))
-    return data_root
-
-
 def test_a_source_amended_to_restricted_refuses_and_exits_one(
     clip: Path,
     write_recording: WriteRecording,
@@ -93,7 +78,7 @@ def test_a_source_amended_to_restricted_refuses_and_exits_one(
     closed = amend_source_terms(write_recording(rights=_rights(sharing="restricted")), cli_root)
 
     assert main(["corpus", "verify", "--corpus", _CORPUS]) == EXIT_REFUSED
-    refusal = _last_record(caplog)
+    refusal = last_record(caplog)
     assert refusal["status"] == "refused"
     assert refusal["code"] == "SOURCE_RECORD_CHANGED"
     assert refusal["details"] == {
@@ -117,7 +102,7 @@ def test_an_expired_source_refuses_and_exits_one(
 
     assert main(["corpus", "verify", "--corpus", _CORPUS]) == EXIT_REFUSED
 
-    refusal = _last_record(caplog)
+    refusal = last_record(caplog)
     assert refusal["code"] == "RETENTION_EXPIRED"
     assert refusal["details"] == {
         "source_sha256": source.source_sha256,
@@ -136,7 +121,7 @@ def test_an_unchanged_corpus_verifies_and_writes_nothing(
 
     assert main(["corpus", "verify", "--corpus", _CORPUS]) == EXIT_OK
 
-    assert _last_record(caplog)["status"] == "verified"
+    assert last_record(caplog)["status"] == "verified"
     assert evidence == {path: path.read_bytes() for path in cli_root.rglob("*") if path.is_file()}
 
 

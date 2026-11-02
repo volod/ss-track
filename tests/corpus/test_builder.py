@@ -4,14 +4,12 @@ from pathlib import Path
 import pytest
 
 from ss_track.corpus import CorpusRefusal, ImportResult, RefusalCode, build_corpus
-from ss_track.corpus.builder import load_corpus_manifest
+from ss_track.corpus.builder import CORPUS_MANIFEST, load_corpus_manifest
 from ss_track.corpus.decode import current_decode_policy
 from ss_track.corpus.importer import decode_policy_sha256
 from ss_track.corpus.sealed import read_sealed
 from tests.corpus._media import FRAME_COUNT, HEIGHT, WIDTH
 from tests.corpus.conftest import WriteCorpus, reseal, stream_of
-
-CORPUS_KIND = "ss-track.corpus-manifest"
 
 
 def _refused(declaration: Path, data_root: Path, code: RefusalCode) -> CorpusRefusal:
@@ -29,7 +27,7 @@ def test_build_binds_each_sequence_to_its_verified_source(
 
     result = build_corpus(write_corpus([stream_of(imported, selection=window)]), data_root)
 
-    manifest = read_sealed(result.manifest_path, CORPUS_KIND)
+    manifest = read_sealed(result.manifest_path, CORPUS_MANIFEST)
     assert result.status == "built"
     assert result.manifest_path == data_root / "corpus" / "pilot-v1" / "manifest.json"
     assert manifest["decode_policy"] == current_decode_policy().as_record()
@@ -66,7 +64,7 @@ def test_absent_selection_means_the_whole_sequence(
 ) -> None:
     result = build_corpus(write_corpus([stream_of(imported)]), data_root)
 
-    streams = read_sealed(result.manifest_path, CORPUS_KIND)["streams"]
+    streams = read_sealed(result.manifest_path, CORPUS_MANIFEST)["streams"]
     assert isinstance(streams, list) and isinstance(streams[0], dict)
     assert streams[0]["selection"] == {"start_frame": 0, "end_frame": FRAME_COUNT}
 
@@ -189,8 +187,12 @@ def test_a_corpus_from_another_schema_is_refused_by_name(
     assert caught.value.code is RefusalCode.RECORD_SCHEMA_UNSUPPORTED
     assert caught.value.details == {
         "record": "manifest.json",
+        "path": str(result.manifest_path),
+        "kind": CORPUS_MANIFEST.kind,
         "found_schema_version": 1,
-        "schema_version": 3,
+        "accepted_schema_versions": [3],
+        "age": "older",
+        "remedy": CORPUS_MANIFEST.older_remedy,
     }
 
 

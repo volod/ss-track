@@ -14,10 +14,13 @@ from typing import Any
 
 from ss_track.corpus.frames import frames_root
 from ss_track.corpus.refusal import CorpusRefusal, JsonValue, RefusalCode
-from ss_track.corpus.sealed import SEAL_FIELD, read_sealed, require_schema, seal, write_sealed
+from ss_track.corpus.sealed import SEAL_FIELD, RecordFormat, read_sealed, seal, write_sealed
 
 FRAME_SET_KIND = "ss-track.frame-set"
 FRAME_SET_SCHEMA_VERSION = 1
+FRAME_SET = RecordFormat(
+    FRAME_SET_KIND, FRAME_SET_SCHEMA_VERSION, "build and stage a new corpus version"
+)
 FRAME_SET_NAME = "frame-set.json"
 MISSING = "missing"
 REPLACED = "replaced"
@@ -64,15 +67,9 @@ def _seal_found(corpus: Mapping[str, Any], hashes: BundleHashes) -> dict[str, Js
     )
 
 
-def _read(path: Path) -> dict[str, JsonValue]:
-    record = read_sealed(path, FRAME_SET_KIND)
-    require_schema(record, FRAME_SET_SCHEMA_VERSION, path)
-    return record
-
-
 def read_frame_set(data_root: Path, corpus_id: str) -> dict[str, JsonValue]:
     """Return a corpus version's sealed record, refusing a missing or damaged one."""
-    return _read(frame_set_path(data_root, corpus_id))
+    return read_sealed(frame_set_path(data_root, corpus_id), FRAME_SET)
 
 
 def _lines(record: Mapping[str, Any]) -> Lines:
@@ -150,7 +147,8 @@ def commit_frame_set(
     path = frame_set_path(data_root, corpus_id)
     found = _seal_found(corpus, hashes)
     first = not path.exists()
-    _require_match(found if first else _read(path), found, frames_root(data_root, corpus_id))
+    pinned = found if first else read_sealed(path, FRAME_SET)
+    _require_match(pinned, found, frames_root(data_root, corpus_id))
     if first:
         write_sealed(path, found)
     return str(found[SEAL_FIELD]), first
@@ -167,5 +165,5 @@ def require_frame_set(corpus: Mapping[str, Any], hashes: BundleHashes, data_root
             {"corpus_id": corpus_id},
         )
     found = _seal_found(corpus, hashes)
-    _require_match(_read(path), found, frames_root(data_root, corpus_id))
+    _require_match(read_sealed(path, FRAME_SET), found, frames_root(data_root, corpus_id))
     return str(found[SEAL_FIELD])

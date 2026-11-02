@@ -5,8 +5,8 @@ from pathlib import Path
 import pytest
 
 from ss_track.corpus import ImportResult, RefusalCode, amend_source_terms
-from ss_track.corpus.sealed import read_sealed, sha256_file
-from tests.corpus._amending import SOURCE_KIND, evidence, refused
+from ss_track.corpus.sealed import sha256_file
+from tests.corpus._amending import evidence, read_source, refused
 from tests.corpus._media import write_clip
 from tests.corpus.conftest import WriteRecording, reseal
 
@@ -68,7 +68,7 @@ def test_a_declared_hash_finds_the_source_after_the_original_is_gone(
 
     result = amend_source_terms(named, data_root)
 
-    record = read_sealed(result.manifest_path, SOURCE_KIND)
+    record = read_source(result.manifest_path)
     assert isinstance(record["source"], dict)
     assert record["source"]["sha256_declared"] is False
 

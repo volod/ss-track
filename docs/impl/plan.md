@@ -51,7 +51,9 @@ the stored source.
 - Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`,
   `$DATA_DIR/import/<source-sha256>/`.
 - Execution path: Decode the stored copy under the installed policy and re-seal the record under one
-  atomic replace, reusing the lock and `replaced_record_path` in `amendment.py`.
+  atomic replace, reusing the lock and `replaced_record_path` in `amendment.py`. Replace
+  `_DECODE_AGAIN_REMEDY` in that file, which still tells an operator to delete the stored source, with
+  the two flags together.
 - Acceptance gates: A record of an older policy gains the installed one with its stored source
   byte-identical, and `corpus build` of a new version accepts it. A corpus version pinning the old
   record refuses with `SOURCE_RECORD_CHANGED`. A stored source that no longer matches its hash is
@@ -357,8 +359,8 @@ import, build, stage and verify as one path.
 - Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from what
   is already known to repeat: the two `flock` routines and their scratch clearing in `staging.py`
   and `amendment.py`, the `.incoming-` literal in `importer.py` beside `SCRATCH_PREFIX`, the two
-  `PermissionError` handlers for one source read, and the `_rights`, `cli_root` and `_last_record`
-  test helpers. Then compare the refusal table with the codes raised.
+  `PermissionError` handlers for one source read, and the `_rights` test helpers beside `_record` in
+  `tests/test_cli.py`. Then compare the refusal table with the codes raised.
 - Acceptance gates: Each named repetition is merged or kept for a stated reason. The fixed corpus
   keeps its `bundle_sha256` and `frame_set_sha256`, and every refusal code keeps its meaning. Every
   finding is fixed, routed to a task or dropped with its reason, and `make quality` passes. Finding
@@ -366,35 +368,6 @@ import, build, stage and verify as one path.
 - Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
 
 ### Data contracts -- `data-contracts`
-
-#### record-read-gate
-
-Four of nine sealed reads check no schema, an older source is misreported as `IMPORT_CONFLICT`, a
-refusal never says what to do, and an unreadable predecessor fails a successor where section 4.1 says
-it is reported.
-
-- Serves: `data-contracts` -- [Reading older records](../design/spec.md#reading-older-records)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: One read path checks seal, kind and schema for every sealed record, and a
-  refusal states the record, its major, whether it is older or newer, and the remedy.
-- Scope boundary: Exact-version acceptance stays, and so does every refusal code except the import
-  misreport. No registry, view or new dependency. A real record of each historic major enters the
-  tests.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `tests/corpus/records/`.
-- Execution path: Replace the `read_sealed` and `require_schema` pair with one function, covering
-  `generated.py`, the existing-record reads in `builder.py` and `importer.py`, and `host_hashes.py`.
-  Add `not_compared` reason `other_schema` for a predecessor's frames. Keep `amendment.py` able to
-  read the older major it exists to replace, through the same function. Export each historic commit,
-  have its own code write records from a generated clip, and keep only the JSON with a note of the
-  commit, beside the two source records already there.
-- Acceptance gates: A static test finds no sealed read outside the one function. Re-importing over an
-  older source record is `RECORD_SCHEMA_UNSUPPORTED`, naming `--amend-terms` as its remedy, and that
-  command still accepts the record. A successor whose predecessor
-  holds another major's bundle stages and names it under `other_schema`. An older and a newer record
-  are told apart. Each kept historic record refuses by name, with no traceback.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
 
 #### contract-registry
 
@@ -480,7 +453,7 @@ A format stays stated twice, in its contract and in hand-written readers, so the
 - Serves: `data-contracts` -- [Enforcement](../design/spec.md#174-enforcement)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: contract-evolution-gate, record-read-gate.
+- Dependencies: contract-evolution-gate.
 - User-visible outcome: A declaration on read and a record before sealing are checked for structure
   by their contract alone, with the same refusal codes, and a refusal of an old record names the
   migration from its change log.
@@ -492,6 +465,8 @@ A format stays stated twice, in its contract and in hand-written readers, so the
 - Execution path: Keep duplicate-key refusal in the YAML loader, add non-finite refusal and date
   normalization, validate each declaration, validate before `seal`, and reduce `Fields` to typed
   access. Remove the key check in `terms.py`, which stands in for a version the contract now states.
+  Replace `RecordFormat.older_remedy` with the migration text from each change log, so a remedy has
+  one source.
 - Acceptance gates: Every existing refusal code holds across the existing suite. `1.0` as an index, a
   non-finite number, a repeated key and an unquoted date each keep today's result. A writer defect is
   `RECORD_INVALID` before anything is sealed. `corpus verify` on a million-frame index takes no longer
@@ -518,8 +493,11 @@ compared, so the only exit drops `supersedes` and the split guard with it.
   `tests/corpus/`.
 - Execution path: Add the disposition to the registry and read path, then route `lineage.py`,
   `duplicate_frames.py` and the unlinked listing through the projection. Prove it with a synthetic next
-  major of a real contract in the tests. Replace the older-major constant in `amendment.py` with the
-  `facts` disposition, and keep `SEQUENCE_KEYS` as the check that a record holds the current facts.
+  major of a real contract in the tests. Replace the `older_majors` argument and the older-major
+  constant in `amendment.py` with the `facts` disposition, and keep `SEQUENCE_KEYS` as the check that
+  a record holds the current facts. Read a predecessor's bundle through its projection, so
+  `other_schema` means only that no projection exists, and rewrite the older corpus remedy, which warns
+  that nothing checks splits against a version `supersedes` cannot name.
 - Acceptance gates: A view major verifies with its frame-set hash and file bytes unchanged. A
   `facts` major is refused as evidence, stays inspectable, and a move of its source is
   `SPLIT_LEAKAGE` and not a schema refusal. A view that derives a rights field fails a test.

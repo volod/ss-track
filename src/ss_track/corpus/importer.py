@@ -22,6 +22,7 @@ from ss_track.corpus.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.sealed import (
     READ_ONLY_FILE_MODE,
     SEAL_FIELD,
+    RecordFormat,
     canonical_json,
     copy_with_sha256,
     read_sealed,
@@ -30,14 +31,16 @@ from ss_track.corpus.sealed import (
     sha256_file,
     write_sealed,
 )
-from ss_track.corpus.terms import changed_terms
+from ss_track.corpus.terms import AMEND_COMMAND, changed_terms
 from ss_track.corpus.timestamps import assess_timestamps
 
 SOURCE_MANIFEST_KIND = "ss-track.source-manifest"
 SCHEMA_VERSION = RECORDING_SCHEMA_VERSION
 IMPORT_DIRECTORY = "import"
 MANIFEST_NAME = "manifest.json"
-AMEND_COMMAND = "ss-track import --amend-terms"
+SOURCE_MANIFEST = RecordFormat(
+    SOURCE_MANIFEST_KIND, SCHEMA_VERSION, f"record its terms with {AMEND_COMMAND}"
+)
 SEQUENCE_KEYS = frozenset(item.name for item in fields(MediaInspection)) | {
     "frame_count",
     "timestamp_quality",
@@ -147,6 +150,9 @@ def _import_into(
             "source bytes do not match the declared hash",
             {"expected_sha256": expected, "actual_sha256": sha256},
         )
+    target = source_directory(data_root, sha256)
+    if target.exists():  # a record no import can replace must not cost a whole decode first
+        read_sealed(target / MANIFEST_NAME, SOURCE_MANIFEST)
     inspection = inspect_media(stored, policy)
     quality = assess_timestamps(inspection.pts, declaration.capture_clock_evidence)
     if not inspection.completeness_checks:
@@ -154,7 +160,6 @@ def _import_into(
     sealed = seal(_manifest_body(declaration, policy, inspection, quality, sha256, size, stored))
     write_sealed(staged / MANIFEST_NAME, sealed)
     stored.chmod(READ_ONLY_FILE_MODE)
-    target = source_directory(data_root, sha256)
     status = _commit(staged, target, sealed, declaration)
     return ImportResult(
         status=status,
@@ -206,7 +211,7 @@ def _commit(
     if not target.exists():
         staged.rename(target)
         return "imported"
-    existing = read_sealed(target / MANIFEST_NAME, SOURCE_MANIFEST_KIND)
+    existing = read_sealed(target / MANIFEST_NAME, SOURCE_MANIFEST)
     if existing != sealed:
         raise _import_conflict(existing, sealed, declaration)
     if sha256_file(target / sealed["source"]["stored_name"]) != target.name:

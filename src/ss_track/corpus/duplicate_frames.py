@@ -27,6 +27,7 @@ MANIFEST_REMOVED = "manifest_removed"
 NO_FRAME_SET = "no_frame_set"
 BUNDLES_REMOVED = "bundles_removed"
 OTHER_DECODE_POLICY = "other_decode_policy"
+OTHER_SCHEMA = "other_schema"
 
 type Manifest = Mapping[str, Any]
 
@@ -79,6 +80,22 @@ def _indexed(version: Manifest, stream: Mapping[str, Any], data_root: Path) -> S
     return stream_frames(corpus_id, stream, entries)
 
 
+def _comparable(
+    version: Manifest, stream: Mapping[str, Any], data_root: Path
+) -> StreamFrames | None:
+    """Index one predecessor stream, or return None when this code cannot read its bundle's major.
+
+    A format change alone must not fail a successor. Damage still refuses, as it says something
+    about the evidence and not about the tool.
+    """
+    try:
+        return _indexed(version, stream, data_root)
+    except CorpusRefusal as refusal:
+        if refusal.code is not RefusalCode.RECORD_SCHEMA_UNSUPPORTED:
+            raise
+        return None
+
+
 def _linked_versions(
     corpus: Manifest, data_root: Path
 ) -> tuple[list[Manifest], NotCompared | None]:
@@ -107,13 +124,16 @@ def _staged_streams(version: Manifest, policy: str, data_root: Path) -> _ChainSt
         return _ChainStep([], [NotCompared(corpus_id, NO_FRAME_SET)])
     root = frames_root(data_root, corpus_id)
     indexes: list[StreamFrames] = []
-    removed: list[str] = []
+    missed: dict[str, list[str]] = {BUNDLES_REMOVED: [], OTHER_SCHEMA: []}
     for stream in version["streams"]:
-        if (root / stream["stream_id"]).is_dir():
-            indexes.append(_indexed(version, stream, data_root))
+        stream_id = stream["stream_id"]
+        if not (root / stream_id).is_dir():
+            missed[BUNDLES_REMOVED].append(stream_id)
+        elif (indexed := _comparable(version, stream, data_root)) is None:
+            missed[OTHER_SCHEMA].append(stream_id)
         else:
-            removed.append(stream["stream_id"])
-    gaps = [NotCompared(corpus_id, BUNDLES_REMOVED, tuple(removed))] if removed else []
+            indexes.append(indexed)
+    gaps = [NotCompared(corpus_id, why, tuple(ids)) for why, ids in missed.items() if ids]
     if indexes and version["decode_policy_sha256"] != policy:
         gaps.append(NotCompared(corpus_id, OTHER_DECODE_POLICY))
     return _ChainStep(indexes, gaps)

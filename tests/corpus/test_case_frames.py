@@ -15,8 +15,8 @@ from ss_track.corpus import (
     stage_corpus,
     verify_corpus_frames,
 )
-from ss_track.corpus.builder import CORPUS_MANIFEST_KIND
-from ss_track.corpus.frames import FRAME_BUNDLE_KIND, bundle_hash
+from ss_track.corpus.builder import CORPUS_MANIFEST
+from ss_track.corpus.frames import FRAME_BUNDLE, bundle_hash
 from ss_track.corpus.sealed import read_sealed
 from tests.corpus._media import FRAME_COUNT, flat_rgb, write_clip
 from tests.corpus.conftest import (
@@ -268,7 +268,7 @@ def test_verify_reports_each_case_with_its_transform(
 
 def _repoint_parent(bundle: Path, parent_bundle_sha256: str) -> None:
     """Make a self-consistent case record that names other parent frames."""
-    record = read_sealed(bundle / "manifest.json", FRAME_BUNDLE_KIND)
+    record = read_sealed(bundle / "manifest.json", FRAME_BUNDLE)
     identity = record["identity"] | {"parent_bundle_sha256": parent_bundle_sha256}
     bundle.chmod(0o755)
     reseal(bundle / "manifest.json", identity=identity, bundle_sha256=bundle_hash(identity))
@@ -302,7 +302,7 @@ def test_a_stored_case_this_code_cannot_reproduce_refuses_before_any_write(
 ) -> None:
     cases = [case_of("shaken", "camera_shake", 1, _SHAKE)]
     result = build_corpus(write_corpus([stream_of(imported, generated_cases=cases)]), data_root)
-    manifest = read_sealed(result.manifest_path, CORPUS_MANIFEST_KIND)
+    manifest = read_sealed(result.manifest_path, CORPUS_MANIFEST)
     reseal(result.manifest_path, generated_cases=[manifest["generated_cases"][0] | stored])
 
     with pytest.raises(CorpusRefusal) as caught:
@@ -316,7 +316,7 @@ def test_a_bundle_with_a_broken_generated_record_is_tampered(
     imported: ImportResult, write_corpus: WriteCorpus, data_root: Path
 ) -> None:
     root = _stage(imported, write_corpus, data_root, case_of("shaken", "camera_shake", 1, _SHAKE))
-    record = read_sealed(root / "shaken" / "manifest.json", FRAME_BUNDLE_KIND)
+    record = read_sealed(root / "shaken" / "manifest.json", FRAME_BUNDLE)
     identity = {key: value for key, value in record["identity"].items() if key != "recipe"}
     (root / "shaken").chmod(0o755)
     reseal(

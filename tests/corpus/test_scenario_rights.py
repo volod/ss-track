@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 
 from ss_track.corpus import CorpusRefusal, RefusalCode, build_corpus
+from ss_track.corpus.builder import CORPUS_MANIFEST
 from ss_track.corpus.sealed import read_sealed
 from tests.corpus.conftest import (
     WriteCorpus,
@@ -12,8 +13,6 @@ from tests.corpus.conftest import (
     import_clip,
     stream_of,
 )
-
-_CORPUS_KIND = "ss-track.corpus-manifest"
 
 
 def _refused(path: Path, data_root: Path) -> CorpusRefusal:
@@ -126,7 +125,7 @@ def test_a_narrower_scenario_keeps_a_public_source_as_a_recorded_fact(
 
     result = build_corpus(write_corpus([stream_of(source)]), data_root)
 
-    manifest = read_sealed(result.manifest_path, _CORPUS_KIND)
+    manifest = read_sealed(result.manifest_path, CORPUS_MANIFEST)
     streams = manifest["streams"]
     assert isinstance(streams, list) and isinstance(streams[0], dict)
     assert streams[0]["rights"] == _sharing("public")

@@ -15,7 +15,7 @@ from ss_track.corpus import (
     open_frame_bundle,
     stage_corpus,
 )
-from ss_track.corpus.frames import FRAME_BUNDLE_KIND
+from ss_track.corpus.frames import FRAME_BUNDLE
 from ss_track.corpus.sealed import read_sealed, sha256_bytes
 from tests.corpus._media import FRAME_COUNT, HEIGHT, WIDTH, expected_rgb, write_clip
 from tests.corpus.conftest import WriteCorpus, WriteRecording, reseal, stream_of
@@ -31,7 +31,7 @@ def _bundle_path(data_root: Path, sequence: str = "one", corpus: str = _CORPUS) 
 
 
 def _manifest(data_root: Path) -> dict[str, object]:
-    return read_sealed(_bundle_path(data_root) / "manifest.json", FRAME_BUNDLE_KIND)
+    return read_sealed(_bundle_path(data_root) / "manifest.json", FRAME_BUNDLE)
 
 
 def _identity(data_root: Path) -> dict[str, object]:

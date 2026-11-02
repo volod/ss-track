@@ -26,12 +26,9 @@ from ss_track.corpus.grouping import (
 )
 from ss_track.corpus.importer import (
     MANIFEST_NAME,
-    SOURCE_MANIFEST_KIND,
+    SOURCE_MANIFEST,
     decode_policy_sha256,
     source_directory,
-)
-from ss_track.corpus.importer import (
-    SCHEMA_VERSION as SOURCE_SCHEMA_VERSION,
 )
 from ss_track.corpus.lineage import (
     Lineage,
@@ -45,8 +42,8 @@ from ss_track.corpus.recipes import case_records
 from ss_track.corpus.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.sealed import (
     SEAL_FIELD,
+    RecordFormat,
     read_sealed,
-    require_schema,
     seal,
     sha256_file,
     write_sealed,
@@ -56,6 +53,12 @@ from ss_track.corpus.terms import changed_terms, evaluation_date, require_retent
 CORPUS_MANIFEST_KIND = "ss-track.corpus-manifest"
 CORPUS_DIRECTORY = "corpus"
 CAMERA_MODALITY = "camera"
+CORPUS_MANIFEST = RecordFormat(
+    CORPUS_MANIFEST_KIND,
+    CORPUS_SCHEMA_VERSION,
+    "build a new corpus version under a new corpus_id; it cannot name this one in supersedes, so "
+    "nothing checks its splits against this one: keep every source in the split this one gave it",
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -92,9 +95,7 @@ def load_corpus_manifest(corpus_id: str, data_root: Path) -> dict[str, JsonValue
         raise CorpusRefusal(
             RefusalCode.CORPUS_NOT_BUILT, "no such corpus version", {"corpus_id": corpus_id}
         )
-    manifest = read_sealed(path, CORPUS_MANIFEST_KIND)
-    require_schema(manifest, CORPUS_SCHEMA_VERSION, path)
-    return manifest
+    return read_sealed(path, CORPUS_MANIFEST)
 
 
 def build_corpus(
@@ -170,7 +171,8 @@ def require_policy(found: JsonValue, expected: str, origin: str) -> None:
         )
 
 
-def _load_source_record(source_sha256: str, data_root: Path) -> dict[str, JsonValue]:
+def load_source_record(source_sha256: str, data_root: Path) -> dict[str, JsonValue]:
+    """Read one imported source's record, refusing a source that was never imported."""
     manifest_path = source_directory(data_root, source_sha256) / MANIFEST_NAME
     if not manifest_path.is_file():
         raise CorpusRefusal(
@@ -178,14 +180,12 @@ def _load_source_record(source_sha256: str, data_root: Path) -> dict[str, JsonVa
             "the corpus names a source that has not been imported",
             {"source_sha256": source_sha256},
         )
-    manifest = read_sealed(manifest_path, SOURCE_MANIFEST_KIND)
-    require_schema(manifest, SOURCE_SCHEMA_VERSION, manifest_path)
-    return manifest
+    return read_sealed(manifest_path, SOURCE_MANIFEST)
 
 
 def require_source_record(stream: Mapping[str, Any], data_root: Path) -> None:
     """Refuse a stream whose source was re-imported, because the corpus states its old rights."""
-    manifest = _load_source_record(stream["source_sha256"], data_root)
+    manifest = load_source_record(stream["source_sha256"], data_root)
     if manifest[SEAL_FIELD] != stream["source_manifest_sha256"]:
         raise CorpusRefusal(
             RefusalCode.SOURCE_RECORD_CHANGED,
@@ -202,7 +202,7 @@ def require_source_record(stream: Mapping[str, Any], data_root: Path) -> None:
 
 def load_verified_source(source_sha256: str, data_root: Path) -> dict[str, JsonValue]:
     """Load a source record only if both the record and the stored bytes are still intact."""
-    manifest = _load_source_record(source_sha256, data_root)
+    manifest = load_source_record(source_sha256, data_root)
     source = manifest["source"]
     if not isinstance(source, dict):
         raise CorpusRefusal(RefusalCode.RECORD_TAMPERED, "source record has no source section")
@@ -273,7 +273,7 @@ def _commit(target: Path, sealed: dict[str, JsonValue]) -> str:
     if not target.exists():
         write_sealed(target, sealed)
         return "built"
-    existing = read_sealed(target, CORPUS_MANIFEST_KIND)
+    existing = read_sealed(target, CORPUS_MANIFEST)
     if existing != sealed:
         raise CorpusRefusal(
             RefusalCode.CORPUS_CONFLICT,

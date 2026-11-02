@@ -2036,7 +2036,8 @@ reason, named in the result as section 4.1 requires, and it never fails a succes
 
 `RECORD_SCHEMA_UNSUPPORTED` names the contract, the found and accepted majors, whether the record is
 older or newer, its disposition and the remedy from the change log. A newer record is refused, because
-a tool cannot know what a newer field means. A major stays in service with no time limit, while any
+a tool cannot know what a newer field means. A record whose version is not an integer is neither older
+nor newer, and is refused as unstated. A major stays in service with no time limit, while any
 record of it may be retained, and only a contract change retires it. Every major keeps at least one
 real record, written by the code of its era, that the tests read under every later version. A record
 with only its version number changed proves nothing about a format.

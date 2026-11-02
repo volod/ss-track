@@ -12,20 +12,24 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from ss_track.corpus.builder import load_corpus_manifest
+from ss_track.corpus.builder import load_corpus_manifest, load_source_record
 from ss_track.corpus.fields import IDENTIFIER_PATTERN
 from ss_track.corpus.frame_set import read_frame_set
 from ss_track.corpus.frames import FrameBundle, open_corpus_bundle
 from ss_track.corpus.frames import frames_root as bundles_root
-from ss_track.corpus.importer import MANIFEST_NAME, SOURCE_MANIFEST_KIND, source_directory
 from ss_track.corpus.refusal import CorpusRefusal, JsonValue, RefusalCode
-from ss_track.corpus.sealed import SEAL_FIELD, read_sealed, require_schema, seal, write_sealed
+from ss_track.corpus.sealed import SEAL_FIELD, RecordFormat, read_sealed, seal, write_sealed
 from ss_track.corpus.staging import verify_corpus_frames
 
 RUN_DIRECTORY = "run"
 STAGED_HASHES_KIND = "ss-track.staged-hashes"
 STAGED_HASHES_SCHEMA_VERSION = 1
 STAGED_HASHES_NAME = "staged-hashes.json"
+STAGED_HASHES = RecordFormat(
+    STAGED_HASHES_KIND,
+    STAGED_HASHES_SCHEMA_VERSION,
+    "record them again with ss-track corpus hashes on that host",
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -75,8 +79,7 @@ def _frames(bundle: FrameBundle) -> list[JsonValue]:
 
 def _source_facts(source_sha256: str, data_root: Path) -> dict[str, JsonValue]:
     """State what a reader needs to tell which decoder path a difference belongs to."""
-    path = source_directory(data_root, source_sha256) / MANIFEST_NAME
-    manifest: dict[str, Any] = read_sealed(path, SOURCE_MANIFEST_KIND)
+    manifest: dict[str, Any] = load_source_record(source_sha256, data_root)
     sequence = manifest["sequence"]
     return {
         "source_sha256": source_sha256,
@@ -122,6 +125,4 @@ def record_staged_hashes(corpus_id: str, run_id: str, data_root: Path) -> Staged
 
 def read_staged_hashes(path: Path) -> dict[str, Any]:
     """Read one host's record, refusing a damaged one or another schema."""
-    record = read_sealed(path, STAGED_HASHES_KIND)
-    require_schema(record, STAGED_HASHES_SCHEMA_VERSION, path)
-    return record
+    return read_sealed(path, STAGED_HASHES)

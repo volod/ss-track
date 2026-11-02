@@ -13,16 +13,24 @@ from ss_track.corpus import (
     build_corpus,
     stage_corpus,
 )
+from ss_track.corpus.importer import SOURCE_MANIFEST
+from ss_track.corpus.refusal import JsonValue
+from ss_track.corpus.sealed import read_sealed
 from tests.corpus.conftest import WriteCorpus, recording_declaration, stream_of
 
-SOURCE_KIND = "ss-track.source-manifest"
 CORPUS = "pilot-v1"
+_WITHOUT_TERMS = 1
 
 
 def rights_with(**changes: object) -> dict[str, object]:
     rights = recording_declaration()["rights"]
     assert isinstance(rights, dict)
     return rights | changes
+
+
+def read_source(path: Path) -> dict[str, JsonValue]:
+    """Read a source record of either major an amendment handles, as the command itself does."""
+    return read_sealed(path, SOURCE_MANIFEST, older_majors=(_WITHOUT_TERMS,))
 
 
 def refused(run: Callable[[], object], code: RefusalCode) -> CorpusRefusal:

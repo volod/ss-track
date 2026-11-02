@@ -3,7 +3,8 @@
 import hashlib
 import json
 import os
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
+from dataclasses import dataclass
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
@@ -13,7 +14,21 @@ SEAL_FIELD = "manifest_sha256"
 SCRATCH_PREFIX = ".incoming-"
 READ_ONLY_FILE_MODE = 0o444
 READ_ONLY_DIRECTORY_MODE = 0o555
+OLDER = "older"
+NEWER = "newer"
+UNSTATED = "unstated"
 _CHUNK_BYTES = 1024 * 1024
+_NEWER_REMEDY = "install the ss-track version that wrote this record"
+_UNSTATED_REMEDY = "no ss-track version writes this; restore the record from a trusted copy"
+
+
+@dataclass(frozen=True, slots=True)
+class RecordFormat:
+    """One kind of sealed record, the major this code reads, and how to replace an older one."""
+
+    kind: str
+    major: int
+    older_remedy: str
 
 
 def canonical_json(value: Mapping[str, JsonValue]) -> bytes:
@@ -69,33 +84,77 @@ def write_sealed(path: Path, sealed: Mapping[str, JsonValue]) -> None:
     temporary.replace(path)
 
 
-def read_sealed(path: Path, kind: str) -> dict[str, JsonValue]:
-    """Read a record and refuse it unless it is the expected kind and intact."""
-    try:
-        loaded = json.loads(path.read_text(encoding="ascii"))
-    except FileNotFoundError as error:
-        raise _tampered(path, "record is missing") from error
-    except (UnicodeDecodeError, json.JSONDecodeError) as error:
-        raise _tampered(path, f"record is not valid JSON: {error}") from error
-    if not isinstance(loaded, dict):
-        raise _tampered(path, "record is not a JSON object")
-    body = {key: value for key, value in loaded.items() if key != SEAL_FIELD}
-    if body.get("kind") != kind:
-        raise _tampered(path, f"record kind is not {kind}")
-    if loaded.get(SEAL_FIELD) != sha256_bytes(canonical_json(body)):
-        raise _tampered(path, "record content does not match its seal")
-    return loaded
+def read_sealed(
+    path: Path, record_format: RecordFormat, *, older_majors: Collection[int] = ()
+) -> dict[str, JsonValue]:
+    """Read a record through its seal, then its kind, then its major: the only sealed read.
 
-
-def require_schema(record: Mapping[str, JsonValue], expected: int, path: Path) -> None:
-    """Refuse an intact record whose fields mean something else under this code."""
+    Only a command that exists to replace an older record passes `older_majors`, and it then answers
+    for what that major lacks.
+    """
+    record = _read_intact(path)
+    if record.get("kind") != record_format.kind:
+        raise _tampered(path, f"record kind is not {record_format.kind}")
+    accepted = sorted({record_format.major, *older_majors})
     found = record.get("schema_version")
-    if found != expected:
+    if type(found) is not int or found not in accepted:  # True and 1.0 compare equal to 1
+        age = _age(found, record_format.major)
+        remedy = _remedy(age, record_format)
         raise CorpusRefusal(
             RefusalCode.RECORD_SCHEMA_UNSUPPORTED,
-            f"{path.name} uses schema {found}; this version reads schema {expected}",
-            {"record": path.name, "found_schema_version": found, "schema_version": expected},
+            f"{path.name} ({record_format.kind}) has {age} schema {found}; "
+            f"this version reads schema {record_format.major}: {remedy}",
+            schema_details(path, record_format, found, accepted) | {"remedy": remedy},
         )
+    return record
+
+
+def schema_details(
+    path: Path, record_format: RecordFormat, found: JsonValue, accepted: Collection[int]
+) -> dict[str, JsonValue]:
+    """State which record a schema refusal is about, and how its major relates to this code's."""
+    majors: list[JsonValue] = [*sorted(accepted)]
+    return {
+        "record": path.name,
+        "path": str(path),
+        "kind": record_format.kind,
+        "found_schema_version": found,
+        "accepted_schema_versions": majors,
+        "age": _age(found, record_format.major),
+    }
+
+
+def _age(found: JsonValue, major: int) -> str:
+    if type(found) is not int:
+        return UNSTATED
+    return OLDER if found < major else NEWER
+
+
+def _remedy(age: str, record_format: RecordFormat) -> str:
+    if age == OLDER:
+        return record_format.older_remedy
+    return _NEWER_REMEDY if age == NEWER else _UNSTATED_REMEDY
+
+
+def _read_intact(path: Path) -> dict[str, JsonValue]:
+    """Return an object whose seal matches, interpreting nothing else in it.
+
+    `ValueError` covers bad text, bad JSON, an over-long integer and a `NaN`, which `canonical_json`
+    refuses because no record can hold one. Unmatched, those would end in a traceback.
+    """
+    try:
+        loaded = json.loads(path.read_text(encoding="ascii"))
+        if not isinstance(loaded, dict):
+            raise _tampered(path, "record is not a JSON object")
+        body = {key: value for key, value in loaded.items() if key != SEAL_FIELD}
+        seal_matches = loaded.get(SEAL_FIELD) == sha256_bytes(canonical_json(body))
+    except FileNotFoundError as error:
+        raise _tampered(path, "record is missing") from error
+    except (ValueError, RecursionError) as error:
+        raise _tampered(path, f"record is not valid JSON: {error}") from error
+    if not seal_matches:
+        raise _tampered(path, "record content does not match its seal")
+    return loaded
 
 
 def _tampered(path: Path, message: str) -> CorpusRefusal:

@@ -5,10 +5,10 @@ from pathlib import Path
 import pytest
 
 from ss_track.corpus import CorpusRefusal, ImportResult, RefusalCode, build_corpus
+from ss_track.corpus.builder import CORPUS_MANIFEST
 from ss_track.corpus.sealed import read_sealed
 from tests.corpus.conftest import WriteCorpus, encounter_of, group_of, stream_of
 
-_CORPUS_KIND = "ss-track.corpus-manifest"
 _HEAD = {"start_frame": 0, "end_frame": 4}
 _TAIL = {"start_frame": 4, "end_frame": 8}
 type Group = dict[str, object]
@@ -33,7 +33,7 @@ def _single(group_id: str, split: str, encounter: str, stream: dict[str, object]
 
 
 def _streams(path: Path) -> dict[str, dict[str, object]]:
-    records = read_sealed(path, _CORPUS_KIND)["streams"]
+    records = read_sealed(path, CORPUS_MANIFEST)["streams"]
     assert isinstance(records, list)
     return {str(item["stream_id"]): item for item in records}  # type: ignore[call-overload,index,misc]
 

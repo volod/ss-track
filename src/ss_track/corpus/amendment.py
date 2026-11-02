@@ -21,7 +21,7 @@ from ss_track.corpus.importer import (
     MANIFEST_NAME,
     SCHEMA_VERSION,
     SEQUENCE_KEYS,
-    SOURCE_MANIFEST_KIND,
+    SOURCE_MANIFEST,
     changed_facts,
     declared_terms,
     decode_policy_sha256,
@@ -33,7 +33,7 @@ from ss_track.corpus.sealed import (
     SCRATCH_PREFIX,
     SEAL_FIELD,
     read_sealed,
-    require_schema,
+    schema_details,
     seal,
     sha256_file,
     write_sealed,
@@ -47,6 +47,7 @@ _LOCK_NAME = ".amendment.lock"
 _REPLACED_SUFFIX = ".json"
 _SCHEMA_WITHOUT_TERMS = 1  # lacks retain_until and derived_frames, which only an operator can state
 _POLICY_KEYS = frozenset(item.name for item in fields(DecodePolicy))
+_DECODE_AGAIN_REMEDY = "remove this source's import directory and import it again"
 
 
 @dataclass(frozen=True, slots=True)
@@ -126,7 +127,7 @@ def _exclusive_amendment(data_root: Path) -> Iterator[None]:
 
 def _amend(declaration: RecordingDeclaration, sha256: str, directory: Path) -> AmendmentResult:
     path = directory / MANIFEST_NAME
-    existing = read_sealed(path, SOURCE_MANIFEST_KIND)
+    existing = read_sealed(path, SOURCE_MANIFEST, older_majors=(_SCHEMA_WITHOUT_TERMS,))
     _require_amendable(existing, declaration, sha256, path)
     body = {key: value for key, value in existing.items() if key != SEAL_FIELD}
     sealed = seal(body | {"schema_version": SCHEMA_VERSION} | declared_terms(declaration))
@@ -151,10 +152,8 @@ def _amend(declaration: RecordingDeclaration, sha256: str, directory: Path) -> A
 def _require_amendable(
     record: Mapping[str, Any], declaration: RecordingDeclaration, sha256: str, path: Path
 ) -> None:
-    if record.get("schema_version") == _SCHEMA_WITHOUT_TERMS:
-        _require_current_facts(record, sha256)
-    else:
-        require_schema(record, SCHEMA_VERSION, path)
+    if record["schema_version"] == _SCHEMA_WITHOUT_TERMS:
+        _require_current_facts(record, sha256, path)
     facts = changed_facts(record, declaration)
     if facts:
         raise CorpusRefusal(
@@ -164,7 +163,7 @@ def _require_amendable(
         )
 
 
-def _require_current_facts(record: Mapping[str, Any], sha256: str) -> None:
+def _require_current_facts(record: Mapping[str, Any], sha256: str, path: Path) -> None:
     """Refuse an older record that writing forward would leave short of the current major."""
     sequence = record.get("sequence", {}).keys()
     policy = record.get("decode_policy", {}).keys()
@@ -174,7 +173,12 @@ def _require_current_facts(record: Mapping[str, Any], sha256: str) -> None:
         raise CorpusRefusal(
             RefusalCode.RECORD_SCHEMA_UNSUPPORTED,
             "this record lacks decoded facts that an amendment cannot supply",
-            {"source_sha256": sha256, "missing_facts": list(missing)},
+            schema_details(path, SOURCE_MANIFEST, record["schema_version"], [SCHEMA_VERSION])
+            | {
+                "source_sha256": sha256,
+                "missing_facts": list(missing),
+                "remedy": _DECODE_AGAIN_REMEDY,
+            },
         )
 
 

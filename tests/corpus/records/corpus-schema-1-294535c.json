@@ -1,0 +1,50 @@
+{
+  "corpus_id": "pilot-v1",
+  "decode_policy": {
+    "codec_options": {
+      "err_detect": "explode",
+      "flags": "bitexact"
+    },
+    "conversion_flags": "BILINEAR|ACCURATE_RND|BITEXACT|FULL_CHR_H_INT|FULL_CHR_H_INP",
+    "decoder": "pyav",
+    "decoder_version": "19.0.2",
+    "ffmpeg_version": "9.0.2",
+    "format_options": {
+      "err_detect": "explode",
+      "fflags": "nofillin"
+    },
+    "output_pixel_format": "rgb24",
+    "revision": 2,
+    "thread_count": 1
+  },
+  "decode_policy_sha256": "946fa68e3a97ae7c890a13e7329f3bd52d7ffb1cacf8acfd64c990bfd0f9a9b5",
+  "kind": "ss-track.corpus-manifest",
+  "manifest_sha256": "ba8184728ad14673d067f999fe56519211168eaa05d9f812d096447389b04986",
+  "schema_version": 1,
+  "sequences": [
+    {
+      "completeness_checks": [
+        "matroska_segment_size"
+      ],
+      "frame_count": 24,
+      "rights": {
+        "basis": "owned",
+        "holder": "Project Contributors",
+        "retention": "project duration",
+        "sharing": "restricted"
+      },
+      "selection": {
+        "end_frame": 24,
+        "start_frame": 0
+      },
+      "sensitivity": {
+        "level": "low",
+        "notes": null
+      },
+      "sequence_id": "one",
+      "source_manifest_sha256": "cd5956be9372f87d7933c3f5bbb752f2699333e3aff0b9976d3e1846901bc917",
+      "source_sha256": "33d0c1e8a64e92429543829e6861d1f9bcfb4b030cfab2264135c7771d19943d",
+      "timestamp_quality": "derived"
+    }
+  ]
+}

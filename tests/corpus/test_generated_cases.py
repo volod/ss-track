@@ -17,8 +17,8 @@ from ss_track.corpus import (
     open_frame_bundle,
     stage_corpus,
 )
-from ss_track.corpus.builder import CORPUS_MANIFEST_KIND
-from ss_track.corpus.frames import FRAME_BUNDLE_KIND
+from ss_track.corpus.builder import CORPUS_MANIFEST
+from ss_track.corpus.frames import FRAME_BUNDLE
 from ss_track.corpus.sealed import read_sealed
 from ss_track.corpus.transforms import TRANSFORM_REVISIONS
 from tests.corpus._media import FRAME_COUNT, HEIGHT, WIDTH
@@ -63,7 +63,7 @@ def tree_bytes(root: Path) -> dict[str, bytes]:
 
 def corpus_manifest(data_root: Path) -> dict[str, Any]:
     path = data_root / "corpus" / _CORPUS / "manifest.json"
-    return read_sealed(path, CORPUS_MANIFEST_KIND)
+    return read_sealed(path, CORPUS_MANIFEST)
 
 
 @pytest.fixture
@@ -174,10 +174,10 @@ def test_a_case_is_stored_with_parent_transform_seed_and_label_transform(
     assert case["window"] == _WINDOW
     assert case["parameters"] == {"region": _REGION}
     assert case["label_transform"]["inside"] == "fully_occluded"
-    record = read_sealed(staged / "occluded" / "manifest.json", FRAME_BUNDLE_KIND)
+    record = read_sealed(staged / "occluded" / "manifest.json", FRAME_BUNDLE)
     assert record["identity"]["recipe"]["seed"] == 5
     assert record["identity"]["label_transform"] == case["label_transform"]
-    parent = read_sealed(staged / "one" / "manifest.json", FRAME_BUNDLE_KIND)
+    parent = read_sealed(staged / "one" / "manifest.json", FRAME_BUNDLE)
     assert record["identity"]["parent_bundle_sha256"] == parent["bundle_sha256"]
     assert sorted(cases) == sorted(case["case_id"] for case in every_case())
 

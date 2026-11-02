@@ -20,8 +20,9 @@ tasks, their decisions and their acceptance evidence:
 [version lineage](../records/0008-corpus-provenance-corpus-version-lineage.md),
 [frame sets](../records/0009-corpus-provenance-staged-frame-set.md),
 [shared frames](../records/0010-corpus-provenance-duplicate-frame-detection.md),
-[arm64 reproducibility](../records/0011-corpus-provenance-arm64-reproducibility.md) and
-[source terms amendment](../records/0014-corpus-provenance-source-terms-amendment.md).
+[arm64 reproducibility](../records/0011-corpus-provenance-arm64-reproducibility.md),
+[source terms amendment](../records/0014-corpus-provenance-source-terms-amendment.md) and
+[record read gate](../records/0016-data-contracts-record-read-gate.md).
 
 ## Commands
 
@@ -293,9 +294,11 @@ Both commands report what they compared, because a version not compared is unkno
 | `bundles_removed` | These streams have no bundle. The version's other streams were compared |
 | `manifest_removed` | The manifest is gone, and every version behind it is unknown too |
 | `other_decode_policy` | The version was staged under another decoder. A match still refuses, but finding none proves nothing, because its frames may hash differently |
+| `other_schema` | These streams' bundles are of a major this code cannot read, so their frames are unknown. The version's other streams were compared |
 
-A rebuilt predecessor is `CORPUS_CONFLICT`, a damaged record `RECORD_TAMPERED`, and a bundle of
-another stream `BUNDLE_CONFLICT`: those are refused rather than compared. `corpus verify` repeats the
+A rebuilt predecessor is `CORPUS_CONFLICT`, a damaged record `RECORD_TAMPERED`, a bundle of another
+stream `BUNDLE_CONFLICT`, and a predecessor manifest of another major `RECORD_SCHEMA_UNSUPPORTED`:
+those are refused rather than compared. `corpus verify` repeats the
 check because a predecessor staged after its successor was not there to compare with, and that
 successor's frame set stays as it was. The result is never sealed: it depends on what a data root
 holds, and a frame set must not.
@@ -351,8 +354,9 @@ execution or corpus publication. Both new fields are required. Quoted and unquot
 normalize to the same ISO string. Numbers, timestamps, invalid dates and string booleans are refused.
 
 Source manifests now use schema 2. Old source manifests and corpus records missing the new terms
-are refused with `RECORD_SCHEMA_UNSUPPORTED`; their terms are never guessed. An old source record
-gains them through an [amendment](#withdrawing-rights), and a new corpus version then uses it. No
+are refused with `RECORD_SCHEMA_UNSUPPORTED`; their terms are never guessed. A
+[re-import over an old source](#reading-sealed-records) is refused the same way. An old source record
+gains its terms through an [amendment](#withdrawing-rights), and a new corpus version then uses it. No
 automatic migration runs.
 
 The manifest pins each source record. `corpus stage` and `corpus verify` re-read every source record
@@ -416,7 +420,7 @@ until it is decoded again.
 | File that contradicts its declared hash | `SOURCE_HASH_MISMATCH` |
 | File gone and no declared hash | `SOURCE_NOT_FOUND` |
 | Schema 1 record holding every current decoded fact | Gains the terms and schema 2 |
-| Schema 1 record short of a decoded fact | `RECORD_SCHEMA_UNSUPPORTED`, naming `missing_facts` |
+| Schema 1 record short of a decoded fact | `RECORD_SCHEMA_UNSUPPORTED`, naming `missing_facts`, with the only remedy today: remove the import directory and import again |
 | Any newer record | `RECORD_SCHEMA_UNSUPPORTED` |
 
 Every corpus version that pinned the old record then refuses at `corpus stage` and `corpus verify`.
@@ -787,6 +791,48 @@ Duplicate or decreasing PTS is `PTS_NON_INCREASING`, naming the first offending 
 evidence for a stream with missing PTS is `TIMESTAMP_CLAIM_UNSUPPORTED`. Under `nofillin`, AVI and
 MPEG program streams import as `missing`, because they do not store a presentation time per frame.
 
+## Reading sealed records
+
+`read_sealed` in `src/ss_track/corpus/sealed.py` is the one way to read a sealed record, and
+`tests/corpus/test_sealed_reads.py` scans the package so that no module reads around it. It verifies
+the seal, then the kind, then the major, and interprets nothing before the seal has held. Each format
+is one `RecordFormat` beside its writer, holding its kind, the one major this code reads and the
+remedy for an older record. Acceptance is exact: an older major is not read as evidence, and a record
+is never rewritten to fit.
+
+A record of another major is refused with what an operator needs to act on it:
+
+```json
+{"status": "refused", "code": "RECORD_SCHEMA_UNSUPPORTED",
+ "message": "manifest.json (ss-track.source-manifest) has older schema 1; ...",
+ "details": {"record": "manifest.json", "path": ".../import/<sha256>/manifest.json",
+  "kind": "ss-track.source-manifest", "found_schema_version": 1, "accepted_schema_versions": [2],
+  "age": "older", "remedy": "record its terms with ss-track import --amend-terms"}}
+```
+
+| Format | Reads | Remedy for an older record |
+| --- | --- | --- |
+| Source manifest | 2 | `ss-track import --amend-terms` |
+| Corpus manifest | 3 | Build a new corpus version under a new `corpus_id` |
+| Frame bundle, frame set | 3, 1 | Build and stage a new corpus version |
+| Staged hashes | 1 | Run `corpus hashes` again on that host |
+
+`age` is `older`, `newer` or `unstated`. A newer record is refused because this code cannot know what
+a newer field means, and its remedy is to install the version that wrote it. A version that is not a
+true integer is `unstated`, as `True` and `1.0` would otherwise compare equal to 1.
+
+A new corpus version cannot name an older one in `supersedes` yet, so nothing checks its splits
+against that version, and the refusal says so: keep every source in the split it held.
+`record-read-window` in the [plan](../plan.md#record-read-window) removes that exception.
+
+`ss-track import --amend-terms` is the one reader of an older major, because it exists to replace
+that record. A plain import refuses an older record before decoding anything, so the remedy costs no
+decode. A record that fails its seal or does not parse is `RECORD_TAMPERED`, including one holding a
+`NaN` or a number too long to read, which no writer can produce.
+
+`tests/corpus/records/` keeps one real record of every major of every format, each written by the code
+of the commit in its name and listed in its `README.md`, and a test fails when a new major has none.
+
 ## Refusal codes
 
 | Code | Raised when |
@@ -810,10 +856,10 @@ MPEG program streams import as `missing`, because they do not store a presentati
 | `RETENTION_EXPIRED` | The evaluation day is after a source's inclusive retention deadline |
 | `CASE_INVALID` | A generated case does not fit its parent, or changes no frame of it |
 | `TRANSFORM_REVISION_MISMATCH` | A stored case needs a transform revision this code does not provide |
-| `RECORD_TAMPERED` | A manifest is missing, malformed or fails its seal, or a re-import finds changed stored bytes |
-| `RECORD_SCHEMA_UNSUPPORTED` | A source, corpus or bundle uses an unsupported schema, corpus source terms are absent, or an amendment finds a record it cannot write forward |
+| `RECORD_TAMPERED` | A sealed record is missing, malformed, of another kind or fails its seal, or a re-import finds changed stored bytes |
+| `RECORD_SCHEMA_UNSUPPORTED` | [Any sealed record](#reading-sealed-records) is of a major this code does not read, including at a re-import or rebuild over it, corpus source terms are absent, or an amendment finds a record it cannot write forward |
 | `DECODE_POLICY_MISMATCH` | A source or pin uses a decode policy other than the installed one |
-| `IMPORT_CONFLICT` | The same source was imported with another declaration or decoder, or an amendment names bytes with no record or changes more than terms |
+| `IMPORT_CONFLICT` | The same source was imported at the current major with another declaration or decoder, or an amendment names bytes with no record or changes more than terms |
 | `CORPUS_CONFLICT` | The `corpus_id` already exists with different content, or a superseded version differs from the seal its successor pinned, at build, stage or verify |
 | `CORPUS_NOT_BUILT` | The named corpus version or a version of its declared chain does not exist, or the identifier cannot name one |
 | `DECODE_DRIFT` | A staging decode disagrees with the import record of its source |
@@ -906,6 +952,9 @@ and covers verification from the command's exit status to the terms each refusal
 `tests/corpus/test_amend_terms.py`, `test_amend_refusals.py` and `test_amend_records.py` cover the
 amendment from the command to the kept records, including a subprocess killed at each write and real
 schema 1 records from `tests/corpus/records/`, each written by the code of the commit in its name.
+`tests/corpus/test_sealed.py` covers the read path itself and `test_sealed_reads.py` scans for reads
+around it. `test_historic_records.py` runs every kept record through the commands that can reach it,
+and `test_duplicate_frames_major.py` covers a predecessor's bundle of another major.
 `tests/corpus/test_transforms.py`, `test_transform_recipes.py` and `test_transform_golden.py` cover
 each transform on hand-checkable frames and pin its bytes, and `test_recipes.py`,
 `test_generated_cases.py`, `test_case_membership.py` and `test_case_frames.py` cover recipes and
