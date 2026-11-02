@@ -1,9 +1,11 @@
 """`ss-track import`: turn one declared recording into an immutable, hashed source record."""
 
 import logging
-from dataclasses import asdict, dataclass
+from collections.abc import Mapping
+from dataclasses import asdict, dataclass, fields
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import Any
 
 from ss_track.corpus.declaration import (
     RECORDING_SCHEMA_VERSION,
@@ -28,12 +30,19 @@ from ss_track.corpus.sealed import (
     sha256_file,
     write_sealed,
 )
+from ss_track.corpus.terms import changed_terms
 from ss_track.corpus.timestamps import assess_timestamps
 
 SOURCE_MANIFEST_KIND = "ss-track.source-manifest"
 SCHEMA_VERSION = RECORDING_SCHEMA_VERSION
 IMPORT_DIRECTORY = "import"
 MANIFEST_NAME = "manifest.json"
+AMEND_COMMAND = "ss-track import --amend-terms"
+SEQUENCE_KEYS = frozenset(item.name for item in fields(MediaInspection)) | {
+    "frame_count",
+    "timestamp_quality",
+    "capture_clock_evidence",
+}
 _SOURCE_STEM = "source"
 
 _LOG = logging.getLogger(__name__)
@@ -76,10 +85,29 @@ def decoded_facts(inspection: MediaInspection) -> dict[str, JsonValue]:
     return facts
 
 
+def declared_terms(declaration: RecordingDeclaration) -> dict[str, JsonValue]:
+    """Return the only sections of a source record that an operator may change later."""
+    return {
+        "rights": dict(asdict(declaration.rights)),
+        "sensitivity": dict(asdict(declaration.sensitivity)),
+    }
+
+
+def changed_facts(record: Mapping[str, Any], declaration: RecordingDeclaration) -> list[str]:
+    """Name each declared fact, other than the terms, that differs from a source record."""
+    sequence = record.get("sequence", {})
+    changed: list[str] = []
+    if record.get("capture") != declaration.capture:
+        changed.append("capture")
+    if sequence.get("capture_clock_evidence") != declaration.capture_clock_evidence:
+        changed.append("sequence.capture_clock_evidence")
+    return changed
+
+
 def import_source(declaration_path: Path, data_root: Path) -> ImportResult:
     """Import one recording, leaving a complete record or nothing."""
     declaration = load_recording_declaration(declaration_path)
-    _require_regular_file(declaration.source_path)
+    require_regular_file(declaration.source_path)
     if declaration.source_path.stat().st_size == 0:
         raise CorpusRefusal(RefusalCode.SOURCE_EMPTY, "source file has zero length")
     policy = current_decode_policy()
@@ -91,7 +119,8 @@ def import_source(declaration_path: Path, data_root: Path) -> ImportResult:
         return _import_into(declaration, policy, staged, data_root)
 
 
-def _require_regular_file(path: Path) -> None:
+def require_regular_file(path: Path) -> None:
+    """Refuse a declared source that is absent or cannot be read as one file."""
     if not path.exists():
         raise CorpusRefusal(RefusalCode.SOURCE_NOT_FOUND, f"source file not found: {path.name}")
     if not path.is_file():
@@ -126,7 +155,7 @@ def _import_into(
     write_sealed(staged / MANIFEST_NAME, sealed)
     stored.chmod(READ_ONLY_FILE_MODE)
     target = source_directory(data_root, sha256)
-    status = _commit(staged, target, sealed, stored.name)
+    status = _commit(staged, target, sealed, declaration)
     return ImportResult(
         status=status,
         source_sha256=sha256,
@@ -162,8 +191,7 @@ def _manifest_body(
             "size_bytes": size,
             "stored_name": stored.name,
         },
-        "rights": dict(asdict(declaration.rights)),
-        "sensitivity": dict(asdict(declaration.sensitivity)),
+        **declared_terms(declaration),
         "capture": declaration.capture,
         "sequence": sequence,
         "decode_policy": policy_record,
@@ -171,25 +199,42 @@ def _manifest_body(
     }
 
 
-def _commit(staged: Path, target: Path, sealed: dict[str, JsonValue], stored_name: str) -> str:
+def _commit(
+    staged: Path, target: Path, sealed: dict[str, Any], declaration: RecordingDeclaration
+) -> str:
     """Publish a finished directory in one rename, or confirm the one already there."""
     if not target.exists():
         staged.rename(target)
         return "imported"
     existing = read_sealed(target / MANIFEST_NAME, SOURCE_MANIFEST_KIND)
     if existing != sealed:
-        raise CorpusRefusal(
-            RefusalCode.IMPORT_CONFLICT,
-            "this source was already imported with a different declaration or decoder",
-            {
-                "existing_manifest_sha256": existing[SEAL_FIELD],
-                "new_manifest_sha256": sealed[SEAL_FIELD],
-            },
-        )
-    if sha256_file(target / stored_name) != target.name:
+        raise _import_conflict(existing, sealed, declaration)
+    if sha256_file(target / sealed["source"]["stored_name"]) != target.name:
         raise CorpusRefusal(
             RefusalCode.RECORD_TAMPERED,
             "the stored source no longer matches its hash",
             {"source_sha256": target.name},
         )
     return "unchanged"
+
+
+def _import_conflict(
+    existing: Mapping[str, Any], sealed: Mapping[str, Any], declaration: RecordingDeclaration
+) -> CorpusRefusal:
+    """Name the terms that differ, and the command only when it can record the change."""
+    terms = changed_terms(existing, sealed)
+    amendable = terms and not changed_facts(existing, declaration)
+    message = (
+        f"this source was already imported under other terms; record them with {AMEND_COMMAND}"
+        if amendable
+        else "this source was already imported with a different declaration or decoder"
+    )
+    return CorpusRefusal(
+        RefusalCode.IMPORT_CONFLICT,
+        message,
+        {
+            "existing_manifest_sha256": existing[SEAL_FIELD],
+            "new_manifest_sha256": sealed[SEAL_FIELD],
+            "changed_terms": list(terms),
+        },
+    )

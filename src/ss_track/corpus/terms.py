@@ -6,16 +6,18 @@ from typing import Any
 
 from ss_track.corpus.refusal import CorpusRefusal, RefusalCode
 
-_TERM_SECTIONS = ("rights", "sensitivity")
+TERM_SECTIONS = ("rights", "sensitivity")
+_ABSENT = object()
 
 
 def changed_terms(pinned: Mapping[str, Any], current: Mapping[str, Any]) -> list[str]:
     """Name each term that differs, so withdrawn rights read apart from any other new record."""
     changed: list[str] = []
-    for section in _TERM_SECTIONS:
+    for section in TERM_SECTIONS:
         before, after = pinned.get(section, {}), current.get(section, {})
-        keys = sorted(before.keys() | after.keys())
-        changed += [f"{section}.{key}" for key in keys if before.get(key) != after.get(key)]
+        for key in sorted(before.keys() | after.keys()):
+            if before.get(key, _ABSENT) != after.get(key, _ABSENT):
+                changed.append(f"{section}.{key}")
     return changed
 
 

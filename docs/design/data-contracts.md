@@ -152,6 +152,13 @@ Each era's own code wrote real records from one clip, and later code read them.
 Three of five bumps need not have refused anything, two were right to, and one real change had no
 version. A hand-managed integer erred in both directions.
 
+Source schema 1 is itself two formats. Records of `0238d55` lack `sequence.color`,
+`sequence.interlaced_frames`, `sequence.source_bits_per_component` and
+`decode_policy.conversion_flags`, which later schema 1 records hold under the same number. Every real
+schema 1 record also predates policy revision 3, so a `facts` source record is normally stranded by
+its decoder as well as its terms. The amendment accepts a record only with the current decoded facts,
+and an amended later record is byte-identical to one the first schema 2 code writes.
+
 | Case on current code | Result |
 | --- | --- |
 | `stage`, `verify` and `hashes` on any older era | `RECORD_SCHEMA_UNSUPPORTED`, as designed |

@@ -28,32 +28,6 @@ extensions; none blocks M3. Fixture implementation proceeds without physical har
 
 ### Corpus provenance -- `corpus-provenance`
 
-#### source-terms-amendment (optional)
-
-Changed terms cannot be recorded: `import` refuses them as `IMPORT_CONFLICT` and the corpus keeps
-verifying, until an operator deletes a sealed record by hand, and the stored source with it.
-
-- Serves: `corpus-provenance` -- [Corpus
-  identity](../design/spec.md#41-corpus-identity-and-input-handling)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: `ss-track import --amend-terms` records new rights and sensitivity for an
-  imported source, and every corpus version pinning the old record then refuses. A plain import of
-  changed terms names the terms that differ and this command.
-- Scope boundary: Rights and sensitivity of one imported source, for the same bytes and decoder,
-  including a record of a `facts` major that lacks required terms. Stored bytes stay untouched and
-  nothing is decoded. The replaced record is kept beside the new one. Frames stay on disk.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`,
-  `$DATA_DIR/import/<source-sha256>/`.
-- Execution path: Add the flag to `import`, re-seal the existing record with the declared terms under
-  one atomic replace, and keep the replaced record under its own seal.
-- Acceptance gates: A source amended to `restricted` makes `corpus verify` refuse with
-  `SOURCE_RECORD_CHANGED`, with its stored source byte-identical. A declaration that changes the file,
-  capture facts or decoder stays `IMPORT_CONFLICT`. A repeat reports `unchanged`, an interrupted
-  amendment leaves one whole record, and a replaced record stays readable.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
 #### decode-policy-reimport (optional)
 
 A new decode policy strands every import: `corpus build` refuses the old record with
@@ -67,17 +41,21 @@ the stored source.
 - Dependencies: none.
 - User-visible outcome: `ss-track import --redecode` records an imported source under the installed
   decode policy from its stored bytes, and every corpus version pinning the old record then refuses.
+  A record with no terms to carry is refused and names `--amend-terms`.
 - Scope boundary: One imported source. Its stored bytes, rights, sensitivity and capture facts carry
   over unchanged, and the replaced record is kept beside the new one. Corpus versions are not rebuilt,
-  and frames stay on disk.
+  and frames stay on disk. Terms are never invented: `--redecode` carries them, and only a record too
+  old for `--amend-terms` alone takes them from a declaration, through both flags together.
 - Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`,
   `$DATA_DIR/import/<source-sha256>/`.
 - Execution path: Decode the stored copy under the installed policy and re-seal the record under one
-  atomic replace, keeping the replaced record under its own seal.
+  atomic replace, reusing the lock and `replaced_record_path` in `amendment.py`.
 - Acceptance gates: A record of an older policy gains the installed one with its stored source
   byte-identical, and `corpus build` of a new version accepts it. A corpus version pinning the old
   record refuses with `SOURCE_RECORD_CHANGED`. A stored source that no longer matches its hash is
-  refused, a repeat reports `unchanged`, and an interrupted run leaves one whole record.
+  refused, a repeat reports `unchanged`, and an interrupted run leaves one whole record. The real
+  `tests/corpus/records/` schema 1 record of `d6b704d`, amended and then re-decoded, builds, and the
+  one of `0238d55` builds through both flags together with no term invented.
 - Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
 
 #### group-repeated-frames (optional)
@@ -125,6 +103,29 @@ split, and its build says only that it has no lineage.
 - Acceptance gates: A source placed in `locked` by an unlinked version and by a sibling branch are
   each listed with both versions, and both builds succeed. One state gives one listing in one order,
   and a version in the declared chain is never listed.
+- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
+
+#### amendment-impact-report (optional)
+
+After `--amend-terms` an operator learns which corpus versions hold the affected frames only by running
+`corpus verify` on each, and a version nobody verifies stays unnoticed with its frames on disk.
+
+- Serves: `corpus-provenance` -- [Corpus
+  identity](../design/spec.md#41-corpus-identity-and-input-handling)
+- Agent status: CLEAR
+- Milestone: M1
+- Dependencies: none.
+- User-visible outcome: `ss-track import --amend-terms` lists every corpus version on its data root
+  that pins the replaced record, with its frames directory, for an operator's decision.
+- Scope boundary: A report on one data root that refuses nothing and removes nothing, and never fails
+  an amendment that is already recorded. Other hosts stay out of reach.
+- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/corpus/`.
+- Execution path: Scan `$DATA_DIR/corpus/*/manifest.json` for streams pinning the replaced seal, sharing
+  the scan with `unlinked-version-report` when that exists, reading every major through its projection
+  once `record-read-window` provides one, and naming a manifest it cannot read rather than skipping it.
+- Acceptance gates: A source pinned by two versions lists both, a version pinning another record is
+  not listed, an unreadable manifest is named and the amendment still records, and a repeat reporting
+  `unchanged` lists nothing. One state gives one listing in one order.
 - Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
 
 #### case-preview (optional)
@@ -353,11 +354,13 @@ it is reported.
 - Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `tests/corpus/records/`.
 - Execution path: Replace the `read_sealed` and `require_schema` pair with one function, covering
   `generated.py`, the existing-record reads in `builder.py` and `importer.py`, and `host_hashes.py`.
-  Add `not_compared` reason `other_schema` for a predecessor's frames. Export each historic commit,
+  Add `not_compared` reason `other_schema` for a predecessor's frames. Keep `amendment.py` able to
+  read the older major it exists to replace, through the same function. Export each historic commit,
   have its own code write records from a generated clip, and keep only the JSON with a note of the
-  commit.
+  commit, beside the two source records already there.
 - Acceptance gates: A static test finds no sealed read outside the one function. Re-importing over an
-  older source record is `RECORD_SCHEMA_UNSUPPORTED`, naming its remedy. A successor whose predecessor
+  older source record is `RECORD_SCHEMA_UNSUPPORTED`, naming `--amend-terms` as its remedy, and that
+  command still accepts the record. A successor whose predecessor
   holds another major's bundle stages and names it under `other_schema`. An older and a newer record
   are told apart. Each kept historic record refuses by name, with no traceback.
 - Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
@@ -484,7 +487,8 @@ compared, so the only exit drops `supersedes` and the split guard with it.
   `tests/corpus/`.
 - Execution path: Add the disposition to the registry and read path, then route `lineage.py`,
   `duplicate_frames.py` and the unlinked listing through the projection. Prove it with a synthetic next
-  major of a real contract in the tests. Rights amendments stay with `source-terms-amendment`.
+  major of a real contract in the tests. Replace the older-major constant in `amendment.py` with the
+  `facts` disposition, and keep `SEQUENCE_KEYS` as the check that a record holds the current facts.
 - Acceptance gates: A view major verifies with its frame-set hash and file bytes unchanged. A
   `facts` major is refused as evidence, stays inspectable, and a move of its source is
   `SPLIT_LEAKAGE` and not a schema refusal. A view that derives a rights field fails a test.

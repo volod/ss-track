@@ -283,16 +283,25 @@ a wider right, and the refusal names the rights and sensitivity terms that diffe
 compares records: it does not establish that a declaration is true, and it cannot see a withdrawal
 nobody recorded.
 
-An imported record is immutable, so an ordinary import that declares other terms is refused and
-records nothing. Changed terms are recorded by an explicit amendment, which replaces only the rights
-and sensitivity of a record, keeps the stored bytes untouched and retains the replaced record. Every
-corpus version that pins the old record then refuses at staging and verification. An amendment
-deletes no frames.
+An imported record is immutable, so an ordinary import that declares other terms is refused, names
+the terms that differ and records nothing. Changed terms are recorded by an explicit amendment, which
+replaces only the rights and sensitivity of a record, keeps the stored bytes untouched and retains the
+replaced record. Every corpus version that pins the old record then refuses at staging and
+verification, and the amendment lists the versions on its data root that do. An amendment deletes no
+frames and reaches one data root.
+
+A withdrawal must stay recordable after the material is removed and must never need a decode of the
+material it withdraws. An amendment therefore finds its source by the bytes or by a declared hash,
+does not read the stored copy and does not consult the installed decoder. The record keeps the decode
+policy it states, and a build refuses it until it is decoded again. A record that predates required
+terms gains them and the current major this way, because only an operator can state them. A record
+that also lacks decoded facts of the current major cannot, because no declaration states those, and
+it needs both routes at once.
 
 A record states the decode policy that produced it, so a new policy needs the stored bytes decoded
 again under an explicit re-import, which carries the record's terms over, keeps the replaced record and
-has the same effect on corpus versions pinning it. Until that exists, a new policy needs a fresh data
-root.
+has the same effect on corpus versions pinning it. A record with no terms to carry is refused and names
+the amendment, and no term is invented. Until that exists, a new policy needs a fresh data root.
 
 ### 4.2 Annotation contract
 

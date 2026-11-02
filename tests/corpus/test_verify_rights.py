@@ -1,7 +1,7 @@
 """`corpus verify` proves the recorded rights still hold, not only that frames are intact.
 
-Import refuses to change an imported source, so these fixtures replace a record the way an operator
-must: remove the source's directory and import it again, through the real importer.
+Terms change through the real amendment. A record that changes in anything else has no command, so
+those fixtures remove the source's directory and import it again, through the real importer.
 """
 
 import json
@@ -18,6 +18,7 @@ from ss_track.corpus import (
     CorpusRefusal,
     ImportResult,
     RefusalCode,
+    amend_source_terms,
     build_corpus,
     import_source,
     stage_corpus,
@@ -76,7 +77,7 @@ def cli_root(
     return data_root
 
 
-def test_a_source_reimported_as_restricted_refuses_and_exits_one(
+def test_a_source_amended_to_restricted_refuses_and_exits_one(
     clip: Path,
     write_recording: WriteRecording,
     write_corpus: WriteCorpus,
@@ -89,7 +90,7 @@ def test_a_source_reimported_as_restricted_refuses_and_exits_one(
     stage_corpus(_CORPUS, cli_root)
     assert main(["corpus", "verify", "--corpus", _CORPUS]) == EXIT_OK
 
-    closed = _reimport(shared, write_recording(rights=_rights(sharing="restricted")), cli_root)
+    closed = amend_source_terms(write_recording(rights=_rights(sharing="restricted")), cli_root)
 
     assert main(["corpus", "verify", "--corpus", _CORPUS]) == EXIT_REFUSED
     refusal = _last_record(caplog)
@@ -163,7 +164,7 @@ def test_the_refusal_names_every_term_that_changed(
 ) -> None:
     _staged(imported, write_corpus, data_root)
 
-    _reimport(imported, write_recording(**declared), data_root)
+    amend_source_terms(write_recording(**declared), data_root)
 
     refusal = _refused(data_root, RefusalCode.SOURCE_RECORD_CHANGED)
     assert refusal.details["changed_terms"] == changed
@@ -194,7 +195,7 @@ def test_withdrawing_derivation_refuses_the_cases_of_a_staged_corpus(
     stage_corpus(_CORPUS, data_root)
     assert verify_corpus_frames(_CORPUS, data_root).status == "verified"
 
-    _reimport(imported, write_recording(rights=_rights(derived_frames=False)), data_root)
+    amend_source_terms(write_recording(rights=_rights(derived_frames=False)), data_root)
 
     refusal = _refused(data_root, RefusalCode.SOURCE_RECORD_CHANGED)
     assert refusal.details["changed_terms"] == ["rights.derived_frames"]
@@ -222,12 +223,12 @@ def test_a_new_corpus_version_carries_the_withdrawn_rights_and_the_old_one_stays
     build_corpus(public, data_root)
     stage_corpus(_CORPUS, data_root)
 
-    closed = _reimport(shared, write_recording(rights=_rights(sharing="restricted")), data_root)
+    amend_source_terms(write_recording(rights=_rights(sharing="restricted")), data_root)
 
     with pytest.raises(CorpusRefusal) as caught:
         build_corpus(public, data_root)
     assert caught.value.code is RefusalCode.RIGHTS_CONFLICT
-    build_corpus(write_corpus([stream_of(closed)], corpus_id="pilot-v2"), data_root)
+    build_corpus(write_corpus([stream_of(shared)], corpus_id="pilot-v2"), data_root)
     stage_corpus("pilot-v2", data_root)
     assert verify_corpus_frames("pilot-v2", data_root).status == "verified"
     _refused(data_root, RefusalCode.SOURCE_RECORD_CHANGED)
@@ -280,7 +281,7 @@ def test_every_source_of_a_corpus_is_checked(
     stage_corpus(_CORPUS, data_root)
     sharing = _rights(sharing="public")
 
-    _reimport(second, write_recording("clip-4.mkv", rights=sharing), data_root)
+    amend_source_terms(write_recording("clip-4.mkv", rights=sharing), data_root)
 
     refusal = _refused(data_root, RefusalCode.SOURCE_RECORD_CHANGED)
     assert refusal.details["stream_id"] == "b"
@@ -307,7 +308,7 @@ def test_a_changed_record_refuses_before_any_frame_is_hashed(
     frame.chmod(0o644)
     frame.write_bytes(b"corrupted")
 
-    _reimport(imported, write_recording(sensitivity={"level": "high"}), data_root)
+    amend_source_terms(write_recording(sensitivity={"level": "high"}), data_root)
 
     _refused(data_root, RefusalCode.SOURCE_RECORD_CHANGED)
 
@@ -331,7 +332,7 @@ def test_stage_and_verify_refuse_a_changed_record_the_same_way(
     data_root: Path,
 ) -> None:
     _staged(imported, write_corpus, data_root)
-    _reimport(imported, write_recording(sensitivity={"level": "high"}), data_root)
+    amend_source_terms(write_recording(sensitivity={"level": "high"}), data_root)
 
     for action in (stage_corpus, verify_corpus_frames):
         with pytest.raises(CorpusRefusal) as caught:

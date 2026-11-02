@@ -22,6 +22,11 @@ makes it fail, and what it does not prove. A case with no task left is listed as
   them.
   Value: protects=no leakage across splits; fails_when=a stream crosses a split; no_claim=grouping
   judgment on real footage.
+- A source amended to `restricted` after staging refuses its corpus with its stored source
+  byte-identical, a changed file or capture fact stays a conflict, a killed amendment leaves one whole
+  record, and a real schema 1 record gains terms and the current major. `tests/corpus/` covers them.
+  Value: protects=a withdrawal that can be recorded; fails_when=stored bytes change, an amendment
+  carries more than terms, or a term is invented; no_claim=removal of frames already staged.
 - A generated case rerun with one seed stays byte-identical, stays in its parent's encounter and split
   and adds nothing to any evidence count. `tests/corpus/` covers them.
   Value: protects=reproducible cases that are not encounters; fails_when=a case counts as new
@@ -51,10 +56,9 @@ makes it fail, and what it does not prove. A case with no task left is listed as
 - `corpus-verify-rights`: a source re-imported under narrower rights after staging.
   Value: protects=a verified corpus means valid rights; fails_when=verify passes on withdrawn rights;
   no_claim=the truth of a declaration.
-- `source-terms-amendment`: a source amended to `restricted` after staging, and a changed file
-  declared as an amendment.
-  Value: protects=a withdrawal that can be recorded; fails_when=stored bytes change or an amendment
-  carries more than terms; no_claim=removal of frames already staged.
+- `amendment-impact-report`: a source pinned by two versions, and an unreadable manifest.
+  Value: protects=a withdrawal that reaches every copy on a data root; fails_when=a pinning version
+  goes unlisted or a listing fails a recorded amendment; no_claim=other hosts.
 - `corpus-version-lineage`: a source moved between splits or groups, a source dropped and brought back
   elsewhere, a group changing split with new sources, and a source added, across linked versions.
   Value: protects=split isolation over time; fails_when=a moved source builds, or a replaced

@@ -18,5 +18,6 @@ Copy the [template](template.md) using the
 | 0011 | `arm64-reproducibility` | [0011-corpus-provenance-arm64-reproducibility](0011-corpus-provenance-arm64-reproducibility.md) |
 | 0012 | `data-contract-and-telemetry-design` | [0012-adhoc-data-contract-and-telemetry-design](0012-adhoc-data-contract-and-telemetry-design.md) |
 | 0013 | `record-version-refusal` | [0013-adhoc-record-version-refusal](0013-adhoc-record-version-refusal.md) |
+| 0014 | `source-terms-amendment` | [0014-corpus-provenance-source-terms-amendment](0014-corpus-provenance-source-terms-amendment.md) |
 
-Next unused sequence: `0014`.
+Next unused sequence: `0015`.

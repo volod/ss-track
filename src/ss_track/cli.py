@@ -7,6 +7,7 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 
 from ss_track.corpus import (
+    AmendmentResult,
     BuildResult,
     ComparisonResult,
     CorpusRefusal,
@@ -14,6 +15,7 @@ from ss_track.corpus import (
     ImportResult,
     RefusalCode,
     StagedHashesResult,
+    amend_source_terms,
     compare_staged_hashes,
     record_staged_hashes,
     stage_corpus,
@@ -40,7 +42,12 @@ def _refuse(refusal: CorpusRefusal) -> int:
 
 
 type CorpusResult = (
-    ImportResult | BuildResult | FramesResult | StagedHashesResult | ComparisonResult
+    ImportResult
+    | AmendmentResult
+    | BuildResult
+    | FramesResult
+    | StagedHashesResult
+    | ComparisonResult
 )
 
 
@@ -63,7 +70,8 @@ def _run_info(_: argparse.Namespace) -> int:
 
 
 def _run_import(args: argparse.Namespace) -> int:
-    return _report(lambda data_root: run_import(args.source, data_root))
+    action = amend_source_terms if args.amend_terms else run_import
+    return _report(lambda data_root: action(args.source, data_root))
 
 
 def _run_corpus_build(args: argparse.Namespace) -> int:
@@ -98,6 +106,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     source = subcommands.add_parser("import", help="import one declared recording")
     source.add_argument("--source", type=Path, required=True, help="recording declaration (YAML)")
+    source.add_argument(
+        "--amend-terms",
+        action="store_true",
+        help="record new rights and sensitivity for an imported source",
+    )
     source.set_defaults(handler=_run_import)
 
     corpus = subcommands.add_parser("corpus", help="manage corpus versions")

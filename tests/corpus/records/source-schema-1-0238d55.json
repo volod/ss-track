@@ -1,0 +1,100 @@
+{
+  "capture": {
+    "background": null,
+    "camera": null,
+    "camera_control_mode": null,
+    "exposure": null,
+    "focus": null,
+    "fov": null,
+    "lens": null,
+    "lighting": null,
+    "motion": null,
+    "object_pixel_extent": null,
+    "range": {
+      "method": null,
+      "status": "unknown",
+      "value_m": null
+    }
+  },
+  "decode_policy": {
+    "codec_options": {
+      "err_detect": "explode",
+      "flags": "bitexact"
+    },
+    "decoder": "pyav",
+    "decoder_version": "19.0.2",
+    "ffmpeg_version": "9.0.2",
+    "format_options": {
+      "err_detect": "explode",
+      "fflags": "nofillin"
+    },
+    "output_pixel_format": "rgb24",
+    "revision": 1,
+    "thread_count": 1
+  },
+  "decode_policy_sha256": "e092220202e6f1fa42055f9f7aa48a9019a7bcf6de40cfeea2c7f7cce463b90d",
+  "kind": "ss-track.source-manifest",
+  "manifest_sha256": "e8dfabed1c9bf0e093a201889b303ea4fa3ce26aa4beae7e7cd64a16a6971bb9",
+  "rights": {
+    "basis": "owned",
+    "holder": "Project Contributors",
+    "retention": "project duration",
+    "sharing": "public"
+  },
+  "schema_version": 1,
+  "sensitivity": {
+    "level": "low",
+    "notes": null
+  },
+  "sequence": {
+    "capture_clock_evidence": null,
+    "codec": "mjpeg",
+    "completeness_checks": [
+      "matroska_segment_size"
+    ],
+    "container": "matroska,webm",
+    "decoded_height": 48,
+    "decoded_width": 64,
+    "discarded_frames": 0,
+    "display_rotation_degrees": 0,
+    "frame_count": 24,
+    "original_height": 48,
+    "original_width": 64,
+    "pts": [
+      0,
+      40,
+      80,
+      120,
+      160,
+      200,
+      240,
+      280,
+      320,
+      360,
+      400,
+      440,
+      480,
+      520,
+      560,
+      600,
+      640,
+      680,
+      720,
+      760,
+      800,
+      840,
+      880,
+      920
+    ],
+    "source_pixel_format": "yuvj420p",
+    "time_base": "1/1000",
+    "timestamp_quality": "derived",
+    "video_stream_count": 1
+  },
+  "source": {
+    "sha256": "21e4e48e3fac446ae59b95f6299e6e7a1627529402dabe26c09b91511896b122",
+    "sha256_declared": false,
+    "size_bytes": 10027,
+    "stored_name": "source.mkv"
+  }
+}

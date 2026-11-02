@@ -19,13 +19,15 @@ tasks, their decisions and their acceptance evidence:
 [rights verification](../records/0007-corpus-provenance-corpus-verify-rights.md),
 [version lineage](../records/0008-corpus-provenance-corpus-version-lineage.md),
 [frame sets](../records/0009-corpus-provenance-staged-frame-set.md),
-[shared frames](../records/0010-corpus-provenance-duplicate-frame-detection.md) and
-[arm64 reproducibility](../records/0011-corpus-provenance-arm64-reproducibility.md).
+[shared frames](../records/0010-corpus-provenance-duplicate-frame-detection.md),
+[arm64 reproducibility](../records/0011-corpus-provenance-arm64-reproducibility.md) and
+[source terms amendment](../records/0014-corpus-provenance-source-terms-amendment.md).
 
 ## Commands
 
 ```bash
 ss-track import --source recording.yaml
+ss-track import --source recording.yaml --amend-terms
 ss-track corpus build --manifest corpus.yaml
 ss-track corpus stage --corpus pilot-v1
 ss-track corpus verify --corpus pilot-v1
@@ -109,6 +111,8 @@ groups:
 | --- | --- |
 | `$DATA_DIR/import/<source-sha256>/source<ext>` | Read-only copy of the source bytes |
 | `$DATA_DIR/import/<source-sha256>/manifest.json` | Sealed source manifest |
+| `$DATA_DIR/import/<source-sha256>/replaced/<manifest-sha256>.json` | Each record an amendment replaced, under its own seal |
+| `$DATA_DIR/import/.amendment.lock` | Empty lock that serializes amendments |
 | `$DATA_DIR/corpus/<corpus-id>/manifest.json` | Sealed corpus manifest |
 | `$DATA_DIR/corpus/<corpus-id>/frame-set.json` | Sealed record of every staged bundle |
 | `$DATA_DIR/corpus/<corpus-id>/frames/<stream-id>/` | One read-only frame bundle |
@@ -124,7 +128,7 @@ A sealed manifest carries `manifest_sha256`, a SHA-256 of its canonical JSON. It
 or filesystem path, so the same source, declaration and decoder give identical bytes in any process.
 Repeating an import or a build reports `unchanged`. Changing the declaration or the decoder for an
 imported source is `IMPORT_CONFLICT`, and redefining a corpus is `CORPUS_CONFLICT`: a change needs a
-new corpus version.
+new corpus version. Changed terms alone are [recorded by an amendment](#withdrawing-rights).
 
 A source manifest records the hash and size, whether the hash was declared, rights, sensitivity,
 capture facts, the decode policy and the sequence: container, codec, original and decoded dimensions,
@@ -347,9 +351,9 @@ execution or corpus publication. Both new fields are required. Quoted and unquot
 normalize to the same ISO string. Numbers, timestamps, invalid dates and string booleans are refused.
 
 Source manifests now use schema 2. Old source manifests and corpus records missing the new terms
-are refused with `RECORD_SCHEMA_UNSUPPORTED`; their terms are never guessed. Existing imports are
-immutable, so migration requires explicitly declaring the terms and importing into a fresh data root
-(or operator-managed replacement), then building a new corpus version. No automatic migration runs.
+are refused with `RECORD_SCHEMA_UNSUPPORTED`; their terms are never guessed. An old source record
+gains them through an [amendment](#withdrawing-rights), and a new corpus version then uses it. No
+automatic migration runs.
 
 The manifest pins each source record. `corpus stage` and `corpus verify` re-read every source record
 before writing, skipping or hashing anything, and a record that differs is `SOURCE_RECORD_CHANGED`,
@@ -374,22 +378,54 @@ its directory is removed. Otherwise a missing record is `SOURCE_NOT_IMPORTED`, a
 
 ### Withdrawing rights
 
-`ss-track import` cannot change an imported record. Declaring other terms for an imported source is
-`IMPORT_CONFLICT`, which records nothing, so the corpus goes on verifying. Recording a withdrawal
-today means replacing the record by hand. That also deletes the stored source, so copy it out first
-when it is the only copy:
+`ss-track import` never changes an imported record. Declaring other terms for an imported source is
+`IMPORT_CONFLICT`, which records nothing, names each term in `changed_terms` and, when only terms
+differ, names the command that records them:
 
 ```bash
-cp "$DATA_DIR/import/<source-sha256>/source.mkv" clip.mkv  # only when no other copy exists
-rm -rf "$DATA_DIR/import/<source-sha256>"
-ss-track import --source recording.yaml                    # now declaring the new terms
+ss-track import --source recording.yaml --amend-terms      # now declaring the new terms
 ```
+
+```json
+{"status": "amended", "changed_terms": ["rights.sharing"], "decode_policy_current": true,
+ "manifest_sha256": "...", "replaced_manifest_sha256": "...", "replaced_path": "...",
+ "source_sha256": "...", "manifest_path": "..."}
+```
+
+`src/ss_track/corpus/amendment.py` replaces `rights` and `sensitivity` and writes the current schema.
+Every other section is carried from the existing record, so an amended record equals a fresh import of
+the same declaration under the same decoder. It keeps the old record in `replaced/` first and then
+replaces the manifest by one rename, so a run killed at any point leaves one whole record and a rerun
+finishes it. A repeat reports `unchanged`. Restoring the old terms restores the old seal, so a version
+pinning it verifies again. Amendments carry no date, so the kept records have no recorded order.
+
+An amendment finds its source by the bytes at `source.path`, or by a declared `source.sha256` once the
+original has gone. With the file present the two must agree, as in a plain import. It does not read
+the stored copy, so a withdrawal stays recordable after that copy is removed. `corpus build` hashes it
+again regardless. `sha256_declared` is carried over, because it states what import was told.
+
+It does not consult the installed decoder either, because a withdrawal must not wait for a decode of
+the material it withdraws. The record keeps its policy and `decode_policy_current` reports whether that
+is the installed one. When it is not, `corpus build` refuses the record with `DECODE_POLICY_MISMATCH`
+until it is decoded again.
+
+| Declaration or record | Result |
+| --- | --- |
+| Bytes with no import record | `IMPORT_CONFLICT`, and nothing is imported |
+| Changed `capture` or capture-clock evidence | `IMPORT_CONFLICT`, naming `changed_facts` |
+| File that contradicts its declared hash | `SOURCE_HASH_MISMATCH` |
+| File gone and no declared hash | `SOURCE_NOT_FOUND` |
+| Schema 1 record holding every current decoded fact | Gains the terms and schema 2 |
+| Schema 1 record short of a decoded fact | `RECORD_SCHEMA_UNSUPPORTED`, naming `missing_facts` |
+| Any newer record | `RECORD_SCHEMA_UNSUPPORTED` |
 
 Every corpus version that pinned the old record then refuses at `corpus stage` and `corpus verify`.
 Rebuilding it is `RIGHTS_CONFLICT` if its scenario now asks too much, or `CORPUS_CONFLICT`, so
-continuing needs a new corpus version. Its frames stay on disk until an operator removes them.
-`source-terms-amendment` in the [plan](../plan.md#source-terms-amendment-optional) schedules a command
-for this.
+continuing needs a new corpus version, which may supersede the refused one. Its frames stay on disk
+until an operator removes them, and `amendment-impact-report` in the
+[plan](../plan.md#amendment-impact-report-optional) schedules a listing of the versions that hold them.
+An amendment reaches one data root: another host keeps its record until it is amended there, and
+`corpus compare` reports the difference.
 
 Verification compares records. It does not establish that a declaration is true, and a withdrawal
 nobody recorded stays invisible to it.
@@ -436,9 +472,9 @@ killed recording with no `moov` as `SOURCE_UNREADABLE`.
 
 A record states the policy that produced it. A new policy revision therefore refuses every earlier
 record: `corpus build` and `corpus stage` with `DECODE_POLICY_MISMATCH`, and `import` of the same
-source with `IMPORT_CONFLICT`. A new policy needs a fresh data root today, and
-`decode-policy-reimport` in the [plan](../plan.md#decode-policy-reimport-optional) schedules a route
-that keeps the stored source.
+source with `IMPORT_CONFLICT`. An [amendment](#withdrawing-rights) still records new terms, and the
+record keeps its policy. A new policy needs a fresh data root today, and `decode-policy-reimport` in
+the [plan](../plan.md#decode-policy-reimport-optional) schedules a route that keeps the stored source.
 
 ## Frame bundles
 
@@ -775,9 +811,9 @@ MPEG program streams import as `missing`, because they do not store a presentati
 | `CASE_INVALID` | A generated case does not fit its parent, or changes no frame of it |
 | `TRANSFORM_REVISION_MISMATCH` | A stored case needs a transform revision this code does not provide |
 | `RECORD_TAMPERED` | A manifest is missing, malformed or fails its seal, or a re-import finds changed stored bytes |
-| `RECORD_SCHEMA_UNSUPPORTED` | A source, corpus or bundle uses an unsupported schema, or corpus source terms are absent |
+| `RECORD_SCHEMA_UNSUPPORTED` | A source, corpus or bundle uses an unsupported schema, corpus source terms are absent, or an amendment finds a record it cannot write forward |
 | `DECODE_POLICY_MISMATCH` | A source or pin uses a decode policy other than the installed one |
-| `IMPORT_CONFLICT` | The same source was imported with another declaration or decoder |
+| `IMPORT_CONFLICT` | The same source was imported with another declaration or decoder, or an amendment names bytes with no record or changes more than terms |
 | `CORPUS_CONFLICT` | The `corpus_id` already exists with different content, or a superseded version differs from the seal its successor pinned, at build, stage or verify |
 | `CORPUS_NOT_BUILT` | The named corpus version or a version of its declared chain does not exist, or the identifier cannot name one |
 | `DECODE_DRIFT` | A staging decode disagrees with the import record of its source |
@@ -865,8 +901,11 @@ to the exit status. `tests/corpus/test_shared_runs.py` covers the run rule on ha
 the exit status, in one version and across a chain.
 `tests/corpus/test_source_terms.py` covers retention boundaries at every entrypoint, unchanged
 evidence across evaluation dates, explicit permission, strict declarations and legacy records.
-`tests/corpus/test_verify_rights.py` replaces source records through the real importer and covers
-verification from the command's exit status to the terms each refusal names.
+`tests/corpus/test_verify_rights.py` changes source records through the real amendment and importer
+and covers verification from the command's exit status to the terms each refusal names.
+`tests/corpus/test_amend_terms.py`, `test_amend_refusals.py` and `test_amend_records.py` cover the
+amendment from the command to the kept records, including a subprocess killed at each write and real
+schema 1 records from `tests/corpus/records/`, each written by the code of the commit in its name.
 `tests/corpus/test_transforms.py`, `test_transform_recipes.py` and `test_transform_golden.py` cover
 each transform on hand-checkable frames and pin its bytes, and `test_recipes.py`,
 `test_generated_cases.py`, `test_case_membership.py` and `test_case_frames.py` cover recipes and
