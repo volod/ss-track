@@ -12,9 +12,10 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from ss_track.canonical import SEAL_FIELD
 from ss_track.corpus.frames import frames_root
-from ss_track.corpus.refusal import CorpusRefusal, JsonValue, RefusalCode
-from ss_track.corpus.sealed import SEAL_FIELD, RecordFormat, read_sealed, seal, write_sealed
+from ss_track.corpus.sealed import RecordFormat, read_sealed, seal, write_sealed
+from ss_track.refusal import CorpusRefusal, JsonValue, RefusalCode
 
 FRAME_SET_KIND = "ss-track.frame-set"
 FRAME_SET_SCHEMA_VERSION = 1

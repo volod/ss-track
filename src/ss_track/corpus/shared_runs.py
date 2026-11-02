@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from itertools import takewhile
 from typing import Any
 
-from ss_track.corpus.refusal import CorpusRefusal, JsonValue, RefusalCode
+from ss_track.refusal import CorpusRefusal, JsonValue, RefusalCode
 
 # Different frames in a row that two streams must share. At 25 frames per second this is a third of
 # a second of changing picture, which a shared lead-in or test signal does not supply.

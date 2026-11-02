@@ -1915,12 +1915,16 @@ change.
 | `event` | The section 5 records, as binary protobuf and protobuf-JSON JSON Lines | Protobuf | Each event, by the runner | Wire and JSON compatible in both directions |
 | `result` | The command result and refusal log line | JSON Schema, with `details` open | By tests | New fields and refusal codes are additive |
 | `external` | Formats this product does not own, such as MOTChallenge export, ULog and MAVLink dialects | The upstream definition, pinned by hash | By its adapter | A new upstream revision is a new pinned input, never accepted silently |
+| `shared` | Value types that other contracts reference, such as a SHA-256 digest | JSON Schema definitions, stating no document | Through the contract that references them | A change is a new version, and a referencing contract moves to it by its own change |
 
 Document contracts use a restricted dialect of
 [JSON Schema 2020-12](https://json-schema.org/draft/2020-12): closed objects, `const`, `enum`, `oneOf`
-tagged by a `const` property, bounds, `pattern`, `format`, and `$ref` to an exact version. Conditional
-keywords, `not` and untagged unions are refused. The restriction keeps every change classifiable and
-every contract projectable onto a descriptor. Widening it changes one meta-schema under review.
+tagged by a `const` property, bounds, anchored `pattern`, the `date` format, and `$ref` to an exact
+version. Conditional keywords, `not` and untagged unions are refused. A property that may be `null`
+pairs one type with `null`. The restriction keeps every change classifiable, every contract projectable
+onto a descriptor, and each pattern the same in every validator. Widening it changes one meta-schema
+under review. A meta-schema states all of this except that a union's branches share one tag, which
+needs two branches at once and so belongs to the build gate.
 
 Binary layouts, such as `.rgb24` frames and telemetry columns, are stated by the record that indexes
 them: the record gives the pixel format, dimensions or data type, so the bytes need no schema of
@@ -1929,14 +1933,16 @@ their own.
 ### 17.2 Identity and versions
 
 Each contract has an id, a family, an owning capability, a status (`draft`, `active`, `deprecated` or
-`retired`) and a semantic version. `contracts/registry.yaml` lists them. Each version is one file,
+`retired`) and a semantic version. `contracts/registry.yaml` lists them, and a meta-schema beside the
+dialect states its shape. Each version is one file,
 named by its version, identified by `urn:ss-track:contract:<family>:<id>:<version>` and never edited
 after it is frozen. A frozen version also carries a change-log entry: its class, a summary and, for a
 major, the migration a holder of an old record must make.
 
-The registry stores two fingerprints of each version. `structure` hashes the canonical schema without
-annotations. `meaning` hashes the annotations and enum values. An edit to either without a freeze
-fails the build.
+The registry stores the file hash and two fingerprints of each version. `structure` hashes the
+canonical schema without annotations or its own identity. `meaning` hashes the annotations and the
+`const` and `enum` values. An edit of the file, formatting included, without a freeze fails the build,
+and the fingerprints say which kind of edit it was.
 
 | Annotation | States |
 | --- | --- |
@@ -1995,14 +2001,18 @@ A contract is the only statement of a format's structure. Structural rules leave
 once a contract covers them, and rules across fields or files stay in code, stated in `x-rules`.
 Refusal codes do not change: a declaration that breaks its contract is `MANIFEST_INVALID`.
 
-The local validator is stricter than the standard on two points that a third-party validator may
-accept: `1.0` is not an integer, and YAML must carry no repeated key or non-finite number. YAML dates
-are normalized before validation, and nothing fills in a default.
+The local validator is stricter than the standard on points that a third-party validator may
+accept: `1.0` is not an integer, `$` in a pattern means the end of the value and not the end of a
+line, and YAML must carry no repeated key or non-finite number. YAML dates are normalized before
+validation, and nothing fills in a default.
 
 A record is validated once, in full, before it is sealed, and a writer defect is `RECORD_INVALID` with
 nothing sealed. A seal proves a record has not changed since, so a read checks the seal, kind and major
 and does not walk its fields. `ss-track contracts validate`
-gives a deep check of any file on demand, under any frozen version.
+gives a deep check of any file on demand, under any frozen version: its structure and, for a record,
+its seal, so a record whose content moved is not called valid. It does not run `x-rules`, which stay
+with the code that reads the record. `CONTRACT_UNKNOWN` means no frozen version applies, and
+`CONTRACT_SET_INVALID` means the installed set is not the one its registry pinned.
 
 `RunManifest` records the contract set in force, so a result names the formats it read. That list is
 descriptive: a contract's major enters a cohort key only through a format the key already covers.
@@ -2012,7 +2022,8 @@ descriptive: a contract's major enters a cohort key only through a format the ke
 A version must answer three separate questions: can this tool parse a record, may the record serve as
 evidence, and what changed. One read path answers them in order. It verifies the seal on the original
 bytes, then the kind, then applies the disposition of the record's major. No caller reads a sealed
-record any other way, so no caller can skip the check.
+record any other way, so no caller can skip the check. `ss-track contracts validate` inspects a file
+and gives a verdict: it hands no record to anything, so it serves no evidence and needs no disposition.
 
 Nothing rewrites a sealed record, and writers always write the current major. Freezing a new major
 declares the disposition of the one it replaces:

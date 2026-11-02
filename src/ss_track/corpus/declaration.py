@@ -6,7 +6,7 @@ from pathlib import Path
 
 from ss_track.corpus.fields import Fields, Selection, invalid, load_yaml_mapping
 from ss_track.corpus.recipes import CaseRecipe, read_recipe
-from ss_track.corpus.refusal import JsonValue
+from ss_track.refusal import JsonValue
 
 RECORDING_SCHEMA_VERSION = 2
 CORPUS_SCHEMA_VERSION = 3

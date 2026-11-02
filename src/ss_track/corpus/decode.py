@@ -25,7 +25,7 @@ from ss_track.corpus.pixels import (
     bits_per_component,
     color_tags,
 )
-from ss_track.corpus.refusal import CorpusRefusal, JsonValue, RefusalCode
+from ss_track.refusal import CorpusRefusal, JsonValue, RefusalCode
 
 POLICY_REVISION = 3
 _FORMAT_OPTIONS = {"fflags": "nofillin", "err_detect": "explode"}

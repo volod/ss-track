@@ -11,8 +11,8 @@ from pathlib import Path
 from typing import Any
 
 from ss_track.corpus.host_hashes import STAGED_HASHES_NAME, read_staged_hashes, run_directory
-from ss_track.corpus.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.sealed import seal, write_sealed
+from ss_track.refusal import CorpusRefusal, JsonValue, RefusalCode
 
 HASH_COMPARISON_KIND = "ss-track.hash-comparison"
 HASH_COMPARISON_SCHEMA_VERSION = 1

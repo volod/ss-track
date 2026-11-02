@@ -22,6 +22,7 @@ from ss_track.corpus import (
 from ss_track.corpus import staging as staging_module
 from ss_track.corpus.frame_set import commit_frame_set
 from ss_track.corpus.staging import FramesResult
+from ss_track.schema import validate_file
 from tests.corpus.conftest import (
     WriteCorpus,
     WriteRecording,
@@ -146,6 +147,26 @@ def test_a_verified_corpus_reports_the_hash_a_scenario_pins(
 ) -> None:
     assert verify_corpus_frames(_CORPUS, data_root).frame_set_sha256 == staged.frame_set_sha256
     assert stage_corpus(_CORPUS, data_root).frame_set_sha256 == staged.frame_set_sha256
+
+
+def test_a_staged_record_conforms_to_its_contract_case_lines_included(
+    staged: FramesResult, data_root: Path
+) -> None:
+    path = _frame_set(data_root)
+    before = path.read_bytes()
+
+    result = validate_file(path)
+
+    assert result.contract == "record/frame-set"
+    assert result.seal_checked
+    assert path.read_bytes() == before
+    lines = _record(path)["bundles"]
+    assert isinstance(lines, list)
+    assert {line["stream_id"]: line["parent_stream_id"] for line in lines} == {
+        "one": None,
+        "shaken": "one",
+        "two": None,
+    }
 
 
 def test_the_record_is_read_only(staged: FramesResult, data_root: Path) -> None:

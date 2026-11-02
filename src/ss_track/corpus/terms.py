@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from datetime import UTC, date, datetime
 from typing import Any
 
-from ss_track.corpus.refusal import CorpusRefusal, RefusalCode
+from ss_track.refusal import CorpusRefusal, RefusalCode
 
 AMEND_COMMAND = "ss-track import --amend-terms"
 TERM_SECTIONS = ("rights", "sensitivity")

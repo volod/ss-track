@@ -11,8 +11,8 @@ from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 from dataclasses import asdict, dataclass, replace
 from typing import Any
 
-from ss_track.corpus.refusal import CorpusRefusal, JsonValue, RefusalCode
-from ss_track.corpus.sealed import SEAL_FIELD
+from ss_track.canonical import SEAL_FIELD
+from ss_track.refusal import CorpusRefusal, JsonValue, RefusalCode
 
 SUPERSEDES_FIELD = "supersedes"
 LINKED = "linked"

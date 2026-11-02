@@ -11,7 +11,7 @@ from operator import or_
 import av
 from av.video.reformatter import Interpolation, VideoReformatter
 
-from ss_track.corpus.refusal import CorpusRefusal, RefusalCode
+from ss_track.refusal import CorpusRefusal, RefusalCode
 
 OUTPUT_PIXEL_FORMAT = "rgb24"
 OUTPUT_BYTES_PER_PIXEL = 3

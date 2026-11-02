@@ -2,16 +2,22 @@
 
 import ast
 from collections.abc import Iterator
+from dataclasses import fields
 from pathlib import Path
 
 import pytest
 
 import ss_track
+from ss_track.schema import ValidationResult, commands
 
 _PACKAGE = Path(ss_track.__file__).parent
 _GATE = Path("corpus/sealed.py")
 _OLDER_MAJOR_READER = Path("corpus/amendment.py")
 _DECLARATION_LOADER = Path("corpus/fields.py")
+_CONTRACT_FILE_READER = Path("schema/store.py")  # reads the contract set, which holds no record
+_DEEP_CHECK = Path("schema/commands.py")  # gives a verdict on a file, and hands no record onward
+_JSON_READERS = {_GATE, _CONTRACT_FILE_READER, _DEEP_CHECK}
+_YAML_READERS = {_DECLARATION_LOADER, _CONTRACT_FILE_READER}
 _LOADERS = {"json.load", "json.loads", "yaml.load", "yaml.safe_load"}
 
 
@@ -33,9 +39,9 @@ def _imported_names(tree: ast.AST) -> Iterator[str]:
 def _call_findings(call: ast.Call, relative: Path) -> Iterator[str]:
     called = _called_name(call)
     is_yaml_load = called.startswith("yaml.") and "load" in called
-    if called in {"json.load", "json.loads"} and relative != _GATE:
+    if called in {"json.load", "json.loads"} and relative not in _JSON_READERS:
         yield f"calls {called}"
-    if is_yaml_load and relative != _DECLARATION_LOADER:
+    if is_yaml_load and relative not in _YAML_READERS:
         yield f"calls {called}"
     names_older = any(keyword.arg == "older_majors" for keyword in call.keywords)
     if names_older and relative != _OLDER_MAJOR_READER:
@@ -74,6 +80,13 @@ def test_every_read_of_a_record_file_goes_through_the_gate() -> None:
     ]
 
     assert sorted(readers) == sorted([_GATE, _DECLARATION_LOADER])
+
+
+def test_the_deep_check_returns_a_verdict_and_never_the_record() -> None:
+    returned = {field.name for field in fields(ValidationResult)}
+
+    assert returned == {"path", "contract", "version", "urn", "seal_checked"}
+    assert not hasattr(commands, "read_document")
 
 
 def test_the_exemption_for_an_older_major_is_still_used() -> None:

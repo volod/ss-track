@@ -18,7 +18,7 @@ from ss_track.corpus.declaration import (
     ScenarioRights,
 )
 from ss_track.corpus.fields import invalid
-from ss_track.corpus.refusal import CorpusRefusal, JsonValue, RefusalCode
+from ss_track.refusal import CorpusRefusal, JsonValue, RefusalCode
 
 type StreamRecord = dict[str, Any]
 

@@ -78,7 +78,7 @@ and the current-state pages at the repository head.
 | `evolution-check` and `evolution-freeze` in CI | Adopt, stricter | A reviewed baseline is the right gate. A change with no bump always fails |
 | Structural and semantic fingerprints | Adopt | Section 5 forbids changing a unit or enum meaning, and only a meaning hash can detect that |
 | Major and minor rule table | Adopt, amended | Adds hash stability, and treats a unit change as forbidden within a major, where fl-op allows a minor |
-| Step-by-step authoring manual | Adopt, shorter | `contract-registry` writes `docs/guide/authoring-contracts.md` |
+| Step-by-step authoring manual | Adopt, shorter | The [authoring guide](../guide/authoring-contracts.md) |
 | Physical, canonical and mapping layers | Adopt for telemetry only | Corpus records have one physical form and nothing to project |
 | ODCS as the authored schema | Replace | See the comparison below |
 | `schema_snapshot` of top-level name, type and required | Replace | It sees no nested field, enum, pattern or bound. Almost every ss-track rule is nested, such as `rights.sharing` and `groups[].split` |
@@ -219,9 +219,18 @@ found four cases that JSON Schema alone would weaken:
 | `fov: .nan` or `.inf` | Refused | Accepted by the Python validator | YAML loader refuses non-finite values before validation |
 | `start_frame` not below `end_frame` | Refused | Accepted, a cross-field rule | Stays in code, and is stated in the contract under `x-rules` |
 | Unquoted YAML date | Normalized | Refused, a `date` object is not JSON | YAML loader normalizes before validation |
+| A hash ending in a newline | Refused, by `fullmatch` | Accepted by the Python validator, whose `$` also matches before a final newline | Local validator ends a pattern at the end of the value |
+| `\d` in a pattern | Not used | Matches other digits in Python, ASCII only in ECMA-262 | The dialect refuses `\d`, `\w`, `\s` and `\b` |
+| `format: date-time` | Not used | Passes everything unless an optional package is installed | The dialect allows only `date`, which is enforced |
 
 A third-party validator gets the structure right and may be looser on the first two. That is
 acceptable: this repository's reader stays the strict gate, and the contract states the rule in words.
+
+The dialect meta-schema can state nearly everything, including that a branch of a `oneOf` holds a
+`const` property. It cannot state that all branches hold the same one, because a schema sees one branch
+at a time, so `make lint-contracts` adds that rule. The registry also pins each file's bytes as well
+as its fingerprints: a fingerprint ignores formatting by design, and a frozen file is never edited at
+all.
 
 ## Self-service
 

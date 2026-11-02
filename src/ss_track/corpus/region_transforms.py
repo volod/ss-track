@@ -15,8 +15,8 @@ from ss_track.corpus.case_model import (
     add_noise,
     as_pixels,
 )
-from ss_track.corpus.refusal import JsonValue
 from ss_track.corpus.seeded import SeededDraws
+from ss_track.refusal import JsonValue
 
 _UNLOCALIZABLE = "unlocalizable"
 _SPRITE_DRAWS = 7

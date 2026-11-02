@@ -10,8 +10,8 @@ from typing import Any
 
 from ss_track.corpus.case_model import Pixels
 from ss_track.corpus.fields import Fields, Selection, invalid
-from ss_track.corpus.refusal import JsonValue
 from ss_track.corpus.transforms import TRANSFORM_REVISIONS, prepare_case
+from ss_track.refusal import JsonValue
 
 MAX_SEED = 2**63 - 1
 MAX_SPRITES = 256

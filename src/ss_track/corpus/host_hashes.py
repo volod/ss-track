@@ -12,14 +12,15 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from ss_track.canonical import SEAL_FIELD
 from ss_track.corpus.builder import load_corpus_manifest, load_source_record
 from ss_track.corpus.fields import IDENTIFIER_PATTERN
 from ss_track.corpus.frame_set import read_frame_set
 from ss_track.corpus.frames import FrameBundle, open_corpus_bundle
 from ss_track.corpus.frames import frames_root as bundles_root
-from ss_track.corpus.refusal import CorpusRefusal, JsonValue, RefusalCode
-from ss_track.corpus.sealed import SEAL_FIELD, RecordFormat, read_sealed, seal, write_sealed
+from ss_track.corpus.sealed import RecordFormat, read_sealed, seal, write_sealed
 from ss_track.corpus.staging import verify_corpus_frames
+from ss_track.refusal import CorpusRefusal, JsonValue, RefusalCode
 
 RUN_DIRECTORY = "run"
 STAGED_HASHES_KIND = "ss-track.staged-hashes"

@@ -2,8 +2,9 @@
 
 ## Environment
 
-`pyproject.toml` declares Python 3.12+ package metadata and a `dev` extra. `uv.lock` fixes the full
-resolution. `make bootstrap` installs the locked environment; direct uv investigations use
+`pyproject.toml` declares Python 3.12+ package metadata and a `dev` extra. `setuptools` is in that
+extra so a test can build the wheel with no network. `uv.lock` fixes the full resolution.
+`make bootstrap` installs the locked environment; direct uv investigations use
 `scripts/shared/common.sh` so `DATA_DIR`, caches, and adaptive link mode have one implementation.
 
 ## Quality gates
@@ -11,7 +12,8 @@ resolution. `make bootstrap` installs the locked environment; direct uv investig
 The Makefile exposes individual checks and two composed workflows:
 
 - `make ci` runs formatting, linting, typing, Radon and cognitive complexity, shell parsing and
-  ShellCheck, documentation links, spec-plan integrity, and deterministic tests.
+  ShellCheck, documentation links, spec-plan integrity, [frozen contracts](contracts.md#the-gate), and
+  deterministic tests.
 - `make quality` adds branch coverage, Markdown lint, and source/wheel builds.
 
 GitHub Actions runs `make ci-github`, an explicit alias of the same required gate, on Python 3.12

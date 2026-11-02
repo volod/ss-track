@@ -11,8 +11,8 @@ import hashlib
 import numpy as np
 import pytest
 
+from ss_track.canonical import canonical_json
 from ss_track.corpus.case_model import Pixels, as_pixels
-from ss_track.corpus.sealed import canonical_json
 from ss_track.corpus.transforms import TRANSFORM_REVISIONS, prepare_case
 
 _WIDTH = 32

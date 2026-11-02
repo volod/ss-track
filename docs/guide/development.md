@@ -17,7 +17,7 @@ include the resulting `uv.lock` change.
 
 `make ci` is the required fast gate and is the command GitHub Actions runs on Python 3.12 and 3.13.
 It checks formatting, Ruff rules, mypy, complexity, shell scripts, documentation links, specification
-and plan integrity, and tests.
+and plan integrity, frozen contracts, and tests.
 
 `make quality` adds branch coverage, Markdown style, and source/wheel builds. Run it before release
 or after changing project infrastructure. `make quality-report` reports files over the 250-line soft

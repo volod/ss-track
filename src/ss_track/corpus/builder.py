@@ -6,6 +6,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
+from ss_track.canonical import SEAL_FIELD
 from ss_track.corpus.declaration import (
     CORPUS_SCHEMA_VERSION,
     CorpusDeclaration,
@@ -39,16 +40,9 @@ from ss_track.corpus.lineage import (
     trace_lineage,
 )
 from ss_track.corpus.recipes import case_records
-from ss_track.corpus.refusal import CorpusRefusal, JsonValue, RefusalCode
-from ss_track.corpus.sealed import (
-    SEAL_FIELD,
-    RecordFormat,
-    read_sealed,
-    seal,
-    sha256_file,
-    write_sealed,
-)
+from ss_track.corpus.sealed import RecordFormat, read_sealed, seal, sha256_file, write_sealed
 from ss_track.corpus.terms import changed_terms, evaluation_date, require_retention
+from ss_track.refusal import CorpusRefusal, JsonValue, RefusalCode
 
 CORPUS_MANIFEST_KIND = "ss-track.corpus-manifest"
 CORPUS_DIRECTORY = "corpus"

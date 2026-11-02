@@ -2,7 +2,7 @@
 
 import math
 import re
-from collections.abc import Collection, Hashable
+from collections.abc import Collection
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -11,7 +11,8 @@ from typing import Self
 
 import yaml
 
-from ss_track.corpus.refusal import CorpusRefusal, RefusalCode
+from ss_track.refusal import CorpusRefusal, RefusalCode
+from ss_track.strict_yaml import UniqueKeyLoader
 
 SCHEMA_VERSION = 1
 SHA256_PATTERN = re.compile(r"[0-9a-f]{64}")
@@ -26,24 +27,6 @@ class Selection:
     end_frame: int
 
 
-class _UniqueKeyLoader(yaml.SafeLoader):
-    """Safe loader that refuses a repeated key, which PyYAML would silently overwrite."""
-
-    def construct_mapping(
-        self, node: yaml.MappingNode, deep: bool = False
-    ) -> dict[Hashable, object]:
-        seen: set[object] = set()
-        for key_node, _ in node.value:
-            key = self.construct_object(key_node, deep=True)
-            if isinstance(key, Hashable) and key in seen:
-                raise yaml.constructor.ConstructorError(
-                    None, None, f"duplicate key {key!r}", key_node.start_mark
-                )
-            if isinstance(key, Hashable):
-                seen.add(key)
-        return super().construct_mapping(node, deep)
-
-
 def invalid(message: str) -> CorpusRefusal:
     """Build the refusal for a malformed operator declaration."""
     return CorpusRefusal(RefusalCode.MANIFEST_INVALID, message)
@@ -53,7 +36,7 @@ def load_yaml_mapping(path: Path) -> object:
     """Parse one YAML file, reporting any read or syntax failure as a refusal."""
     try:
         text = path.read_text(encoding="utf-8")
-        return yaml.load(text, Loader=_UniqueKeyLoader)
+        return yaml.load(text, Loader=UniqueKeyLoader)
     except (OSError, UnicodeDecodeError, yaml.YAMLError) as error:
         raise invalid(f"cannot read {path.name}: {error}") from error
 

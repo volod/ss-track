@@ -12,8 +12,8 @@ import numpy as np
 import numpy.typing as npt
 
 from ss_track.corpus.pixels import OUTPUT_BYTES_PER_PIXEL
-from ss_track.corpus.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.seeded import SeededDraws
+from ss_track.refusal import CorpusRefusal, JsonValue, RefusalCode
 
 type Pixels = npt.NDArray[np.uint8]
 type Paint = Callable[[Pixels, int], Pixels]

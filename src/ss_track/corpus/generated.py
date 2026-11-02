@@ -9,6 +9,7 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
+from ss_track.canonical import SEAL_FIELD
 from ss_track.corpus.bundle_writer import publish_bundle, require_space, store_frame
 from ss_track.corpus.case_model import Pixels, ReadFrame, Rendering, Slot, as_pixels
 from ss_track.corpus.frames import (
@@ -18,10 +19,10 @@ from ss_track.corpus.frames import (
     open_frame_bundle,
 )
 from ss_track.corpus.importer import MANIFEST_NAME
-from ss_track.corpus.refusal import CorpusRefusal, JsonValue, RefusalCode
-from ss_track.corpus.sealed import SEAL_FIELD, read_sealed, seal, write_sealed
+from ss_track.corpus.sealed import read_sealed, seal, write_sealed
 from ss_track.corpus.timestamps import TimestampQuality
 from ss_track.corpus.transforms import prepare_case
+from ss_track.refusal import CorpusRefusal, JsonValue, RefusalCode
 
 
 def _frame_reader(parent: FrameBundle) -> ReadFrame:

@@ -14,6 +14,7 @@ from dataclasses import dataclass, fields
 from pathlib import Path
 from typing import Any
 
+from ss_track.canonical import SEAL_FIELD
 from ss_track.corpus.declaration import RecordingDeclaration, load_recording_declaration
 from ss_track.corpus.decode import DecodePolicy, current_decode_policy
 from ss_track.corpus.importer import (
@@ -28,10 +29,8 @@ from ss_track.corpus.importer import (
     require_regular_file,
     source_directory,
 )
-from ss_track.corpus.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.sealed import (
     SCRATCH_PREFIX,
-    SEAL_FIELD,
     read_sealed,
     schema_details,
     seal,
@@ -39,6 +38,7 @@ from ss_track.corpus.sealed import (
     write_sealed,
 )
 from ss_track.corpus.terms import changed_terms
+from ss_track.refusal import CorpusRefusal, JsonValue, RefusalCode
 
 AMENDED = "amended"
 UNCHANGED = "unchanged"

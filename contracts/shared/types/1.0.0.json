@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ss-track:contract:shared:types:1.0.0",
+  "title": "Shared types",
+  "description": "Value types that several contracts reference by this exact version.",
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "A lowercase SHA-256 digest in hexadecimal."
+    },
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+      "description": "An operator-chosen name: lowercase, at most 64 characters, starting with a letter or digit."
+    }
+  }
+}

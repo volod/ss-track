@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from ss_track.canonical import sha256_bytes
 from ss_track.corpus import (
     CorpusRefusal,
     ImportResult,
@@ -16,7 +17,7 @@ from ss_track.corpus import (
     stage_corpus,
 )
 from ss_track.corpus.frames import FRAME_BUNDLE
-from ss_track.corpus.sealed import read_sealed, sha256_bytes
+from ss_track.corpus.sealed import read_sealed
 from tests.corpus._media import FRAME_COUNT, HEIGHT, WIDTH, expected_rgb, write_clip
 from tests.corpus.conftest import WriteCorpus, WriteRecording, reseal, stream_of
 

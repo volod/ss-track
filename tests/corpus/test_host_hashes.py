@@ -9,6 +9,7 @@ from typing import Any
 
 import pytest
 
+from ss_track.canonical import SEAL_FIELD
 from ss_track.cli import EXIT_OK, EXIT_REFUSED, main
 from ss_track.corpus import (
     CorpusRefusal,
@@ -22,7 +23,7 @@ from ss_track.corpus import (
 )
 from ss_track.corpus.hash_comparison import HASH_COMPARISON_NAME
 from ss_track.corpus.host_hashes import STAGED_HASHES_NAME, run_directory
-from ss_track.corpus.sealed import SEAL_FIELD, seal
+from ss_track.corpus.sealed import seal
 from tests.corpus._media import FRAME_COUNT
 from tests.corpus.conftest import WriteCorpus, WriteRecording, case_of, stream_of
 

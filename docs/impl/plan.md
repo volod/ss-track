@@ -369,33 +369,6 @@ import, build, stage and verify as one path.
 
 ### Data contracts -- `data-contracts`
 
-#### contract-registry
-
-No format has a definition outside the Python that reads it, so a consumer needs this repository to
-read one record.
-
-- Serves: `data-contracts` -- [Contract families](../design/spec.md#171-contract-families)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: `ss-track contracts list` and `validate` work from an installed wheel over a
-  registry of frozen contracts, and `make lint-contracts` runs inside `make ci`.
-- Scope boundary: Registry, dialect meta-schema, shared definitions, identity, both fingerprints,
-  packaging, and `record/frame-set` end to end as the first contract. No reader changes and no
-  change classifier.
-- Data and artifact paths: `contracts/`, `src/ss_track/schema/`, `tests/schema/`,
-  `docs/guide/authoring-contracts.md`.
-- Execution path: Ship root `contracts/` as package data through a setuptools `package-dir` mapping,
-  and add `jsonschema` to the runtime dependencies and `uv.lock`. Validate with a strict integer type
-  and reuse `canonical_json` for fingerprints. Keep `src/ss_track/schema/` distinct from
-  `src/ss_track/contract/`, which holds events and scenarios. Add the authoring guide, and the
-  `AGENTS.md` rule that a new interchangeable format adds its contract in the same change.
-- Acceptance gates: A real frame set validates with no byte changed, from a wheel installed outside
-  the checkout. A standalone validator given only `contracts/` accepts it and refuses an altered copy.
-  The meta-schema refuses an open object, `if`, `not`, an untagged union and a property with no
-  description. An edited frozen file and a stale fingerprint each fail the build.
-- Documentation target: [Current implementation](current.md#areas), new page `current/contracts.md`.
-
 #### corpus-contract-baseline
 
 Every shipped format still has no contract, and some of its values mean nothing outside FFmpeg.
@@ -403,19 +376,25 @@ Every shipped format still has no contract, and some of its values mean nothing 
 - Serves: `data-contracts` -- [Identity and versions](../design/spec.md#172-identity-and-versions)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: contract-registry.
+- Dependencies: none.
 - User-visible outcome: Recording, corpus, source manifest, corpus manifest, frame bundle, staged
-  hashes, hash comparison and command result each have a frozen contract at their shipped major.
+  hashes, hash comparison and command result each have a frozen contract at their shipped major, and
+  `contracts validate` reads a declaration's YAML.
 - Scope boundary: Describe formats as the current code writes them, changing no shipped byte and no
   reader's behavior. Split the shared version constants so each format owns its major. Cross-field
   rules go in `x-rules`. FFmpeg color integers gain `x-vocabulary`. Earlier majors are listed `retired`
-  with no contract, because no retained record exists. Corpus 3.0.0 requires source terms, so a
-  schema 3 manifest written before they existed stays refused.
+  with no contract, because no retained record exists, which `contracts/meta/registry.json` does not
+  state yet. Corpus 3.0.0 requires source terms, so a schema 3 manifest written before they existed
+  stays refused. The dialect widens by what these formats need and no further: positional `frames`
+  tuples in staged hashes, and the open `details` of the command result.
 - Data and artifact paths: `contracts/declaration/`, `contracts/record/`, `contracts/result/`,
   `tests/schema/`.
 - Execution path: Add a session-wide test hook that validates every record any test writes, examples
-  per contract, and one tagged branch per transform and label-transform kind.
-- Acceptance gates: Every record the suite writes validates. A recipe carrying another transform's
+  per contract, and one tagged branch per transform and label-transform kind. Teach `walk` and both
+  fingerprints each keyword the dialect gains. `contracts validate` parses JSON only today, so add a
+  `declaration` read through the strict YAML loader.
+- Acceptance gates: Every record the suite writes validates, and every `x-references` target of
+  `record/frame-set` exists at its pointer. A recipe carrying another transform's
   parameters is refused by the schema alone. Each numeric quantity has `x-unit`, each coded integer
   has `x-vocabulary`, and the result contract's `code` enum equals `RefusalCode`, so a test fails when
   either changes alone. A format the dialect cannot state stays `draft` with its reason.
@@ -437,10 +416,13 @@ changed unit.
 - Execution path: Classify by walking both versions through nested objects, array items, `$ref`
   targets and tagged branches, naming each change by JSON pointer. Keep `jsoncompat` pinned in the dev
   extra as an independent oracle, never as the authority. Add the hash-stability test: writer output
-  for input using no new feature validates against the previous frozen minor.
+  for input using no new feature validates against the previous frozen minor. `make lint-contracts`
+  compares a frozen file only with its registry entry, so compare both with the frozen set of the merge
+  base, and give the CI checkout the history that needs. `freeze` replaces copying pins by hand.
 - Acceptance gates: Table-driven fixtures pass every row of spec section 17.3, each at a nested path
   and inside a tagged branch. A bump that is too small fails, and a disagreement with the oracle fails.
-  Replaying the kept historic records classifies all five real bumps as major. A new field written as
+  Replaying the kept historic records classifies all five real bumps as major. A frozen file edited
+  together with its registry entry fails. A new field written as
   `null` fails hash stability, as does a writer adding a key under an unchanged version, which is how
   source terms entered schema 3 corpus manifests. A major with no migration text or no disposition
   fails to freeze.
@@ -466,7 +448,8 @@ A format stays stated twice, in its contract and in hand-written readers, so the
   normalization, validate each declaration, validate before `seal`, and reduce `Fields` to typed
   access. Remove the key check in `terms.py`, which stands in for a version the contract now states.
   Replace `RecordFormat.older_remedy` with the migration text from each change log, so a remedy has
-  one source.
+  one source. `SHA256_PATTERN` and `IDENTIFIER_PATTERN` in `fields.py` go with the rules they serve,
+  and so do the checks in `tests/schema/test_agreement.py` that hold them equal to `shared/types`.
 - Acceptance gates: Every existing refusal code holds across the existing suite. `1.0` as an index, a
   non-finite number, a repeated key and an unquoted date each keep today's result. A writer defect is
   `RECORD_INVALID` before anything is sealed. `corpus verify` on a million-frame index takes no longer
@@ -611,7 +594,7 @@ Labels need stable identity and a frozen mask before scores can mean anything.
 - Serves: `annotation-selection` -- [Annotation contract](../design/spec.md#42-annotation-contract)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: contract-registry.
+- Dependencies: none.
 - User-visible outcome: An operator validates visibility status, geometry, instance identity, motion
   events, operator seeds and masks against a versioned contract.
 - Scope boundary: Label, seed and mask contracts, validation and frozen seed replay, in the stored
@@ -700,7 +683,7 @@ Python and later C++ modules need one versioned meaning for every event.
 - Serves: `module-contract-runner` -- [Module contract](../design/spec.md#5-module-contract-execution-and-fault-semantics)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: contract-registry.
+- Dependencies: none.
 - User-visible outcome: Modules and tools share a validated event schema with golden fixtures, and a
   breaking change fails CI.
 - Scope boundary: The G0 and G1 record families. G2 fusion records are out of scope.
@@ -709,7 +692,9 @@ Python and later C++ modules need one versioned meaning for every event.
   that regenerates bindings and a CI drift check, keep generated files out of the size and lint
   gates, and add the smallest justified dependency to `uv.lock`. Register each package under
   `contracts/event/`, pin `buf-bin` in the dev extra, and gate on `buf breaking` with the `WIRE_JSON`
-  category against the frozen descriptor set, because G0 events travel as JSON.
+  category against the frozen descriptor set, because G0 events travel as JSON. The registry,
+  `make lint-contracts` and the contract `$id` pattern hold JSON Schema files only, so this task
+  teaches them the `event` family.
 - Acceptance gates: Golden fixtures cover absent and unknown fields, malformed payloads, coordinates,
   timestamps and power units. A malformed event is rejected with a reason. A renamed field, a reused
   field number and a changed `json_name` each fail the gate. `FrameRef` round-trips every

@@ -19,7 +19,7 @@ from ss_track.corpus.pixels import (
     color_tags,
     uses_color_matrix,
 )
-from ss_track.corpus.refusal import CorpusRefusal, RefusalCode
+from ss_track.refusal import CorpusRefusal, RefusalCode
 from tests.corpus._media import write_clip
 
 _THREADS = 1

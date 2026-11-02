@@ -10,6 +10,7 @@ from typing import Any
 
 import av
 
+from ss_track.canonical import SEAL_FIELD, sha256_bytes
 from ss_track.corpus.builder import load_verified_source
 from ss_track.corpus.decode import DecodePolicy, inspect_media
 from ss_track.corpus.frames import (
@@ -34,16 +35,14 @@ from ss_track.corpus.pixels import (
     frame_size_bytes,
     uses_color_matrix,
 )
-from ss_track.corpus.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.sealed import (
     READ_ONLY_DIRECTORY_MODE,
     READ_ONLY_FILE_MODE,
     SCRATCH_PREFIX,
-    SEAL_FIELD,
     seal,
-    sha256_bytes,
     write_sealed,
 )
+from ss_track.refusal import CorpusRefusal, JsonValue, RefusalCode
 
 _LOG = logging.getLogger(__name__)
 

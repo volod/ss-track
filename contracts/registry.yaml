@@ -1,0 +1,30 @@
+schema_version: 1
+contracts:
+- family: record
+  id: frame-set
+  owner: corpus-provenance
+  status: active
+  description: Which frame bundles a corpus version staged.
+  versions:
+  - version: 1.0.0
+    file_sha256: 00d41661b538872e124cea435102e60e99101489dce6047967291bc1110e431d
+    fingerprints:
+      structure: 02af83afffdf8c6e4204d040b1ef7eae68dee15b0ed25c9f81528dcc2dc2cd01
+      meaning: 0047bf8ea5ce2dc77a162c5fdb481ca1d6e547a64cc61d27ff7217f0d221a834
+    change:
+      class: initial
+      summary: The format as shipped at schema 1.
+- family: shared
+  id: types
+  owner: data-contracts
+  status: active
+  description: Value types that other contracts reference.
+  versions:
+  - version: 1.0.0
+    file_sha256: 8767dae47c3092bc2a9ce1d79f4be89ceaa67115f4763e9529199db5c098325b
+    fingerprints:
+      structure: 24873012e5c08cc1e45af2aa3977cb705409a0efcabda5abe0b201f503fcc026
+      meaning: d9b7155f2a4f1376a98dbbc937148be0453db28e5cd18aaaac1ec1bfbe32602a
+    change:
+      class: initial
+      summary: SHA-256 digest and identifier.

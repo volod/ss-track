@@ -835,6 +835,8 @@ of the commit in its name and listed in its `README.md`, and a test fails when a
 
 ## Refusal codes
 
+`ss-track contracts` has [codes of its own](contracts.md#commands).
+
 | Code | Raised when |
 | --- | --- |
 | `MANIFEST_INVALID` | A declaration is unreadable or does not match its schema |

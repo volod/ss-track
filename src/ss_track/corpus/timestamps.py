@@ -4,7 +4,7 @@ from collections.abc import Sequence
 from enum import StrEnum
 from itertools import pairwise
 
-from ss_track.corpus.refusal import CorpusRefusal, RefusalCode
+from ss_track.refusal import CorpusRefusal, RefusalCode
 
 
 class TimestampQuality(StrEnum):

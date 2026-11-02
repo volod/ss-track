@@ -11,9 +11,9 @@ from typing import Any
 import numpy as np
 
 from ss_track.corpus.case_model import CaseContext, Pixels, ReadFrame, Rendering, Slot
-from ss_track.corpus.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.region_transforms import moving_background, short_occlusion, target_absence
 from ss_track.corpus.seeded import SeededDraws
+from ss_track.refusal import CorpusRefusal, JsonValue, RefusalCode
 
 _SHAKE_AXES = 2
 

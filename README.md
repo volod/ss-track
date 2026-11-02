@@ -430,6 +430,7 @@ and evaluation. The workflow is explained in
 | `make plan-status` | Count tasks and show the next agent and human work |
 | `make lint-spec-plan` | Check the capability registry against the plan |
 | `make lint-doc-links` | Check relative Markdown files and anchors |
+| `make lint-contracts` | Check frozen contracts against their registry, dialect and fingerprints |
 | `make quality-report` | Report files over the soft size limit |
 
 Use Make targets for repeatable workflows. Direct `uv` debugging should first source

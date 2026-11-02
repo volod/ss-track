@@ -4,21 +4,19 @@ from pathlib import Path
 
 import pytest
 
-from ss_track.corpus.refusal import CorpusRefusal, RefusalCode
+from ss_track.canonical import SEAL_FIELD, canonical_json, sha256_bytes
 from ss_track.corpus.sealed import (
     NEWER,
     OLDER,
-    SEAL_FIELD,
     UNSTATED,
     RecordFormat,
-    canonical_json,
     copy_with_sha256,
     read_sealed,
     seal,
-    sha256_bytes,
     sha256_file,
     write_sealed,
 )
+from ss_track.refusal import CorpusRefusal, RefusalCode
 
 BODY = {"kind": "test-record", "schema_version": 3, "b": [1, None], "a": "value"}
 FORMAT = RecordFormat("test-record", 3, "write it again")

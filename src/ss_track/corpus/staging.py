@@ -23,10 +23,10 @@ from ss_track.corpus.frames import (
 )
 from ss_track.corpus.generated import write_case_bundle
 from ss_track.corpus.importer import MANIFEST_NAME, decode_policy_sha256
-from ss_track.corpus.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.sealed import SCRATCH_PREFIX
 from ss_track.corpus.terms import evaluation_date, require_retention
 from ss_track.corpus.transforms import require_transform_revision
+from ss_track.refusal import CorpusRefusal, JsonValue, RefusalCode
 
 STAGED = "staged"
 UNCHANGED = "unchanged"

@@ -25,6 +25,7 @@ from ss_track.corpus import build_corpus as run_corpus_build
 from ss_track.corpus import import_source as run_import
 from ss_track.metadata import project_info
 from ss_track.paths import resolve_data_root
+from ss_track.schema import ContractList, ValidationResult, list_contracts, validate_file
 
 EXIT_OK = 0
 EXIT_REFUSED = 1
@@ -52,9 +53,14 @@ type CorpusResult = (
 
 
 def _report(action: Callable[[Path], CorpusResult]) -> int:
-    """Run one corpus action and report one JSON record for its result or its refusal."""
+    """Run one action on the data root and report its one JSON record."""
+    return _reported(lambda: action(resolve_data_root()))
+
+
+def _reported(action: Callable[[], CorpusResult | ContractList | ValidationResult]) -> int:
+    """Run one action and report one JSON record for its result or its refusal."""
     try:
-        result = action(resolve_data_root())
+        result = action()
     except CorpusRefusal as refusal:
         return _refuse(refusal)
     except OSError as error:
@@ -94,6 +100,35 @@ def _run_corpus_compare(args: argparse.Namespace) -> int:
     return _report(
         lambda data_root: compare_staged_hashes(args.left, args.right, args.run_id, data_root)
     )
+
+
+def _run_contracts_list(_: argparse.Namespace) -> int:
+    return _reported(list_contracts)
+
+
+def _run_contracts_validate(args: argparse.Namespace) -> int:
+    return _reported(
+        lambda: validate_file(args.file, contract_name=args.contract, version=args.version)
+    )
+
+
+def _add_contract_commands(
+    subcommands: "argparse._SubParsersAction[argparse.ArgumentParser]",
+) -> None:
+    """Add the commands that read only the contract set, so they need no data root."""
+    contracts = subcommands.add_parser("contracts", help="read the published data contracts")
+    commands = contracts.add_subparsers(dest="contracts_command", required=True)
+    listing = commands.add_parser("list", help="list every contract and its frozen versions")
+    listing.set_defaults(handler=_run_contracts_list)
+    validate = commands.add_parser("validate", help="check one file under a frozen contract")
+    validate.add_argument("--file", type=Path, required=True, help="the JSON file to check")
+    validate.add_argument(
+        "--contract", help="<family>/<id>; taken from the file's kind when omitted"
+    )
+    validate.add_argument(
+        "--version", help="an exact frozen version; the newest of the file's major when omitted"
+    )
+    validate.set_defaults(handler=_run_contracts_validate)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -139,6 +174,7 @@ def build_parser() -> argparse.ArgumentParser:
     compare.add_argument("--right", type=Path, required=True, help="the other staged-hashes.json")
     compare.add_argument("--run-id", required=True, help="run that keeps the comparison")
     compare.set_defaults(handler=_run_corpus_compare)
+    _add_contract_commands(subcommands)
     return parser
 
 

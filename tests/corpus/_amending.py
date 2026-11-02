@@ -14,8 +14,8 @@ from ss_track.corpus import (
     stage_corpus,
 )
 from ss_track.corpus.importer import SOURCE_MANIFEST
-from ss_track.corpus.refusal import JsonValue
 from ss_track.corpus.sealed import read_sealed
+from ss_track.refusal import JsonValue
 from tests.corpus.conftest import WriteCorpus, recording_declaration, stream_of
 
 CORPUS = "pilot-v1"

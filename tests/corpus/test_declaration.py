@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from ss_track.corpus.declaration import load_corpus_declaration, load_recording_declaration
-from ss_track.corpus.refusal import CorpusRefusal, RefusalCode
+from ss_track.refusal import CorpusRefusal, RefusalCode
 
 SHA256 = "a" * 64
 RECORDING = """\

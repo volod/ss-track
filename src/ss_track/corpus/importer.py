@@ -7,6 +7,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
 
+from ss_track.canonical import SEAL_FIELD, canonical_json, sha256_bytes
 from ss_track.corpus.declaration import (
     RECORDING_SCHEMA_VERSION,
     RecordingDeclaration,
@@ -18,21 +19,18 @@ from ss_track.corpus.decode import (
     current_decode_policy,
     inspect_media,
 )
-from ss_track.corpus.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.sealed import (
     READ_ONLY_FILE_MODE,
-    SEAL_FIELD,
     RecordFormat,
-    canonical_json,
     copy_with_sha256,
     read_sealed,
     seal,
-    sha256_bytes,
     sha256_file,
     write_sealed,
 )
 from ss_track.corpus.terms import AMEND_COMMAND, changed_terms
 from ss_track.corpus.timestamps import assess_timestamps
+from ss_track.refusal import CorpusRefusal, JsonValue, RefusalCode
 
 SOURCE_MANIFEST_KIND = "ss-track.source-manifest"
 SCHEMA_VERSION = RECORDING_SCHEMA_VERSION

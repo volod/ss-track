@@ -18,7 +18,7 @@ from ss_track.corpus.decode import (
     inspect_media,
 )
 from ss_track.corpus.importer import decode_policy_sha256
-from ss_track.corpus.refusal import CorpusRefusal, RefusalCode
+from ss_track.refusal import CorpusRefusal, RefusalCode
 from tests.corpus._media import (
     FRAME_COUNT,
     HEIGHT,

@@ -1,7 +1,7 @@
 import pytest
 
-from ss_track.corpus.refusal import CorpusRefusal, RefusalCode
 from ss_track.corpus.timestamps import TimestampQuality, assess_timestamps
+from ss_track.refusal import CorpusRefusal, RefusalCode
 
 
 @pytest.mark.parametrize(

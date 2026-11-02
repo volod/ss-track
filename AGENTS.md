@@ -15,6 +15,8 @@ specific files must link here and keep only integration-specific routing.
   honor `.env` and `DATA_DIR`.
 - **Secrets:** Never commit credentials or include them in logs, tests, fixtures, or documentation.
 - **Dependencies:** Add the smallest justified dependency. Update `uv.lock` in the same change.
+- **Contracts:** A new interchangeable format adds its contract under `contracts/` in the same change.
+  See the [authoring guide](docs/guide/authoring-contracts.md).
 
 ## Code organization
 
@@ -36,7 +38,7 @@ specific files must link here and keep only integration-specific routing.
 - Add or update tests with every behavior change. A bug fix includes a failing regression case.
 - Keep tests deterministic and network-free unless a task explicitly declares an external run.
 - `make ci` is the required gate: format check, lint, typing, tests, complexity, shell lint,
-  documentation links, and spec-plan integrity.
+  documentation links, spec-plan integrity, and frozen contracts.
 - `make quality` adds coverage, Markdown lint, and a package build. Fix findings at their source;
   do not weaken checks to fit new code.
 - Use `make format` to apply formatting. Fix Markdown findings by hand.

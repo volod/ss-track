@@ -11,7 +11,8 @@ distribution metadata is unavailable.
 `src/ss_track/cli.py` owns argument parsing. The installed `ss-track info` command logs the same
 identity, providing a packaging and executable-path smoke test. `ss-track import` and
 `ss-track corpus build`, `corpus stage` and `corpus verify` are described under
-[Corpus](corpus.md). No run, evaluation or report behavior exists yet; the
+[Corpus](corpus.md), and `ss-track contracts list` and `contracts validate` under
+[Contracts](contracts.md). No run, evaluation or report behavior exists yet; the
 [implementation plan](../plan.md) describes the scheduled work.
 
 Run it with:
@@ -22,4 +23,8 @@ make run
 
 `tests/test_metadata.py` and `tests/test_cli.py` cover the API and command boundary, and check that
 `pyproject.toml` declares the same distribution, command, and package. `make build` creates source
-and wheel distributions.
+and wheel distributions, and the wheel carries the contract set.
+
+Three modules sit below every domain package, so that none has to import another to reach them:
+`ss_track.refusal` holds the stable refusal codes, `ss_track.canonical` the byte form every hash and
+seal covers, and `ss_track.strict_yaml` the loader that refuses a repeated key.
