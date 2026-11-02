@@ -4,34 +4,95 @@ Requirements for the [engine design](perception-bench-engine.md) and
 [spec section 16](spec.md#16-benchmark-extensions-hardware-selection-and-reference-sensor-mesh).
 Each case
 names the [plan](../impl/plan.md) task that owns it. Value lines state what the test protects, what
-makes it fail, and what it does not prove. Every test is new, because no engine code exists yet.
+makes it fail, and what it does not prove. A case with no task left is listed as existing behavior.
 
 ## Existing behavior to protect
 
 - `ss-track info` stays unchanged as subcommands are added. `tests/test_cli.py` already covers it.
+- Truncated, zero-length, wrong-hash, non-increasing PTS and selection-past-end inputs stay
+  structured refusals. `tests/corpus/` covers them.
+  Value: protects=structured refusal; fails_when=a bad source yields a score; no_claim=real decoder
+  coverage.
+- One source staged twice gives one bundle hash, and a corrupted frame fails verification by name.
+  `tests/corpus/` covers them.
+  Value: protects=identical input for every module; fails_when=the hash drifts or corruption passes;
+  no_claim=cross-platform decoders.
+- An encounter with two streams, an encounter, stream, group or source that crosses a split, a bundle
+  moved to another stream, and a rights conflict all stay structured refusals. `tests/corpus/` covers
+  them.
+  Value: protects=no leakage across splits; fails_when=a stream crosses a split; no_claim=grouping
+  judgment on real footage.
+- A source amended to `restricted` after staging refuses its corpus with its stored source
+  byte-identical, a changed file or capture fact stays a conflict, a killed amendment leaves one whole
+  record, and a real schema 1 record gains terms and the current major. `tests/corpus/` covers them.
+  Value: protects=a withdrawal that can be recorded; fails_when=stored bytes change, an amendment
+  carries more than terms, or a term is invented; no_claim=removal of frames already staged.
+- A generated case rerun with one seed stays byte-identical, stays in its parent's encounter and split
+  and adds nothing to any evidence count. `tests/corpus/` covers them.
+  Value: protects=reproducible cases that are not encounters; fails_when=a case counts as new
+  evidence; no_claim=realism.
+- Golden transforms and the full test suite pass on arm64, and one fixed corpus staged from one set of
+  stored sources on x86-64 and arm64 stays `identical`, compared through `frame_set_sha256` and then
+  per source. The corpus holds every decoder family the wheel can encode, and each codec with no
+  normative inverse DCT. `.github/workflows/arm64-reproducibility.yml` runs them on hardware, and
+  `tests/corpus/` covers the comparison.
+  Value: protects=a stated cross-architecture boundary; fails_when=a difference goes unrecorded, a
+  source is regenerated on one host, or a row does not decode as the format it claims; no_claim=macOS,
+  timing, a decoder or pixel format outside the fixed corpus, or a host that did not stage it.
 
 ## Fixture-level cases
 
 ### Input and evidence
 
-- `corpus-manifest-import`: truncated, zero-length, wrong-hash, non-increasing PTS and
-  selection-past-end inputs.
-  Value: protects=structured refusal; fails_when=a bad source yields a score; no_claim=real decoder
-  coverage.
-- `corpus-split-grouping`: an encounter with two streams, and a rights conflict.
-  Value: protects=no leakage across splits; fails_when=a stream crosses a split; no_claim=grouping
-  judgment on real footage.
 - `annotation-contract`: malformed labels, an unverifiable label, and seed replay.
   Value: protects=frozen truth; fails_when=an unverifiable label scores zero; no_claim=label quality.
 - `annotation-review-tools`: hand-built disagreements between two label sets.
   Value: protects=review before freezing; fails_when=an unresolved case freezes; no_claim=reviewer
   skill.
-- `frame-bundle-staging`: one source staged twice, and one corrupted frame.
-  Value: protects=identical input for every module; fails_when=the hash drifts or corruption passes;
-  no_claim=cross-platform decoders.
-- `generated-fixture-cases`: a generated case on rerun with one seed.
-  Value: protects=reproducible cases that are not encounters; fails_when=a case counts as new
-  evidence; no_claim=realism.
+- `source-terms-enforcement`: a source one day either side of its retention date, and a generated case
+  of a source that forbids derived frames.
+  Value: protects=recorded terms; fails_when=a source outside its terms is staged; no_claim=legal
+  sufficiency of the declared terms.
+- `corpus-verify-rights`: a source re-imported under narrower rights after staging.
+  Value: protects=a verified corpus means valid rights; fails_when=verify passes on withdrawn rights;
+  no_claim=the truth of a declaration.
+- `amendment-impact-report`: a source pinned by two versions, and an unreadable manifest.
+  Value: protects=a withdrawal that reaches every copy on a data root; fails_when=a pinning version
+  goes unlisted or a listing fails a recorded amendment; no_claim=other hosts.
+- `corpus-version-lineage`: a source moved between splits or groups, a source dropped and brought back
+  elsewhere, a group changing split with new sources, and a source added, across linked versions.
+  Value: protects=split isolation over time; fails_when=a moved source builds, or a replaced
+  predecessor is compared; no_claim=versions that declare no predecessor.
+- `unlinked-version-report`: a source placed in `locked` by an unlinked version and by a sibling
+  branch.
+  Value: protects=an operator's sight of reuse no declaration links; fails_when=either goes unlisted
+  or an independent reuse is refused; no_claim=that a listed reuse is leakage.
+- `staged-frame-set`: two stagings of one corpus across data roots, a replaced, missing and undeclared
+  bundle, and a stage killed at each step of writing the record.
+  Value: protects=one pin for all staged input; fails_when=a changed bundle keeps its frame set, or a
+  partial stage leaves one; no_claim=undeclared files outside the corpus, or a rewrite that no pin
+  held elsewhere can see.
+- `duplicate-frame-detection`: a remux across two groups, in one version and across linked versions,
+  two clips sharing a black frame or a longer uniform lead-in, and each predecessor that cannot be
+  compared. `tests/corpus/` covers them.
+  Value: protects=split isolation for remuxed copies; fails_when=identical frames cross a group, a
+  shared lead-in is refused, or a version not compared goes unnamed; no_claim=re-encoded copies, a
+  version whose bundles are gone, windows sharing no frame, or copies inside one group.
+- `bundle-reuse-across-versions`: a kept source, a damaged candidate, another window, and a removed
+  version. Value: protects=identical frames at no decode or storage cost; fails_when=a damaged
+  bundle links or a reused bundle differs from a fresh stage; no_claim=a filesystem without hard
+  links.
+- `decode-policy-reimport`: a record of an older policy re-decoded from its stored bytes, a corpus
+  version pinning the old record, a damaged stored source, a repeat and an interrupted run.
+  Value: protects=a decoder change without losing a stored source; fails_when=terms change, stored
+  bytes change, or a pinned corpus keeps verifying; no_claim=that new pixels equal old ones.
+- `group-repeated-frames`: a remux in two encounters of one group, and in one encounter, and a copy
+  replacing its original across linked versions.
+  Value: protects=each frame counted once; fails_when=a frame counts twice in one version;
+  no_claim=re-encoded copies.
+- `generated-case-labels`: hand-built labels through each transform, and a plate showing a target.
+  Value: protects=labels that follow pixels; fails_when=a covered target stays visible or a wrong
+  region yields `absent`; no_claim=parent label quality.
 - `event-schema-contract`: golden fixtures, unknown fields, malformed payloads and regenerated
   bindings.
   Value: protects=one meaning for every event; fails_when=generated code drifts from `.proto`;
@@ -43,11 +104,72 @@ makes it fail, and what it does not prove. Every test is new, because no engine 
   Value: protects=complete immutable evidence and restricted by default; fails_when=a partial bundle
   reads as complete; no_claim=disk failure modes.
 
+### Data contracts
+
+- `record-read-gate`: a real record of each historic major, a re-import over an older source, a
+  predecessor holding another major's bundle, and a static scan of sealed reads.
+  Value: protects=no unchecked read and an actionable refusal; fails_when=a caller reads around the
+  gate or an older source reads as `IMPORT_CONFLICT`; no_claim=that an older record can be used.
+- `record-read-window`: a view major, a `facts` major, a view deriving a rights field, a decode
+  policy mismatch through a view, and the five real bumps. Value: protects=old evidence with no
+  moved hash, and a split guard across majors; fails_when=a byte or pin moves, a fact is invented,
+  or a move passes as a schema refusal; no_claim=legal validity of old terms.
+- `contract-registry`: a frozen contract read from an installed wheel, by a standalone validator, an
+  edited frozen file, and each construct the dialect refuses.
+  Value: protects=a format readable without this repository; fails_when=a frozen file changes unseen
+  or a wheel lacks its contracts; no_claim=that a contract matches its writer.
+- `corpus-contract-baseline`: every record any test writes, and a recipe with another transform's
+  parameters.
+  Value: protects=shipped evidence conforms with no byte changed; fails_when=a writer produces what its
+  contract refuses; no_claim=that a field's meaning is right.
+- `contract-evolution-gate`: every row of spec section 17.3 at a nested path and inside a tagged
+  branch, the real recording and corpus changes, and a new field written as `null`.
+  Value: protects=old readers and old hashes; fails_when=a breaking change passes as minor, or an
+  unused feature moves a seal; no_claim=that a description states the truth.
+- `contract-enforced-readers`: the existing suite, `1.0` as an index, a non-finite number, a repeated
+  key, an unquoted date, a writer defect, and a verify benchmark.
+  Value: protects=one statement of each rule with unchanged refusals; fails_when=a looser rule slips
+  in or a read walks every field; no_claim=rules across files, which stay in code.
+- `dataset-descriptor`: restricted, public and locked corpora, and a corpus with no license.
+  Value: protects=self-service without a leak; fails_when=a restricted value or locked path appears
+  in a public descriptor; no_claim=that declared terms are true, or that a loader reads raw frames.
+
+### Telemetry
+
+- `telemetry-bundle-store`: two stagings across data roots and architectures, NaN payloads, and a
+  flipped column byte.
+  Value: protects=exact reproducible columns; fails_when=a value changes or damage passes;
+  no_claim=that a log's values are true.
+- `telemetry-profiles`: an unmapped, an absent and a retyped field, and a unit fixed by a new profile.
+  Value: protects=visible drift; fails_when=a changed field is coerced or a bundle hash moves;
+  no_claim=that a profile's unit is right.
+- `flight-log-readers`, `mavlink-log-reader`, `blackbox-log-reader`, `mcap-log-reader` and
+  `camera-telemetry-readers`: generated files against hand tables or an oracle, an unknown
+  incompatible flag, and truncation.
+  Value: protects=each specification as written; fails_when=a value differs or damage is hidden;
+  no_claim=coverage of real firmware, which `collect-telemetry-samples` supplies.
+- `board-telemetry-sources`: recorded trees, renumbered hwmon directories, a counter wrap and a
+  root-only source.
+  Value: protects=correct ABI units and honest absence; fails_when=a renumbered chip changes a channel
+  or a root-only source reads as zero; no_claim=accuracy of a board's sensors.
+- `declared-binary-layouts`: hand layouts, the IIO `type` grammar and a TLV profile.
+  Value: protects=a new sensor with no new code; fails_when=a bit field shifts wrongly;
+  no_claim=undeclared vendor changes.
+- `live-telemetry-capture`: overflow, disconnect, recovery and a killed process on fake clocks.
+  Value: protects=exact loss accounting and a passive reader; fails_when=loss goes uncounted or a byte
+  reaches a source; no_claim=a real link's capacity, which each host measures.
+- `telemetry-analysis-report`: hand-computed rates and gaps, and two firmware versions of one log.
+  Value: protects=descriptive truth and restricted export; fails_when=a gap disappears or a location
+  leaks; no_claim=any health or safety verdict.
+
 ### Execution
 
 - `lockstep-runner`: oracle, null, dropper, crash, schema and class-identity modules.
   Value: protects=exact frame accounting; fails_when=a dropped frame leaves the denominator;
   no_claim=paced behavior.
+- `locked-split-guard`: a development scenario naming a locked stream, and an approved re-score.
+  Value: protects=held-out material and its audit trail; fails_when=the run starts or a read goes
+  unrecorded; no_claim=access control against someone with disk access.
 - `paced-frame-release`: a fixture module attempts to read a future frame.
   Value: protects=causal input; fails_when=the read succeeds; no_claim=defense beyond the channel.
 - `paced-frame-release`: a slow module against an injected clock.

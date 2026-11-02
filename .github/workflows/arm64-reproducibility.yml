@@ -1,0 +1,108 @@
+name: arm64-reproducibility
+
+# Sources are written once on x86-64 and carried to arm64, because writing media again gives other
+# bytes. A difference fails the run and stays in hash-comparison.json, per source.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  DATA_DIR: ci-data
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  x86-64:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Install locked environment
+        run: uv sync --locked --extra dev --python "$PYTHON_VERSION"
+
+      - name: Write the fixed sources
+        run: make fixed-corpus-sources RUN_ID=x86-64
+
+      - name: Stage them and record this host's hashes
+        run: make fixed-corpus-stage RUN_ID=x86-64
+
+      - name: Keep the sources for the other host
+        uses: actions/upload-artifact@v7
+        with:
+          name: fixed-corpus-sources
+          path: ci-data/run/x86-64/sources/
+          if-no-files-found: error
+
+      - name: Keep this host's hashes
+        uses: actions/upload-artifact@v7
+        with:
+          name: staged-hashes-x86-64
+          path: ci-data/run/x86-64/staged-hashes.json
+          if-no-files-found: error
+
+  arm64:
+    needs: x86-64
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      # ShellCheck has no arm64 Linux wheel and no shell gate runs here.
+      - name: Install locked environment
+        run: >
+          uv sync --locked --extra dev --python "$PYTHON_VERSION"
+          --no-install-package shellcheck-py
+
+      - name: Refuse a runner that is not arm64
+        run: test "$(uname -m)" = aarch64
+
+      - name: Run the tests, golden transforms included
+        run: make test
+
+      - name: Take the sources x86-64 wrote
+        uses: actions/download-artifact@v8
+        with:
+          name: fixed-corpus-sources
+          path: ci-data/run/arm64/sources
+
+      - name: Stage them and record this host's hashes
+        run: make fixed-corpus-stage RUN_ID=arm64
+
+      - name: Take the hashes x86-64 recorded
+        uses: actions/download-artifact@v8
+        with:
+          name: staged-hashes-x86-64
+          path: ci-data/x86-64
+
+      - name: Compare the two hosts
+        run: >
+          make fixed-corpus-compare RUN_ID=arm64
+          LEFT=ci-data/x86-64/staged-hashes.json
+          RIGHT=ci-data/run/arm64/staged-hashes.json
+
+      - name: Keep the comparison, whatever it found
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: hash-comparison
+          path: |
+            ci-data/run/arm64/hash-comparison.json
+            ci-data/run/arm64/staged-hashes.json
+          if-no-files-found: warn

@@ -80,8 +80,9 @@ execution graph; independent fixture work can start before a human gate has supp
 | M3: reference sensor mesh | M1 contracts, M2 measurement path and a qualified host; independent sensor reference | Candidates characterized before selection; pinned MOT adapter fixtures pass; synchronized capture, frozen inputs and `run-mesh-trials` produce four report panels and measured sensor contribution or a documented unsupported profile |
 | M4: optional thermal experiment and ranking | M1 comparison, M2 host and instruments, reviewed development corpus | Thermal mechanism assessed including negative outcomes; frozen comparison protocol, local snapshot and independent recompute/re-run evidence; no rank if requirements fail |
 | M5: optional device cases | M2 measurement and M3 installed-system software; accessible devices | Same-stimulus unranked cases or explicit unavailable/unsupported results |
+| M6: optional telemetry analysis | M1 contracts; generated logs, then any authorized real logs | Readers match an independent reader, loss and drift are reported, and real-format coverage is stated or explicitly absent |
 
-M3 does not depend on M4 or M5. A documented negative result closes an experiment's evaluation,
+M3 does not depend on M4, M5 or M6. A documented negative result closes an experiment's evaluation,
 but unavailable hardware does not mean the mesh implementation shipped. Keep the corresponding
 implementation task open until its software acceptance gates pass. A reduced sensor set needs a new
 selection/configuration revision. Sections 3 and 13 of the spec define broader G1/G2 claims; these
@@ -104,7 +105,7 @@ person can re-run the reference baseline even when no external module qualifies 
 
 ## Open engineering choices
 
-- Decoder with the required host support, container runtime and pinned MOT evaluator.
+- Container runtime and pinned MOT evaluator.
 - Authorized development sources and independent references for the selected sensor candidates.
 - Per-stand budgets, measurement precision and acceptance tolerances before acquisition.
 - Non-camera evidence role and whether its measured contribution justifies keeping it.

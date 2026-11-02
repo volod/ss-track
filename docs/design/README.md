@@ -20,6 +20,14 @@ The specification stays authoritative when they differ.
 - [Test plan](perception-bench-test-plan.md): required tests for approved behavior.
 - [Test-stand requirements](test-stands.md): hardware needs and the selection flow.
 
+## Data contracts and telemetry design input
+
+- [Data contract design](data-contracts.md): why open schemas, what was taken from fl-op, and the
+  evidence behind
+  [specification section 17](spec.md#17-data-contracts-and-schema-evolution).
+- [Telemetry sources](telemetry-sources.md): boards, sensors, formats, libraries and the adapter
+  design behind [specification section 18](spec.md#18-board-and-sensor-telemetry).
+
 Repository design covers software and the hardware support needed to evaluate it. Commercial,
 organizational and publication operations live in an owner-managed to-do outside Git control.
 The human hardware flow produces documented measured choices, not a purchasing roadmap.

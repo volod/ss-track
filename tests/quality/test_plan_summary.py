@@ -18,8 +18,8 @@ def test_summary_counts_statuses_and_selects_required_work(tmp_path: Path) -> No
 
     lines = summary_lines(root)
 
-    assert "tasks: 2" in lines
-    assert "statuses: CLEAR=2" in lines
+    assert "tasks: 3" in lines
+    assert "statuses: CLEAR=3" in lines
     assert "next agent: required-next [feature]" in lines
 
 
