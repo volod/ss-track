@@ -118,9 +118,16 @@ The plan has two lanes:
 is unknown and a negative result is acceptable.
 
 Order capability groups exactly as the registry. Within each group: hard dependencies first, then
-work that changes downstream inputs, required work before `(optional)`, and cheaper deterministic
-work before expensive runs. A capability with only optional refinements may move below capabilities
-with required work by reordering the registry once the product priority changes.
+work that changes downstream inputs, required work before `(optional)`, cheaper deterministic work
+before expensive runs, and the group's audit last. A capability with only optional refinements may
+move below capabilities with required work by reordering the registry once the product priority
+changes.
+
+Every capability group in the Agent lane ends with its audit, `<capability-id>-audit (optional)`, a
+scheduled review of the whole group at `Effort: high`. A new task in that group goes above it. The
+`(optional)` marker sets its order and does not make it skippable. The per-change audit in the
+documentation lifecycle still runs at every completion. The
+[group audit rules](docs/guide/planning-workflow.md#group-audits) state what it covers.
 
 Every task must include: `Serves`, `Agent status`, `Dependencies`, `User-visible outcome`, `Scope
 boundary`, `Data and artifact paths`, `Execution path`, `Acceptance gates`, and `Documentation
@@ -135,7 +142,8 @@ The capability registry and implementation plan are two views of one product. Ke
 - every shipped capability links to current-state documentation;
 - every capability declares an evaluation;
 - capability groups follow registry order in both plan lanes;
-- optional tasks follow required tasks within their own group.
+- optional tasks follow required tasks within their own group;
+- every capability group in the Agent lane ends with its audit task.
 
 Fix document disagreements when `make lint-spec-plan` fails. Do not loosen the checker.
 

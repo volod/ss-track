@@ -2224,14 +2224,17 @@ why the proposed product interface is not yet ready.
 `AGENTS.md` is the canonical contributor policy; tool-specific files are adapters. The product
 specification, forward plan, and current-state tree have distinct ownership. Repository checks
 validate relative links and anchors, capability registration, task metadata, lane-appropriate
-statuses, group ordering, and forward-only plan language.
+statuses, group ordering, and forward-only plan language. Every capability group in the Agent lane
+ends with a scheduled audit of the whole group, because a check on one change cannot see what only
+shows across several.
 
 Boundary: these checks establish structural agreement. They do not decide which capability is
 valuable, whether an evaluation threshold is ambitious enough, or whether a human judgment is
 correct.
 
 Evaluation: synthetic tests reproduce broken links, unknown capabilities, missing task fields,
-wrong task lanes, and invalid ordering; the shipped tree passes the same checks. A negative result
+wrong task lanes, invalid ordering, and a group with no audit or a task after it; the shipped tree
+passes the same checks. A negative result
 blocks the change and points to the documents that disagree.
 
 ## Capability Registry

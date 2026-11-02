@@ -16,7 +16,8 @@ The documentation lifecycle keeps product intent, future work, and available beh
    finished plan scope, update the registry, and classify anything newly surfaced.
 
 A chore is handled during the change when necessary or dropped. An audit of the work just produced
-is part of completion and does not become a permanent task. More work for an existing capability
+is part of completion and does not become a task. The one scheduled audit is the
+[group audit](#group-audits), which reviews a whole group. More work for an existing capability
 amends the open task that owns it or becomes a new task; mark a refinement `(optional)`. A new
 capability always returns to specification.
 
@@ -82,7 +83,7 @@ Describe the unresolved operator problem in present or future tense.
 ```
 
 The plan integrity gate requires every field. Human-lane tasks use a human-lane status. Optional work
-follows required work within its capability.
+follows required work within its capability, and an Agent-lane group ends with its audit.
 
 ## Ordering
 
@@ -91,10 +92,52 @@ Capability groups follow the registry. Within a group:
 1. hard prerequisites;
 2. changes to inputs that later evaluation consumes;
 3. required work before optional refinements;
-4. cheap deterministic work before expensive runs.
+4. cheap deterministic work before expensive runs;
+5. the group's audit last.
 
 If priorities change, edit the registry order and move the same groups in both lanes. Do not encode
 priority in task wording.
+
+## Group audits
+
+A completion audit checks one change. It cannot see what only shows across a group: a rule stated by
+two tasks, a name that drifted, or a limit each task assumed another owned. So every capability group
+in the Agent lane ends with one audit task, `<capability-id>-audit (optional)`. The Human lane has no
+audit of its own, because the audit of a capability covers what its human tasks handed to software.
+
+| Property | Rule |
+| --- | --- |
+| Marker | `(optional)` sets its order only. A required audit would run before the group's optional tasks, and could not depend on them. It is not skippable, and an open audit keeps its capability `planned` |
+| Position | Last in its group, enforced by `make lint-spec-plan`. A new task in the group goes above it |
+| Readiness | `Dependencies: every other agent task in this group.` One sentence stays true as tasks come and go, so the list is not kept twice |
+| Effort | `Effort: high`: run it at a higher reasoning effort than the group's tasks, alone, and never as a side step of another task |
+| Milestone | The latest milestone among the group's tasks. An audit gates no milestone exit |
+
+Read the group's records, specification sections, current pages, code and tests together, then work
+through each question. A task's `Execution path` names where to start, not where to stop.
+
+1. **Integrity.** Do the specification, current pages, code and tests state one account? Did every
+   audit handoff reach an owner whose text states it? Does each refusal code mean what its table says?
+2. **Repetition.** Is any rule, constant, refusal or test helper stated twice? Keep one, so that a
+   change has one place to go.
+3. **Explicit patterns.** Is one job done one way, such as locking, atomic writes and sealed reads?
+   Is a literal unnamed, or a dependency hidden?
+4. **Naming.** Does each name still say what its code does, in the words the specification uses?
+5. **Algorithms.** Where do time, memory and disk go at the sizes the specification expects? Measure
+   before and after, and keep a change only for a measured gain.
+6. **Gaps.** Which failure path has no test, which boundary case nobody owns, and what does the
+   neighboring group assume that this one never promised?
+7. **Ideas.** What did the deep dives show that would serve an operator directly?
+
+A refactor moves no sealed byte, hash, score or refusal code. A change that must move one is a
+contract change and follows [section 17](../design/spec.md#17-data-contracts-and-schema-evolution).
+
+Route each finding once, as any other task does: fix it in the audit when it is in scope, amend the
+open task that owns it, add a task, or drop it with its reason in the record. A new task in the audit's
+own group goes above it and keeps the audit open for that work alone. A feature with no evaluation yet
+goes to [section 12](../design/spec.md#12-unscheduled-design-candidates), which schedules nothing and
+leaves the audit free to close. Finding nothing is a valid result when the record states what was
+reviewed for each question.
 
 ## Task records
 

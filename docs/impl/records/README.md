@@ -19,5 +19,6 @@ Copy the [template](template.md) using the
 | 0012 | `data-contract-and-telemetry-design` | [0012-adhoc-data-contract-and-telemetry-design](0012-adhoc-data-contract-and-telemetry-design.md) |
 | 0013 | `record-version-refusal` | [0013-adhoc-record-version-refusal](0013-adhoc-record-version-refusal.md) |
 | 0014 | `source-terms-amendment` | [0014-corpus-provenance-source-terms-amendment](0014-corpus-provenance-source-terms-amendment.md) |
+| 0015 | `group-audit-tasks` | [0015-adhoc-group-audit-tasks](0015-adhoc-group-audit-tasks.md) |
 
-Next unused sequence: `0015`.
+Next unused sequence: `0016`.

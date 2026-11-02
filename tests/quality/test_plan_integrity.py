@@ -3,7 +3,13 @@ from pathlib import Path
 import pytest
 
 from ss_track.quality.plan_integrity import integrity_findings, main
-from tests.quality._plan_fixture import SPEC, plan_with, task_block, write_project
+from tests.quality._plan_fixture import (
+    SPEC,
+    audit_block,
+    plan_with,
+    task_block,
+    write_project,
+)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -52,6 +58,50 @@ def test_clear_status_in_the_human_lane_is_rejected(tmp_path: Path) -> None:
     findings = integrity_findings(write_project(tmp_path, plan=plan))
 
     assert any("invalid in 'Human-Assisted Tasks'" in finding for finding in findings)
+
+
+def test_a_group_must_end_with_its_audit(tmp_path: Path) -> None:
+    plan = plan_with(task_block(), audit=False)
+
+    findings = integrity_findings(write_project(tmp_path, plan=plan))
+
+    assert findings == ["docs/impl/plan.md: `feature` does not end with its audit `feature-audit`"]
+
+
+def test_a_task_after_the_audit_is_rejected(tmp_path: Path) -> None:
+    late = task_block(identifier="late-idea", optional=True)
+    plan = plan_with(audit_block(), late, audit=False)
+
+    findings = integrity_findings(write_project(tmp_path, plan=plan))
+
+    assert any("does not end with its audit" in finding for finding in findings)
+
+
+def test_a_required_audit_is_rejected(tmp_path: Path) -> None:
+    required = task_block(identifier="feature-audit", effort="high")
+    plan = plan_with(task_block(), required, audit=False)
+
+    findings = integrity_findings(write_project(tmp_path, plan=plan))
+
+    assert any("is not marked optional" in finding for finding in findings)
+
+
+@pytest.mark.parametrize("effort", [None, "medium"])
+def test_an_audit_must_declare_high_effort(tmp_path: Path, effort: str | None) -> None:
+    audit = task_block(identifier="feature-audit", optional=True, effort=effort)
+    plan = plan_with(task_block(), audit, audit=False)
+
+    findings = integrity_findings(write_project(tmp_path, plan=plan))
+
+    assert any("does not declare `Effort: high`" in finding for finding in findings)
+
+
+def test_the_human_lane_needs_no_audit(tmp_path: Path) -> None:
+    human = task_block(identifier="review-feature", status="HUMAN-GATED")
+
+    plan = plan_with(task_block(), human_blocks=(human,))
+
+    assert integrity_findings(write_project(tmp_path, plan=plan)) == []
 
 
 def test_required_work_cannot_follow_optional_work(tmp_path: Path) -> None:

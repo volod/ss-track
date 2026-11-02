@@ -27,6 +27,8 @@ PLANNED = "planned"
 VALID_CAPABILITY_STATUSES = (SHIPPED, PLANNED)
 AGENT_STATUSES = ("CLEAR", "RUN NEEDED")
 HUMAN_STATUSES = ("BLOCKED BY HUMAN", "HUMAN-GATED")
+AUDIT_SUFFIX = "-audit"
+AUDIT_EFFORT = "high"
 REQUIRED_FIELDS = (
     "serves",
     "agent status",
@@ -127,13 +129,17 @@ def _section_order_findings(line: list[str], tasks: list[Task], section: str) ->
     return [f"{PLAN_DOC}: groups in '{section}' do not follow registry order: {groups}"]
 
 
-def _optional_order_findings(tasks: list[Task], section: str) -> list[str]:
-    findings: list[str] = []
+def _tasks_by_group(tasks: list[Task], section: str) -> dict[str, list[Task]]:
     by_group: dict[str, list[Task]] = defaultdict(list)
     for task in tasks:
         if task.section == section:
             by_group[task.group].append(task)
-    for group, group_tasks in by_group.items():
+    return by_group
+
+
+def _optional_order_findings(tasks: list[Task], section: str) -> list[str]:
+    findings: list[str] = []
+    for group, group_tasks in _tasks_by_group(tasks, section).items():
         optional_seen = False
         for task in group_tasks:
             if optional_seen and not task.optional:
@@ -142,6 +148,23 @@ def _optional_order_findings(tasks: list[Task], section: str) -> list[str]:
                     f"in `{group}`"
                 )
             optional_seen = optional_seen or task.optional
+    return findings
+
+
+def _audit_findings(tasks: list[Task]) -> list[str]:
+    """Keep the group review last: `(optional)` orders it after every task that it covers."""
+    findings: list[str] = []
+    for group, group_tasks in _tasks_by_group(tasks, AGENT_SECTION).items():
+        expected = f"{group}{AUDIT_SUFFIX}"
+        last = group_tasks[-1]
+        if group and last.identifier != expected:
+            findings.append(f"{PLAN_DOC}: `{group}` does not end with its audit `{expected}`")
+        elif group and not last.optional:
+            findings.append(
+                f"{PLAN_DOC}: `{expected}` is not marked optional, so it would run first"
+            )
+        elif group and last.fields.get("effort") != AUDIT_EFFORT:
+            findings.append(f"{PLAN_DOC}: `{expected}` does not declare `Effort: {AUDIT_EFFORT}`")
     return findings
 
 
@@ -185,6 +208,7 @@ def integrity_findings(project_root: Path) -> list[str]:
         _registry_findings(capabilities, tasks)
         + _task_findings(capabilities, tasks)
         + _order_findings(capabilities, tasks)
+        + _audit_findings(tasks)
         + _plan_text_findings(plan)
     )
 

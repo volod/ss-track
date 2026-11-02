@@ -15,7 +15,9 @@ software acceptance.
 Groups follow the [capability registry](../design/spec.md#capability-registry). Follow explicit
 dependencies across both lanes; group priority does not imply a predecessor is complete. Required
 work takes priority over optional refinements. `make plan-status` reports counts and the first task
-by priority in each lane; dependency readiness must currently be checked from the task fields.
+by priority in each lane; dependency readiness must currently be checked from the task fields. Every
+Agent group ends with its [group audit](../guide/planning-workflow.md#group-audits), whose
+`(optional)` marker sets its order and does not make it skippable.
 
 See the [planning workflow](../guide/planning-workflow.md),
 [engine milestone map](../design/perception-bench-engine.md#milestone-map),
@@ -334,6 +336,35 @@ A new corpus version that keeps a source decodes and stores identical frames aga
   A stream with another window or policy decodes. Removing one version leaves the other readable.
 - Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
 
+#### corpus-provenance-audit (optional)
+
+The corpus pipeline grew one task at a time, so one rule can live in two places and no check reads
+import, build, stage and verify as one path.
+
+- Serves: `corpus-provenance` -- [Corpus
+  identity](../design/spec.md#41-corpus-identity-and-input-handling)
+- Agent status: CLEAR
+- Milestone: M2
+- Effort: high
+- Dependencies: every other agent task in this group.
+- User-visible outcome: Import, build, stage and verify read as one pipeline with one route for each
+  rule, and every record they wrote stays valid.
+- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
+  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
+  score or refusal code.
+- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`,
+  `$DATA_DIR/import/<source-sha256>/`, `$DATA_DIR/corpus/`, `$DATA_DIR/corpus/<corpus-id>/`.
+- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from what
+  is already known to repeat: the two `flock` routines and their scratch clearing in `staging.py`
+  and `amendment.py`, the `.incoming-` literal in `importer.py` beside `SCRATCH_PREFIX`, the two
+  `PermissionError` handlers for one source read, and the `_rights`, `cli_root` and `_last_record`
+  test helpers. Then compare the refusal table with the codes raised.
+- Acceptance gates: Each named repetition is merged or kept for a stated reason. The fixed corpus
+  keeps its `bundle_sha256` and `frame_set_sha256`, and every refusal code keeps its meaning. Every
+  finding is fixed, routed to a task or dropped with its reason, and `make quality` passes. Finding
+  nothing is a valid result when the record states what was reviewed.
+- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
+
 ### Data contracts -- `data-contracts`
 
 #### record-read-gate
@@ -563,6 +594,36 @@ A data catalog may expect ODCS, and a generated view costs little once contracts
   property appears, and each construct lost in projection is listed.
 - Documentation target: [Current implementation](current.md#areas), page `current/contracts.md`.
 
+#### data-contracts-audit (optional)
+
+Contracts, readers and disposition rules arrive in separate tasks, so a format can still be stated
+twice and an older-major rule can sit in code the registry should own.
+
+- Serves: `data-contracts` -- [Reading older records](../design/spec.md#reading-older-records)
+- Agent status: CLEAR
+- Milestone: M1
+- Effort: high
+- Dependencies: every other agent task in this group.
+- User-visible outcome: Each format has one statement, its contract, and each older major has one
+  stated route, with no record byte moved.
+- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
+  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
+  score or refusal code.
+- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `tests/corpus/records/`,
+  `contracts/`, `src/ss_track/schema/`, `tests/schema/`, `docs/guide/authoring-contracts.md`,
+  `contracts/declaration/`, `contracts/record/`, `contracts/result/`.
+- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from the
+  code that still knows a version: the older-major constant in `amendment.py`, `SEQUENCE_KEYS`, and
+  any structural rule left in a hand-written reader. Then replay every record in
+  `tests/corpus/records/` and compare the change log with the real bumps.
+- Acceptance gates: Every historic record reads under its disposition with its bytes and seal
+  unchanged, a static search finds no version check outside the read path, and `corpus verify` on a
+  million-frame index is no slower than before. Every finding is fixed, routed to a task or dropped
+  with its reason, and `make quality` passes. Finding nothing is a valid result when the record
+  states what was reviewed.
+- Documentation target: [Current implementation](current.md#areas), pages `current/corpus.md` and
+  `current/contracts.md`.
+
 ### Annotation and selection -- `annotation-selection`
 
 #### annotation-contract
@@ -624,6 +685,32 @@ create a false negative.
 - Acceptance gates: Hand-computed labels match for all seven transforms. A plate showing a target
   inside its region is refused, and a target the region does not fully cover stays `unknown`. A
   parent with no frozen labels leaves its cases unscorable, never scored as zero.
+- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
+
+#### annotation-selection-audit (optional)
+
+Label validation, review and generated labels each touch identity and the frozen mask, and a
+difference between them would change what a score means.
+
+- Serves: `annotation-selection` -- [Annotation contract](../design/spec.md#42-annotation-contract)
+- Agent status: CLEAR
+- Milestone: M1
+- Effort: high
+- Dependencies: every other agent task in this group.
+- User-visible outcome: One set of rules decides what a label is, what can freeze and what stays
+  unverifiable.
+- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
+  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
+  score or refusal code.
+- Data and artifact paths: `src/ss_track/annotate/`, `tests/annotate/`,
+  `$DATA_DIR/corpus/<corpus-id>/labels/`.
+- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from the
+  rules that validation, review tools and generated labels each apply, and from how a label joins a
+  staged frame and a generated case.
+- Acceptance gates: Seed replay stays identical, an unresolved case never freezes, and an
+  unverifiable label never scores as zero. Every finding is fixed, routed to a task or dropped with
+  its reason, and `make quality` passes. Finding nothing is a valid result when the record states
+  what was reviewed.
 - Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
 
 ### Module contract and runner -- `module-contract-runner`
@@ -814,6 +901,33 @@ External tracker adapters need conformance evidence on the selected host.
   Zero compatible candidates is valid and does not block the reference implementation.
 - Documentation target: [Current implementation](current.md#areas), page `current/runner.md`.
 
+#### module-contract-runner-audit (optional)
+
+Contracts, the store, the runner and the sandbox were written against each other in stages, so a
+frame or a boundary can be accounted for in one place and assumed in another.
+
+- Serves: `module-contract-runner` -- [Module contract](../design/spec.md#5-module-contract-execution-and-fault-semantics)
+- Agent status: CLEAR
+- Milestone: M4
+- Effort: high
+- Dependencies: every other agent task in this group.
+- User-visible outcome: Every frame has one account from release to stored result, and no path leads
+  from a module to labels, the network or restricted data.
+- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
+  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
+  score or refusal code.
+- Data and artifact paths: `src/ss_track/contract/`, `tests/contract/`, `scenarios/`,
+  `$DATA_DIR/run/<run-id>/`, `src/ss_track/runner/`, `tests/runner/`, `modules/null/`,
+  `modules/<name>/`, `modules/<tracker>/`, `$DATA_DIR/preflight/<run-id>/`.
+- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from
+  frame accounting across the lockstep and paced paths, how the run store and `corpus` share
+  sealed-record code, and every route out of the sandbox.
+- Acceptance gates: Oracle, null, dropper, crash, schema and class-identity fixtures keep their
+  exact accounting, a partial bundle never reads as complete, and a test covers each sandbox
+  boundary. Every finding is fixed, routed to a task or dropped with its reason, and `make quality`
+  passes. Finding nothing is a valid result when the record states what was reviewed.
+- Documentation target: [Current implementation](current.md#areas), page `current/runner.md`.
+
 ### Motion and tracking evaluation -- `motion-sot-evaluation`
 
 #### plugin-evaluator-core
@@ -889,6 +1003,31 @@ Maintainers need a rule for saying whether a version improved.
   `insufficient_data`, and a rerun with one seed is byte-identical.
 - Documentation target: [Current implementation](current.md#areas), page `current/evaluation.md`.
 
+#### motion-sot-evaluation-audit (optional)
+
+Each suite scores saved evidence through a shared core, and a denominator or time weight defined
+twice would make two suites disagree on one run.
+
+- Serves: `motion-sot-evaluation` -- [Metric-suite validity](../design/spec.md#6-metric-suite-validity-and-primary-g0-metrics)
+- Agent status: CLEAR
+- Milestone: M1
+- Effort: high
+- Dependencies: every other agent task in this group.
+- User-visible outcome: Every suite scores through one core, with each denominator and time weight
+  defined once.
+- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
+  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
+  score or refusal code.
+- Data and artifact paths: `src/ss_track/evaluator/`, `tests/evaluator/`, `src/ss_track/suites/`,
+  `tests/suites/`.
+- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from the
+  denominators, time weights and exclusions each suite applies, and from what
+  `development-decision-status` reads from them.
+- Acceptance gates: Hand-computed fixture metrics stay exact, and each suite's exclusions appear in
+  its output. Every finding is fixed, routed to a task or dropped with its reason, and `make
+  quality` passes. Finding nothing is a valid result when the record states what was reviewed.
+- Documentation target: [Current implementation](current.md#areas), page `current/evaluation.md`.
+
 ### Reference tracker -- `reference-tracker`
 
 #### reference-sot-tracker
@@ -926,6 +1065,32 @@ A light tracker has spare time, so it cannot show whether heat costs quality.
 - Execution path: Add the setting and a fixture that shows it changes compute time only.
 - Acceptance gates: The output with load matches the output without load on a lockstep fixture. A
   setting that leaves no deadline margin in a cool run is refused.
+- Documentation target: [Current implementation](current.md#areas), page
+  `current/reference-tracker.md`.
+
+#### reference-tracker-audit (optional)
+
+A baseline only helps if it stays simple and deterministic, and a load setting added later can bend
+it.
+
+- Serves: `reference-tracker` -- [Reference tracker](../design/spec.md#78-tdd-reference-tracker-and-stagewise-development)
+- Agent status: CLEAR
+- Milestone: M4
+- Effort: high
+- Dependencies: every other agent task in this group.
+- User-visible outcome: The reference tracker stays small enough to inspect, with one deterministic
+  path under every setting.
+- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
+  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
+  score or refusal code.
+- Data and artifact paths: `src/ss_track/reference/`, `tests/reference/`, `modules/reference/`.
+- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from what
+  the load setting touches, every source of randomness or wall-clock time, and what can be shared
+  with `mesh-reference-tracker`.
+- Acceptance gates: Seeded runs stay identical, the load setting preserves lockstep outputs, and
+  continuity, lost and re-entry, identity and deadline fixtures pass. Every finding is fixed, routed
+  to a task or dropped with its reason, and `make quality` passes. Finding nothing is a valid result
+  when the record states what was reviewed.
 - Documentation target: [Current implementation](current.md#areas), page
   `current/reference-tracker.md`.
 
@@ -1023,6 +1188,33 @@ A pass or fail on one generated case does not show where a module starts to degr
   level.
 - Documentation target: [Current implementation](current.md#areas), page `current/evaluation.md`.
 
+#### comparison-report-audit (optional)
+
+A report joins runs, cohorts, exclusions and visibility, and the join is where an exclusion
+disappears or restricted data reaches public output.
+
+- Serves: `comparison-report` -- [Comparison dashboard](../design/spec.md#10-run-artifacts-and-comparison-dashboard)
+- Agent status: CLEAR
+- Milestone: M2
+- Effort: high
+- Dependencies: every other agent task in this group.
+- User-visible outcome: A report shows every exclusion and every limit it rests on, and nothing
+  restricted can reach public output by any route.
+- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
+  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
+  score or refusal code.
+- Data and artifact paths: `src/ss_track/report/`, `tests/report/`, `$DATA_DIR/report/<run-id>/`,
+  `$DATA_DIR/run/<run-id>/`, `src/ss_track/contract/`, `tests/contract/`, `src/ss_track/corpus/`,
+  `tests/corpus/`.
+- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from each
+  value a report shows and the sealed record it comes from, every route to public output, and the
+  cohort refusal reasons.
+- Acceptance gates: An incompatible cohort is refused with its reason, each displayed value traces
+  to a sealed record, and a restricted fixture reaches no public output. Every finding is fixed,
+  routed to a task or dropped with its reason, and `make quality` passes. Finding nothing is a valid
+  result when the record states what was reviewed.
+- Documentation target: [Current implementation](current.md#areas), page `current/evaluation.md`.
+
 ### Hardware probe -- `hardware-probe-adaptive-launch`
 
 #### host-capability-probe
@@ -1044,6 +1236,30 @@ A trial must start from what the host really supports.
 - Acceptance gates: Recorded hosts produce expected profiles. An unavailable feature yields
   `UNSUPPORTED` or `MEASURE_REQUIRED`.
 - Documentation target: [Current implementation](current.md#areas), new page `current/bench.md`.
+
+#### hardware-probe-adaptive-launch-audit (optional)
+
+A probe that fills a value it could not read makes every later trial start from a guess.
+
+- Serves: `hardware-probe-adaptive-launch` -- [Probe and launch](../design/spec.md#71-probe-and-adaptive-launch)
+- Agent status: CLEAR
+- Milestone: M2
+- Effort: high
+- Dependencies: every other agent task in this group.
+- User-visible outcome: Recorded and live probes share one path, and a fact a host could not show
+  stays unknown.
+- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
+  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
+  score or refusal code.
+- Data and artifact paths: `src/ss_track/probe/`, `tests/probe/`, `$DATA_DIR/probe/<host-id>/`.
+- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from each
+  field a probe reports, what happens when its source is absent, and what the joint-mode probe will
+  reuse.
+- Acceptance gates: Recorded and live fixtures agree, an unreadable fact stays unknown, and
+  `UNSUPPORTED` and `MEASURE_REQUIRED` stay distinct. Every finding is fixed, routed to a task or
+  dropped with its reason, and `make quality` passes. Finding nothing is a valid result when the
+  record states what was reviewed.
+- Documentation target: [Current implementation](current.md#areas), page `current/bench.md`.
 
 ### Controlled bench, timing and energy -- `controlled-bench-timing-energy`
 
@@ -1104,6 +1320,32 @@ Hardware results need a versioned protocol declared before acquisition.
   in the bundle; ranking-specific repetition rules never gate a basic bench measurement.
 - Documentation target: [Current implementation](current.md#areas), page `current/bench.md`.
 
+#### controlled-bench-timing-energy-audit (optional)
+
+Trace ingest, the energy suite and the trial protocol must agree on units, clocks and validity, or
+an energy number outlives the evidence behind it.
+
+- Serves: `controlled-bench-timing-energy` -- [Electrical power](../design/spec.md#794-electrical-power-thermal-state-and-motion)
+- Agent status: CLEAR
+- Milestone: M2
+- Effort: high
+- Dependencies: every other agent task in this group.
+- User-visible outcome: Every energy and timing estimate traces to hashed raw evidence through one
+  integration path, with its uncertainty and validity.
+- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
+  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
+  score or refusal code.
+- Data and artifact paths: `src/ss_track/energy/`, `tests/energy/`, `src/ss_track/suites/`,
+  `tests/suites/`, `$DATA_DIR/trial/<trial-id>/`.
+- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from
+  units and clock handling across ingest and suite, how validity travels from trial to result, and
+  any energy calculation outside the suite.
+- Acceptance gates: Fixture estimates recompute exactly from retained raw traces, and an invalid
+  trial cannot yield a valid estimate. Every finding is fixed, routed to a task or dropped with its
+  reason, and `make quality` passes. Finding nothing is a valid result when the record states what
+  was reviewed.
+- Documentation target: [Current implementation](current.md#areas), page `current/bench.md`.
+
 ### Hardware selection -- `hardware-selection`
 
 #### hardware-selection-report
@@ -1129,6 +1371,31 @@ Hardware choices need a repeatable comparison that keeps its evidence.
 - Documentation target: [Current implementation](current.md#areas), new page
   `current/hardware-selection.md`.
 
+#### hardware-selection-audit (optional)
+
+A selection record is read long after it is made, so anything it leaves unstated becomes an
+unsupported claim.
+
+- Serves: `hardware-selection` -- [Hardware selection](../design/spec.md#164-hardware-selection)
+- Agent status: CLEAR
+- Milestone: M2
+- Effort: high
+- Dependencies: every other agent task in this group.
+- User-visible outcome: A selection states what was measured, rejected and left unmeasured, from
+  retained evidence alone.
+- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
+  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
+  score or refusal code.
+- Data and artifact paths: `src/ss_track/selection/`, `tests/selection/`, `scenarios/stands/`,
+  `$DATA_DIR/selection/<selection-id>/`.
+- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from how
+  a record reaches its choice, and from every input that is not a retained measurement.
+- Acceptance gates: Only measured configurations are chosen, and a selection with none qualifying
+  says so. Every finding is fixed, routed to a task or dropped with its reason, and `make quality`
+  passes. Finding nothing is a valid result when the record states what was reviewed.
+- Documentation target: [Current implementation](current.md#areas), page
+  `current/hardware-selection.md`.
+
 ### Sensor joint-mode probe -- `sensor-joint-mode-probe`
 
 #### joint-mode-probe
@@ -1149,6 +1416,30 @@ A mesh needs sensors that work together, and separate passes do not prove that.
   Discovery alone never yields `SUPPORTED`.
 - Documentation target: [Current implementation](current.md#areas), new page `current/sensor-mesh.md`.
 
+#### sensor-joint-mode-probe-audit (optional)
+
+A joint probe repeats much of the host probe, and separate passes can still be mistaken for joint
+evidence.
+
+- Serves: `sensor-joint-mode-probe` -- [Probe and launch](../design/spec.md#71-probe-and-adaptive-launch)
+- Agent status: CLEAR
+- Milestone: M3
+- Effort: high
+- Dependencies: every other agent task in this group.
+- User-visible outcome: Joint-mode evidence shares the probe's path and cannot be mistaken for
+  separate passes.
+- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
+  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
+  score or refusal code.
+- Data and artifact paths: `src/ss_track/probe/`, `tests/probe/`.
+- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from code
+  shared with `host-capability-probe`, and from how sustained load is shown in the result.
+- Acceptance gates: Every installed sensor yields a supported profile or an explicit fallback, and a
+  separate pass never reports as joint. Every finding is fixed, routed to a task or dropped with its
+  reason, and `make quality` passes. Finding nothing is a valid result when the record states what
+  was reviewed.
+- Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
+
 ### Camera bench characterization -- `camera-bench-characterization`
 
 #### camera-trial-suite
@@ -1167,6 +1458,29 @@ Requested camera settings are not measured performance.
 - Execution path: Add the suite against recorded traces with known answers.
 - Acceptance gates: Hand-computed values match. Missing source frame IDs report
   `upstream_drop_unknown`, and requested rate never replaces measured rate.
+- Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
+
+#### camera-bench-characterization-audit (optional)
+
+A camera setting that was requested can read as one that was measured unless the suite keeps them
+apart.
+
+- Serves: `camera-bench-characterization` -- [Capture and optics](../design/spec.md#792-capture-optics-and-geometric-sensing)
+- Agent status: CLEAR
+- Milestone: M3
+- Effort: high
+- Dependencies: every other agent task in this group.
+- User-visible outcome: Requested settings and measured performance never share a field.
+- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
+  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
+  score or refusal code.
+- Data and artifact paths: `src/ss_track/suites/`, `tests/suites/`.
+- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from each
+  reported value and its raw evidence, and from what the suite repeats from the shared evaluator.
+- Acceptance gates: Raw evidence is retained for every estimate, each estimate carries its
+  uncertainty and validity, and no requested value reports as measured. Every finding is fixed,
+  routed to a task or dropped with its reason, and `make quality` passes. Finding nothing is a valid
+  result when the record states what was reviewed.
 - Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
 
 ### Sensor adapters and front ends -- `sensor-adapter-frontends`
@@ -1266,6 +1580,33 @@ Recorded front ends alone cannot run the installed reference mesh or collect its
   inputs cannot yield a calibrated latency; interruption preserves raw evidence and releases devices.
 - Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
 
+#### sensor-adapter-frontends-audit (optional)
+
+Front ends, capture and fake drivers each implement one observation contract, and a fault handled in
+only one of them hides until a live run.
+
+- Serves: `sensor-adapter-frontends` -- [Module contract](../design/spec.md#5-module-contract-execution-and-fault-semantics)
+- Agent status: CLEAR
+- Milestone: M3
+- Effort: high
+- Dependencies: every other agent task in this group.
+- User-visible outcome: Every source reaches the mesh through one observation type, with faults
+  handled the same way on fake and live paths.
+- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
+  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
+  score or refusal code.
+- Data and artifact paths: `src/ss_track/contract/`, `tests/contract/`, `src/ss_track/corpus/`,
+  `tests/corpus/`, `src/ss_track/frontends/`, `tests/frontends/`, `src/ss_track/capture/`,
+  `tests/capture/`, `$DATA_DIR/corpus/<corpus-id>/`.
+- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from what
+  camera and non-camera front ends repeat, and from how skew, overflow, outage and recovery are
+  handled on each path.
+- Acceptance gates: Mixed-modality bundles and the four scenario boundaries pass conformance, and
+  fake-driver capture covers each fault named by the capability. Every finding is fixed, routed to a
+  task or dropped with its reason, and `make quality` passes. Finding nothing is a valid result when
+  the record states what was reviewed.
+- Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
+
 ### Fusion analysis -- `fusion-analysis`
 
 #### event-time-replay
@@ -1363,6 +1704,32 @@ A fusion change must be judged on identical inputs.
 - Acceptance gates: A changed front end forces a new cohort, and raw data access fails conformance.
 - Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
 
+#### fusion-analysis-audit (optional)
+
+Fusion can look better by seeing what had not yet arrived, and each of its tasks can let that in
+differently.
+
+- Serves: `fusion-analysis` -- [Multi-sensor fusion](../design/spec.md#76-multi-sensor-fusion-and-uncertainty)
+- Agent status: CLEAR
+- Milestone: M3
+- Effort: high
+- Dependencies: every other agent task in this group.
+- User-visible outcome: Fusion sees only what had arrived by event time, on every path, and its
+  calibrated evidence has one source.
+- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
+  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
+  score or refusal code.
+- Data and artifact paths: `src/ss_track/runner/`, `tests/runner/`, `src/ss_track/fusion/`,
+  `src/ss_track/corpus/`, `tests/fusion/`, `src/ss_track/suites/`, `tests/suites/`.
+- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from
+  every read of an observation and the clock it uses, what the fixtures and the baseline repeat, and
+  where a raw score could bypass calibration.
+- Acceptance gates: Fixed hashed bundles keep their results, a late observation cannot affect an
+  earlier decision, and abstention and degraded-source fixtures pass. Every finding is fixed, routed
+  to a task or dropped with its reason, and `make quality` passes. Finding nothing is a valid result
+  when the record states what was reviewed.
+- Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
+
 ### Fixed-input tracker evaluation -- `fixed-input-tracker-evaluation`
 
 #### tracker-epoch-suite
@@ -1380,6 +1747,28 @@ Tracker changes must be judged apart from what feeds them.
 - Execution path: Add crossing, miss, occlusion, re-entry and prediction-only fixtures.
 - Acceptance gates: Every scheduled epoch is acknowledged, and a tracker that reads raw pixels fails
   this boundary.
+- Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
+
+#### fixed-input-tracker-evaluation-audit (optional)
+
+A tracker result only isolates the tracker while its inputs stay fixed and its cost stays separate.
+
+- Serves: `fixed-input-tracker-evaluation` -- [Evaluation boundaries](../design/spec.md#66-four-independent-g2-evaluation-boundaries)
+- Agent status: CLEAR
+- Milestone: M3
+- Effort: high
+- Dependencies: every other agent task in this group.
+- User-visible outcome: Tracker scores and costs rest on fixed hashed inputs alone.
+- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
+  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
+  score or refusal code.
+- Data and artifact paths: `src/ss_track/suites/`, `tests/suites/`.
+- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from
+  every input the suite reads and how tracker-stage cost is separated from what feeds it.
+- Acceptance gates: A changed input is refused rather than scored, and SOT and MOT identity,
+  re-entry and prediction fixtures pass. Every finding is fixed, routed to a task or dropped with
+  its reason, and `make quality` passes. Finding nothing is a valid result when the record states
+  what was reviewed.
 - Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
 
 ### Reference sensor mesh tracker -- `multi-source-reference-tracker`
@@ -1403,6 +1792,30 @@ This is the project's reference implementation.
   update is marked as such, and uninstalled sensors supply no evidence.
 - Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
 
+#### multi-source-reference-tracker-audit (optional)
+
+This is the project's reference implementation, and it will have grown from the single-camera
+baseline.
+
+- Serves: `multi-source-reference-tracker` -- [Reference sensor mesh](../design/spec.md#165-reference-sensor-mesh)
+- Agent status: CLEAR
+- Milestone: M3
+- Effort: high
+- Dependencies: every other agent task in this group.
+- User-visible outcome: The mesh tracker stays a readable reference, with provenance kept from every
+  observation to every output.
+- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
+  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
+  score or refusal code.
+- Data and artifact paths: `src/ss_track/reference/`, `tests/reference/`, `modules/reference-mesh/`.
+- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from what
+  it repeats from `reference-sot-tracker`, every output with no recorded origin, and each deadline
+  path.
+- Acceptance gates: Hand-audited provenance, identity and deadline fixtures pass on frozen
+  observation bundles. Every finding is fixed, routed to a task or dropped with its reason, and
+  `make quality` passes. Finding nothing is a valid result when the record states what was reviewed.
+- Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
+
 ### Sensor-set evaluation -- `g2-sensor-set-evaluation`
 
 #### sensor-set-suite
@@ -1420,6 +1833,30 @@ The mesh should keep only the sensors that earn their place.
 - Execution path: Add the suite with per-sensor and leave-one-out fixtures.
 - Acceptance gates: The oracle union is shown only as a ceiling. A sensor that adds nothing is
   reported as such.
+- Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
+
+#### g2-sensor-set-evaluation-audit (optional)
+
+Comparing sensor sets means little unless one frozen fusion rule runs every set and the achieved
+result stays apart from the ceiling.
+
+- Serves: `g2-sensor-set-evaluation` -- [Evaluation boundaries](../design/spec.md#66-four-independent-g2-evaluation-boundaries)
+- Agent status: CLEAR
+- Milestone: M3
+- Effort: high
+- Dependencies: every other agent task in this group.
+- User-visible outcome: Every sensor set runs through one frozen rule, with achieved quality and the
+  observability ceiling kept apart.
+- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
+  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
+  score or refusal code.
+- Data and artifact paths: `src/ss_track/suites/`, `tests/suites/`.
+- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from how
+  a set is enumerated and what differs between runs of two sets.
+- Acceptance gates: Single, paired, all-installed and leave-one-out sets run through one rule, and
+  the two quality values never merge. Every finding is fixed, routed to a task or dropped with its
+  reason, and `make quality` passes. Finding nothing is a valid result when the record states what
+  was reviewed.
 - Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
 
 ### Installed-system evaluation -- `installed-system-evaluation`
@@ -1460,6 +1897,30 @@ The local G0 report does not yet expose the four separate mesh evaluation bounda
   is explicit, and no component score is presented as whole-system quality.
 - Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
 
+#### installed-system-evaluation-audit (optional)
+
+A whole-system result sits beside component results, and a panel that blends them would claim what
+no trial measured.
+
+- Serves: `installed-system-evaluation` -- [Evaluation boundaries](../design/spec.md#66-four-independent-g2-evaluation-boundaries)
+- Agent status: CLEAR
+- Milestone: M3
+- Effort: high
+- Dependencies: every other agent task in this group.
+- User-visible outcome: Component and whole-system results stay separate in every panel, each from
+  one trial.
+- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
+  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
+  score or refusal code.
+- Data and artifact paths: `src/ss_track/suites/`, `tests/suites/`, `src/ss_track/report/`,
+  `tests/report/`, `$DATA_DIR/report/<run-id>/`.
+- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from how
+  same-trial evidence is joined, and from what `g2-boundary-report` shares with the local report.
+- Acceptance gates: Four local panels keep their boundaries, and quality, timing and energy of one
+  row come from one trial. Every finding is fixed, routed to a task or dropped with its reason, and
+  `make quality` passes. Finding nothing is a valid result when the record states what was reviewed.
+- Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
+
 ### MOT and TrackEval -- `mot-trackeval`
 
 #### trackeval-adapter
@@ -1478,6 +1939,28 @@ Genuine multi-object scenarios need a pinned evaluator on a supported Python.
 - Execution path: Add byte-exact per-class export fixtures and the spec section 8 audit cases.
 - Acceptance gates: Hand-audited perfect, miss, false positive, ID switch and ignore fixtures pass. A
   scenario the adapter cannot represent reports `UNSUPPORTED`.
+- Documentation target: [Current implementation](current.md#areas), page `current/evaluation.md`.
+
+#### mot-trackeval-audit (optional)
+
+An adapter is only trusted while TrackEval computes the metrics and the adapter computes none.
+
+- Serves: `mot-trackeval` -- [TrackEval adapter](../design/spec.md#8-trackeval-adapter-and-upgrade-policy)
+- Agent status: CLEAR
+- Milestone: M3
+- Effort: high
+- Dependencies: every other agent task in this group.
+- User-visible outcome: TrackEval alone computes MOT metrics, from a byte-exact export in a pinned
+  environment.
+- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
+  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
+  score or refusal code.
+- Data and artifact paths: `src/ss_track/suites/`, `tests/suites/`.
+- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from
+  anything the adapter calculates itself, and from how the pin is enforced.
+- Acceptance gates: Byte-exact per-class export fixtures and hand-audited MOT results hold. Every
+  finding is fixed, routed to a task or dropped with its reason, and `make quality` passes. Finding
+  nothing is a valid result when the record states what was reviewed.
 - Documentation target: [Current implementation](current.md#areas), page `current/evaluation.md`.
 
 ### Paced thermal trial -- `paced-thermal-trial`
@@ -1536,6 +2019,31 @@ A causal thermal claim needs a test separating frequency throttling from tempera
   bet. A hot run with no throttling evidence reports `not_tested`.
 - Documentation target: [Current implementation](current.md#areas), page `current/bench.md`.
 
+#### paced-thermal-trial-audit (optional)
+
+A thermal claim needs heat to be the only difference, and a negative result must survive every
+refactor.
+
+- Serves: `paced-thermal-trial` -- [Paced thermal trial](../design/spec.md#162-paced-thermal-trial)
+- Agent status: CLEAR
+- Milestone: M4
+- Effort: high
+- Dependencies: every other agent task in this group.
+- User-visible outcome: Heat is the only difference between compared runs, and a negative outcome
+  stays reported.
+- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
+  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
+  score or refusal code.
+- Data and artifact paths: `src/ss_track/thermal/`, `tests/thermal/`, `src/ss_track/suites/`,
+  `tests/suites/`.
+- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from each
+  difference between cool, hot and capped runs, and from how throttling is told from temperature.
+- Acceptance gates: Hand-audited fixtures hold on identical frames, a hot run with no throttling
+  stays `not_tested`, and a failed bet stays in the report. Every finding is fixed, routed to a task
+  or dropped with its reason, and `make quality` passes. Finding nothing is a valid result when the
+  record states what was reviewed.
+- Documentation target: [Current implementation](current.md#areas), page `current/bench.md`.
+
 ### Cohort ranking -- `benchmark-ranking`
 
 #### rank-engine (optional)
@@ -1577,6 +2085,30 @@ A benchmark comparison needs an immutable, reproducible local report.
   the protocol and missing evidence; restricted input is refused for a shareable export.
 - Documentation target: [Current implementation](current.md#areas), page `current/evaluation.md`.
 
+#### benchmark-ranking-audit (optional)
+
+A rank is the most quoted output of the project, so every route around its minimum requirements must
+be closed.
+
+- Serves: `benchmark-ranking` -- [Cohort ranking](../design/spec.md#161-cohort-ranking)
+- Agent status: CLEAR
+- Milestone: M4
+- Effort: high
+- Dependencies: every other agent task in this group.
+- User-visible outcome: One rule produces every rank, and a row below the minimum stays unranked.
+- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
+  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
+  score or refusal code.
+- Data and artifact paths: `src/ss_track/ranking/`, `tests/ranking/`, `scenarios/`,
+  `src/ss_track/report/`, `tests/report/`, `$DATA_DIR/report/<snapshot-id>/`.
+- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from each
+  route from a score to an order, and from what the snapshot shares with the local report.
+- Acceptance gates: Scores recompute exactly, an inconclusive or refused cohort yields no rank, and
+  a snapshot re-run gives the same bytes. Every finding is fixed, routed to a task or dropped with
+  its reason, and `make quality` passes. Finding nothing is a valid result when the record states
+  what was reviewed.
+- Documentation target: [Current implementation](current.md#areas), page `current/evaluation.md`.
+
 ### Device bench evaluation -- `device-bench-evaluation`
 
 #### device-suite-and-adapter (optional)
@@ -1599,6 +2131,28 @@ Finished devices need a suite that works without an operator seed.
   are unranked and never pooled into a hardware-agnostic ranking.
 - Documentation target: [Current implementation](current.md#areas), new page
   `current/bench.md`.
+
+#### device-bench-evaluation-audit (optional)
+
+Device cases sit near ranked results, and must not gain a rank by sharing their code.
+
+- Serves: `device-bench-evaluation` -- [Device bench evaluation](../design/spec.md#166-device-bench-evaluation)
+- Agent status: CLEAR
+- Milestone: M5
+- Effort: high
+- Dependencies: every other agent task in this group.
+- User-visible outcome: Device results stay unranked, and missing device output stays `UNSUPPORTED`.
+- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
+  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
+  score or refusal code.
+- Data and artifact paths: `src/ss_track/suites/`, `tests/suites/`, `modules/`.
+- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from what
+  the suite shares with ranked paths, and from each case with no operator seed.
+- Acceptance gates: Same-stimulus fixtures stay valid, incompatible references are refused, and no
+  device result reaches a rank. Every finding is fixed, routed to a task or dropped with its reason,
+  and `make quality` passes. Finding nothing is a valid result when the record states what was
+  reviewed.
+- Documentation target: [Current implementation](current.md#areas), page `current/bench.md`.
 
 ### Telemetry ingest -- `telemetry-ingest`
 
@@ -1847,6 +2401,34 @@ Platform telemetry beside a video encounter must obey the same split and rights 
   alignment with video is `NOT_MEASURABLE`.
 - Documentation target: [Current implementation](current.md#areas), page `current/telemetry.md`.
 
+#### telemetry-ingest-audit (optional)
+
+Readers, stores and reports arrive one format at a time, which is where a reader-specific rule and
+a filled gap are most likely to appear.
+
+- Serves: `telemetry-ingest` -- [Telemetry bundles](../design/spec.md#182-telemetry-bundles)
+- Agent status: CLEAR
+- Milestone: M6
+- Effort: high
+- Dependencies: every other agent task in this group.
+- User-visible outcome: Every reader follows one interface and one rule for time, loss and drift,
+  and nothing fills a gap.
+- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
+  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
+  score or refusal code.
+- Data and artifact paths: `src/ss_track/telemetry/`, `tests/telemetry/`, `contracts/`,
+  `$DATA_DIR/import/<source-sha256>/`, `$DATA_DIR/telemetry/<bundle-sha256>/`,
+  `contracts/telemetry/`, `pyproject.toml`, `contracts/external/`, `$DATA_DIR/run/<run-id>/`,
+  `src/ss_track/corpus/`, `tests/corpus/`.
+- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from what
+  the readers repeat, which reader could become a declared layout, and how each one reports loss and
+  clock source.
+- Acceptance gates: Readers match an independent reader on generated logs, bundles hash identically
+  across hosts, and drift, loss and truncation are reported and never filled. Every finding is
+  fixed, routed to a task or dropped with its reason, and `make quality` passes. Finding nothing is
+  a valid result when the record states what was reviewed.
+- Documentation target: [Current implementation](current.md#areas), page `current/telemetry.md`.
+
 ### Documentation integrity -- `documentation-integrity`
 
 #### plan-dependency-integrity (optional)
@@ -1864,9 +2446,36 @@ Structural checks pass even when a task depends on nothing real, so gating can d
   the DAG in the engine design, not a numeric barrier. Semantic review remains necessary.
 - Data and artifact paths: `src/ss_track/quality/plan_model.py`,
   `src/ss_track/quality/plan_integrity.py`, `tests/quality/`.
-- Execution path: Parse wrapped fields, then add the checks with failing fixtures.
+- Execution path: Parse wrapped fields, then add the checks with failing fixtures. Read an audit's
+  `every other agent task in this group` as a dependency on each of them.
 - Acceptance gates: Fixtures reject unknown IDs, cycles and required tasks that depend on optional work,
-  and accept valid cross-lane dependencies. A blocked earlier task is never reported as ready.
+  and accept valid cross-lane dependencies. A blocked earlier task is never reported as ready, and an
+  audit is not ready while another agent task of its group is open.
+- Documentation target: [Governance](current/governance.md).
+
+#### documentation-integrity-audit (optional)
+
+A rule stated in prose can drift from the checker, and a rule nobody can check is one nobody keeps.
+
+- Serves: `documentation-integrity` -- [Planning integrity](../design/spec.md#documentation-and-planning-integrity)
+- Agent status: CLEAR
+- Milestone: M1
+- Effort: high
+- Dependencies: every other agent task in this group.
+- User-visible outcome: Each rule in `AGENTS.md` that a machine can check is checked, and each check
+  has a failing fixture.
+- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
+  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
+  score or refusal code.
+- Data and artifact paths: `src/ss_track/quality/plan_model.py`,
+  `src/ss_track/quality/plan_integrity.py`, `tests/quality/`.
+- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from
+  `AGENTS.md`, the planning workflow and the planning integrity section of the specification
+  against `plan_integrity.py`, `plan_model.py`, `plan_summary.py` and `doc_links.py`.
+- Acceptance gates: Every checked rule has a failing fixture, every stated rule is checked or named
+  as human judgment, and the checker is tightened or unchanged. Every finding is fixed, routed to a
+  task or dropped with its reason, and `make quality` passes. Finding nothing is a valid result when
+  the record states what was reviewed.
 - Documentation target: [Governance](current/governance.md).
 
 ## Human-Assisted Tasks
