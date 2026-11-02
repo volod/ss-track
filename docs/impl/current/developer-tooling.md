@@ -33,7 +33,8 @@ asserting the repository passes. `make quality-report` reports source and shell 
 
 ## Artifact paths
 
-`.env.example` declares `DATA_DIR=.data`. Relative values resolve against the project root. Runtime
+`.env.example` declares `DATA_DIR=.data` and documents the optional `ORG_ARTIFACTS_DIR`, which no
+code reads. Relative values resolve against the project root. Runtime
 results use `$DATA_DIR/<method>/<run-id>/`; Ruff, mypy, pytest, and complexipy caches stay below the
 same root. `.gitignore` excludes runtime artifacts, local environments, secrets, caches, and root
 build outputs without hiding same-named source subpackages.

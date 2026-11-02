@@ -3,56 +3,51 @@
 > The difference between "not true" and "false" is the syncretism that destroys universes.
 > - Syncretism
 
-**Building an open-source benchmark, data factory, and reference perception stack for resource-aware
-object tracking on autonomous and assisted robots.**
+**An open-source benchmark and reference perception stack for resource-aware object tracking**
+**on autonomous and assisted robots.**
 
 `ss-track` is designed to make perception systems measurable before they become operational
 dependencies. It will turn governed recordings, live sensor trials, external telemetry, and
 eventually action-dependent simulations into reproducible tests for motion proposals, object
-detection, tracking, recognition, sensor fusion, and resource-aware sensing. Its first research
-stress case is a small bird of roughly 15 cm body length at investigative distances of 10–100 m;
-that range is a test question, not a validated capability. Its contracts and evaluation methods are
-intentionally domain-neutral: scenario packs can define birds, other wildlife, pedestrians,
-scooters, vehicles, or different objects without changing the benchmark core.
+detection, tracking, recognition, sensor fusion, and resource-aware sensing.
 
 The project supports a broader effort to build autonomous robots and energy-efficient cognitive
 systems. In that setting, a useful perception module is one whose quality, uncertainty, latency,
-memory use, and electrical cost are known under a stated workload. `ss-track` will provide the
-evidence needed to choose and improve such modules, including the cases where a sensor, algorithm,
-or hardware platform does not meet a requirement. The same evidence can inform a robot's sensing
-policy: when to use a wide camera, when to activate a narrow view or another modality, when to run
-an expensive detector, and when to return an uncertain or lost result.
+memory use, and electrical cost are known under a stated workload.
 
-The benchmark and reference modules are project goals. This description makes no measured accuracy,
-range, latency, energy-saving, or field-safety claim.
+`ss-track` will provide the  evidence needed to choose and improve such modules, including
+the cases where a sensor, algorithm, or hardware platform does not meet a requirement.
+The same evidence can inform a robot's sensing policy: when to use a wide camera, when
+to activate a narrow view or another modality, when to run an expensive detector, and when
+to return an uncertain or lost result.
 
 ## What the project is intended to deliver
 
 - **A benchmark as a test-driven development framework.** Each capability begins with a data
-  contract, deterministic fixtures, failure cases, metric definitions, and an acceptance rule. New
-  algorithms are compared on identical inputs before their output is used by a larger system.
+contract, deterministic fixtures, failure cases, metric definitions, and an acceptance rule. New
+algorithms are compared on identical inputs before their output is used by a larger system.
 - **A governed data factory.** Source recordings and sensor traces become versioned, rights-aware
-  corpora, annotations, calibration sets, replay cases, and reviewable failure slices. Derived
-  datasets can support later tracking, recognition, fusion, and autonomous-system projects without
-  losing their provenance.
+corpora, annotations, calibration sets, replay cases, and reviewable failure slices. Derived
+datasets can support later tracking, recognition, fusion, and autonomous-system projects without
+losing their provenance.
 - **Unified perception and telemetry semantics.** Local modules and external hosts report compatible
-  observations, decisions, outputs, faults, timing, power, and resource measurements. The contract
-  preserves source identity, time and coordinate frames, calibration, uncertainty, and the reasons
-  an observation was absent.
+observations, decisions, outputs, faults, timing, power, and resource measurements. The contract
+preserves source identity, time and coordinate frames, calibration, uncertainty, and the reasons
+an observation was absent.
 - **A reference tracker built through TDD.** A deliberately simple, inspectable tracker will
-  validate the benchmark and provide a baseline. Its later sensor-mesh form separates sensor front
-  ends, fusion, track maintenance, and resource policy so each stage can be replaced and measured
-  independently.
-- **Platform-specific optimization with a portable baseline.** The framework will compare scalar,
-  vector, and tensor implementations on named hardware and workloads. It will probe actual camera
-  modes, CPU instructions, accelerators, memory, scheduling, and thermal limits before selecting a
-  configuration.
+validate the benchmark and provide a baseline. Its later sensor-mesh form separates sensor front
+ends, fusion, track maintenance, and resource policy so each stage can be replaced and measured
+independently.
+- **Platform-specific optimization with a portable baseline.** The framework will compare
+optimized implementations on named hardware and workloads. It will probe actual camera modes,
+CPU instructions, accelerators, memory, scheduling, and thermal limits before selecting a
+configuration.
 - **Explicit quality–energy trade-offs.** Detection and tracking quality will be shown together with
-  calibrated uncertainty, deadline misses, and measured energy. Adaptive sensor and compute policies
-  will be tested against fixed baselines at matched task exposure and declared power boundaries.
+calibrated uncertainty, deadline misses, and measured energy. Adaptive sensor and compute policies
+will be tested against fixed baselines at matched task exposure and declared power boundaries.
 - **An evidence-oriented dashboard.** Compatible runs can be compared through metric tables, curves,
-  synchronized overlays, event timelines, hardware traces, and inspectable failures. Incompatible
-  runs and unmeasurable quantities remain visible rather than being silently ranked.
+synchronized overlays, event timelines, hardware traces, and inspectable failures. Incompatible
+runs and unmeasurable quantities remain visible rather than being silently ranked.
 
 ```mermaid
 flowchart LR
@@ -72,7 +67,9 @@ flowchart LR
 
 The first useful result is a computer-vision-only comparison of two motion-proposal or
 tracking-module versions on the same authorized video, annotations, operator-selected target boxes,
-and scoring rules. The initial tracker task is class-agnostic: an operator selects an object, and
+and scoring rules.
+
+The initial tracker task is class-agnostic: an operator selects an object, and
 the module attempts to maintain that object's identity and location. Conditional 3-second and
 10-second retention views help inspect short-term behavior, while a separate coverage measure counts
 every scorable frame, including missed outputs and faults. Motion proposals are evaluated as
@@ -200,17 +197,17 @@ acquisition decisions, and budget state. The contract preserves:
 
 - source hashes, stream/frame/event IDs, class and track IDs, schema and module versions;
 - media presentation time, capture interval, driver or receive time, processing time, publication
-  time, clock domain, alignment error, and timestamp quality;
+time, clock domain, alignment error, and timestamp quality;
 - coordinates, units, calibrated transforms, field of regard, observation geometry, and uncertainty
-  type;
+type;
 - every contributing source and its correlation group, so duplicated or derived evidence is not
-  mistaken for independent support;
+mistaken for independent support;
 - the difference between a valid `no_detection`, `out_of_view`, `disabled_by_policy`, `missing`,
-  `stale`, and `invalid` source state;
+`stale`, and `invalid` source state;
 - explicit frame or epoch acknowledgments, including valid empty outputs, abstention, late results,
-  and faults;
+and faults;
 - the chosen compute variant, actual backend or instruction path, scheduler profile, measured
-  resources, electrical boundary, and evidence quality.
+resources, electrical boundary, and evidence quality.
 
 This common language makes an external implementation scoreable without forcing its internal
 architecture or transport onto the benchmark. Cross-language fixtures and versioned adapters will

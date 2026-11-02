@@ -16,5 +16,7 @@ Copy the [template](template.md) using the
 | 0009 | `staged-frame-set` | [0009-corpus-provenance-staged-frame-set](0009-corpus-provenance-staged-frame-set.md) |
 | 0010 | `duplicate-frame-detection` | [0010-corpus-provenance-duplicate-frame-detection](0010-corpus-provenance-duplicate-frame-detection.md) |
 | 0011 | `arm64-reproducibility` | [0011-corpus-provenance-arm64-reproducibility](0011-corpus-provenance-arm64-reproducibility.md) |
+| 0012 | `data-contract-and-telemetry-design` | [0012-adhoc-data-contract-and-telemetry-design](0012-adhoc-data-contract-and-telemetry-design.md) |
+| 0013 | `record-version-refusal` | [0013-adhoc-record-version-refusal](0013-adhoc-record-version-refusal.md) |
 
-Next unused sequence: `0012`.
+Next unused sequence: `0014`.

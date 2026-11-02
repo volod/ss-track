@@ -62,6 +62,9 @@ Rights, access controls and measurement validity remain software/data contracts 
 8. **Causal resource decisions.** An adaptive policy uses only information available before its
    decision. Later sensor quality and ground truth may evaluate the choice but cannot retroactively
    justify it. Skipped or failed sensing remains visible in task and resource denominators.
+9. **Open formats.** Every format that crosses a process, host, language or person has a published,
+   versioned contract, so evidence stays readable without this repository and its evolution is
+   stated rather than inferred.
 
 ## 2. Evidence lanes and claims
 
@@ -101,7 +104,8 @@ report may call itself a held-out benchmark. The optional cohort comparison in
 what a G0 report may claim. Delivery milestones in the engine design implement bounded subsets of
 these gates: M1 closes on G0a with two pilot encounters; M2 supplies host measurement and selection;
 M3 evaluates the reference mesh at four boundaries. None claims all G1/G2 capabilities are shipped.
-Thermal experiments and ranking are optional M4 work, and cross-device cases are optional M5 work.
+Thermal experiments and ranking are optional M4 work, cross-device cases are optional M5 work, and
+telemetry analysis is optional M6 work.
 
 Available laptops or small Linux boards may bootstrap development; no model is the assumed final
 host. Final host and sensor configurations follow measured selection against versioned stand
@@ -235,7 +239,9 @@ Each version seals the hash of the version it names, so a replaced predecessor i
 compared, and a chain with a version missing cannot be compared and is refused. A superseded
 version's manifest therefore outlives its frames. This comparison reads only versions linked by that
 declaration, so a version that names no predecessor says so in its result, and a locked evaluation of
-such a version repeats it, because nothing has shown its locked material to be unseen. An unlinked
+such a version repeats it, because nothing has shown its locked material to be unseen. A predecessor's
+format version is no reason to lose this comparison, and
+[reading older records](#reading-older-records) keeps it across majors. An unlinked
 version or a sibling branch cannot be refused, since independent work may reuse a recording, but a
 build lists every other version on its data root that places one of its sources elsewhere, for the
 operator's decision.
@@ -249,6 +255,12 @@ the same on any data root, and it changes with a source's identity as well as it
 source gives a new hash over identical frames. A seal is not a signature: the record detects change
 only against a hash held elsewhere, which is why a scenario pins it and why it does not by itself stop
 a process opening a bundle directly.
+
+A new corpus version that keeps a source keeps its pixels, and an equal `bundle_sha256` shows it.
+Staging may reuse a bundle of a linked version with that hash by hard link, after checking every frame
+hash, and writes the new version's own bundle record. The frame set still changes with its corpus
+manifest. The decode policy is part of that hash, so reuse crosses no policy, and a host that cannot
+link decodes instead.
 
 A corpus also declares its **scenario rights**: the widest sharing it intends and the highest
 sensitivity it accepts. A build that asks more of any source than its recorded rights allow is
@@ -499,7 +511,8 @@ defines the timestamp source within the frame; a UVC buffer timestamp is not aut
 mid-exposure timestamp.
 
 Schema evolution permits additive fields within a major version, never field-number reuse or changed
-units/enum meanings. Golden fixtures cover absent optional fields, unknown fields, old/new readers,
+units/enum meanings, and [section 17](#17-data-contracts-and-schema-evolution) states the rules for
+every format family. Golden fixtures cover absent optional fields, unknown fields, old/new readers,
 malformed payloads, coordinates, timestamps, class/track identity, power units and Python/C++ round
 trips when C++ support is added. Every run records schema and transport revisions.
 
@@ -1369,6 +1382,11 @@ ss-track corpus build --manifest corpus.yaml
 ss-track corpus stage --corpus <id>
 ss-track corpus verify --corpus <id>
 ss-track corpus preview --corpus <id> --stream <id> --frame <index> --out sheet.png
+ss-track corpus describe --corpus <id> --visibility restricted --out descriptor/
+ss-track contracts list
+ss-track contracts validate <file>
+ss-track contracts diff <contract>
+ss-track contracts freeze <contract>
 ss-track annotate validate --corpus <id>
 ss-track annotate derive --corpus <id>
 ss-track hardware-probe --out host.json
@@ -1382,6 +1400,12 @@ ss-track system evaluate --scenario <installed-system scenario>       # G2 full 
 ss-track policy sweep --scenario <budgeted scenario>              # later resource suite
 ss-track ingest --manifest external-run.yaml --events <event bundle>
 ss-track compare --runs <run-a>,<run-b> --out report/
+ss-track telemetry import --source telemetry.yaml
+ss-track telemetry stage --source <sha256>
+ss-track telemetry verify --bundle <sha256>
+ss-track telemetry record --capture capture.yaml
+ss-track telemetry report --bundle <sha256> --profile <profile> --out report/
+ss-track telemetry export --bundle <sha256> --format parquet --out export/
 ```
 
 The scenario pins the domain pack/class taxonomy, corpus/split, frame-set hash, annotation and
@@ -1465,7 +1489,8 @@ labels are not a universal safety metric. Sensitive historical clips may be scor
 rights/policy and must not be promoted as desirable operating examples. Public derivatives redact or
 coarsen GPS tracks, subtitles, EXIF, faces/license plates when required, and other identifying or
 location-bearing metadata; raw video may be withheld. Every derivative retains rights, retention,
-sharing and access rules.
+sharing and access rules. A [dataset descriptor](#175-dataset-descriptors-and-self-service) is such a
+derivative, and telemetry carries its own [privacy rules](#186-boundary).
 
 Audio streams can capture identifiable speech or bystanders, and active radar has site- and
 jurisdiction-specific spectrum and operating conditions. Their use requires scenario-specific
@@ -1544,6 +1569,10 @@ These candidates are design input, not implementation commitments. Scheduling on
 | Export boundary | Restricted or unmarked bundle passed to a shareable export | Export refuses without leaking values; local restricted analysis remains available |
 | Hardware selection | Fixture configurations against a stated budget; datasheet-only option; shared rail | Only measured configurations are chosen; none qualifying is the stated result; a shared rail stays shared |
 | Optional device bench | No output path; matched and mismatched stimulus/reference fixtures across hosts | `UNSUPPORTED` or refused comparison where appropriate; valid cases remain unranked |
+| Contract conformance | Every shipped record and declaration against its frozen contract; an edited frozen file; a change with the wrong version bump, including a nested enum, a unit and a tagged-union branch; the writer's output against the previous frozen minor | Every shipped byte conforms unchanged; each wrong change is refused and named; an unused new field leaves old records byte-identical |
+| Older records | Real records of every historic major, a `view` major, a `facts` major, a predecessor of another major, and a newer record | A view serves as evidence with no byte, seal or frame-set change. A `facts` record is refused as evidence and still refuses a split move. A newer record is refused and named. No case exits around the split guard |
+| Optional dataset descriptor | Restricted, public and locked fixtures | A descriptor validates against the standard, holds only sealed facts, gives `locked` as counts and refuses a public view of a restricted corpus without leaking a value |
+| Optional telemetry ingest | Synthetic logs of each format, an unknown incompatible flag, a truncated log, a changed field type, a gap, a dropout and queue overflow | Values match an independent reader; incompatible input is refused; loss is counted and never filled; a changed field is reported as drift |
 
 A negative finding such as "the object cannot be localized at this pixel extent," "this camera pair
 cannot sustain the declared mode," "PREEMPT_RT did not improve the tail deadline," or "energy is not
@@ -1581,6 +1610,9 @@ fixture is not evidence of field safety or a specific detection range.
 | [Linux Arm SME user API](https://docs.kernel.org/arch/arm64/sme.html) and [x86 XSTATE/AMX](https://docs.kernel.org/arch/x86/xstate.html) | Optional CPU matrix state and permission checks | Availability and usefulness are host/runtime specific |
 | [ONNX Runtime architecture](https://onnxruntime.ai/docs/reference/high-level-design.html) and [OpenVINO device querying](https://docs.openvino.ai/2026/openvino-workflow/running-inference/inference-devices-and-modes/query-device-properties.html) | Graph partition/fallback and candidate device discovery | A listed provider/device does not prove graph coverage or speed |
 | [Raspberry Pi 5 specification](https://www.raspberrypi.com/products/raspberry-pi-5/) | Cortex-A76 reference host | Does not imply SVE, an NPU or a measured speed/energy gain |
+| [JSON Schema 2020-12](https://json-schema.org/draft/2020-12), [buf breaking rules](https://buf.build/docs/breaking/rules/) and [Croissant 1.1](https://docs.mlcommons.org/croissant/docs/croissant-spec-1.1.html) | Open document schemas, wire and JSON compatibility rules, and ML dataset description | They state structure and discovery; rights, split rules and hash stability remain this product's own contract |
+| [Open Data Contract Standard](https://github.com/bitol-io/open-data-contract-standard) | Dataset-level producer and consumer agreement, as a generated catalog view | Offers no conditional structure, closed object or field unit, so it cannot be the structural authority for sealed records |
+| [PX4 ULog](https://docs.px4.io/main/en/dev_log/ulog_file_format.html), [MAVLink serialization](https://mavlink.io/en/guide/serialization.html), [MCAP](https://mcap.dev/spec) and [Linux IIO buffers](https://docs.kernel.org/driver-api/iio/buffers.html) | Self-describing telemetry and stream formats | A declared format establishes structure only; timing, calibration and truth of a reported value need separate evidence |
 
 External datasets are candidate material only after license, annotation semantics, privacy and
 train/test overlap are checked. Benchmark claims rest on governed recordings and measured trials,
@@ -1610,6 +1642,7 @@ are required **before the named later claim or gate**, rather than blocking G0a:
 | Frozen measurement protocol, floors, decision margin and maximum interval half-width | Optional cohort ranking |
 | A chip-temperature rig, measured throttle onset, declared schedule and deadline | Opening the optional thermal mechanism claim |
 | Recorded measurement access and data-sharing permissions | Physical device trials and explicitly shareable exports |
+| Authorized real telemetry logs from named boards and firmware, with rights and sensitivity | Claiming that a telemetry reader handles a real format |
 
 Changes to taxonomy, labels, split, matching threshold, metric formula, TrackEval revision, decoder,
 clock policy, sensor set/opportunity profile or calibration, fixed-input bundle, evaluation
@@ -1619,7 +1652,9 @@ provenance and triggers the section 7.9 equivalence/uncertainty check before joi
 measurement cohort. A model, quantization/calibration, precision, compute backend,
 operator-partition, preprocessing, fusion rule, probability calibrator, action space, cost predictor
 or budget policy change creates a distinct variant and, when output semantics or metric validity
-changes, a new relevant comparison cohort. Previous run artifacts remain immutable and readable. A
+changes, a new relevant comparison cohort. A contract's minor or patch version is none of these and
+joins no new cohort. Sealed records and previous run artifacts remain immutable and readable under
+[reading older records](#reading-older-records). A
 newly discovered capability first changes this living specification with its boundary and
 negative-result rule, then the capability registry and forward plan; implementation and
 current-state documentation follow.
@@ -1849,6 +1884,286 @@ Evaluation: simulated device fixtures verify event adaptation, unsupported outpu
 of unmatched stimulus/reference/boundary. Live cases retain raw events, reference and energy traces.
 No accessible device, no usable output path or an unmeasurable quantity is a valid negative result.
 
+## 17. Data contracts and schema evolution
+
+An operator, a consumer or another system holds a record of this product and needs to know what it
+means, whether it is valid and how its format changed. Only the Python that wrote a format can
+answer that, and a change to a format refuses every earlier record. `data-contracts` gives every
+interchangeable format a published, versioned definition that a reader can use without this
+repository. The [contract design](data-contracts.md) holds the analysis, and this section is normative.
+
+Interchangeable means crossing a process, host, language, person or software version: declarations
+and behavior-changing configuration, datasets, labels, events, results and telemetry. A format with
+no contract does not enter the product: the task that introduces it adds its contract in the same
+change.
+
+### 17.1 Contract families
+
+| Family | Holds | Structure | Validated | Compatibility within a major |
+| --- | --- | --- | --- | --- |
+| `declaration` | Operator-written YAML: recording, corpus, scenario, labels, scenario pack, hardware protocol, stand requirements, telemetry source and profile | JSON Schema, closed | In full on every read | Every earlier declaration stays valid |
+| `record` | Sealed JSON: source, corpus, bundle, frame set, hash records, run manifest, host profile, trial and frozen label records | JSON Schema, closed | In full before sealing. A read checks seal, kind and major | Every earlier record stays valid, and an unused feature changes no byte |
+| `event` | The section 5 records, as binary protobuf and protobuf-JSON JSON Lines | Protobuf | Each event, by the runner | Wire and JSON compatible in both directions |
+| `result` | The command result and refusal log line | JSON Schema, with `details` open | By tests | New fields and refusal codes are additive |
+| `external` | Formats this product does not own, such as MOTChallenge export, ULog and MAVLink dialects | The upstream definition, pinned by hash | By its adapter | A new upstream revision is a new pinned input, never accepted silently |
+
+Document contracts use a restricted dialect of
+[JSON Schema 2020-12](https://json-schema.org/draft/2020-12): closed objects, `const`, `enum`, `oneOf`
+tagged by a `const` property, bounds, `pattern`, `format`, and `$ref` to an exact version. Conditional
+keywords, `not` and untagged unions are refused. The restriction keeps every change classifiable and
+every contract projectable onto a descriptor. Widening it changes one meta-schema under review.
+
+Binary layouts, such as `.rgb24` frames and telemetry columns, are stated by the record that indexes
+them: the record gives the pixel format, dimensions or data type, so the bytes need no schema of
+their own.
+
+### 17.2 Identity and versions
+
+Each contract has an id, a family, an owning capability, a status (`draft`, `active`, `deprecated` or
+`retired`) and a semantic version. `contracts/registry.yaml` lists them. Each version is one file,
+named by its version, identified by `urn:ss-track:contract:<family>:<id>:<version>` and never edited
+after it is frozen. A frozen version also carries a change-log entry: its class, a summary and, for a
+major, the migration a holder of an old record must make.
+
+The registry stores two fingerprints of each version. `structure` hashes the canonical schema without
+annotations. `meaning` hashes the annotations and enum values. An edit to either without a freeze
+fails the build.
+
+| Annotation | States |
+| --- | --- |
+| `description` | Required on every property. Changing it alone is a patch |
+| `x-unit` | The [UCUM](https://ucum.org/ucum) unit of a numeric quantity |
+| `x-quantity` | The semantic term of the value |
+| `x-clock` | The clock domain of a time |
+| `x-frame` | The image space or coordinate frame of a position |
+| `x-vocabulary` | The external vocabulary of a coded value, such as an FFmpeg enum |
+| `x-references` | The contract and JSON pointer a value refers to, so lineage can be walked |
+| `x-sensitivity` | `public`, `restricted` or `sensitive`, deciding whether a descriptor may carry the value |
+| `x-rules` | Cross-field rules JSON Schema cannot state, as named text |
+
+Three kinds of version are separate and must not be confused. A **contract version** covers the
+shape and meaning of a format. A **data version** covers content: a corpus version, label revision or
+taxonomy. An **algorithm revision** covers behavior: a decode policy, transform revision or metric
+suite. Section 15 governs the last two.
+
+A sealed record stamps `kind` and `schema_version`, and `schema_version` is the contract's major. It
+does not stamp a minor, because the seal covers that field and a minor must not change old hashes. A
+record the current code writes at schema `N` conforms to contract `N.0.0` as it stands. Each format has
+its own contract and major, so a declaration and the record built from it evolve independently.
+
+### 17.3 Compatibility rules
+
+A change is classified against the previous frozen version, by the gate and not by hand. Closed
+objects make this complete: a writer that adds a key without a new version fails its own contract, so
+a format cannot change unannounced.
+
+| Change | Bump |
+| --- | --- |
+| Description, title or example | Patch |
+| New optional property, absent when unused | Minor |
+| New enum value | Minor |
+| Relaxed bound or pattern, or a type widened | Minor |
+| New annotation on a property that had none, or a stricter `x-sensitivity` | Minor |
+| New required property; removed or renamed property; type change; tightened bound or pattern; removed enum value; a looser `x-sensitivity` | Major |
+| Any change that alters the bytes of a record not using the change | Major |
+| Changed `x-unit`, `x-clock`, `x-frame`, `x-quantity` or `x-vocabulary` of an existing property, or a changed meaning of an enum value | Forbidden: add a property, or take a major |
+
+**Hash stability.** A new record field is absent when unused, never written as `null` or a default.
+Because objects are closed, a writer's output for input using no new feature must still validate
+against the previous frozen minor, which proves its bytes and seal did not change. Existing fields
+that store an unknown as `null` keep doing so.
+
+**Events** follow the same intent with protobuf rules: fields are additive, a field number or name is
+reserved rather than reused, and `json_name` never changes, because G0 events travel as JSON. The gate
+compares wire and JSON compatibility against the last frozen descriptor set.
+
+Within a major, a tool reads every earlier minor. A tool that meets a newer minor's field refuses,
+because it cannot know what that field means.
+
+### 17.4 Enforcement
+
+A contract is the only statement of a format's structure. Structural rules leave hand-written readers
+once a contract covers them, and rules across fields or files stay in code, stated in `x-rules`.
+Refusal codes do not change: a declaration that breaks its contract is `MANIFEST_INVALID`.
+
+The local validator is stricter than the standard on two points that a third-party validator may
+accept: `1.0` is not an integer, and YAML must carry no repeated key or non-finite number. YAML dates
+are normalized before validation, and nothing fills in a default.
+
+A record is validated once, in full, before it is sealed, and a writer defect is `RECORD_INVALID` with
+nothing sealed. A seal proves a record has not changed since, so a read checks the seal, kind and major
+and does not walk its fields. `ss-track contracts validate`
+gives a deep check of any file on demand, under any frozen version.
+
+`RunManifest` records the contract set in force, so a result names the formats it read. That list is
+descriptive: a contract's major enters a cohort key only through a format the key already covers.
+
+#### Reading older records
+
+A version must answer three separate questions: can this tool parse a record, may the record serve as
+evidence, and what changed. One read path answers them in order. It verifies the seal on the original
+bytes, then the kind, then applies the disposition of the record's major. No caller reads a sealed
+record any other way, so no caller can skip the check.
+
+Nothing rewrites a sealed record, and writers always write the current major. Freezing a new major
+declares the disposition of the one it replaces:
+
+| Disposition | Applies when | A tool then |
+| --- | --- | --- |
+| `view` | Every current field follows from the old record and the records it pins, by a pure function | Reads it as evidence through an in-memory view. Bytes, seal and every pin stay as they are, so no hash, frame set or cohort moves |
+| `facts` | The old record lacks a fact only an operator can state | Refuses it as evidence. Its stated facts stay readable for inspection and for comparison rules, and an explicit amendment writes a successor beside it |
+| `retired` | The change log states that no retained record needs it | Refuses it. Any frozen contract still validates and describes it |
+
+A view steps one major at a time, and views compose. It names each value it derived. It never derives
+rights, sensitivity, retention, a split, a group, an encounter or any other operator judgment, and it
+fills no default. It changes no decode policy or transform revision, whose refusals stand: those are
+algorithm revisions, and new pixels need new evidence.
+
+A comparison rule reads every major. Lineage and shared-frame checks need only source hashes, groups,
+splits and frame hashes, so each major keeps a projection of those facts for as long as records of it
+may exist, and its disposition does not end that. A leak guard must not expire, and a format change
+must not be a way around one. A predecessor that yields no projection is `not_compared` under its own
+reason, named in the result as section 4.1 requires, and it never fails a successor by format alone.
+
+`RECORD_SCHEMA_UNSUPPORTED` names the contract, the found and accepted majors, whether the record is
+older or newer, its disposition and the remedy from the change log. A newer record is refused, because
+a tool cannot know what a newer field means. A major stays in service with no time limit, while any
+record of it may be retained, and only a contract change retires it. Every major keeps at least one
+real record, written by the code of its era, that the tests read under every later version. A record
+with only its version number changed proves nothing about a format.
+
+### 17.5 Dataset descriptors and self-service
+
+`ss-track corpus describe` generates what a future consumer needs to find, judge and load a corpus
+version without this repository: a [Croissant 1.1](https://docs.mlcommons.org/croissant/docs/croissant-spec-1.1.html)
+document, a readable dataset card and the list of contract versions used.
+
+A descriptor is generated from sealed records, frozen contracts and one operator-written dataset
+declaration holding what no record has: title, description, license, citation, address and
+publication date. It sits outside every seal and enters no hash or cohort key, and the same inputs
+give the same bytes. It carries rights, sensitivity, retention and split structure, and states every
+limit a report would state, including selection limits and unverified completeness. Generated cases
+are a labelled slice and never count as encounters.
+
+Visibility follows section 11 and defaults to `restricted`. A `public` descriptor needs a corpus whose
+`scenario_rights.sharing` is `public` and a declared license, drops every value not marked `public` by
+`x-sensitivity`, and
+reduces a `locked` split to counts, with no path, hash or per-sequence fact. A descriptor is a file on
+the data root: this product uploads nothing.
+
+Raw frames are indexed with their layout and read through the frame-bundle contract, because a
+general dataset loader cannot read headerless `.rgb24`. A generated ODCS document may serve a data
+catalog, validated against the official schema, and stays a view: the contract remains the authority.
+
+### 17.6 Boundary and evaluation
+
+Boundary: this capability defines and enforces formats, and describes datasets. It provides no hosted
+catalog, access workflow, publication decision or data service, and it does not version data or
+algorithms. It adds no generated Avro, Parquet or search schemas until a consumer exists. Publication
+stays outside this repository.
+
+Evaluation: every shipped record and declaration conforms unchanged; hand-built changes of every row
+in section 17.3 classify as declared, including nested and tagged-union changes; the real history of
+this repository classifies as major with the disposition each change warranted; an independent checker
+agrees on structure; real records of every historic major read under their disposition; and a consumer
+with only `contracts/` and a standard validator accepts a good record and refuses a bad one. The valid
+negative result is a format the dialect cannot state: it stays listed in the registry as `draft` with
+its reason, and its hand-written reader stays in force.
+
+## 18. Board and sensor telemetry
+
+An operator holding a flight-controller log, a board's sensor counters or a sensor stream cannot
+bring them into evidence: import takes only video, and each new format would need its own code.
+`telemetry-ingest` is an optional capability that reads telemetry archives and live streams through
+schemas, so analysis can cover logged rates, gaps, dropouts, power and thermal behavior and
+differences across firmware, and so a new device needs a profile rather than new code. The
+[telemetry source catalog](telemetry-sources.md) documents boards, formats and libraries.
+
+### 18.1 Source classes and readers
+
+| Class | Schema lives | Examples | New device needs |
+| --- | --- | --- | --- |
+| Self-describing | In the data | ULog, DataFlash, MCAP, Blackbox, GPMF, IIO scan elements | A profile |
+| Dictionary-described | In a pinned file | MAVLink XML, ROS messages, Protobuf descriptors, DSDL, DBC | The dictionary and a profile |
+| Undescribed | Only in documentation | hwmon, thermal and powercap sysfs, `vcgencmd`, `tegrastats`, radar TLV | A profile declaring paths or layouts |
+
+A format reader is written from the public format specification, using the standard library and
+NumPy, so the MIT core inherits no GPL or AGPL terms and every byte is accounted for. An established
+library may serve as a test oracle. A reader follows its format's own compatibility rule: an unknown
+incompatible flag refuses, and unknown messages are skipped and counted.
+
+### 18.2 Telemetry bundles
+
+A declared telemetry source imports like a recording: read-only bytes, a hash, rights, sensitivity,
+device identity, firmware and clock evidence, with the same refusal of undeclared terms. Staging
+yields one immutable bundle of raw typed columns, one file per field, in little-endian order, with a
+sealed index. A column holds the value as the source stored it. Nothing converts a unit, fills a gap
+or resamples.
+
+The bundle hash covers the source hash, reader revision, observed schema and each column's values, so
+two stagings on any host give one hash. Parquet, Arrow and CSV are exports and never evidence, because
+their file bytes depend on the writing library. Decoded columns stay memory-mappable with NumPy.
+
+### 18.3 Profiles and canonical channels
+
+The physical-to-canonical layering follows the
+[domain contracts of fl-op](https://github.com/volod/fl-op/blob/main/docs/guides/authoring-domain-contracts.md).
+A **channel catalog** contract names canonical quantities with an SI unit and frame. A **telemetry
+profile** contract, one per device or firmware family, maps each source field to a channel with its
+scale, offset, unit, frame, clock domain and sensitivity.
+
+A profile is applied at read and never baked into a bundle, so fixing a wrong unit takes a new profile
+version and no re-staging. A result names the bundle and the profile version it used. Field meanings
+stay with the profile, and a reader knows only structure.
+
+### 18.4 Drift, loss and gaps
+
+Each staging records the **observed schema**: what the source declared, normalized and hashed.
+Comparing it with a profile gives three outcomes. A field the profile does not map stays in the bundle
+and is listed. A mapped field that is absent is reported, and channels depending on it are
+`NOT_MEASURABLE`. A mapped field whose type or declared unit changed is `TELEMETRY_SCHEMA_DRIFT` and
+is never coerced. Firmware differences therefore become a stated result.
+
+Dropouts, rejected frames, sequence gaps and truncated tails are recorded with their counts and time
+ranges. A gap stays a gap.
+
+### 18.5 Live streams
+
+A live source uses the same reader on bounded chunks and writes sealed segments, so an interruption
+keeps every complete segment. The reader never blocks capture: a full queue is counted loss with its
+time range. Each chunk records its arrival time, which is not capture time unless a clock is declared
+and evidenced under section 5. The sustainable rate of a source is measured on each host, and a
+declared rate above it is `UNSUPPORTED`. Python is not assumed to sustain every source: a rate it
+cannot hold waits for a C++20 path.
+
+### 18.6 Boundary
+
+Adapters are passive. None sends a MAVLink command, heartbeat or parameter, writes to a device, or
+needs root: a source that requires privilege is `UNSUPPORTED` for an unprivileged process. Telemetry
+informs analysis of recorded behavior and enters no control path, and the
+[measurement-only scope](#measurement-only-scope) applies to it unchanged.
+
+A board's own rails and temperatures are software-reported. They are labelled so, explain behavior and
+cannot back an energy claim, which needs the section 7.9.4 boundary. A value in a log states what a
+system reported, not what was true.
+
+Telemetry is restricted by default. Location tracks, identifiers, serial numbers and parameters are
+`sensitive`, and a shareable export coarsens or drops them under section 11. Encrypted logs are out of
+scope: this product calls no vendor key service. Aligning telemetry with video needs a declared clock
+relation or marker with its uncertainty, or the alignment is `NOT_MEASURABLE`. A telemetry stream
+joins an encounter only through the section 4.1 split and rights rules. A public leaderboard, device
+enrollment and fleet services are not part of this capability.
+
+### 18.7 Evaluation
+
+Each reader passes a generated fixture written from the format specification, and its values match an
+independent reader. A bundle hashes identically across data roots and on x86-64 and arm64. Hand-built
+fixtures cover an unknown incompatible flag, a truncated log, a dropout, a changed field type and an
+unmapped field. A declared-layout source needs no new code. Live fixtures use fake clocks for
+overflow, disconnect and recovery with exact loss accounting. Claiming a real format needs authorized
+real logs from named firmware. A format no reader can decode without an undisclosed key, or a source
+that exposes nothing to an unprivileged process, is a valid negative result.
+
 ## Repository foundation
 
 The repository carries the product through one traceable chain:
@@ -1926,27 +2241,29 @@ Group order alone never establishes readiness.
 | 1 | `reproducible-environment` | shipped | A fresh locked environment reaches the complete CI gate without manual repair | [Developer tooling](../impl/current/developer-tooling.md) |
 | 2 | `project-identity` | shipped | Import, CLI, and distribution-build tests agree on the project identity | [Product core](../impl/current/product-core.md) |
 | 3 | `corpus-provenance` | planned | Import/hash/canonical-decode, staged frame bundles, synchronized multi-stream grouping, generated cases, version lineage, duplicate-frame and source-term refusals and scenario-rights/split fixtures; malformed source yields structured failure | - |
-| 4 | `annotation-selection` | planned | Two-reviewer G0 labels, stable class/instance IDs, frozen mask and identical seed replay | - |
-| 5 | `module-contract-runner` | planned | Oracle, null, dropper, crash, schema and class-identity fixtures pass with exact frame accounting | - |
-| 6 | `motion-sot-evaluation` | planned | Hand-computed fixture metrics, denominators and time weights match evaluator output | - |
-| 7 | `reference-tracker` | planned | Deterministic seeded SOT and proposal front end pass continuity, lost/re-entry, identity and deadline fixtures; optional load setting preserves lockstep outputs | - |
-| 8 | `comparison-report` | planned | Compatible-cohort report exposes errors; incompatible runs are refused with reason | - |
-| 9 | `hardware-probe-adaptive-launch` | planned | Recorded and live host probes report CPU, memory, storage, scheduler, frequency and throttle evidence, and select a supported profile, `UNSUPPORTED` or `MEASURE_REQUIRED` | - |
-| 10 | `controlled-bench-timing-energy` | planned | section 7.9 versioned trials retain instrument/calibration and raw-trace hashes and compute timing, resource, thermal and energy estimates with uncertainty and explicit validity | - |
-| 11 | `hardware-selection` | planned | Fixture configurations against a stated budget; only measured configurations are chosen; a selection record states rejected and unmeasured options; none qualifying is stated | - |
-| 12 | `sensor-joint-mode-probe` | planned | Every installed sensor's modes and simultaneous joint modes are probed under sustained load and yield a supported profile or explicit fallback | - |
-| 13 | `camera-bench-characterization` | planned | Independent stimulus, capture, optics and vibration trials retain raw evidence and report estimates with uncertainty and explicit validity | - |
-| 14 | `sensor-adapter-frontends` | planned | Typed observations, mixed-modality bundles and four scenario boundaries pass conformance; fake-driver capture covers skew, overflow, outage and recovery before live acceptance | - |
-| 15 | `fusion-analysis` | planned | Fixed hashed observation bundles isolate event-time association, deduplication, calibrated existence/class evidence, abstention and degraded-source behavior | - |
-| 16 | `fixed-input-tracker-evaluation` | planned | Fixed hashed observations and schedule isolate SOT/MOT identity, re-entry, prediction, confidence and tracker-stage cost | - |
-| 17 | `multi-source-reference-tracker` | planned | The staged reference tracker consumes frozen observation bundles and passes hand-audited provenance, identity and deadline fixtures | - |
-| 18 | `g2-sensor-set-evaluation` | planned | Feasible single, paired, all-installed and leave-one-out sets run through one frozen reference fusion rule; achieved quality and oracle observability ceiling remain distinct | - |
-| 19 | `installed-system-evaluation` | planned | Same-trial raw-to-output quality, timing and installed-boundary energy retain validity; four local report panels distinguish component from whole-system results | - |
-| 20 | `mot-trackeval` | planned | Byte-exact per-class export fixtures, pinned environment and hand-audited MOT results | - |
-| 21 | `paced-thermal-trial` | planned | Hand-audited cool, hot and capped fixtures on identical frames, then a live baseline run; a hot run with no throttling is `not_tested`, and a failed bet is published | - |
-| 22 | `benchmark-ranking` | planned | Optional matched-cohort fixtures yield rank, tier, inconclusive or refusal; scores recompute exactly; below the minimum every row stays unranked | - |
-| 23 | `device-bench-evaluation` | planned | Optional same-stimulus fixtures validate unranked cross-host cases; incompatible references are refused and missing device output is UNSUPPORTED | - |
-| 24 | `documentation-integrity` | shipped | Link, registry-plan, task-lane, metadata, ordering, and forward-language checks pass over fixtures and the repository tree | [Governance](../impl/current/governance.md) |
+| 4 | `data-contracts` | planned | Every shipped record and declaration conforms unchanged to its frozen contract; every section 17.3 change classifies as declared, with an independent checker agreeing on structure; real records of every historic major read under their disposition with no byte or hash moved; a consumer with only the contracts validates a record; optional descriptors validate and leak nothing | - |
+| 5 | `annotation-selection` | planned | Two-reviewer G0 labels, stable class/instance IDs, frozen mask and identical seed replay | - |
+| 6 | `module-contract-runner` | planned | Oracle, null, dropper, crash, schema and class-identity fixtures pass with exact frame accounting | - |
+| 7 | `motion-sot-evaluation` | planned | Hand-computed fixture metrics, denominators and time weights match evaluator output | - |
+| 8 | `reference-tracker` | planned | Deterministic seeded SOT and proposal front end pass continuity, lost/re-entry, identity and deadline fixtures; optional load setting preserves lockstep outputs | - |
+| 9 | `comparison-report` | planned | Compatible-cohort report exposes errors; incompatible runs are refused with reason | - |
+| 10 | `hardware-probe-adaptive-launch` | planned | Recorded and live host probes report CPU, memory, storage, scheduler, frequency and throttle evidence, and select a supported profile, `UNSUPPORTED` or `MEASURE_REQUIRED` | - |
+| 11 | `controlled-bench-timing-energy` | planned | section 7.9 versioned trials retain instrument/calibration and raw-trace hashes and compute timing, resource, thermal and energy estimates with uncertainty and explicit validity | - |
+| 12 | `hardware-selection` | planned | Fixture configurations against a stated budget; only measured configurations are chosen; a selection record states rejected and unmeasured options; none qualifying is stated | - |
+| 13 | `sensor-joint-mode-probe` | planned | Every installed sensor's modes and simultaneous joint modes are probed under sustained load and yield a supported profile or explicit fallback | - |
+| 14 | `camera-bench-characterization` | planned | Independent stimulus, capture, optics and vibration trials retain raw evidence and report estimates with uncertainty and explicit validity | - |
+| 15 | `sensor-adapter-frontends` | planned | Typed observations, mixed-modality bundles and four scenario boundaries pass conformance; fake-driver capture covers skew, overflow, outage and recovery before live acceptance | - |
+| 16 | `fusion-analysis` | planned | Fixed hashed observation bundles isolate event-time association, deduplication, calibrated existence/class evidence, abstention and degraded-source behavior | - |
+| 17 | `fixed-input-tracker-evaluation` | planned | Fixed hashed observations and schedule isolate SOT/MOT identity, re-entry, prediction, confidence and tracker-stage cost | - |
+| 18 | `multi-source-reference-tracker` | planned | The staged reference tracker consumes frozen observation bundles and passes hand-audited provenance, identity and deadline fixtures | - |
+| 19 | `g2-sensor-set-evaluation` | planned | Feasible single, paired, all-installed and leave-one-out sets run through one frozen reference fusion rule; achieved quality and oracle observability ceiling remain distinct | - |
+| 20 | `installed-system-evaluation` | planned | Same-trial raw-to-output quality, timing and installed-boundary energy retain validity; four local report panels distinguish component from whole-system results | - |
+| 21 | `mot-trackeval` | planned | Byte-exact per-class export fixtures, pinned environment and hand-audited MOT results | - |
+| 22 | `paced-thermal-trial` | planned | Hand-audited cool, hot and capped fixtures on identical frames, then a live baseline run; a hot run with no throttling is `not_tested`, and a failed bet is published | - |
+| 23 | `benchmark-ranking` | planned | Optional matched-cohort fixtures yield rank, tier, inconclusive or refusal; scores recompute exactly; below the minimum every row stays unranked | - |
+| 24 | `device-bench-evaluation` | planned | Optional same-stimulus fixtures validate unranked cross-host cases; incompatible references are refused and missing device output is UNSUPPORTED | - |
+| 25 | `telemetry-ingest` | planned | Optional readers match an independent reader on generated logs; bundles hash identically across hosts; drift, loss and truncation are reported and never filled; a declared layout needs no new code; live fixtures account for all loss | - |
+| 26 | `documentation-integrity` | shipped | Link, registry-plan, task-lane, metadata, ordering, and forward-language checks pass over fixtures and the repository tree | [Governance](../impl/current/governance.md) |
 
 Every task declares its outcome, scope, evidence, execution and acceptance. Only tested and
 documented implementation changes a capability to `shipped`. Optional branches cannot gate

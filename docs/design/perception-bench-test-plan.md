@@ -74,6 +74,10 @@ makes it fail, and what it does not prove. A case with no task left is listed as
   Value: protects=split isolation for remuxed copies; fails_when=identical frames cross a group, a
   shared lead-in is refused, or a version not compared goes unnamed; no_claim=re-encoded copies, a
   version whose bundles are gone, windows sharing no frame, or copies inside one group.
+- `bundle-reuse-across-versions`: a kept source, a damaged candidate, another window, and a removed
+  version. Value: protects=identical frames at no decode or storage cost; fails_when=a damaged
+  bundle links or a reused bundle differs from a fresh stage; no_claim=a filesystem without hard
+  links.
 - `decode-policy-reimport`: a record of an older policy re-decoded from its stored bytes, a corpus
   version pinning the old record, a damaged stored source, a repeat and an interrupted run.
   Value: protects=a decoder change without losing a stored source; fails_when=terms change, stored
@@ -95,6 +99,64 @@ makes it fail, and what it does not prove. A case with no task left is listed as
 - `run-bundle-store`: a crash during write, a retried ID, and a bundle with no visibility value.
   Value: protects=complete immutable evidence and restricted by default; fails_when=a partial bundle
   reads as complete; no_claim=disk failure modes.
+
+### Data contracts
+
+- `record-read-gate`: a real record of each historic major, a re-import over an older source, a
+  predecessor holding another major's bundle, and a static scan of sealed reads.
+  Value: protects=no unchecked read and an actionable refusal; fails_when=a caller reads around the
+  gate or an older source reads as `IMPORT_CONFLICT`; no_claim=that an older record can be used.
+- `record-read-window`: a view major, a `facts` major, a view deriving a rights field, a decode
+  policy mismatch through a view, and the five real bumps. Value: protects=old evidence with no
+  moved hash, and a split guard across majors; fails_when=a byte or pin moves, a fact is invented,
+  or a move passes as a schema refusal; no_claim=legal validity of old terms.
+- `contract-registry`: a frozen contract read from an installed wheel, by a standalone validator, an
+  edited frozen file, and each construct the dialect refuses.
+  Value: protects=a format readable without this repository; fails_when=a frozen file changes unseen
+  or a wheel lacks its contracts; no_claim=that a contract matches its writer.
+- `corpus-contract-baseline`: every record any test writes, and a recipe with another transform's
+  parameters.
+  Value: protects=shipped evidence conforms with no byte changed; fails_when=a writer produces what its
+  contract refuses; no_claim=that a field's meaning is right.
+- `contract-evolution-gate`: every row of spec section 17.3 at a nested path and inside a tagged
+  branch, the real recording and corpus changes, and a new field written as `null`.
+  Value: protects=old readers and old hashes; fails_when=a breaking change passes as minor, or an
+  unused feature moves a seal; no_claim=that a description states the truth.
+- `contract-enforced-readers`: the existing suite, `1.0` as an index, a non-finite number, a repeated
+  key, an unquoted date, a writer defect, and a verify benchmark.
+  Value: protects=one statement of each rule with unchanged refusals; fails_when=a looser rule slips
+  in or a read walks every field; no_claim=rules across files, which stay in code.
+- `dataset-descriptor`: restricted, public and locked corpora, and a corpus with no license.
+  Value: protects=self-service without a leak; fails_when=a restricted value or locked path appears
+  in a public descriptor; no_claim=that declared terms are true, or that a loader reads raw frames.
+
+### Telemetry
+
+- `telemetry-bundle-store`: two stagings across data roots and architectures, NaN payloads, and a
+  flipped column byte.
+  Value: protects=exact reproducible columns; fails_when=a value changes or damage passes;
+  no_claim=that a log's values are true.
+- `telemetry-profiles`: an unmapped, an absent and a retyped field, and a unit fixed by a new profile.
+  Value: protects=visible drift; fails_when=a changed field is coerced or a bundle hash moves;
+  no_claim=that a profile's unit is right.
+- `flight-log-readers`, `mavlink-log-reader`, `blackbox-log-reader`, `mcap-log-reader` and
+  `camera-telemetry-readers`: generated files against hand tables or an oracle, an unknown
+  incompatible flag, and truncation.
+  Value: protects=each specification as written; fails_when=a value differs or damage is hidden;
+  no_claim=coverage of real firmware, which `collect-telemetry-samples` supplies.
+- `board-telemetry-sources`: recorded trees, renumbered hwmon directories, a counter wrap and a
+  root-only source.
+  Value: protects=correct ABI units and honest absence; fails_when=a renumbered chip changes a channel
+  or a root-only source reads as zero; no_claim=accuracy of a board's sensors.
+- `declared-binary-layouts`: hand layouts, the IIO `type` grammar and a TLV profile.
+  Value: protects=a new sensor with no new code; fails_when=a bit field shifts wrongly;
+  no_claim=undeclared vendor changes.
+- `live-telemetry-capture`: overflow, disconnect, recovery and a killed process on fake clocks.
+  Value: protects=exact loss accounting and a passive reader; fails_when=loss goes uncounted or a byte
+  reaches a source; no_claim=a real link's capacity, which each host measures.
+- `telemetry-analysis-report`: hand-computed rates and gaps, and two firmware versions of one log.
+  Value: protects=descriptive truth and restricted export; fails_when=a gap disappears or a location
+  leaks; no_claim=any health or safety verdict.
 
 ### Execution
 

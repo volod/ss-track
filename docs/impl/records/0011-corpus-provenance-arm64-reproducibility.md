@@ -3,8 +3,7 @@
 ## Task and scope
 
 - Id / capability: `arm64-reproducibility` / `corpus-provenance`
-- State: active. Everything local has passed, and the declared run on an arm64 hardware runner has
-  not happened: it needs a push, which is the owner's to make.
+- State: accepted.
 - Source: plan task; starting commit `357eec4d2a0e8b289c92ab3764c8d7cbaee0ae8f`; clean worktree.
 - Plan counts at start: 87 tasks (66 agent, 21 human). Next agent: arm64-reproducibility;
   next human: select-development-workload.
@@ -139,7 +138,7 @@ workflow's first execution, and it passed unchanged.
 | A CI job on an arm64 runner | Job `arm64` of run 41345028661, step `Refuse a runner that is not arm64`; `tests/quality/test_workflows.py` pins its shape | Pass, hardware: `ubuntu-24.04-arm`, image 20261025.165.1, machine `aarch64`. The event checked out merge `6eee3c2`, whose tree `1c52f9d` equals that of `0bf3b9e`. The log does not name the CPU model |
 | The arm64 environment installs | Step `Install locked environment` of the same job: `uv sync --locked --extra dev --python 3.12 --no-install-package shellcheck-py` | Pass, hardware: 39 packages, `av` 19.0.2 and `numpy` 2.5.4 |
 | Transform golden hashes match on arm64 | `tests/corpus/test_transform_golden.py`, 8 tests, inside the run's `make test`, and under QEMU on `neoverse-n2`, `cortex-a72` and `max` | Pass, hardware and emulated |
-| Every test on arm64 | `make test` in the same job; one-off: `python -m pytest tests` on an export of `0bf3b9e` under QEMU on the three profiles | Hardware: pass, 656 passed, none skipped. Emulated: TESTS_RESULT |
+| Every test on arm64 | `make test` in the same job; one-off: `python -m pytest tests` on an export of `0bf3b9e` under QEMU on the three profiles | Hardware: pass, 656 passed, none skipped. Emulated: pass, 656 passed, none skipped, exit 0 on each of the three |
 | An equal frame-set hash proves every bundle equal | `hash-comparison` artifact of the same run, kept at `$DATA_DIR/run/arm64-hardware-41345028661/`, SHA-256 `99673febba394d7783dc5734172902d4f82ad73624e7d49b2f2744772e5a8b9b`; fixed corpus staged on x86-64, then on each profile from the same sources; `tests/corpus/test_host_hashes.py::test_equal_frame_sets_compare_identical_and_keep_the_comparison` | Pass, hardware: exit 0, `identical`, `x86_64` and `aarch64`, frame set `160e7c55468741b23f6c5149fd900fde04e11a761ac1071eb97025c5bee67a15`, 71 sources, 78 bundles. A one-off script comparing the two records directly found every bundle and all 879 frames equal. Pass, emulated: exit 0, `identical`, frame set `c2f82c0b5c99ef1e60e28871b43dec835392331e5e8ccef7e9b3035469b102d0` on all four |
 | A difference is recorded per source | The same comparison under the previous policy, without `idct=simple`, on x86-64 and `neoverse-n2` | Pass, a real negative: exit 1, `STAGED_HASHES_DIFFER`, 14 of 71 sources and 101 of 144 of their frames, each naming its codec, pixel format and first frame. No hand-edited record |
 | The fault is decoding and not conversion | One-off probe of 73 sources hashing decoded planes and converted pixels per frame, under the previous policy | 16 of 73 differed, with planes and pixels differing in the same frames. Under `idct=simple`, 73 of 73 matched on all three profiles, and x86-64 pixels were unchanged on all 73. Script not kept |
@@ -147,8 +146,8 @@ workflow's first execution, and it passed unchanged.
 | Each comparison outcome | `tests/corpus/test_host_hashes.py` | Pass: changed frame, changed PTS, a frame on one side, a case that moved with its parent, a source record differing alone, no cause found, each incomparable pair, each damaged record, the exit status |
 | The fixed corpus holds | `tests/corpus/test_fixed_corpus.py` | Pass: every row stages strictly, decodes as it claims, shares no frame, and moved sources give one frame set |
 | Tests pin each check | One-off mutation of 41 faults in `host_hashes.py`, `hash_comparison.py`, `decode.py`, `cli.py` and the workflow, on a scratch copy with bytecode writing off | 41 caught, against a passing baseline with the copy's package confirmed under test. Script not kept |
-| Required gate | `make ci` | CI_RESULT |
-| Full gate | `make quality` | QUALITY_RESULT |
+| Required gate | `make ci` | Pass: exit 0, 656 passed, 0 broken links, 0 spec-plan findings |
+| Full gate | `make quality` | Pass: exit 0, 656 passed, 99.00% coverage, Markdown lint and package build |
 
 The first mutation run caught 36 of 41. The survivors became tests, including one that would have
 reported unequal frame sets as `identical` when no cause could be named. An early claim that 60 of 73

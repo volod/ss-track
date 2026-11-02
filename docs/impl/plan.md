@@ -21,8 +21,8 @@ See the [planning workflow](../guide/planning-workflow.md),
 [engine milestone map](../design/perception-bench-engine.md#milestone-map),
 [test plan](../design/perception-bench-test-plan.md)
 and [test-stand requirements](../design/test-stands.md). M1 is the small G0a pipeline, M2 supplies
-measurement and host selection, and M3 delivers the reference mesh. M4 and M5 are optional extensions;
-neither blocks M3. Fixture implementation proceeds without physical hardware or private data.
+measurement and host selection, and M3 delivers the reference mesh. M4, M5 and M6 are optional
+extensions; none blocks M3. Fixture implementation proceeds without physical hardware or private data.
 
 ## Agent Implementation Tasks
 
@@ -41,9 +41,9 @@ verifying, until an operator deletes a sealed record by hand, and the stored sou
 - User-visible outcome: `ss-track import --amend-terms` records new rights and sensitivity for an
   imported source, and every corpus version pinning the old record then refuses. A plain import of
   changed terms names the terms that differ and this command.
-- Scope boundary: Rights and sensitivity of one imported source, for the same bytes and decoder.
-  Stored bytes stay untouched and nothing is decoded. The replaced record is kept beside the new one.
-  Frames stay on disk.
+- Scope boundary: Rights and sensitivity of one imported source, for the same bytes and decoder,
+  including a record of a `facts` major that lacks required terms. Stored bytes stay untouched and
+  nothing is decoded. The replaced record is kept beside the new one. Frames stay on disk.
 - Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`,
   `$DATA_DIR/import/<source-sha256>/`.
 - Execution path: Add the flag to `import`, re-seal the existing record with the declared terms under
@@ -120,7 +120,8 @@ split, and its build says only that it has no lineage.
   Source hashes on one data root only. Versions in the declared chain stay with the refusal.
 - Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/corpus/`.
 - Execution path: Scan `$DATA_DIR/corpus/*/manifest.json` and reuse the placement comparison in
-  `lineage.py`, naming a manifest it cannot read rather than skipping it.
+  `lineage.py`, reading every major through its projection once `record-read-window` provides one, and
+  naming a manifest it cannot read rather than skipping it.
 - Acceptance gates: A source placed in `locked` by an unlinked version and by a sibling branch are
   each listed with both versions, and both builds succeed. One state gives one listing in one order,
   and a version in the declared chain is never listed.
@@ -309,6 +310,255 @@ A re-encoded copy of a recording shares no bytes or frame hashes, so it can stil
   manual.
 - Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
 
+#### bundle-reuse-across-versions (optional)
+
+A new corpus version that keeps a source decodes and stores identical frames again, though its
+`bundle_sha256` is unchanged, so any new version costs hours and terabytes.
+
+- Serves: `corpus-provenance` -- [Corpus
+  identity](../design/spec.md#41-corpus-identity-and-input-handling)
+- Agent status: CLEAR
+- Milestone: M1
+- Dependencies: none.
+- User-visible outcome: `corpus stage` reuses a linked version's frames by hard link when the bundle
+  hash matches, and reports which streams it reused.
+- Scope boundary: Bundles of the same hash on one data root, inside a declared chain. The new version
+  still writes its own bundle record and frame set. A host that cannot link decodes, and nothing is
+  shared across decode policies.
+- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/corpus/<corpus-id>/`.
+- Execution path: Predict the bundle hash from the sealed index and the source and policy hashes before
+  decoding, verify every frame hash of the candidate, then link and write the record.
+- Acceptance gates: A kept source gives the same `bundle_sha256` and identical bytes as a fresh stage,
+  with no decode and no added frame storage. A damaged candidate is refused by name and never linked.
+  A stream with another window or policy decodes. Removing one version leaves the other readable.
+- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
+
+### Data contracts -- `data-contracts`
+
+#### record-read-gate
+
+Four of nine sealed reads check no schema, an older source is misreported as `IMPORT_CONFLICT`, a
+refusal never says what to do, and an unreadable predecessor fails a successor where section 4.1 says
+it is reported.
+
+- Serves: `data-contracts` -- [Reading older records](../design/spec.md#reading-older-records)
+- Agent status: CLEAR
+- Milestone: M1
+- Dependencies: none.
+- User-visible outcome: One read path checks seal, kind and schema for every sealed record, and a
+  refusal states the record, its major, whether it is older or newer, and the remedy.
+- Scope boundary: Exact-version acceptance stays, and so does every refusal code except the import
+  misreport. No registry, view or new dependency. A real record of each historic major enters the
+  tests.
+- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `tests/corpus/records/`.
+- Execution path: Replace the `read_sealed` and `require_schema` pair with one function, covering
+  `generated.py`, the existing-record reads in `builder.py` and `importer.py`, and `host_hashes.py`.
+  Add `not_compared` reason `other_schema` for a predecessor's frames. Export each historic commit,
+  have its own code write records from a generated clip, and keep only the JSON with a note of the
+  commit.
+- Acceptance gates: A static test finds no sealed read outside the one function. Re-importing over an
+  older source record is `RECORD_SCHEMA_UNSUPPORTED`, naming its remedy. A successor whose predecessor
+  holds another major's bundle stages and names it under `other_schema`. An older and a newer record
+  are told apart. Each kept historic record refuses by name, with no traceback.
+- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
+
+#### contract-registry
+
+No format has a definition outside the Python that reads it, so a consumer needs this repository to
+read one record.
+
+- Serves: `data-contracts` -- [Contract families](../design/spec.md#171-contract-families)
+- Agent status: CLEAR
+- Milestone: M1
+- Dependencies: none.
+- User-visible outcome: `ss-track contracts list` and `validate` work from an installed wheel over a
+  registry of frozen contracts, and `make lint-contracts` runs inside `make ci`.
+- Scope boundary: Registry, dialect meta-schema, shared definitions, identity, both fingerprints,
+  packaging, and `record/frame-set` end to end as the first contract. No reader changes and no
+  change classifier.
+- Data and artifact paths: `contracts/`, `src/ss_track/schema/`, `tests/schema/`,
+  `docs/guide/authoring-contracts.md`.
+- Execution path: Ship root `contracts/` as package data through a setuptools `package-dir` mapping,
+  and add `jsonschema` to the runtime dependencies and `uv.lock`. Validate with a strict integer type
+  and reuse `canonical_json` for fingerprints. Keep `src/ss_track/schema/` distinct from
+  `src/ss_track/contract/`, which holds events and scenarios. Add the authoring guide, and the
+  `AGENTS.md` rule that a new interchangeable format adds its contract in the same change.
+- Acceptance gates: A real frame set validates with no byte changed, from a wheel installed outside
+  the checkout. A standalone validator given only `contracts/` accepts it and refuses an altered copy.
+  The meta-schema refuses an open object, `if`, `not`, an untagged union and a property with no
+  description. An edited frozen file and a stale fingerprint each fail the build.
+- Documentation target: [Current implementation](current.md#areas), new page `current/contracts.md`.
+
+#### corpus-contract-baseline
+
+Every shipped format still has no contract, and some of its values mean nothing outside FFmpeg.
+
+- Serves: `data-contracts` -- [Identity and versions](../design/spec.md#172-identity-and-versions)
+- Agent status: CLEAR
+- Milestone: M1
+- Dependencies: contract-registry.
+- User-visible outcome: Recording, corpus, source manifest, corpus manifest, frame bundle, staged
+  hashes, hash comparison and command result each have a frozen contract at their shipped major.
+- Scope boundary: Describe formats as the current code writes them, changing no shipped byte and no
+  reader's behavior. Split the shared version constants so each format owns its major. Cross-field
+  rules go in `x-rules`. FFmpeg color integers gain `x-vocabulary`. Earlier majors are listed `retired`
+  with no contract, because no retained record exists. Corpus 3.0.0 requires source terms, so a
+  schema 3 manifest written before they existed stays refused.
+- Data and artifact paths: `contracts/declaration/`, `contracts/record/`, `contracts/result/`,
+  `tests/schema/`.
+- Execution path: Add a session-wide test hook that validates every record any test writes, examples
+  per contract, and one tagged branch per transform and label-transform kind.
+- Acceptance gates: Every record the suite writes validates. A recipe carrying another transform's
+  parameters is refused by the schema alone. Each numeric quantity has `x-unit`, each coded integer
+  has `x-vocabulary`, and the result contract's `code` enum equals `RefusalCode`, so a test fails when
+  either changes alone. A format the dialect cannot state stays `draft` with its reason.
+- Documentation target: [Current implementation](current.md#areas), page `current/contracts.md`.
+
+#### contract-evolution-gate
+
+A format can change only by a new integer that refuses every earlier record, and nothing notices a
+changed unit.
+
+- Serves: `data-contracts` -- [Compatibility rules](../design/spec.md#173-compatibility-rules)
+- Agent status: CLEAR
+- Milestone: M1
+- Dependencies: corpus-contract-baseline.
+- User-visible outcome: `ss-track contracts diff` names each change and its class, `freeze` refuses a
+  wrong bump and writes the change-log entry, and CI refuses an unreviewed change.
+- Scope boundary: JSON Schema contracts. The protobuf gate belongs to `event-schema-contract`.
+- Data and artifact paths: `src/ss_track/schema/`, `contracts/`, `tests/schema/`.
+- Execution path: Classify by walking both versions through nested objects, array items, `$ref`
+  targets and tagged branches, naming each change by JSON pointer. Keep `jsoncompat` pinned in the dev
+  extra as an independent oracle, never as the authority. Add the hash-stability test: writer output
+  for input using no new feature validates against the previous frozen minor.
+- Acceptance gates: Table-driven fixtures pass every row of spec section 17.3, each at a nested path
+  and inside a tagged branch. A bump that is too small fails, and a disagreement with the oracle fails.
+  Replaying the kept historic records classifies all five real bumps as major. A new field written as
+  `null` fails hash stability, as does a writer adding a key under an unchanged version, which is how
+  source terms entered schema 3 corpus manifests. A major with no migration text or no disposition
+  fails to freeze.
+- Documentation target: [Current implementation](current.md#areas), page `current/contracts.md`.
+
+#### contract-enforced-readers
+
+A format stays stated twice, in its contract and in hand-written readers, so the two can disagree.
+
+- Serves: `data-contracts` -- [Enforcement](../design/spec.md#174-enforcement)
+- Agent status: CLEAR
+- Milestone: M1
+- Dependencies: contract-evolution-gate, record-read-gate.
+- User-visible outcome: A declaration on read and a record before sealing are checked for structure
+  by their contract alone, with the same refusal codes, and a refusal of an old record names the
+  migration from its change log.
+- Scope boundary: Structural rules move out of `Fields`, `read_recipe` and the declaration readers.
+  Cross-field and cross-file rules stay in code. A sealed read checks seal, kind and major only. No
+  record byte changes.
+- Data and artifact paths: `src/ss_track/corpus/`, `src/ss_track/schema/`, `tests/corpus/`,
+  `tests/schema/`.
+- Execution path: Keep duplicate-key refusal in the YAML loader, add non-finite refusal and date
+  normalization, validate each declaration, validate before `seal`, and reduce `Fields` to typed
+  access. Remove the key check in `terms.py`, which stands in for a version the contract now states.
+- Acceptance gates: Every existing refusal code holds across the existing suite. `1.0` as an index, a
+  non-finite number, a repeated key and an unquoted date each keep today's result. A writer defect is
+  `RECORD_INVALID` before anything is sealed. `corpus verify` on a million-frame index takes no longer
+  than before, shown by a benchmark fixture.
+- Documentation target: [Current implementation](current.md#areas), pages `current/contracts.md` and
+  `current/corpus.md`.
+
+#### record-read-window
+
+A format change sends every record to a fresh data root, and a predecessor of another major cannot be
+compared, so the only exit drops `supersedes` and the split guard with it.
+
+- Serves: `data-contracts` -- [Reading older records](../design/spec.md#reading-older-records)
+- Agent status: CLEAR
+- Milestone: M1
+- Dependencies: contract-enforced-readers.
+- User-visible outcome: Each older major declares `view`, `facts` or `retired`. A view record serves
+  as evidence with no byte, seal or cohort change, and `supersedes` works across majors.
+- Scope boundary: Pure in-memory views stepping one major at a time, one comparison projection per
+  major, and accepted majors in the registry. Nothing rewrites a sealed record. A view never derives
+  an operator judgment or changes an algorithm revision. No views for the retired historic majors,
+  whose records are test data only.
+- Data and artifact paths: `src/ss_track/schema/`, `src/ss_track/corpus/`, `tests/schema/`,
+  `tests/corpus/`.
+- Execution path: Add the disposition to the registry and read path, then route `lineage.py`,
+  `duplicate_frames.py` and the unlinked listing through the projection. Prove it with a synthetic next
+  major of a real contract in the tests. Rights amendments stay with `source-terms-amendment`.
+- Acceptance gates: A view major verifies with its frame-set hash and file bytes unchanged. A
+  `facts` major is refused as evidence, stays inspectable, and a move of its source is
+  `SPLIT_LEAKAGE` and not a schema refusal. A view that derives a rights field fails a test.
+  `DECODE_POLICY_MISMATCH` still refuses through a view. A predecessor with no projection is
+  `not_compared`, never a failure of its successor. The five real bumps replay to their
+  dispositions: `view` for bundle 1 to 2, bundle 2 to 3 and corpus 2 to 3, and `facts` for corpus 1
+  to 2 and source 1 to 2.
+- Documentation target: [Current implementation](current.md#areas), pages `current/contracts.md` and
+  `current/corpus.md`.
+
+#### contract-reference-docs (optional)
+
+A reader of a contract should not need to read JSON Schema to learn what a field means, or how
+records link.
+
+- Serves: `data-contracts` -- [Identity and versions](../design/spec.md#172-identity-and-versions)
+- Agent status: CLEAR
+- Milestone: M1
+- Dependencies: contract-evolution-gate.
+- User-visible outcome: `ss-track contracts docs --out <dir>` writes a data dictionary per contract,
+  the first version of each field, and a lineage graph from `x-references`.
+- Scope boundary: Generated Markdown only. No site or hosting. The change log stays the authored
+  text.
+- Data and artifact paths: `src/ss_track/schema/`, `tests/schema/`.
+- Execution path: Render from frozen contracts and add dangling-reference detection to the check.
+- Acceptance gates: Output is deterministic and lists every property and enum value. A dangling
+  `x-references` target fails `make lint-contracts`.
+- Documentation target: [Current implementation](current.md#areas), page `current/contracts.md`.
+
+#### dataset-descriptor (optional)
+
+A future consumer cannot find, judge or load a corpus version without this repository.
+
+- Serves: `data-contracts` -- [Dataset
+  descriptors](../design/spec.md#175-dataset-descriptors-and-self-service)
+- Agent status: CLEAR
+- Milestone: M1
+- Dependencies: contract-enforced-readers.
+- User-visible outcome: `ss-track corpus describe` writes a Croissant 1.1 document, a dataset card and
+  the contract versions used.
+- Scope boundary: Inputs are sealed records, frozen contracts and one `declaration/dataset` supplying
+  title, description, license, citation, address and publication date, which no sealed record holds.
+  Default visibility is restricted. Raw frames are indexed with their layout. No upload, hosting or
+  publication decision.
+- Data and artifact paths: `src/ss_track/corpus/`, `contracts/declaration/`, `tests/corpus/`.
+- Execution path: Generate from the corpus manifest, frame set and source manifests. Validate with
+  `mlcroissant` in a separate locked extra and CI job, outside the runtime closure.
+- Acceptance gates: A descriptor validates with zero errors and its streams, bundles and per-frame
+  index load as records. Two runs give identical bytes. A public request on a restricted corpus
+  refuses without printing a value, and so does one with no license. A public descriptor holds no
+  value marked `restricted` or `sensitive` and gives `locked` as counts. Generated cases stay a
+  labelled slice.
+- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
+
+#### odcs-contract-export (optional)
+
+A data catalog may expect ODCS, and a generated view costs little once contracts exist.
+
+- Serves: `data-contracts` -- [Dataset
+  descriptors](../design/spec.md#175-dataset-descriptors-and-self-service)
+- Agent status: CLEAR
+- Milestone: M1
+- Dependencies: contract-evolution-gate.
+- User-visible outcome: `ss-track contracts export --format odcs` writes one ODCS document per
+  contract.
+- Scope boundary: A generated view, never authored or read back. A tagged union is listed as the
+  union of its branches, and what ODCS cannot state is named in `customProperties`.
+- Data and artifact paths: `src/ss_track/schema/`, `tests/schema/`.
+- Execution path: Project each contract and validate against the official ODCS JSON Schema, pinned by
+  hash.
+- Acceptance gates: Every document validates, with id and version matching its contract. Every
+  property appears, and each construct lost in projection is listed.
+- Documentation target: [Current implementation](current.md#areas), page `current/contracts.md`.
+
 ### Annotation and selection -- `annotation-selection`
 
 #### annotation-contract
@@ -318,11 +568,12 @@ Labels need stable identity and a frozen mask before scores can mean anything.
 - Serves: `annotation-selection` -- [Annotation contract](../design/spec.md#42-annotation-contract)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: none.
+- Dependencies: contract-registry.
 - User-visible outcome: An operator validates visibility status, geometry, instance identity, motion
-  events, operator seeds and masks against a versioned schema.
-- Scope boundary: Schema, validation and frozen seed replay, in the stored orientation modules
-  receive. Labelling itself is human work.
+  events, operator seeds and masks against a versioned contract.
+- Scope boundary: Label, seed and mask contracts, validation and frozen seed replay, in the stored
+  orientation modules receive. Class names stay data in a scenario pack, so a label contract states
+  the shape of a class ID and the pinned pack states its values. Labelling itself is human work.
 - Data and artifact paths: `src/ss_track/annotate/`, `tests/annotate/`.
 - Execution path: Add `ss-track annotate validate` with positive and malformed fixtures, including a
   source with display rotation.
@@ -380,15 +631,19 @@ Python and later C++ modules need one versioned meaning for every event.
 - Serves: `module-contract-runner` -- [Module contract](../design/spec.md#5-module-contract-execution-and-fault-semantics)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: none.
-- User-visible outcome: Modules and tools share a validated event schema with golden fixtures.
+- Dependencies: contract-registry.
+- User-visible outcome: Modules and tools share a validated event schema with golden fixtures, and a
+  breaking change fails CI.
 - Scope boundary: The G0 and G1 record families. G2 fusion records are out of scope.
 - Data and artifact paths: `src/ss_track/contract/`, `tests/contract/`.
 - Execution path: Define `.proto` files and protobuf-JSON JSON Lines validation. Add a Make target
   that regenerates bindings and a CI drift check, keep generated files out of the size and lint
-  gates, and add the smallest justified dependency to `uv.lock`.
+  gates, and add the smallest justified dependency to `uv.lock`. Register each package under
+  `contracts/event/`, pin `buf-bin` in the dev extra, and gate on `buf breaking` with the `WIRE_JSON`
+  category against the frozen descriptor set, because G0 events travel as JSON.
 - Acceptance gates: Golden fixtures cover absent and unknown fields, malformed payloads, coordinates,
-  timestamps and power units. A malformed event is rejected with a reason. `FrameRef` round-trips every
+  timestamps and power units. A malformed event is rejected with a reason. A renamed field, a reused
+  field number and a changed `json_name` each fail the gate. `FrameRef` round-trips every
   field the staged bundle reports, including `transform` and `content_frame_index`, with those meanings.
 - Documentation target: [Current implementation](current.md#areas), new page `current/runner.md`.
 
@@ -405,7 +660,8 @@ A comparison must pin everything that can change its result.
 - Scope boundary: The scenario schema, one cohort-key function, and one type that owns windows and
   runs. G2 boundaries are out of scope.
 - Data and artifact paths: `src/ss_track/contract/`, `scenarios/`, `tests/contract/`.
-- Execution path: Add the schema and example scenarios, with table-driven cohort-key fixtures.
+- Execution path: Add the scenario as a `declaration` contract with example scenarios, and
+  table-driven cohort-key fixtures.
 - Acceptance gates: Changing any key field changes the cohort key. A scenario with a missing hash
   refuses to run, as does one whose corpus fails `corpus verify` or whose pinned frame-set hash differs
   from the `frame_set_sha256` that command reports. The pin is the only check that sees a frame set
@@ -424,7 +680,8 @@ Every score must be recomputable from immutable evidence.
 - Scope boundary: The spec section 10 artifact set, write-then-rename finalize, idempotent IDs, and a
   visibility field that defaults to restricted. `loc-lm-bench` is a pattern to check, not an import.
 - Data and artifact paths: `src/ss_track/contract/`, `tests/contract/`, `$DATA_DIR/run/<run-id>/`.
-- Execution path: Add bundle reader and writer with crash and retry fixtures.
+- Execution path: Add bundle reader and writer with crash and retry fixtures. The run manifest and
+  bundle are `record` contracts, and the manifest lists the contract set in force.
 - Acceptance gates: A crash fixture leaves no complete-looking bundle, a retried ID stays idempotent,
   and each manifest records its re-run command. A bundle with no visibility value reads as restricted.
 - Documentation target: [Current implementation](current.md#areas), page `current/runner.md`.
@@ -777,7 +1034,8 @@ A trial must start from what the host really supports.
   whether frequency can be capped. Sensors belong to `joint-mode-probe`; accelerators stay in
   spec section 12.
 - Data and artifact paths: `src/ss_track/probe/`, `tests/probe/`, `$DATA_DIR/probe/<host-id>/`.
-- Execution path: Read system facts behind a replaceable source, with recorded fixture hosts,
+- Execution path: Add the host profile as a `record` contract. Read system facts behind a replaceable
+  source that `board-telemetry-sources` can share, with recorded fixture hosts,
   including Raspberry Pi `vcgencmd` evidence.
 - Acceptance gates: Recorded hosts produce expected profiles. An unavailable feature yields
   `UNSUPPORTED` or `MEASURE_REQUIRED`.
@@ -794,7 +1052,8 @@ Energy claims need raw traces and honest integration.
 - Milestone: M2
 - Dependencies: run-bundle-store.
 - User-visible outcome: A meter trace becomes joules over an exact marked interval, with uncertainty.
-- Scope boundary: File-based trace ingest, trapezoid integration, gaps, saturation and marker-based
+- Scope boundary: File-based trace ingest through a declared `power-trace` contract, trapezoid
+  integration, gaps, saturation and marker-based
   clock alignment. Live meter control is out of scope, so any meter can feed it.
 - Data and artifact paths: `src/ss_track/energy/`, `tests/energy/`.
 - Execution path: Add constant-power, pulsed-power, sample-gap, saturation and clock-drift fixtures.
@@ -834,7 +1093,8 @@ Hardware results need a versioned protocol declared before acquisition.
   estimates and validity. Camera optics and vibration are in `camera-trial-suite`.
   Optional ranking replacement rules apply only when that protocol is selected.
 - Data and artifact paths: `src/ss_track/energy/`, `tests/energy/`, `$DATA_DIR/trial/<trial-id>/`.
-- Execution path: Add the protocol schema and fixtures that replay recorded traces.
+- Execution path: Add the protocol and `HardwareTrial` as contracts, and fixtures that replay recorded
+  traces.
 - Acceptance gates: Fixtures reproduce timing, resource and energy estimates with explicit units and
   uncertainty. Missing instruments invalidate only affected claims. Every invalid attempt remains
   in the bundle; ranking-specific repetition rules never gate a basic bench measurement.
@@ -919,7 +1179,8 @@ Every sensor needs one way to say what it saw, and what it could not see.
   and provenance.
 - Scope boundary: G2 record families for observations and epochs. Sensor drivers are later tasks.
 - Data and artifact paths: `src/ss_track/contract/`, `tests/contract/`.
-- Execution path: Extend the schema without changing G0 `FrameResult` meaning, with golden fixtures.
+- Execution path: Extend the schema as an additive event contract version, without changing G0
+  `FrameResult` meaning, with golden fixtures.
 - Acceptance gates: `no_detection`, `out_of_view`, `disabled_by_policy`, `missing`, `stale` and
   `invalid` stay distinct. An untyped confidence field is rejected.
 - Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
@@ -1324,7 +1585,8 @@ Finished devices need a suite that works without an operator seed.
 - Dependencies: installed-system-suite, event-schema-contract.
 - User-visible outcome: A vendor adapter's events score detection delay, lock coverage and false
   alarms.
-- Scope boundary: The suite, adapter contract and same-stimulus cohort key. Bench hardware is a human
+- Scope boundary: The suite, adapter contract and same-stimulus cohort key. A device that exposes
+  telemetry rather than events uses a `telemetry-ingest` profile. Bench hardware is a human
   task.
 - Data and artifact paths: `src/ss_track/suites/`, `tests/suites/`, `modules/`.
 - Execution path: Add fixture events from two simulated devices.
@@ -1333,6 +1595,253 @@ Finished devices need a suite that works without an operator seed.
   are unranked and never pooled into a hardware-agnostic ranking.
 - Documentation target: [Current implementation](current.md#areas), new page
   `current/bench.md`.
+
+### Telemetry ingest -- `telemetry-ingest`
+
+#### telemetry-bundle-store (optional)
+
+Telemetry has nowhere to live as evidence, because import takes only video.
+
+- Serves: `telemetry-ingest` -- [Telemetry bundles](../design/spec.md#182-telemetry-bundles)
+- Agent status: CLEAR
+- Milestone: M6
+- Dependencies: contract-enforced-readers.
+- User-visible outcome: `ss-track telemetry import`, `stage` and `verify` turn a declared source into
+  a sealed bundle of raw typed columns.
+- Scope boundary: Contracts for the source declaration and the source and bundle records, the column
+  store, and a declared CSV reader as the first format. No profiles, analysis or live capture.
+- Data and artifact paths: `src/ss_track/telemetry/`, `tests/telemetry/`, `contracts/`,
+  `$DATA_DIR/import/<source-sha256>/`, `$DATA_DIR/telemetry/<bundle-sha256>/`.
+- Execution path: Reuse `sealed.py`, publish-by-rename and the source-terms checks by generalizing
+  them, with no parallel copy. Store one little-endian file per field under a sealed index.
+- Acceptance gates: Two stagings across data roots, and on x86-64 and arm64, give one hash. A float
+  column round-trips bit-exact, including NaN payloads. A flipped column byte fails `verify` by name.
+  Rights and retention refuse as they do for a recording.
+- Documentation target: [Current implementation](current.md#areas), new page `current/telemetry.md`.
+
+#### telemetry-profiles (optional)
+
+A field name means nothing across firmware, so a value needs a canonical channel, unit and clock.
+
+- Serves: `telemetry-ingest` -- [Profiles](../design/spec.md#183-profiles-and-canonical-channels)
+- Agent status: CLEAR
+- Milestone: M6
+- Dependencies: telemetry-bundle-store.
+- User-visible outcome: A versioned profile maps source fields to canonical channels at read, and
+  `telemetry report` lists unmapped, absent and drifted fields.
+- Scope boundary: Channel catalog and profile contracts, the observed-schema hash and the comparison.
+  No format reader. A profile changes no bundle.
+- Data and artifact paths: `contracts/telemetry/`, `src/ss_track/telemetry/`, `tests/telemetry/`.
+- Execution path: Add the catalog and one profile over the CSV reader, with fixtures for each outcome
+  of spec section 18.4.
+- Acceptance gates: An unmapped field stays listed. An absent mapped field makes its channels
+  `NOT_MEASURABLE`. A changed type or declared unit is `TELEMETRY_SCHEMA_DRIFT`. A new profile version
+  fixing a unit changes no bundle hash, and a result names the profile version. A software-reported
+  rail cannot become a calibrated `PowerSample`.
+- Documentation target: [Current implementation](current.md#areas), page `current/telemetry.md`.
+
+#### flight-log-readers (optional)
+
+PX4 and ArduPilot logs carry their own schema, so one reader each covers every firmware.
+
+- Serves: `telemetry-ingest` -- [Source classes](../design/spec.md#181-source-classes-and-readers)
+- Agent status: CLEAR
+- Milestone: M6
+- Dependencies: telemetry-profiles.
+- User-visible outcome: ULog and DataFlash logs stage into bundles, with dropouts, parameters and
+  logged text retained.
+- Scope boundary: Readers written from the format definitions with the standard library and NumPy.
+  Example profiles for battery, attitude and position channels. No vehicle-health verdict.
+- Data and artifact paths: `src/ss_track/telemetry/`, `tests/telemetry/`, `pyproject.toml`.
+- Execution path: Walk framing once, then decode each message type as one array in bounded chunks.
+  Generate logs in tests, and keep `pyulog` in the dev extra as an oracle.
+- Acceptance gates: Values match the oracle and hand tables, across nested formats, multi-instance
+  topics, absent trailing padding, `FMT`, `UNIT`, `MULT` and `FMTU`. An unknown incompatible flag
+  refuses, an unknown message is skipped and counted, and a log cut mid-message loses only that
+  message. The measured decode rate on each CI architecture is recorded.
+- Documentation target: [Current implementation](current.md#areas), page `current/telemetry.md`.
+
+#### board-telemetry-sources (optional)
+
+A board's counters explain timing and throttling, and each vendor exposes them differently.
+
+- Serves: `telemetry-ingest` -- [Source classes](../design/spec.md#181-source-classes-and-readers)
+- Agent status: CLEAR
+- Milestone: M6
+- Dependencies: telemetry-profiles, host-capability-probe.
+- User-visible outcome: A recorded or sampled hwmon, thermal, cpufreq, devfreq and powercap tree,
+  `vcgencmd` output and `tegrastats` lines become bundles, with profiles for Raspberry Pi 5, Jetson
+  and a generic x86 host.
+- Scope boundary: Unprivileged reads through a replaceable root, sharing one source with
+  `host-capability-probe`. Accelerator vendor tools stay out until a selected host needs one.
+- Data and artifact paths: `src/ss_track/telemetry/`, `tests/telemetry/`, `contracts/telemetry/`.
+- Execution path: Add recorded-tree fixtures, select chips by `name` and channels by label, and keep
+  raw ABI integers in columns with their units in the profile.
+- Acceptance gates: Hand-computed values match, including `get_throttled` bits and an `energy_uj`
+  wrap. Renumbered hwmon directories change nothing. `tegrastats` lines with absent engines parse with
+  those channels absent. A value re-read within `update_interval` is not a new sample. A root-only
+  source is `UNSUPPORTED`.
+- Documentation target: [Current implementation](current.md#areas), page `current/telemetry.md`.
+
+#### mavlink-log-reader (optional)
+
+A ground station's telemetry log needs an external dictionary, and its time is arrival time.
+
+- Serves: `telemetry-ingest` -- [Source classes](../design/spec.md#181-source-classes-and-readers)
+- Agent status: CLEAR
+- Milestone: M6
+- Dependencies: telemetry-profiles.
+- User-visible outcome: A `.tlog` stages into a bundle under a pinned MAVLink XML dialect.
+- Scope boundary: Reading MAVLink 1 and 2 frames only. Nothing is ever sent, so signing verification
+  is out of scope.
+- Data and artifact paths: `src/ss_track/telemetry/`, `tests/telemetry/`, `contracts/external/`.
+- Execution path: Compile a dialect to record layouts, applying wire order and `CRC_EXTRA`, then reuse
+  the array decode path.
+- Acceptance gates: Hand vectors cover field reordering, truncated trailing zeros, extension fields
+  and a signed frame. A `CRC_EXTRA` mismatch is named as a dictionary mismatch. An unknown message id
+  and an unknown incompatible flag are counted. Log times are recorded as arrival times.
+- Documentation target: [Current implementation](current.md#areas), page `current/telemetry.md`.
+
+#### blackbox-log-reader (optional)
+
+Blackbox logs hold high-rate flight data with no checksum, so damage must stay visible.
+
+- Serves: `telemetry-ingest` -- [Drift, loss and gaps](../design/spec.md#184-drift-loss-and-gaps)
+- Agent status: CLEAR
+- Milestone: M6
+- Dependencies: telemetry-profiles.
+- User-visible outcome: A Betaflight Blackbox file stages each session into a bundle.
+- Scope boundary: The documented encodings and predictors, written from the public description. iNav
+  differences are out of scope until a sample exists.
+- Data and artifact paths: `src/ss_track/telemetry/`, `tests/telemetry/`.
+- Execution path: Parse `H` field lines into a per-frame schema, then reverse each encoding and
+  predictor, and add hand-encoded fixtures.
+- Acceptance gates: Every encoding and predictor matches a hand-computed frame. A dropped byte rejects
+  that frame and following `P` frames until the next `I`, with the counts recorded. Sessions in one
+  file stay separate, and rejected frames are never interpolated.
+- Documentation target: [Current implementation](current.md#areas), page `current/telemetry.md`.
+
+#### mcap-log-reader (optional)
+
+ROS 2 bags and other robotics logs use MCAP, which carries each channel's schema in the file.
+
+- Serves: `telemetry-ingest` -- [Source classes](../design/spec.md#181-source-classes-and-readers)
+- Agent status: CLEAR
+- Milestone: M6
+- Dependencies: telemetry-profiles.
+- User-visible outcome: An MCAP file stages into a bundle, with one observed schema per channel.
+- Scope boundary: Channels with `protobuf` or `jsonschema` schemas, and a `cdr` subset for fixed
+  layouts. Zstd and LZ4 sit in an optional extra. Image and point-cloud payloads stay opaque blobs
+  with their hashes.
+- Data and artifact paths: `src/ss_track/telemetry/`, `tests/telemetry/`, `pyproject.toml`.
+- Execution path: Read opcode-framed records, with the summary section when present and a scan when
+  not. Keep `mcap` in the dev extra as an oracle.
+- Acceptance gates: Chunked and unchunked files match the oracle. A CRC mismatch refuses, an unknown
+  record is skipped and counted, `log_time` and `publish_time` stay separate, and a file with no
+  summary reads by scanning.
+- Documentation target: [Current implementation](current.md#areas), page `current/telemetry.md`.
+
+#### declared-binary-layouts (optional)
+
+A simple sensor should need a declaration, not a new reader.
+
+- Serves: `telemetry-ingest` -- [Source classes](../design/spec.md#181-source-classes-and-readers)
+- Agent status: CLEAR
+- Milestone: M6
+- Dependencies: telemetry-profiles.
+- User-visible outcome: A profile declares a fixed record or TLV layout, or reads an IIO
+  `scan_elements` tree, and the source stages with no new code.
+- Scope boundary: Fixed records, tagged length-value frames, a magic word, and bit fields with a
+  shift. A format needing more is refused with a reason and gets a reader.
+- Data and artifact paths: `src/ss_track/telemetry/`, `tests/telemetry/`, `contracts/telemetry/`.
+- Execution path: Compile a layout to a NumPy dtype, parse the IIO `type` grammar, and add one radar
+  TLV profile pinned to its SDK version.
+- Acceptance gates: Hand cases cover `le:s12/16>>4`, big-endian, repeats and channel order. A TLV
+  fixture passes with no code beyond the profile. An unknown TLV type is skipped and counted. A
+  declared size that disagrees with a frame refuses.
+- Documentation target: [Current implementation](current.md#areas), page `current/telemetry.md`.
+
+#### camera-telemetry-readers (optional)
+
+A camera's motion and exposure metadata can explain blur and loss, and it arrives beside the video.
+
+- Serves: `telemetry-ingest` -- [Source classes](../design/spec.md#181-source-classes-and-readers)
+- Agent status: CLEAR
+- Milestone: M6
+- Dependencies: telemetry-profiles.
+- User-visible outcome: A GoPro GPMF track and a libcamera per-frame metadata sidecar stage into
+  bundles linked to their video source.
+- Scope boundary: Reading only. Tying samples to frames follows section 5 clock rules. Other camera
+  vendors wait for a sample.
+- Data and artifact paths: `src/ss_track/telemetry/`, `tests/telemetry/`.
+- Execution path: Read the `gpmd` track, parse KLV with `SCAL`, `SIUN`, `TYPE` and `TSMP`, and keep
+  `py-gpmf-parser` in the dev extra as an oracle.
+- Acceptance gates: Hand KLV fixtures cover nesting, scale, complex types and alignment. Payload time
+  never assumes a uniform rate inside a payload. GNSS channels are `sensitive`. A `SensorTimestamp`
+  from a pipeline that fills it from DMA time is not labelled as exposure time.
+- Documentation target: [Current implementation](current.md#areas), page `current/telemetry.md`.
+
+#### live-telemetry-capture (optional)
+
+Real-time streams must lose data visibly, and must never slow what they observe.
+
+- Serves: `telemetry-ingest` -- [Live streams](../design/spec.md#185-live-streams)
+- Agent status: CLEAR
+- Milestone: M6
+- Dependencies: board-telemetry-sources, declared-binary-layouts, mavlink-log-reader.
+- User-visible outcome: `ss-track telemetry record` writes sealed segments from a sysfs poll, IIO
+  buffer, serial link or UDP mirror, with loss accounting.
+- Scope boundary: Passive sources through bounded queues. Sending anything to a source is out of
+  scope. Synchronized multi-sensor capture stays with `synchronized-sensor-capture`.
+- Data and artifact paths: `src/ss_track/telemetry/`, `tests/telemetry/`,
+  `$DATA_DIR/telemetry/<bundle-sha256>/`.
+- Execution path: Use replaceable sources and fake clocks, add a declared capture contract, and
+  measure the sustainable rate per host.
+- Acceptance gates: Overflow, disconnect and recovery fixtures account for all loss with time ranges.
+  A killed process leaves only complete segments. A fixture source shows nothing was written to it. A
+  declared rate above the measured one is `UNSUPPORTED`.
+- Documentation target: [Current implementation](current.md#areas), page `current/telemetry.md`.
+
+#### telemetry-analysis-report (optional)
+
+Stored columns help nobody until they answer what ran, what was lost and what changed.
+
+- Serves: `telemetry-ingest` -- [Drift, loss and gaps](../design/spec.md#184-drift-loss-and-gaps)
+- Agent status: CLEAR
+- Milestone: M6
+- Dependencies: flight-log-readers.
+- User-visible outcome: `ss-track telemetry report` gives per-channel rates, gaps, dropouts, ranges
+  and throttle and thermal timelines, and compares the schema and rates of two bundles.
+  `telemetry export` writes Parquet, Arrow or CSV.
+- Scope boundary: Local HTML and JSON, descriptive statistics only. No safety, airworthiness or
+  health verdict. `pyarrow` is an optional extra, and an export is never evidence.
+- Data and artifact paths: `src/ss_track/telemetry/`, `tests/telemetry/`, `$DATA_DIR/run/<run-id>/`.
+- Execution path: Compute from columns through a named profile, and add two fixture firmware versions
+  of one log.
+- Acceptance gates: Hand-computed rates and gap lists match. Two firmware fixtures show their schema
+  difference exactly. A restricted bundle refuses a shareable export without leaking a value, and a
+  shareable export holds no `sensitive` channel uncoarsened. Exported values equal the columns.
+- Documentation target: [Current implementation](current.md#areas), page `current/telemetry.md`.
+
+#### telemetry-corpus-streams (optional)
+
+Platform telemetry beside a video encounter must obey the same split and rights rules.
+
+- Serves: `telemetry-ingest` -- [Boundary](../design/spec.md#186-boundary)
+- Agent status: CLEAR
+- Milestone: M6
+- Dependencies: telemetry-profiles, g2-scenario-observation-bundles.
+- User-visible outcome: A telemetry bundle joins an encounter as a platform-state stream, and replay
+  releases it at its availability time.
+- Scope boundary: Split, rights and clock rules for one more stream kind. A platform-state sample
+  stays context and is never an object detection.
+- Data and artifact paths: `src/ss_track/corpus/`, `src/ss_track/telemetry/`, `tests/corpus/`.
+- Execution path: Extend the corpus declaration by an optional field under a minor contract version,
+  and extend the frame set to name telemetry bundles.
+- Acceptance gates: A corpus using no telemetry keeps every hash. A telemetry stream inherits its
+  encounter's split, and a source crossing splits is `SPLIT_LEAKAGE`. With no declared clock relation,
+  alignment with video is `NOT_MEASURABLE`.
+- Documentation target: [Current implementation](current.md#areas), page `current/telemetry.md`.
 
 ### Documentation integrity -- `documentation-integrity`
 
@@ -1782,3 +2291,26 @@ The device suite needs measured conformance and validity evidence.
 - Acceptance gates: All attempts and limits remain visible. No available device is a valid negative result,
   and one device can yield an individual case without a comparative claim.
 - Documentation target: [Current implementation](current.md#areas), page `current/bench.md`.
+
+### Telemetry ingest -- `telemetry-ingest`
+
+#### collect-telemetry-samples (optional)
+
+Generated logs prove a reader only against the format as understood, and real firmware is where that
+understanding fails.
+
+- Serves: `telemetry-ingest` -- [Telemetry evaluation](../design/spec.md#187-evaluation)
+- Agent status: BLOCKED BY HUMAN
+- Milestone: M6
+- Dependencies: flight-log-readers, board-telemetry-sources.
+- User-visible outcome: Authorized real logs from named boards and firmware pass each reader, or name
+  exactly where it fails.
+- Scope boundary: Owned or licensed samples from any available board, restricted by default. No
+  purchase is required. A sensitive device stays restricted under the measurement-only scope.
+- Data and artifact paths: `$DATA_DIR/import/<source-sha256>/`, `$DATA_DIR/run/<run-id>/`.
+- Execution path: A person supplies logs and their rights, and an agent stages them and records what
+  each reader covered.
+- Acceptance gates: Each sample passes or yields a named reader defect. With no available log, a
+  reader stays documented as checked against generated fixtures only, which is a valid negative
+  result.
+- Documentation target: [Current implementation](current.md#areas), page `current/telemetry.md`.

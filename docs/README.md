@@ -8,6 +8,8 @@ This directory separates product intent, forward work, current behavior, and con
   evaluation.
 - [Design input](design/README.md#perception-bench-design-input) defines the engine architecture,
   test plan and test-stand requirements.
+- [Data contract design](design/data-contracts.md) and
+  [telemetry sources](design/telemetry-sources.md) explain open schemas and telemetry adapters.
 - [Forward implementation plan](impl/plan.md) contains only work that remains.
 - [Current implementation](impl/current.md) indexes behavior available in the repository.
 - [Task records](impl/records/README.md) keep each finished task's text and acceptance evidence.
@@ -30,4 +32,5 @@ This directory separates product intent, forward work, current behavior, and con
 Keep software development, evaluation methods and hardware support design here. The Human-Assisted
 lane supplies authorized data, reviewed labels, calibrated stand evidence and measured hardware
 selection. Commercial strategy, staffing, publication policy and launch operations are maintained
-outside repository Git control and do not gate software acceptance.
+outside repository Git control and do not gate software acceptance. A local `.env` may name that
+folder as `ORG_ARTIFACTS_DIR` for awareness. Nothing in the repository reads it.
