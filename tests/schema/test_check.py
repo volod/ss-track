@@ -24,7 +24,8 @@ _FRAME_SET = "record/frame-set 1.0.0"
 
 
 def _frame_set_entry(registry: dict[str, Any]) -> dict[str, Any]:
-    entry: dict[str, Any] = registry["contracts"][0]["versions"][0]
+    contract = next(item for item in registry["contracts"] if item["id"] == "frame-set")
+    entry: dict[str, Any] = contract["versions"][0]
     return entry
 
 
@@ -185,7 +186,7 @@ def test_versions_are_held_to_numeric_order(contract_root: Path) -> None:
     directory = contract_root / "shared" / "types"
     source = directory / "1.0.0.json"
     registry = read_registry(contract_root)
-    types = registry["contracts"][1]
+    types = next(item for item in registry["contracts"] if item["id"] == "types")
     entries = []
     for version in ("10.0.0", "9.0.0"):
         schema = json.loads(source.read_text(encoding="utf-8"))
@@ -328,7 +329,8 @@ def test_a_draft_states_why_and_needs_no_version(contract_root: Path) -> None:
         "reason": "The dialect cannot state it.",
         "versions": [],
     }
-    registry["contracts"].insert(1, draft)
+    registry["contracts"].append(draft)
+    registry["contracts"].sort(key=lambda item: (item["family"], item["id"]))
     write_registry(contract_root, registry)
     assert check_contract_set(contract_root) == []
 

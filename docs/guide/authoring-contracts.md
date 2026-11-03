@@ -31,15 +31,16 @@ change classifiable.
 
 | Rule | Reason |
 | --- | --- |
-| Every object has `properties` and `additionalProperties: false` | A writer that adds a key fails its own contract, so a format cannot change unannounced |
+| Every object has `properties` and `additionalProperties: false`, except command-result root `details` | A writer that adds a key fails its own contract, so a format cannot change unannounced |
 | Every property has a `description` | The contract is what a reader has instead of this repository |
 | Every node states `type`, or is a `$ref` or a `oneOf` | A `const: 1` with no `type` accepts `1.0` |
-| A list of types is one type paired with `null`, in that order | A nullable value is common, and anything wider is a tagged union |
+| A list of types is one type paired with `null`, or the exact capture scalar forms `["string", "number"]` and `["string", "number", "null"]` | A nullable value is common, and anything wider is a tagged union |
 | A `oneOf` holds inline closed objects sharing one required `const` property with distinct values | The tag says which branch applies, so a change inside a branch can be classified |
 | No `if`, `then`, `else`, `not`, `anyOf`, `allOf` or `patternProperties` | They hide which rule applies to a value |
 | `$ref` names `#/$defs/<name>`, or a frozen URN with a fragment, with only annotations beside it | A reference to an exact version cannot change under a contract |
 | A `pattern` is anchored with `^` and `$` and avoids `\d`, `\w`, `\s` and `\b` | Those classes differ between regular expression engines |
 | `format` is `date` | No other format is enforced |
+| A positional tuple uses `prefixItems`, `items: false`, and equal `minItems`/`maxItems` matching its length | Each position is checked and fingerprinted |
 
 A nullable value cannot use a `$ref`, because a union of a reference and `null` is untagged. Repeat
 the pattern inline, as `parent_stream_id` does in `record/frame-set`, and add a line to
@@ -59,3 +60,9 @@ the newest file to the next version, editing the copy, and adding a version to t
 with a `change` of class `patch`, `minor` or `major` per [section
 17.3](../design/spec.md#173-compatibility-rules). A major also states its `migration`, because that
 text is what a refusal shows a holder of an old record.
+
+## Historic formats
+
+Use `retired_majors` for historic majors with no frozen contract and no retained runtime evidence.
+Each entry states `major`, `status: retired` and `reason`; majors must be unique, sorted, and cannot
+also have a frozen version. Kept compatibility fixtures are not runtime evidence.

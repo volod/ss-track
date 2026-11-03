@@ -22,5 +22,6 @@ Copy the [template](template.md) using the
 | 0015 | `group-audit-tasks` | [0015-adhoc-group-audit-tasks](0015-adhoc-group-audit-tasks.md) |
 | 0016 | `record-read-gate` | [0016-data-contracts-record-read-gate](0016-data-contracts-record-read-gate.md) |
 | 0017 | `contract-registry` | [0017-data-contracts-contract-registry](0017-data-contracts-contract-registry.md) |
+| 0018 | `corpus-contract-baseline` | [0018-data-contracts-corpus-contract-baseline](0018-data-contracts-corpus-contract-baseline.md) |
 
-Next unused sequence: `0018`.
+Next unused sequence: `0019`.

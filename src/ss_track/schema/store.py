@@ -79,6 +79,7 @@ class Contract:
     description: str
     reason: str | None
     versions: tuple[FrozenVersion, ...]
+    retired_majors: tuple[Mapping[str, JsonValue], ...] = ()
 
     @property
     def name(self) -> str:
@@ -111,6 +112,7 @@ def _contract(entry: Mapping[str, Any]) -> Contract:
         entry["description"],
         entry.get("reason"),
         tuple(_frozen(version) for version in entry["versions"]),
+        tuple(entry.get("retired_majors", ())),
     )
 
 

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:ss-track:meta:dialect",
   "title": "Contract dialect",
-  "description": "The restricted JSON Schema 2020-12 that every contract is written in. It keeps each change classifiable. One rule needs two branches at once and JSON Schema cannot state it, so the registry check adds it: the branches of a oneOf share one required const property, with distinct values.",
+  "description": "The restricted JSON Schema 2020-12 that every contract is written in. It keeps each change classifiable. The registry check adds contextual rules: union branches share a required const tag with distinct values; tuple bounds equal their positional length; only command-result root details may be open.",
   "$ref": "#/$defs/contract",
   "$defs": {
     "contract": {
@@ -48,6 +48,8 @@
     "type": {
       "oneOf": [
         {"$ref": "#/$defs/type-name"},
+        {"const": ["string", "number"]},
+        {"const": ["string", "number", "null"]},
         {
           "type": "array",
           "prefixItems": [
@@ -94,8 +96,9 @@
           "items": {"type": "string"},
           "uniqueItems": true
         },
-        "additionalProperties": {"const": false},
-        "items": {"$ref": "#/$defs/node"},
+        "additionalProperties": {"type": "boolean"},
+        "items": {"anyOf": [{"$ref": "#/$defs/node"}, {"const": false}]},
+        "prefixItems": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/node"}},
         "oneOf": {
           "type": "array",
           "minItems": 2,
@@ -149,6 +152,18 @@
         {"if": {"required": ["properties"]}, "then": {"$ref": "#/$defs/states-object"}},
         {"if": {"required": ["additionalProperties"]}, "then": {"$ref": "#/$defs/states-object"}},
         {"if": {"required": ["items"]}, "then": {"$ref": "#/$defs/states-array"}},
+        {
+          "if": {"required": ["prefixItems"]},
+          "then": {
+            "$ref": "#/$defs/states-array",
+            "required": ["minItems", "maxItems", "items"],
+            "properties": {"items": {"const": false}}
+          }
+        },
+        {
+          "if": {"properties": {"items": {"const": false}}, "required": ["items"]},
+          "then": {"required": ["prefixItems"]}
+        },
         {
           "if": {"required": ["$ref"]},
           "then": {"propertyNames": {"$ref": "#/$defs/annotation-only"}}

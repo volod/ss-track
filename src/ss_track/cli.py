@@ -121,7 +121,12 @@ def _add_contract_commands(
     listing = commands.add_parser("list", help="list every contract and its frozen versions")
     listing.set_defaults(handler=_run_contracts_list)
     validate = commands.add_parser("validate", help="check one file under a frozen contract")
-    validate.add_argument("--file", type=Path, required=True, help="the JSON file to check")
+    validate.add_argument(
+        "--file",
+        type=Path,
+        required=True,
+        help="JSON record/result, or YAML with --contract declaration/<id>",
+    )
     validate.add_argument(
         "--contract", help="<family>/<id>; taken from the file's kind when omitted"
     )

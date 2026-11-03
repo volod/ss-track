@@ -48,6 +48,11 @@
           "minLength": 1,
           "description": "Why a draft has no frozen version: what the dialect cannot state."
         },
+        "retired_majors": {
+          "type": "array",
+          "description": "Historic majors with no frozen contract or retained runtime evidence. Test fixtures may remain.",
+          "items": {"$ref": "#/$defs/retired-major"}
+        },
         "versions": {
           "type": "array",
           "description": "Frozen versions, oldest first.",
@@ -112,6 +117,16 @@
           "if": {"properties": {"class": {"const": "major"}}},
           "then": {"required": ["migration"]}
         }
+      }
+    },
+    "retired-major": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["major", "status", "reason"],
+      "properties": {
+        "major": {"type": "integer", "minimum": 1},
+        "status": {"const": "retired"},
+        "reason": {"type": "string", "minLength": 1}
       }
     },
     "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}

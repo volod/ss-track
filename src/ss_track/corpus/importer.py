@@ -9,7 +9,6 @@ from typing import Any
 
 from ss_track.canonical import SEAL_FIELD, canonical_json, sha256_bytes
 from ss_track.corpus.declaration import (
-    RECORDING_SCHEMA_VERSION,
     RecordingDeclaration,
     load_recording_declaration,
 )
@@ -33,7 +32,7 @@ from ss_track.corpus.timestamps import assess_timestamps
 from ss_track.refusal import CorpusRefusal, JsonValue, RefusalCode
 
 SOURCE_MANIFEST_KIND = "ss-track.source-manifest"
-SCHEMA_VERSION = RECORDING_SCHEMA_VERSION
+SCHEMA_VERSION = 2
 IMPORT_DIRECTORY = "import"
 MANIFEST_NAME = "manifest.json"
 SOURCE_MANIFEST = RecordFormat(

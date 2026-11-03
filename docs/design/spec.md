@@ -1920,11 +1920,16 @@ change.
 Document contracts use a restricted dialect of
 [JSON Schema 2020-12](https://json-schema.org/draft/2020-12): closed objects, `const`, `enum`, `oneOf`
 tagged by a `const` property, bounds, anchored `pattern`, the `date` format, and `$ref` to an exact
-version. Conditional keywords, `not` and untagged unions are refused. A property that may be `null`
-pairs one type with `null`. The restriction keeps every change classifiable, every contract projectable
-onto a descriptor, and each pattern the same in every validator. Widening it changes one meta-schema
+version. Conditional keywords, `not` and arbitrary untagged unions are refused. A property that may be
+`null` pairs one type with `null`. Descriptive capture scalars may instead use exactly
+`["string", "number"]` or `["string", "number", "null"]`, preserving the shipped operator values
+without converting descriptions into measurements. The restriction keeps every change classifiable,
+every contract projectable onto a descriptor, and each pattern the same in every validator.
+Widening it changes one meta-schema
 under review. A meta-schema states all of this except that a union's branches share one tag, which
-needs two branches at once and so belongs to the build gate.
+needs two branches at once and so belongs to the build gate. Fixed positional arrays use
+`prefixItems`, `items: false`, and equal length bounds. Only the command result's root `details`
+object may be open. The build gate also enforces tuple-length equality and that open-object boundary.
 
 Binary layouts, such as `.rgb24` frames and telemetry columns, are stated by the record that indexes
 them: the record gives the pixel format, dimensions or data type, so the bytes need no schema of
@@ -1937,7 +1942,10 @@ Each contract has an id, a family, an owning capability, a status (`draft`, `act
 dialect states its shape. Each version is one file,
 named by its version, identified by `urn:ss-track:contract:<family>:<id>:<version>` and never edited
 after it is frozen. A frozen version also carries a change-log entry: its class, a summary and, for a
-major, the migration a holder of an old record must make.
+major, the migration a holder of an old record must make. Historic majors with no retained runtime
+evidence may be listed separately as `retired_majors`, each with a `retired` disposition and reason,
+without inventing a frozen contract. Compatibility test fixtures do not make those majors usable
+corpus evidence.
 
 The registry stores the file hash and two fingerprints of each version. `structure` hashes the
 canonical schema without annotations or its own identity. `meaning` hashes the annotations and the

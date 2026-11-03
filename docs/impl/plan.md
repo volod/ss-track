@@ -369,37 +369,6 @@ import, build, stage and verify as one path.
 
 ### Data contracts -- `data-contracts`
 
-#### corpus-contract-baseline
-
-Every shipped format still has no contract, and some of its values mean nothing outside FFmpeg.
-
-- Serves: `data-contracts` -- [Identity and versions](../design/spec.md#172-identity-and-versions)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: Recording, corpus, source manifest, corpus manifest, frame bundle, staged
-  hashes, hash comparison and command result each have a frozen contract at their shipped major, and
-  `contracts validate` reads a declaration's YAML.
-- Scope boundary: Describe formats as the current code writes them, changing no shipped byte and no
-  reader's behavior. Split the shared version constants so each format owns its major. Cross-field
-  rules go in `x-rules`. FFmpeg color integers gain `x-vocabulary`. Earlier majors are listed `retired`
-  with no contract, because no retained record exists, which `contracts/meta/registry.json` does not
-  state yet. Corpus 3.0.0 requires source terms, so a schema 3 manifest written before they existed
-  stays refused. The dialect widens by what these formats need and no further: positional `frames`
-  tuples in staged hashes, and the open `details` of the command result.
-- Data and artifact paths: `contracts/declaration/`, `contracts/record/`, `contracts/result/`,
-  `tests/schema/`.
-- Execution path: Add a session-wide test hook that validates every record any test writes, examples
-  per contract, and one tagged branch per transform and label-transform kind. Teach `walk` and both
-  fingerprints each keyword the dialect gains. `contracts validate` parses JSON only today, so add a
-  `declaration` read through the strict YAML loader.
-- Acceptance gates: Every record the suite writes validates, and every `x-references` target of
-  `record/frame-set` exists at its pointer. A recipe carrying another transform's
-  parameters is refused by the schema alone. Each numeric quantity has `x-unit`, each coded integer
-  has `x-vocabulary`, and the result contract's `code` enum equals `RefusalCode`, so a test fails when
-  either changes alone. A format the dialect cannot state stays `draft` with its reason.
-- Documentation target: [Current implementation](current.md#areas), page `current/contracts.md`.
-
 #### contract-evolution-gate
 
 A format can change only by a new integer that refuses every earlier record, and nothing notices a
@@ -408,13 +377,15 @@ changed unit.
 - Serves: `data-contracts` -- [Compatibility rules](../design/spec.md#173-compatibility-rules)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: corpus-contract-baseline.
+- Dependencies: none.
 - User-visible outcome: `ss-track contracts diff` names each change and its class, `freeze` refuses a
   wrong bump and writes the change-log entry, and CI refuses an unreviewed change.
 - Scope boundary: JSON Schema contracts. The protobuf gate belongs to `event-schema-contract`.
 - Data and artifact paths: `src/ss_track/schema/`, `contracts/`, `tests/schema/`.
-- Execution path: Classify by walking both versions through nested objects, array items, `$ref`
-  targets and tagged branches, naming each change by JSON pointer. Keep `jsoncompat` pinned in the dev
+- Execution path: Classify by walking both versions through nested objects, array items, fixed tuple
+  positions, `$ref` targets and tagged branches, including capture scalar unions and the open
+  command-result `details` boundary.
+  Name each change by JSON pointer. Keep `jsoncompat` pinned in the dev
   extra as an independent oracle, never as the authority. Add the hash-stability test: writer output
   for input using no new feature validates against the previous frozen minor. `make lint-contracts`
   compares a frozen file only with its registry entry, so compare both with the frozen set of the merge
@@ -444,9 +415,10 @@ A format stays stated twice, in its contract and in hand-written readers, so the
   record byte changes.
 - Data and artifact paths: `src/ss_track/corpus/`, `src/ss_track/schema/`, `tests/corpus/`,
   `tests/schema/`.
-- Execution path: Keep duplicate-key refusal in the YAML loader, add non-finite refusal and date
-  normalization, validate each declaration, validate before `seal`, and reduce `Fields` to typed
-  access. Remove the key check in `terms.py`, which stands in for a version the contract now states.
+- Execution path: Reuse the strict declaration parser and its duplicate-key refusal, non-finite
+  refusal and date normalization, validate each declaration, validate before `seal`, and reduce
+  `Fields` to typed access. Remove the key check in `terms.py`, which stands in for a version the
+  contract now states.
   Replace `RecordFormat.older_remedy` with the migration text from each change log, so a remedy has
   one source. `SHA256_PATTERN` and `IDENTIFIER_PATTERN` in `fields.py` go with the rules they serve,
   and so do the checks in `tests/schema/test_agreement.py` that hold them equal to `shared/types`.

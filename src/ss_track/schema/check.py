@@ -47,6 +47,11 @@ def _registry_findings(contracts: ContractSet) -> list[str]:
         versions = [version_key(frozen.version) for frozen in contract.versions]
         if versions != sorted(set(versions)):
             findings.append(f"{contract.name}: versions are repeated or out of order")
+        retired = [int(str(entry["major"])) for entry in contract.retired_majors]
+        if retired != sorted(set(retired)):
+            findings.append(f"{contract.name}: retired majors are repeated or out of order")
+        if any(frozen.major in retired for frozen in contract.versions):
+            findings.append(f"{contract.name}: a retired major without a contract has a version")
     return findings
 
 

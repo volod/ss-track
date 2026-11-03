@@ -36,8 +36,24 @@ def only_contracts(tmp_path: Path) -> Path:
     return copied
 
 
-def test_the_real_frame_set_is_accepted(only_contracts: Path, tmp_path: Path) -> None:
-    assert _verdict(only_contracts, KEPT_FRAME_SET, tmp_path) == "valid"
+@pytest.mark.parametrize(
+    "document", sorted(Path(__file__).with_name("examples").glob("record-*.json"))
+)
+def test_every_record_example_is_accepted(
+    only_contracts: Path, tmp_path: Path, document: Path
+) -> None:
+    assert _verdict(only_contracts, document, tmp_path) == "valid"
+
+
+def test_the_standard_validator_refuses_a_four_position_frame_tuple(
+    only_contracts: Path, tmp_path: Path
+) -> None:
+    source = Path(__file__).with_name("examples") / "record-staged-hashes.json"
+    record = json.loads(source.read_text())
+    record["bundles"][0]["frames"][0].append("extra")
+    document = tmp_path / "extra.json"
+    document.write_text(json.dumps(record))
+    assert _verdict(only_contracts, document, tmp_path) == "invalid"
 
 
 def _add_key(record: dict[str, Any]) -> None:

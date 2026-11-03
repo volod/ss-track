@@ -1,12 +1,12 @@
 """`ss-track contracts`: list the contract set, and check one file against it deeply."""
 
-import json
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
 from ss_track.canonical import SEAL_FIELD, seal_of
 from ss_track.refusal import CorpusRefusal, JsonValue, RefusalCode
+from ss_track.schema._documents import _read_document
 from ss_track.schema.store import (
     DECLARATION_FAMILY,
     KIND_FIELD,
@@ -38,7 +38,7 @@ def _version_record(contract: Contract, frozen: FrozenVersion) -> dict[str, Json
 
 def _contract_record(contract: Contract) -> dict[str, JsonValue]:
     versions: list[JsonValue] = [_version_record(contract, item) for item in contract.versions]
-    return {
+    record: dict[str, JsonValue] = {
         "contract": contract.name,
         "family": contract.family,
         "id": contract.contract_id,
@@ -48,6 +48,9 @@ def _contract_record(contract: Contract) -> dict[str, JsonValue]:
         "reason": contract.reason,
         "versions": versions,
     }
+    if contract.retired_majors:
+        record["retired_majors"] = [dict(item) for item in contract.retired_majors]
+    return record
 
 
 @dataclass(frozen=True, slots=True)
@@ -89,30 +92,6 @@ def list_contracts(root: Path | None = None) -> ContractList:
     """Return the registry as it stands."""
     contracts = load_contract_set(root)
     return ContractList(contracts.root, contracts.contracts)
-
-
-def _refuse_repeats(pairs: list[tuple[str, object]]) -> dict[str, object]:
-    """Keep every key, because another language's reader may keep a different one of two."""
-    document = dict(pairs)
-    if len(document) != len(pairs):
-        raise ValueError("a key is repeated")
-    return document
-
-
-def _refuse_constant(name: str) -> None:
-    raise ValueError(f"{name} is not JSON")
-
-
-def _read_document(path: Path) -> object:
-    """Parse one JSON file, more strictly than `json.loads` alone: this is the deep check."""
-    try:
-        return json.loads(
-            path.read_bytes(), object_pairs_hook=_refuse_repeats, parse_constant=_refuse_constant
-        )
-    except (ValueError, RecursionError) as error:
-        raise CorpusRefusal(
-            RefusalCode.RECORD_INVALID, f"{path.name} is not valid JSON: {error}"
-        ) from error
 
 
 def _kind_of(contracts: ContractSet, contract: Contract) -> object:
@@ -161,7 +140,11 @@ def _version_of(contract: Contract, document: object, requested: str | None) -> 
             if frozen.version == requested:
                 return frozen
         raise _unknown_version(contract, requested)
-    stamped = document.get(VERSION_FIELD) if isinstance(document, dict) else None
+    stamped = (
+        document.get(VERSION_FIELD)
+        if isinstance(document, dict) and contract.family in (RECORD_FAMILY, DECLARATION_FAMILY)
+        else None
+    )
     matching = [frozen for frozen in contract.versions if frozen.major == stamped]
     candidates = matching or list(contract.versions)
     if not candidates:
@@ -195,10 +178,11 @@ def validate_file(
 ) -> ValidationResult:
     """Check every field of one file under one frozen version, and a record's seal."""
     contracts = load_contract_set(root)
-    document = _read_document(path)
-    contract = (
-        contracts.named(contract_name) if contract_name else _contract_of(contracts, document)
+    named = contracts.named(contract_name) if contract_name else None
+    document = _read_document(
+        path, declaration=named is not None and named.family == DECLARATION_FAMILY
     )
+    contract = named if named is not None else _contract_of(contracts, document)
     frozen = _version_of(contract, document, version)
     schema = contracts.frozen_schema(contract, frozen)
     found = violations(document, schema, contracts.schema_registry())

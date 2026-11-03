@@ -16,8 +16,9 @@ _OLDER_MAJOR_READER = Path("corpus/amendment.py")
 _DECLARATION_LOADER = Path("corpus/fields.py")
 _CONTRACT_FILE_READER = Path("schema/store.py")  # reads the contract set, which holds no record
 _DEEP_CHECK = Path("schema/commands.py")  # gives a verdict on a file, and hands no record onward
-_JSON_READERS = {_GATE, _CONTRACT_FILE_READER, _DEEP_CHECK}
-_YAML_READERS = {_DECLARATION_LOADER, _CONTRACT_FILE_READER}
+_DEEP_PARSER = Path("schema/_documents.py")  # private parser used only by the deep check
+_JSON_READERS = {_GATE, _CONTRACT_FILE_READER, _DEEP_PARSER}
+_YAML_READERS = {_DECLARATION_LOADER, _CONTRACT_FILE_READER, _DEEP_PARSER}
 _LOADERS = {"json.load", "json.loads", "yaml.load", "yaml.safe_load"}
 
 
@@ -54,6 +55,12 @@ def scan(source: str, relative: Path) -> list[str]:
     """Name each way this module could reach a record without passing the gate."""
     tree = ast.parse(source)
     found = [f"imports {name}" for name in _imported_names(tree) if name in _LOADERS]
+    if relative != _DEEP_CHECK:
+        found.extend(
+            f"imports private deep parser {name}"
+            for name in _imported_names(tree)
+            if name.startswith("ss_track.schema._documents.")
+        )
     for node in ast.walk(tree):
         if isinstance(node, ast.Name) and node.id == "require_schema":
             found.append("names require_schema")

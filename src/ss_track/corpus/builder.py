@@ -8,7 +8,6 @@ from typing import Any
 
 from ss_track.canonical import SEAL_FIELD
 from ss_track.corpus.declaration import (
-    CORPUS_SCHEMA_VERSION,
     CorpusDeclaration,
     EncounterDeclaration,
     GroupDeclaration,
@@ -44,12 +43,13 @@ from ss_track.corpus.sealed import RecordFormat, read_sealed, seal, sha256_file,
 from ss_track.corpus.terms import changed_terms, evaluation_date, require_retention
 from ss_track.refusal import CorpusRefusal, JsonValue, RefusalCode
 
+CORPUS_MANIFEST_SCHEMA_VERSION = 3
 CORPUS_MANIFEST_KIND = "ss-track.corpus-manifest"
 CORPUS_DIRECTORY = "corpus"
 CAMERA_MODALITY = "camera"
 CORPUS_MANIFEST = RecordFormat(
     CORPUS_MANIFEST_KIND,
-    CORPUS_SCHEMA_VERSION,
+    CORPUS_MANIFEST_SCHEMA_VERSION,
     "build a new corpus version under a new corpus_id; it cannot name this one in supersedes, so "
     "nothing checks its splits against this one: keep every source in the split this one gave it",
 )
@@ -145,7 +145,7 @@ def _corpus_body(
     rights = declaration.scenario_rights
     return {
         "kind": CORPUS_MANIFEST_KIND,
-        "schema_version": CORPUS_SCHEMA_VERSION,
+        "schema_version": CORPUS_MANIFEST_SCHEMA_VERSION,
         "corpus_id": declaration.corpus_id,
         "decode_policy": policy_record,
         "decode_policy_sha256": policy_sha256,

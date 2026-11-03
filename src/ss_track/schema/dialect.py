@@ -1,4 +1,4 @@
-"""What a contract may say: the dialect meta-schema, and the one rule it cannot state."""
+"""What a contract may say: the dialect meta-schema, and the contextual rules it cannot state."""
 
 from collections.abc import Mapping
 from typing import Any
@@ -47,4 +47,19 @@ def dialect_findings(schema: Schema, dialect: Schema) -> list[str]:
     refused = [
         f"{item.pointer}: {item.message}" for item in violations(schema, dialect, Registry())
     ]
-    return refused or union_findings(schema)
+    return refused or union_findings(schema) + _extension_findings(schema)
+
+
+def _extension_findings(schema: Schema) -> list[str]:
+    """Keep extensions confined to fixed tuples and command-result details."""
+    details = schema.get("properties", {}).get("details")
+    is_result = str(schema.get("$id", "")).startswith("urn:ss-track:contract:result:command:")
+    findings = []
+    for node in walk(schema):
+        if node.get("additionalProperties") is True and not (is_result and node is details):
+            findings.append("additionalProperties true is allowed only in command-result details")
+        if "prefixItems" in node:
+            size = len(node["prefixItems"])
+            if node.get("minItems") != size or node.get("maxItems") != size:
+                findings.append("prefixItems requires minItems and maxItems equal to tuple length")
+    return findings

@@ -429,3 +429,23 @@ def test_a_missing_file_is_a_refusal_and_no_traceback(
 
     assert main(["contracts", "validate", "--file", str(tmp_path / "none.json")]) == EXIT_REFUSED
     assert _last(caplog)["code"] == "STORAGE_FAILED"
+
+
+def test_a_result_does_not_take_its_version_from_an_embedded_record(
+    contract_root: Path, register: Register, tmp_path: Path
+) -> None:
+    path = register(versioned_schema("result", "embedded", "1.0.0"))
+    later = path.with_name("2.0.0.json")
+    schema = versioned_schema("result", "embedded", "1.0.0")
+    schema["$id"] = "urn:ss-track:contract:result:embedded:2.0.0"
+    later.write_text(json.dumps(schema))
+    registry = read_registry(contract_root)
+    entry = next(item for item in registry["contracts"] if item["id"] == "embedded")
+    entry["versions"].append(version_entry(later))
+    write_registry(contract_root, registry)
+    result = validate_file(
+        _write(tmp_path, {"schema_version": 1}),
+        contract_name="result/embedded",
+        root=contract_root,
+    )
+    assert result.version == "2.0.0"

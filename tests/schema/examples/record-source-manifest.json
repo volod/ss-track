@@ -1,0 +1,112 @@
+{
+  "capture": {
+    "background": null,
+    "camera": null,
+    "camera_control_mode": null,
+    "exposure": null,
+    "focus": null,
+    "fov": null,
+    "lens": null,
+    "lighting": null,
+    "motion": null,
+    "object_pixel_extent": null,
+    "range": {
+      "method": null,
+      "status": "unknown",
+      "value_m": null
+    }
+  },
+  "decode_policy": {
+    "codec_options": {
+      "err_detect": "explode",
+      "flags": "bitexact"
+    },
+    "conversion_flags": "BILINEAR|ACCURATE_RND|BITEXACT|FULL_CHR_H_INT|FULL_CHR_H_INP",
+    "decoder": "pyav",
+    "decoder_version": "19.0.2",
+    "ffmpeg_version": "9.0.2",
+    "format_options": {
+      "err_detect": "explode",
+      "fflags": "nofillin"
+    },
+    "output_pixel_format": "rgb24",
+    "revision": 2,
+    "thread_count": 1
+  },
+  "decode_policy_sha256": "946fa68e3a97ae7c890a13e7329f3bd52d7ffb1cacf8acfd64c990bfd0f9a9b5",
+  "kind": "ss-track.source-manifest",
+  "manifest_sha256": "b36e06f73373f99caa0ecbfd80b41d6ca8ca2983b649f87357afa2621a928837",
+  "rights": {
+    "basis": "owned",
+    "derived_frames": true,
+    "holder": "Project Contributors",
+    "retain_until": null,
+    "retention": "project duration",
+    "sharing": "restricted"
+  },
+  "schema_version": 2,
+  "sensitivity": {
+    "level": "low",
+    "notes": null
+  },
+  "sequence": {
+    "capture_clock_evidence": null,
+    "codec": "mjpeg",
+    "color": {
+      "chroma_location": 2,
+      "matrix": 5,
+      "primaries": 2,
+      "range": 2,
+      "transfer": 2
+    },
+    "completeness_checks": [
+      "matroska_segment_size"
+    ],
+    "container": "matroska,webm",
+    "decoded_height": 48,
+    "decoded_width": 64,
+    "discarded_frames": 0,
+    "display_rotation_degrees": 0,
+    "frame_count": 24,
+    "interlaced_frames": 0,
+    "original_height": 48,
+    "original_width": 64,
+    "pts": [
+      0,
+      40,
+      80,
+      120,
+      160,
+      200,
+      240,
+      280,
+      320,
+      360,
+      400,
+      440,
+      480,
+      520,
+      560,
+      600,
+      640,
+      680,
+      720,
+      760,
+      800,
+      840,
+      880,
+      920
+    ],
+    "source_bits_per_component": 8,
+    "source_pixel_format": "yuvj420p",
+    "time_base": "1/1000",
+    "timestamp_quality": "derived",
+    "video_stream_count": 1
+  },
+  "source": {
+    "sha256": "33d0c1e8a64e92429543829e6861d1f9bcfb4b030cfab2264135c7771d19943d",
+    "sha256_declared": false,
+    "size_bytes": 10027,
+    "stored_name": "source.mkv"
+  }
+}

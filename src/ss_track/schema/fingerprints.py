@@ -12,7 +12,7 @@ from ss_track.canonical import canonical_json, sha256_bytes
 from ss_track.schema.strict import Schema
 
 _NAMED_SCHEMAS = ("properties", "$defs")
-_LISTED_SCHEMAS = ("oneOf",)
+_LISTED_SCHEMAS = ("oneOf", "prefixItems")
 _SINGLE_SCHEMAS = ("items",)
 _IDENTITY = {"$id", "$schema"}
 _ANNOTATIONS = {"title", "description", "examples"}
@@ -29,7 +29,7 @@ def subschemas(node: Mapping[str, Any]) -> Iterator[Mapping[str, Any]]:
     for keyword in _LISTED_SCHEMAS:
         yield from node.get(keyword, ())
     for keyword in _SINGLE_SCHEMAS:
-        if keyword in node:
+        if keyword in node and isinstance(node[keyword], Mapping):
             yield node[keyword]
 
 
@@ -70,11 +70,18 @@ def _project(node: Mapping[str, Any], keep: Keep) -> Schema:
     return {key: value for key, value in kept.items() if value != {}}
 
 
+def _single(node: Mapping[str, Any] | bool, keep: Keep) -> Schema | bool:
+    if isinstance(node, bool):
+        return node if keep("type") else {}
+    return _project(node, keep)
+
+
 _WALKED: dict[str, Callable[[Any, Keep], object]] = {
     "properties": _named,
     "$defs": _named,
     "oneOf": _listed,
-    "items": _project,
+    "prefixItems": _listed,
+    "items": _single,
 }
 
 
