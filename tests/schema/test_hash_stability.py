@@ -9,9 +9,9 @@ from referencing import Registry
 
 from ss_track.canonical import canonical_json
 from ss_track.corpus.frame_set import _seal_found
-from ss_track.corpus.sealed import seal
 from ss_track.schema.store import load_contract_set
 from ss_track.schema.strict import violations
+from tests._sealing import self_sealed
 from tests.corpus._historic import kept_record
 from tests.schema.conftest import KEPT_FRAME_SET
 from tests.schema.test_evolution import obj
@@ -71,7 +71,7 @@ def test_real_writer_replays_kept_input_under_every_previous_minor() -> None:
 
 @pytest.mark.parametrize("value", [None, "default"])
 def test_unused_new_field_fails_even_when_latest_minor_accepts_it(value: Any) -> None:
-    before = seal({"kind": "test", "schema_version": 1})
+    before = self_sealed({"kind": "test", "schema_version": 1})
     schema = obj(
         {
             "kind": {"type": "string"},
@@ -81,7 +81,7 @@ def test_unused_new_field_fails_even_when_latest_minor_accepts_it(value: Any) ->
     )
     latest = copy.deepcopy(schema)
     latest["properties"]["new"] = {"type": ["string", "null"]}
-    after = seal(before | {"new": value})
+    after = self_sealed(before | {"new": value})
     assert not violations(after, latest, Registry())
     with pytest.raises(AssertionError, match="previous minor"):
         require_stable_output(before, after, schema, Registry())

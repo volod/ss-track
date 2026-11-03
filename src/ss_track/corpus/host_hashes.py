@@ -14,23 +14,19 @@ from typing import Any
 
 from ss_track.canonical import SEAL_FIELD
 from ss_track.corpus.builder import load_corpus_manifest, load_source_record
-from ss_track.corpus.fields import IDENTIFIER_PATTERN
 from ss_track.corpus.frame_set import read_frame_set
 from ss_track.corpus.frames import FrameBundle, open_corpus_bundle
 from ss_track.corpus.frames import frames_root as bundles_root
 from ss_track.corpus.sealed import RecordFormat, read_sealed, seal, write_sealed
 from ss_track.corpus.staging import verify_corpus_frames
 from ss_track.refusal import CorpusRefusal, JsonValue, RefusalCode
+from ss_track.schema.enforce import is_shared_type
 
 RUN_DIRECTORY = "run"
 STAGED_HASHES_KIND = "ss-track.staged-hashes"
 STAGED_HASHES_SCHEMA_VERSION = 1
 STAGED_HASHES_NAME = "staged-hashes.json"
-STAGED_HASHES = RecordFormat(
-    STAGED_HASHES_KIND,
-    STAGED_HASHES_SCHEMA_VERSION,
-    "record them again with ss-track corpus hashes on that host",
-)
+STAGED_HASHES = RecordFormat(STAGED_HASHES_KIND, STAGED_HASHES_SCHEMA_VERSION)
 
 
 @dataclass(frozen=True, slots=True)
@@ -57,10 +53,10 @@ class StagedHashesResult:
 
 def run_directory(data_root: Path, run_id: str) -> Path:
     """Return one run's directory, refusing an identifier that cannot name one."""
-    if not IDENTIFIER_PATTERN.fullmatch(run_id):
+    if not is_shared_type("identifier", run_id):
         raise CorpusRefusal(
             RefusalCode.MANIFEST_INVALID,
-            f"run id must match {IDENTIFIER_PATTERN.pattern}",
+            "run id must be a shared/types identifier",
             {"run_id": run_id},
         )
     return data_root / RUN_DIRECTORY / run_id

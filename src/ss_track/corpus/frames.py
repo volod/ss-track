@@ -18,9 +18,7 @@ from ss_track.refusal import CorpusRefusal, JsonValue, RefusalCode
 
 FRAME_BUNDLE_KIND = "ss-track.frame-bundle"
 BUNDLE_SCHEMA_VERSION = 3
-FRAME_BUNDLE = RecordFormat(
-    FRAME_BUNDLE_KIND, BUNDLE_SCHEMA_VERSION, "build and stage a new corpus version"
-)
+FRAME_BUNDLE = RecordFormat(FRAME_BUNDLE_KIND, BUNDLE_SCHEMA_VERSION)
 FRAMES_DIRECTORY = "frames"
 IDENTITY_TRANSFORM = "identity"
 MISSING = "missing"

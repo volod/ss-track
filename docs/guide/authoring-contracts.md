@@ -20,7 +20,9 @@ in the change that introduces it. The
 6. Run `make lint-contracts`. Its history comparison needs a full Git checkout and the base ref
    (default `origin/main`; override with `CONTRACT_BASE_REF=<ref>`).
 7. Add a test that a real output of the writer validates, and that the contract stamps what the
-   writer stamps, as `tests/schema/test_agreement.py` does for the frame set.
+   writer stamps, as `tests/schema/test_agreement.py` does for the frame set. `seal` validates every
+   record against the contract of its `kind`, so a writer of an unfrozen format cannot seal at all.
+   A declaration reader takes its document from `schema.enforce.read_declaration`.
 
 A format the dialect cannot state stays listed as `draft`, with its `reason` and no `versions`, and
 its hand-written reader stays in force.
@@ -87,12 +89,15 @@ changed values. New-feature tests use the new schema explicitly. Existing `null`
 
 Pattern removal, literal inclusion, and single positive classes written with ASCII letters, digits,
 underscore and hyphen, with repetition bounds, have local relaxation proofs. Other pattern rewrites
-require a major until inclusion can be proved. The pinned `jsoncompat` oracle checks every frozen transition in the tests and a disagreement
-fails CI. Its known pattern and open-object limits are described on the
+require a major until inclusion can be proved. The pinned `jsoncompat` oracle checks every frozen
+transition in the tests and a disagreement fails CI. Its known pattern and open-object limits are
+described on the
 [current page](../impl/current/contracts.md#evolution); do not weaken a schema to obtain agreement.
 
 ## Historic formats
 
 Use `retired_majors` for historic majors with no frozen contract and no retained runtime evidence.
-Each entry states `major`, `status: retired` and `reason`; majors must be unique, sorted, and cannot
-also have a frozen version. Kept compatibility fixtures are not runtime evidence.
+Each entry states `major`, `status: retired`, `reason` and `migration`; majors must be unique, sorted,
+and cannot also have a frozen version. `migration` is the remedy ss-track gives when it refuses a
+record of that major, so write it as what the holder must do. Kept compatibility fixtures are not
+runtime evidence.

@@ -26,8 +26,9 @@ frame sets, staged hashes, hash comparisons and command results. Every frame-set
 resolves at its exact schema pointer. General drafts still have a `reason` and must not be treated
 as validated without a frozen version.
 
-`retired_majors` lists earlier majors with no frozen contract, each with a disposition and reason.
-Historic compatibility fixtures are retained separately from usable runtime evidence.
+`retired_majors` lists earlier majors with no frozen contract, each with a disposition, a reason and
+the `migration` a holder of such a record must make. Historic compatibility fixtures are retained
+separately from usable runtime evidence.
 
 Fixed tuples use `prefixItems` with `items: false` and exact length bounds. Only command-result
 `details` is open. Descriptive capture scalars use exactly `["string", "number"]` or

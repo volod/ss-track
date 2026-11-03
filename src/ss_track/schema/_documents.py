@@ -1,4 +1,4 @@
-"""Strict document parsing for explicit contract validation."""
+"""Strict document parsing, shared by explicit validation and the declaration readers."""
 
 import json
 import math
@@ -9,7 +9,7 @@ import yaml
 
 from ss_track.refusal import CorpusRefusal, RefusalCode
 from ss_track.strict_json import finite_float, reject_constant, unique_object
-from ss_track.strict_yaml import UniqueKeyLoader
+from ss_track.strict_yaml import UniqueKeyLoader, YamlDate
 
 
 def _mapping(value: dict[object, object]) -> dict[str, object]:
@@ -21,7 +21,7 @@ def _mapping(value: dict[object, object]) -> dict[str, object]:
 def _normalize(value: object) -> object:
     """Keep YAML in the JSON data model, normalizing unquoted calendar dates."""
     if type(value) is date:
-        return value.isoformat()
+        return YamlDate(value.isoformat())
     if isinstance(value, dict):
         return _mapping(value)
     if isinstance(value, list):
@@ -50,4 +50,4 @@ def _read_document(path: Path, *, declaration: bool = False) -> object:
             )
         )
     except (ValueError, RecursionError, yaml.YAMLError) as error:
-        raise CorpusRefusal(code, f"{path.name} is not valid {encoding}: {error}") from error
+        raise CorpusRefusal(code, f"cannot read {path.name} as {encoding}: {error}") from error

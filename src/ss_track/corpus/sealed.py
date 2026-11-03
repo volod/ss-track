@@ -10,6 +10,7 @@ from tempfile import NamedTemporaryFile
 
 from ss_track.canonical import SEAL_FIELD, seal_of
 from ss_track.refusal import CorpusRefusal, JsonValue, RefusalCode
+from ss_track.schema.enforce import older_remedy, require_record
 
 SCRATCH_PREFIX = ".incoming-"
 READ_ONLY_FILE_MODE = 0o444
@@ -18,17 +19,17 @@ OLDER = "older"
 NEWER = "newer"
 UNSTATED = "unstated"
 _CHUNK_BYTES = 1024 * 1024
+_UNSEALED = "0" * 64  # a well-formed stand-in, so validation needs no hash of an invalid body
 _NEWER_REMEDY = "install the ss-track version that wrote this record"
-_UNSTATED_REMEDY = "no ss-track version writes this; restore the record from a trusted copy"
+_UNWRITTEN_REMEDY = "no ss-track version writes this; restore the record from a trusted copy"
 
 
 @dataclass(frozen=True, slots=True)
 class RecordFormat:
-    """One kind of sealed record, the major this code reads, and how to replace an older one."""
+    """One kind of sealed record and the major this code reads and writes."""
 
     kind: str
     major: int
-    older_remedy: str
 
 
 def sha256_file(path: Path) -> str:
@@ -50,7 +51,12 @@ def copy_with_sha256(source: Path, target: Path) -> tuple[str, int]:
 
 
 def seal(body: Mapping[str, JsonValue]) -> dict[str, JsonValue]:
-    """Return the record with a hash that covers every other field."""
+    """Return the record with a hash that covers every other field, once its contract holds.
+
+    This is the one validation a record gets: a writer defect is `RECORD_INVALID` with nothing
+    sealed, and a read then trusts the seal instead of walking the fields again.
+    """
+    require_record(dict(body) | {SEAL_FIELD: _UNSEALED})  # before hashing, which a NaN would break
     sealed = dict(body)
     sealed[SEAL_FIELD] = seal_of(body)
     return sealed
@@ -86,7 +92,7 @@ def read_sealed(
     found = record.get("schema_version")
     if type(found) is not int or found not in accepted:  # True and 1.0 compare equal to 1
         age = _age(found, record_format.major)
-        remedy = _remedy(age, record_format)
+        remedy = _remedy(age, record_format, found)
         raise CorpusRefusal(
             RefusalCode.RECORD_SCHEMA_UNSUPPORTED,
             f"{path.name} ({record_format.kind}) has {age} schema {found}; "
@@ -117,10 +123,11 @@ def _age(found: JsonValue, major: int) -> str:
     return OLDER if found < major else NEWER
 
 
-def _remedy(age: str, record_format: RecordFormat) -> str:
-    if age == OLDER:
-        return record_format.older_remedy
-    return _NEWER_REMEDY if age == NEWER else _UNSTATED_REMEDY
+def _remedy(age: str, record_format: RecordFormat, found: JsonValue) -> str:
+    """Name the change log's migration for an older major, which is its one statement."""
+    if age == OLDER and type(found) is int:
+        return older_remedy(record_format.kind, found) or _UNWRITTEN_REMEDY
+    return _NEWER_REMEDY if age == NEWER else _UNWRITTEN_REMEDY
 
 
 def _read_intact(path: Path) -> dict[str, JsonValue]:

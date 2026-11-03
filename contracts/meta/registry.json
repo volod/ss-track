@@ -126,11 +126,12 @@
     "retired-major": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["major", "status", "reason"],
+      "required": ["major", "status", "reason", "migration"],
       "properties": {
         "major": {"type": "integer", "minimum": 1},
         "status": {"const": "retired"},
-        "reason": {"type": "string", "minLength": 1}
+        "reason": {"type": "string", "minLength": 1},
+        "migration": {"type": "string", "minLength": 1}
       }
     },
     "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}

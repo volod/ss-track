@@ -20,11 +20,16 @@ contracts:
     reason: No retained runtime evidence needs this major; historic files in tests
       are compatibility fixtures, not usable corpus evidence. No contract is frozen
       for this major.
+    migration: 'Rewrite it at schema_version 3: each sequence becomes a stream of
+      an encounter inside a group with a split, and scenario_rights states what the
+      corpus asks of its sources.'
   - major: 2
     status: retired
     reason: No retained runtime evidence needs this major; historic files in tests
       are compatibility fixtures, not usable corpus evidence. No contract is frozen
       for this major.
+    migration: Set schema_version 3 and state scenario_rights; groups, encounters
+      and streams keep their form.
 - family: declaration
   id: recording
   owner: corpus-provenance
@@ -46,6 +51,8 @@ contracts:
     reason: No retained runtime evidence needs this major; historic files in tests
       are compatibility fixtures, not usable corpus evidence. No contract is frozen
       for this major.
+    migration: Set schema_version 2 and state rights.retain_until and rights.derived_frames,
+      which only an operator can state.
 - family: record
   id: corpus-manifest
   owner: corpus-provenance
@@ -66,11 +73,17 @@ contracts:
     reason: No retained runtime evidence needs this major; historic files in tests
       are compatibility fixtures, not usable corpus evidence. No contract is frozen
       for this major.
+    migration: 'Build a new corpus version under a new corpus_id. It cannot name this
+      one in supersedes, so nothing checks its splits against this one: keep every
+      source in the split this one gave it.'
   - major: 2
     status: retired
     reason: No retained runtime evidence needs this major; historic files in tests
       are compatibility fixtures, not usable corpus evidence. No contract is frozen
       for this major.
+    migration: 'Build a new corpus version under a new corpus_id. It cannot name this
+      one in supersedes, so nothing checks its splits against this one: keep every
+      source in the split this one gave it.'
 - family: record
   id: frame-bundle
   owner: corpus-provenance
@@ -91,11 +104,13 @@ contracts:
     reason: No retained runtime evidence needs this major; historic files in tests
       are compatibility fixtures, not usable corpus evidence. No contract is frozen
       for this major.
+    migration: Build and stage a new corpus version.
   - major: 2
     status: retired
     reason: No retained runtime evidence needs this major; historic files in tests
       are compatibility fixtures, not usable corpus evidence. No contract is frozen
       for this major.
+    migration: Build and stage a new corpus version.
 - family: record
   id: frame-set
   owner: corpus-provenance
@@ -145,6 +160,7 @@ contracts:
     reason: No retained runtime evidence needs this major; historic files in tests
       are compatibility fixtures, not usable corpus evidence. No contract is frozen
       for this major.
+    migration: Record its terms with ss-track import --amend-terms.
 - family: record
   id: staged-hashes
   owner: corpus-provenance
@@ -181,6 +197,15 @@ contracts:
     change:
       class: minor
       summary: Add contract diff and freeze results and predecessor-major dispositions.
+  - version: 1.2.0
+    file_sha256: 6fcdf761d73634af344ed43c553045e7dc7e3e4e6cfa7190206ed332b29fc855
+    fingerprints:
+      structure: e94a7dcaafdb81bd6bc0d3cfc67e28695a6a79201d21bc4efcab673a34a9bb05
+      meaning: 1045463937c65e99895693126c2d9ef7dccde27bd0e02a04883d4b61ea88544f
+    change:
+      class: minor
+      summary: List the migration a holder of a record of each retired major must
+        make.
 - family: shared
   id: types
   owner: data-contracts

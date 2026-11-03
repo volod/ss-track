@@ -276,7 +276,7 @@ annotation, so a unit change stays with the meaning fingerprint.
 
 | Risk | Control |
 | --- | --- |
-| Schema and reader drift | `contract-enforced-readers` removes the second copy of each structural rule |
+| Schema and reader drift | Readers take structure from contracts at runtime; the group audit owns any rule still stated twice |
 | Frozen-file growth | One small file per version. Corpus-era history shows a handful of changes |
 | Dialect too narrow | Widening the dialect is a reviewed change to one meta-schema |
 | Effort before labels | The baseline describes existing formats and changes no behavior, and every later contract is cheaper to write now than to retrofit |

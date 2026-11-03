@@ -13,12 +13,14 @@ from ss_track.schema import ValidationResult, commands
 _PACKAGE = Path(ss_track.__file__).parent
 _GATE = Path("corpus/sealed.py")
 _OLDER_MAJOR_READER = Path("corpus/amendment.py")
-_DECLARATION_LOADER = Path("corpus/fields.py")
+_DECLARATION_LOADER = Path("schema/enforce.py")  # validates a declaration; serializes records
 _CONTRACT_FILE_READER = Path("schema/store.py")  # reads the contract set, which holds no record
 _DEEP_CHECK = Path("schema/commands.py")  # gives a verdict on a file, and hands no record onward
-_DEEP_PARSER = Path("schema/_documents.py")  # private parser used only by the deep check
-_JSON_READERS = {_GATE, _CONTRACT_FILE_READER, _DEEP_PARSER}
-_YAML_READERS = {_DECLARATION_LOADER, _CONTRACT_FILE_READER, _DEEP_PARSER}
+_DEEP_PARSER = Path("schema/_documents.py")  # private parser of the deep check and declarations
+# The loader parses only the JSON it serialized itself, to validate a record as it will be written.
+_JSON_READERS = {_GATE, _CONTRACT_FILE_READER, _DEEP_PARSER, _DECLARATION_LOADER}
+_YAML_READERS = {_CONTRACT_FILE_READER, _DEEP_PARSER}
+_PARSER_USERS = {_DEEP_CHECK, _DECLARATION_LOADER}
 _LOADERS = {"json.load", "json.loads", "yaml.load", "yaml.safe_load"}
 
 
@@ -55,7 +57,7 @@ def scan(source: str, relative: Path) -> list[str]:
     """Name each way this module could reach a record without passing the gate."""
     tree = ast.parse(source)
     found = [f"imports {name}" for name in _imported_names(tree) if name in _LOADERS]
-    if relative != _DEEP_CHECK:
+    if relative not in _PARSER_USERS:
         found.extend(
             f"imports private deep parser {name}"
             for name in _imported_names(tree)
@@ -86,7 +88,7 @@ def test_every_read_of_a_record_file_goes_through_the_gate() -> None:
         and ".read_text(" in (_PACKAGE / module).read_text(encoding="utf-8")
     ]
 
-    assert sorted(readers) == sorted([_GATE, _DECLARATION_LOADER])
+    assert readers == [_GATE]
 
 
 def test_the_deep_check_returns_a_verdict_and_never_the_record() -> None:

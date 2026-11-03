@@ -1,4 +1,4 @@
-"""A YAML loader that keeps a repeated key from passing unnoticed."""
+"""A YAML loader that keeps a repeated key from passing unnoticed, and the dates it normalizes."""
 
 from collections.abc import Hashable
 
@@ -21,3 +21,13 @@ class UniqueKeyLoader(yaml.SafeLoader):
             if isinstance(key, Hashable):
                 seen.add(key)
         return super().construct_mapping(node, deep)
+
+
+class YamlDate(str):
+    """The ISO text of a value YAML read as a date, so a reader can tell it from quoted text.
+
+    `2024-1-5` unquoted is a date to YAML and `2024-01-05` once normalized, so a name or other text
+    written that way would change silently. Only a field that holds a date accepts one.
+    """
+
+    __slots__ = ()

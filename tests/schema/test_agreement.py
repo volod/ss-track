@@ -1,10 +1,9 @@
-"""Until readers take their rules from contracts, these keep the two statements from drifting."""
+"""Where a contract and code must still say one thing twice, these keep the two from drifting."""
 
 import json
 import re
 from pathlib import Path
 
-from ss_track.corpus.fields import IDENTIFIER_PATTERN, SHA256_PATTERN
 from ss_track.corpus.frame_set import FRAME_SET
 from ss_track.quality.plan_model import read_registry as read_capabilities
 from ss_track.refusal import RefusalCode
@@ -15,17 +14,6 @@ def _types() -> dict[str, dict[str, str]]:
     path = CONTRACTS / "shared" / "types" / "1.0.0.json"
     definitions: dict[str, dict[str, str]] = json.loads(path.read_text(encoding="utf-8"))["$defs"]
     return definitions
-
-
-def _unanchored(pattern: str) -> str:
-    return pattern.removeprefix("^").removesuffix("$")
-
-
-def test_shared_patterns_are_the_ones_the_readers_apply() -> None:
-    types = _types()
-
-    assert _unanchored(types["sha256"]["pattern"]) == SHA256_PATTERN.pattern
-    assert _unanchored(types["identifier"]["pattern"]) == IDENTIFIER_PATTERN.pattern
 
 
 def test_a_nullable_identifier_repeats_the_shared_pattern() -> None:

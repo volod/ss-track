@@ -4,20 +4,14 @@ A recipe has no split, encounter or group to declare, because it sits under its 
 inherits all three. That is what keeps a case from ever becoming a new encounter.
 """
 
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
 from ss_track.corpus.case_model import Pixels
-from ss_track.corpus.fields import Fields, Selection, invalid
+from ss_track.corpus.fields import Fields, Selection
 from ss_track.corpus.transforms import TRANSFORM_REVISIONS, prepare_case
 from ss_track.refusal import JsonValue
-
-MAX_SEED = 2**63 - 1
-MAX_SPRITES = 256
-MAX_NOISE = 255
-
-type _Reader = Callable[[Fields, str], JsonValue]
 
 
 @dataclass(frozen=True, slots=True)
@@ -31,65 +25,16 @@ class CaseRecipe:
     parameters: dict[str, JsonValue]
 
 
-def _at_most(limit: int, value: int, fields: Fields, key: str) -> int:
-    if value > limit:
-        raise invalid(f"{fields.where}.{key} must be at most {limit}")
-    return value
-
-
-def _positive(fields: Fields, key: str) -> int:
-    value = fields.index(key)
-    if value < 1:
-        raise invalid(f"{fields.where}.{key} must be at least 1")
-    return value
-
-
-def _noise(fields: Fields, key: str) -> int:
-    return _at_most(MAX_NOISE, fields.index(key), fields, key)
-
-
-def _sprite_count(fields: Fields, key: str) -> int:
-    return _at_most(MAX_SPRITES, _positive(fields, key), fields, key)
-
-
-def _region(fields: Fields, key: str) -> JsonValue:
-    with fields.child(key) as region:
-        return {
-            "x": region.index("x"),
-            "y": region.index("y"),
-            "width": _positive(region, "width"),
-            "height": _positive(region, "height"),
-        }
-
-
-_PARAMETERS: dict[str, dict[str, _Reader]] = {
-    "target_absence": {"region": _region, "plate_frame": Fields.index, "noise": _noise},
-    "moving_background": {
-        "region": _region,
-        "sprite_count": _sprite_count,
-        "sprite_size": _positive,
-        "max_speed": _positive,
-    },
-    "camera_shake": {"amplitude": _positive},
-    "blur": {"max_radius": _positive},
-    "dropped_frames": {"count": _positive},
-    "duplicated_frames": {"count": _positive},
-    "short_occlusion": {"region": _region},
-}
-
-
 def read_recipe(raw: object, where: str) -> CaseRecipe:
-    """Parse one recipe, reading parameters under the rules of its transform."""
-    with Fields(raw, where) as fields:
-        case_id = fields.identifier("case_id")
-        transform = fields.choice("transform", _PARAMETERS.keys())
-        seed = _at_most(MAX_SEED, fields.index("seed"), fields, "seed")
-        window = fields.selection("window") if fields.has("window") else None
-        with fields.child("parameters") as declared:
-            parameters = {
-                name: read(declared, name) for name, read in _PARAMETERS[transform].items()
-            }
-    return CaseRecipe(case_id, transform, seed, window, parameters)
+    """Read one recipe, whose contract branch for its transform stated every parameter and bound."""
+    fields = Fields(raw, where)
+    return CaseRecipe(
+        fields.text("case_id"),
+        fields.text("transform"),
+        fields.index("seed"),
+        fields.optional_selection("window"),
+        fields.mapping("parameters"),
+    )
 
 
 def _case_record(recipe: CaseRecipe, stream: Mapping[str, Any]) -> dict[str, JsonValue]:

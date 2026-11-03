@@ -108,9 +108,12 @@ def test_full_recording_is_read(declare: Callable[[str], Path]) -> None:
             id="upper-hash",
         ),
         pytest.param(
-            "{path: clip.mkv}", "{path: clip.mkv, rights: x}", "unknown fields", id="unknown-nested"
+            "{path: clip.mkv}",
+            "{path: clip.mkv, rights: x}",
+            "Additional properties",
+            id="unknown-nested",
         ),
-        pytest.param("source: {path: clip.mkv}", "source: clip.mkv", "mapping", id="scalar-source"),
+        pytest.param("source: {path: clip.mkv}", "source: clip.mkv", "/source", id="scalar-source"),
     ],
 )
 def test_malformed_recordings_are_refused(
@@ -123,12 +126,12 @@ def test_malformed_recordings_are_refused(
 @pytest.mark.parametrize(
     ("extra", "message"),
     [
-        pytest.param("rightz: {}\n", "unknown fields", id="misspelled-section"),
-        pytest.param("capture: {camra: x}\n", "unknown fields", id="misspelled-capture"),
+        pytest.param("rightz: {}\n", "Additional properties", id="misspelled-section"),
+        pytest.param("capture: {camra: x}\n", "Additional properties", id="misspelled-capture"),
         pytest.param("capture: {fov: .nan}\n", "finite", id="nan"),
         pytest.param("capture: {fov: .inf}\n", "finite", id="infinity"),
-        pytest.param("capture: {fov: true}\n", "string or a number", id="boolean"),
-        pytest.param("capture: {lens: [a, b]}\n", "string or a number", id="list"),
+        pytest.param("capture: {fov: true}\n", "/capture/fov", id="boolean"),
+        pytest.param("capture: {lens: [a, b]}\n", "/capture/lens", id="list"),
         pytest.param("capture: {range: {status: measured}}\n", "requires", id="range-no-method"),
         pytest.param("capture: {range: {value_m: 3}}\n", "unknown", id="range-value-unknown"),
         pytest.param("capture: {range: {status: guessed}}\n", "status", id="range-bad-status"),
@@ -153,7 +156,7 @@ def test_missing_and_non_utf8_declarations_are_refused(
     binary = declare("")
     binary.write_bytes(b"\xff\xfe\x00")
     assert "cannot read" in _refused_recording(binary)
-    assert "mapping" in _refused_recording(declare(""))
+    assert "is not of type 'object'" in _refused_recording(declare(""))
 
 
 def test_minimal_corpus(declare: Callable[[str], Path]) -> None:
@@ -192,7 +195,7 @@ def test_minimal_corpus(declare: Callable[[str], Path]) -> None:
             ", max_sensitivity: moderate", "", "max_sensitivity", id="no-sensitivity-limit"
         ),
         pytest.param("    split: development\n", "", "split", id="no-split"),
-        pytest.param("groups:", "sequences:", "groups", id="old-sequences-key"),
+        pytest.param("groups:", "sequences:", "sequences", id="old-sequences-key"),
         pytest.param(
             "    encounters:\n      - encounter_id: enc01\n        streams:\n"
             f'          - {{stream_id: one, source_sha256: "{SHA256}"}}\n',
@@ -216,13 +219,13 @@ def test_minimal_corpus(declare: Callable[[str], Path]) -> None:
         pytest.param(
             "stream_id: one,",
             "selection: {start_frame: -1, end_frame: 5}, stream_id: one,",
-            "non-negative",
+            "/start_frame",
             id="negative",
         ),
         pytest.param(
             "stream_id: one,",
             "selection: {start_frame: true, end_frame: 5}, stream_id: one,",
-            "non-negative",
+            "/start_frame",
             id="bool-index",
         ),
         pytest.param(
@@ -242,3 +245,76 @@ def test_malformed_corpora_are_refused(
 
     assert caught.value.code is RefusalCode.MANIFEST_INVALID
     assert message in caught.value.message
+
+
+@pytest.mark.parametrize(
+    ("old", "new"),
+    [
+        pytest.param("retain_until: null", "retain_until: 2030-06-15", id="canonical"),
+        pytest.param("retain_until: null", "retain_until: '2030-06-15'", id="quoted"),
+    ],
+)
+def test_an_unquoted_date_keeps_today_s_result_where_a_date_belongs(
+    declare: Callable[[str], Path], old: str, new: str
+) -> None:
+    declaration = load_recording_declaration(declare(RECORDING.replace(old, new)))
+
+    assert declaration.rights.retain_until == "2030-06-15"
+    assert type(declaration.rights.retain_until) is str
+
+
+@pytest.mark.parametrize(
+    ("old", "new", "message"),
+    [
+        pytest.param("holder: Owner", "holder: 2024-01-05", "not a date", id="date-as-text"),
+        pytest.param(
+            "retain_until: null", "retain_until: 2030-02-30", "cannot read", id="impossible-date"
+        ),
+        pytest.param(
+            "retain_until: null", "retain_until: 2030-6-5", "retain_until", id="short-form"
+        ),
+        pytest.param(
+            "retain_until: null",
+            "retain_until: 2030-06-15 10:00:00",
+            "cannot read",
+            id="timestamp",
+        ),
+    ],
+)
+def test_an_unquoted_date_keeps_today_s_refusal_elsewhere(
+    declare: Callable[[str], Path], old: str, new: str, message: str
+) -> None:
+    assert message in _refused_recording(declare(RECORDING.replace(old, new)))
+
+
+def test_an_unquoted_date_is_not_a_corpus_name(declare: Callable[[str], Path]) -> None:
+    with pytest.raises(CorpusRefusal) as caught:
+        load_corpus_declaration(
+            declare(CORPUS.replace("corpus_id: pilot-v1", "corpus_id: 2024-01-05"))
+        )
+
+    assert caught.value.code is RefusalCode.MANIFEST_INVALID
+    assert "not a date" in caught.value.message
+
+
+@pytest.mark.parametrize("index", ["1.0", "1e0", "true"])
+def test_an_index_must_be_a_true_integer(declare: Callable[[str], Path], index: str) -> None:
+    text = CORPUS.replace(
+        "stream_id: one,", f"selection: {{start_frame: {index}, end_frame: 5}}, stream_id: one,"
+    )
+    with pytest.raises(CorpusRefusal) as caught:
+        load_corpus_declaration(declare(text))
+
+    assert caught.value.code is RefusalCode.MANIFEST_INVALID
+
+
+def test_a_declaration_of_another_major_names_its_stamp_first(
+    declare: Callable[[str], Path],
+) -> None:
+    text = RECORDING.replace("schema_version: 2", "schema_version: 1").replace(
+        "derived_frames: true", "derived_frames: true, extra: 1"
+    )
+
+    message = _refused_recording(declare(text))
+
+    assert message.endswith("/schema_version 2 was expected")

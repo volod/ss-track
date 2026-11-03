@@ -92,6 +92,25 @@ class Contract:
     def relative_path(self, frozen: FrozenVersion) -> Path:
         return Path(self.family, self.contract_id, f"{frozen.version}.json")
 
+    def newest(self, major: int | None = None) -> FrozenVersion | None:
+        """Return the newest frozen version, of one major when given, which reads all its minors."""
+        found = [item for item in self.versions if major is None or item.major == major]
+        return max(found, key=lambda item: version_key(item.version), default=None)
+
+    def migration_from(self, major: int) -> str | None:
+        """Return the change log's migration for a holder of a record of an earlier major.
+
+        A retired major states its own. Otherwise it is the first major transition after it, which
+        the gate requires to carry migration text.
+        """
+        for entry in self.retired_majors:
+            if entry["major"] == major:
+                return str(entry["migration"])
+        for frozen in self.versions:
+            if frozen.major > major and frozen.change["class"] == "major":
+                return str(frozen.change["migration"])
+        return None
+
 
 def _frozen(entry: Mapping[str, Any]) -> FrozenVersion:
     fingerprints = entry["fingerprints"]
@@ -179,6 +198,18 @@ class ContractSet:
         if found != frozen.file_sha256:
             raise damaged(f"{contract.urn(frozen)} is not the file the registry pinned")
         return read_schema(path)
+
+    def kind_of(self, contract: Contract) -> object:
+        """Return the `kind` a format stamps, which only its newest version needs to state."""
+        newest = contract.newest()
+        if newest is None:
+            return None
+        return (
+            self.frozen_schema(contract, newest)
+            .get("properties", {})
+            .get(KIND_FIELD, {})
+            .get("const")
+        )
 
     def schema_registry(self) -> Registry[Any]:
         """Return every frozen version for `$ref` resolution, by URN and never from a network."""

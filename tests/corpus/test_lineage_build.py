@@ -445,16 +445,18 @@ def test_a_predecessor_from_another_schema_is_refused_by_name(
     ("value", "words"),
     [
         pytest.param("pilot-v1", "supersede itself", id="itself"),
-        pytest.param("Not A Name", "must match", id="not-an-identifier"),
-        pytest.param(None, "non-empty string", id="null"),
-        pytest.param(7, "non-empty string", id="number"),
+        pytest.param("Not A Name", "/supersedes", id="not-an-identifier"),
+        pytest.param(None, "/supersedes", id="null"),
+        pytest.param(7, "/supersedes", id="number"),
     ],
 )
 def test_a_malformed_supersedes_is_refused(
     media: Path, data_root: Path, value: object, words: str
 ) -> None:
     declared = media / "corpus.yaml"
-    body = corpus_declaration([], supersedes=value)
+    stream = {"stream_id": "one", "source_sha256": "a" * 64}
+    group = group_of("site-a", "development", encounter_of("enc", stream))
+    body = corpus_declaration([group], supersedes=value)
     declared.write_text(yaml.safe_dump(body), encoding="utf-8")
 
     with pytest.raises(CorpusRefusal) as caught:

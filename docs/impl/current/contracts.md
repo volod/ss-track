@@ -21,7 +21,7 @@ baseline scope and evidence. The installed set contains these document contracts
 | `record/staged-hashes` | `1.0.0` |
 | `record/hash-comparison` | `1.0.0` |
 | `record/source-manifest` | `2.0.0` |
-| `result/command` | `1.0.0`, `1.1.0` |
+| `result/command` | `1.0.0`, `1.1.0`, `1.2.0` |
 
 `shared/types` supplies hashes and identifiers. Every shipped document format has a frozen contract,
 and every frame-set reference resolves at its annotated schema pointer. Capture fields preserve
@@ -32,12 +32,48 @@ The extension does not allow arbitrary scalar unions or change a recording's acc
 Declaration and sealed-record majors are independent constants in `corpus/declaration.py`,
 `corpus/builder.py` and `corpus/importer.py`; their existing integer values and written bytes remain
 unchanged. The corpus contract requires source terms even at major 3: an earlier schema-3 manifest
-without them fails explicit validation. Normal corpus readers still apply their existing rules and
-refusal codes; none consults a schema at runtime yet.
+without them fails explicit validation, and at runtime the source-terms check in `corpus/terms.py`
+refuses it, as no major tells it apart.
 
 Earlier recording/source major 1 and corpus/bundle majors 1 and 2 are listed in `retired_majors`
 without frozen schemas. The reason distinguishes retained runtime evidence from historic test
-fixtures. This registry metadata does not change the reader's accepted majors or amendment path.
+fixtures, and `migration` states what a holder of such a record must do. That text is the remedy a
+`RECORD_SCHEMA_UNSUPPORTED` refusal of an older record gives. This registry metadata does not change
+the reader's accepted majors or amendment path.
+
+## Runtime enforcement
+
+The [enforcement record](../records/0020-data-contracts-contract-enforced-readers.md) holds the
+accepted task, its decisions and its evidence.
+
+Contracts state structure at runtime, in `schema/enforce.py`, with the refusal codes the readers had:
+
+- `read_declaration` parses operator YAML with the strict parser and validates the whole document
+  under the newest frozen version of the major its reader reads. A violation is `MANIFEST_INVALID`
+  and names the URN and the first violation, a wrong `schema_version` first; details list up to 20.
+  An unreadable file is `MANIFEST_INVALID` too. The corpus readers then take typed values through
+  `corpus/fields.py` and apply only the rules a contract states as `x-rules` or does not state.
+- `require_record` validates a record, already holding its seal, under the newest frozen version of
+  the major it stamps, and `corpus/sealed.py` `seal` calls it before returning. A writer defect,
+  including an unregistered kind, a major with no frozen version or a `NaN`, is `RECORD_INVALID`
+  with nothing written.
+- `older_remedy` returns the change log's migration for an older major of a record kind.
+- `is_shared_type` checks a value against a `shared/types` definition. Run ids and corpus ids given
+  on the command line are checked as identifiers this way, so the pattern has one statement.
+
+The installed set is read once per process. A sealed read never comes here: it checks seal, kind and
+major only, so `corpus verify` costs what it did before. Validation does not run `x-rules`.
+
+The validator reports a tagged `oneOf` through the branch its tag selects, so a wrong seed in a
+`blur` recipe is `/groups/0/encounters/0/streams/0/generated_cases/0/seed` and not "not valid under
+any of the given schemas". A tag no branch states is named with the tags that exist, and a missing tag
+as a required property. An untagged union keeps the standard report.
+
+YAML dates are normalized to their ISO text as `strict_yaml.YamlDate`, a `str` that validates as one.
+A reader's text field refuses it, so an unquoted `holder: 2024-01-05` keeps the refusal it had; a date
+field takes it. Text that is only whitespace is also refused by the readers. Neither rule is in a
+declaration contract yet, so `contracts validate` accepts both; `data-contracts-audit` in the
+[plan](../plan.md#data-contracts-audit-optional) owns that disagreement.
 
 ## Commands
 
@@ -95,7 +131,7 @@ checkout and a wheel.
 
 | Module | Owns |
 | --- | --- |
-| `schema/strict.py` | The local validator and violation reports |
+| `schema/strict.py` | The local validator, violation reports and tagged-union reporting |
 | `schema/store.py` | The registry, frozen files, identity and `$ref` resolution by URN |
 | `schema/fingerprints.py` | The schema walk and both fingerprints |
 | `schema/dialect.py` | The meta-schema check and the shared-tag rule |
@@ -105,6 +141,7 @@ checkout and a wheel.
 | `schema/freeze.py`, `schema/_publishing.py` | Candidate validation, generated pins and locked publication |
 | `schema/history.py` | `make lint-contracts`: merge-base immutability and transition checks |
 | `schema/commands.py` | `contracts list` and `contracts validate` |
+| `schema/enforce.py` | Runtime validation of declarations and records, change-log remedies and shared types |
 | `schema/_documents.py`, `strict_json.py` | Private document parsing and shared strict JSON decoder hooks |
 
 `ss_track.schema` imports nothing from `ss_track.corpus`, because the corpus writers will validate
@@ -163,7 +200,9 @@ bump and verifies every earlier minor of the same major, including transitions e
 `tests/schema/` proves each construct the dialect refuses at the root and at each nested position,
 each way of breaking the set, the wheel built from a source distribution as `uv build` builds it,
 and a consumer in `tests/schema/_standalone.py` that imports no project code. `test_agreement.py`
-keeps a contract and its writer from drifting until readers take their rules from contracts.
+keeps the few statements a contract and code still share, such as a writer's `kind` and major, from
+drifting. `tests/_sealing.py` seals a fixture without its contract, because production `seal` refuses
+the damaged records that read tests need.
 
 ## Baseline coverage and boundaries
 
@@ -181,14 +220,15 @@ commands; that relationship is stated under `x-rules`. The result's optional `sc
 to its embedded comparison, not to a newly stamped result version.
 
 `tests/conftest.py` validates production sealed writes and CLI JSON emissions throughout the test
-session. It checks records before tests deliberately damage them. An amendment's archived copy of a
+session, independently of the runtime check in `seal`. It checks records before tests deliberately
+damage them. An amendment's archived copy of a
 retired source major is checked against the original record and its seal, not against today's shape.
 Subprocess outputs are checked by retained examples and end-to-end
 artifact validation rather than an in-process hook. `tests/schema/examples/` holds an example of
 every frozen document contract. Baseline tests also hold the refusal-code enum equal to `RefusalCode`,
 check units and vocabularies, exercise transform branches and resolve the available frame-set
-references. Scalar-union fixtures check text, numeric, nullable and invalid values. Runtime reader
-enforcement remains future work under `contract-enforced-readers`.
+references. Scalar-union fixtures check text, numeric, nullable and invalid values. Runtime
+enforcement is described [above](#runtime-enforcement).
 
 ## Evolution
 

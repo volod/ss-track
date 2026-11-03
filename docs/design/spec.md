@@ -1943,9 +1943,9 @@ dialect states its shape. Each version is one file,
 named by its version, identified by `urn:ss-track:contract:<family>:<id>:<version>` and never edited
 after it is frozen. A frozen version also carries a change-log entry: its class, a summary and, for a
 major, the migration a holder of an old record must make. Historic majors with no retained runtime
-evidence may be listed separately as `retired_majors`, each with a `retired` disposition and reason,
-without inventing a frozen contract. Compatibility test fixtures do not make those majors usable
-corpus evidence.
+evidence may be listed separately as `retired_majors`, each with a `retired` disposition, a reason
+and that migration, without inventing a frozen contract. Compatibility test fixtures do not make
+those majors usable corpus evidence.
 
 The registry stores the file hash and two fingerprints of each version. `structure` hashes the
 canonical schema without annotations or its own identity. `meaning` hashes the annotations and the
@@ -2024,7 +2024,8 @@ Refusal codes do not change: a declaration that breaks its contract is `MANIFEST
 The local validator is stricter than the standard on points that a third-party validator may
 accept: `1.0` is not an integer, `$` in a pattern means the end of the value and not the end of a
 line, and YAML must carry no repeated key or non-finite number. YAML dates are normalized before
-validation, and nothing fills in a default.
+validation, and nothing fills in a default. A reader still refuses a value YAML read as a date where
+text belongs, and text that is only whitespace, until a declaration major states both.
 
 A record is validated once, in full, before it is sealed, and a writer defect is `RECORD_INVALID` with
 nothing sealed. A seal proves a record has not changed since, so a read checks the seal, kind and major

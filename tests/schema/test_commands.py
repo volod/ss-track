@@ -8,10 +8,10 @@ from typing import Any
 import pytest
 
 from ss_track.cli import EXIT_OK, EXIT_REFUSED, build_parser, main
-from ss_track.corpus.sealed import seal
 from ss_track.refusal import CorpusRefusal, RefusalCode
 from ss_track.schema import list_contracts, validate_file
 from ss_track.schema.strict import VIOLATION_LIMIT
+from tests._sealing import self_sealed
 from tests.schema.conftest import (
     KEPT_FRAME_SET,
     Register,
@@ -40,7 +40,7 @@ def _write(tmp_path: Path, record: object, name: str = "record.json") -> Path:
 
 def _resealed(record: dict[str, Any]) -> dict[str, Any]:
     """Return a record consistent with itself, so only its structure can refuse it."""
-    return seal({key: value for key, value in record.items() if key != "manifest_sha256"})
+    return self_sealed({key: value for key, value in record.items() if key != "manifest_sha256"})
 
 
 def _refused(path: Path, **options: Any) -> CorpusRefusal:

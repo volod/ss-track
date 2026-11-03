@@ -4,17 +4,19 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
-from ss_track.corpus.fields import Fields, Selection, invalid, load_yaml_mapping
+from ss_track.corpus.fields import Fields, Selection, invalid
 from ss_track.corpus.recipes import CaseRecipe, read_recipe
 from ss_track.refusal import JsonValue
+from ss_track.schema.enforce import read_declaration
 
+RECORDING_CONTRACT = "declaration/recording"
+CORPUS_CONTRACT = "declaration/corpus"
 RECORDING_SCHEMA_VERSION = 2
 CORPUS_SCHEMA_VERSION = 3
-RIGHTS_BASES = frozenset({"owned", "licensed", "consented", "public_domain"})
+# Orders the contracts do not state, which the rights checks compare by.
 SHARING_SCOPES = ("restricted", "public")  # narrowest first
 SENSITIVITY_LEVELS = ("low", "moderate", "high")  # least sensitive first
-SPLITS = ("development", "calibration", "locked")
-RANGE_STATUSES = frozenset({"measured", "estimated", "unknown"})
+UNKNOWN_RANGE = "unknown"
 CAPTURE_FIELDS = (
     "camera",
     "lens",
@@ -121,127 +123,109 @@ class CorpusDeclaration:
 
 
 def load_recording_declaration(path: Path) -> RecordingDeclaration:
-    """Parse and validate a recording declaration."""
-    with Fields(load_yaml_mapping(path), "recording") as fields:
-        fields.schema_version(RECORDING_SCHEMA_VERSION)
-        with fields.child("source") as source:
-            relative_path = Path(source.text("path"))
-            expected_sha256 = source.sha256("sha256") if source.has("sha256") else None
-        rights = _read_rights(fields.child("rights"))
-        sensitivity = _read_sensitivity(fields.child("sensitivity"))
-        with fields.optional_child("timestamps") as timestamps:
-            capture_clock_evidence = timestamps.optional_text("capture_clock_evidence")
-        capture = _read_capture(fields.optional_child("capture"))
+    """Parse a recording declaration that its contract validated in full."""
+    fields = Fields(
+        read_declaration(path, RECORDING_CONTRACT, RECORDING_SCHEMA_VERSION), "recording"
+    )
+    source = fields.child("source")
+    expected_sha256 = source.text("sha256") if source.has("sha256") else None
+    timestamps = fields.optional_child("timestamps")
     return RecordingDeclaration(
-        source_path=path.resolve().parent / relative_path,
+        source_path=path.resolve().parent / source.text("path"),
         expected_sha256=expected_sha256,
-        rights=rights,
-        sensitivity=sensitivity,
-        capture_clock_evidence=capture_clock_evidence,
-        capture=capture,
+        rights=_read_rights(fields.child("rights")),
+        sensitivity=_read_sensitivity(fields.child("sensitivity")),
+        capture_clock_evidence=timestamps.optional_text("capture_clock_evidence"),
+        capture=_read_capture(fields.optional_child("capture")),
     )
 
 
 def load_corpus_declaration(path: Path) -> CorpusDeclaration:
-    """Parse and validate a corpus declaration."""
-    with Fields(load_yaml_mapping(path), "corpus") as fields:
-        fields.schema_version(CORPUS_SCHEMA_VERSION)
-        corpus_id = fields.identifier("corpus_id")
-        policy_sha256 = (
-            fields.sha256("decode_policy_sha256") if fields.has("decode_policy_sha256") else None
-        )
-        supersedes = fields.identifier("supersedes") if fields.has("supersedes") else None
-        if supersedes == corpus_id:
-            raise invalid(f"corpus {corpus_id} cannot supersede itself")
-        scenario_rights = _read_scenario_rights(fields.child("scenario_rights"))
-        groups = tuple(
-            _read_group(raw, f"corpus.groups[{position}]")
-            for position, raw in enumerate(fields.items("groups"))
-        )
-    return CorpusDeclaration(corpus_id, policy_sha256, supersedes, scenario_rights, groups)
+    """Parse a corpus declaration that its contract validated in full."""
+    fields = Fields(read_declaration(path, CORPUS_CONTRACT, CORPUS_SCHEMA_VERSION), "corpus")
+    corpus_id = fields.text("corpus_id")
+    supersedes = fields.optional_text("supersedes")
+    if supersedes == corpus_id:
+        raise invalid(f"corpus {corpus_id} cannot supersede itself")
+    groups = tuple(
+        _read_group(raw, f"corpus.groups[{position}]")
+        for position, raw in enumerate(fields.items("groups"))
+    )
+    return CorpusDeclaration(
+        corpus_id,
+        fields.optional_text("decode_policy_sha256"),
+        supersedes,
+        _read_scenario_rights(fields.child("scenario_rights")),
+        groups,
+    )
 
 
 def _read_rights(fields: Fields) -> Rights:
-    with fields:
-        return Rights(
-            holder=fields.text("holder"),
-            basis=fields.choice("basis", RIGHTS_BASES),
-            retention=fields.text("retention"),
-            retain_until=fields.nullable_date("retain_until"),
-            derived_frames=fields.boolean("derived_frames"),
-            sharing=fields.choice("sharing", SHARING_SCOPES),
-        )
+    return Rights(
+        holder=fields.text("holder"),
+        basis=fields.text("basis"),
+        retention=fields.text("retention"),
+        retain_until=fields.nullable_date("retain_until"),
+        derived_frames=fields.boolean("derived_frames"),
+        sharing=fields.text("sharing"),
+    )
 
 
 def _read_sensitivity(fields: Fields) -> Sensitivity:
-    with fields:
-        return Sensitivity(
-            level=fields.choice("level", SENSITIVITY_LEVELS),
-            notes=fields.optional_text("notes"),
-        )
+    return Sensitivity(level=fields.text("level"), notes=fields.optional_text("notes"))
 
 
 def _read_capture(fields: Fields) -> dict[str, JsonValue]:
-    with fields:
-        capture: dict[str, JsonValue] = {name: fields.scalar(name) for name in CAPTURE_FIELDS}
-        capture["range"] = _read_range(fields.optional_child("range"))
+    capture: dict[str, JsonValue] = {name: fields.scalar(name) for name in CAPTURE_FIELDS}
+    capture["range"] = _read_range(fields.optional_child("range"))
     return capture
 
 
 def _read_range(fields: Fields) -> dict[str, JsonValue]:
-    with fields:
-        status = fields.choice("status", RANGE_STATUSES) if fields.has("status") else "unknown"
-        value_m = fields.scalar("value_m")
-        method = fields.optional_text("method")
-    if status != "unknown" and (value_m is None or method is None):
+    """Apply the contract's range rule, which states that an absent status is unknown."""
+    status = fields.text("status") if fields.has("status") else UNKNOWN_RANGE
+    value_m = fields.scalar("value_m")
+    method = fields.optional_text("method")
+    if status != UNKNOWN_RANGE and (value_m is None or method is None):
         raise invalid(f"capture.range.status {status} requires value_m and method")
-    if status == "unknown" and (value_m is not None or method is not None):
+    if status == UNKNOWN_RANGE and (value_m is not None or method is not None):
         raise invalid("capture.range.status unknown cannot carry value_m or method")
     return {"status": status, "value_m": value_m, "method": method}
 
 
 def _read_scenario_rights(fields: Fields) -> ScenarioRights:
-    with fields:
-        return ScenarioRights(
-            sharing=fields.choice("sharing", SHARING_SCOPES),
-            max_sensitivity=fields.choice("max_sensitivity", SENSITIVITY_LEVELS),
-        )
+    return ScenarioRights(
+        sharing=fields.text("sharing"), max_sensitivity=fields.text("max_sensitivity")
+    )
 
 
 def _read_group(raw: object, where: str) -> GroupDeclaration:
-    with Fields(raw, where) as fields:
-        group_id = fields.identifier("group_id")
-        split = fields.choice("split", SPLITS)
-        encounters = tuple(
-            _read_encounter(item, f"{where}.encounters[{position}]")
-            for position, item in enumerate(fields.items("encounters"))
-        )
-    return GroupDeclaration(group_id, split, encounters)
+    fields = Fields(raw, where)
+    encounters = tuple(
+        _read_encounter(item, f"{where}.encounters[{position}]")
+        for position, item in enumerate(fields.items("encounters"))
+    )
+    return GroupDeclaration(fields.text("group_id"), fields.text("split"), encounters)
 
 
 def _read_encounter(raw: object, where: str) -> EncounterDeclaration:
-    with Fields(raw, where) as fields:
-        encounter_id = fields.identifier("encounter_id")
-        streams = tuple(
-            _read_stream(item, f"{where}.streams[{position}]")
-            for position, item in enumerate(fields.items("streams"))
-        )
-    return EncounterDeclaration(encounter_id, streams)
+    fields = Fields(raw, where)
+    streams = tuple(
+        _read_stream(item, f"{where}.streams[{position}]")
+        for position, item in enumerate(fields.items("streams"))
+    )
+    return EncounterDeclaration(fields.text("encounter_id"), streams)
 
 
 def _read_stream(raw: object, where: str) -> StreamDeclaration:
-    with Fields(raw, where) as fields:
-        stream_id = fields.identifier("stream_id")
-        source_sha256 = fields.sha256("source_sha256")
-        selection = fields.selection("selection") if fields.has("selection") else None
-        generated_cases = _read_recipes(fields, where)
-    return StreamDeclaration(stream_id, source_sha256, selection, generated_cases)
-
-
-def _read_recipes(fields: Fields, where: str) -> tuple[CaseRecipe, ...]:
-    if not fields.has("generated_cases"):
-        return ()
-    return tuple(
+    fields = Fields(raw, where)
+    generated_cases = tuple(
         read_recipe(item, f"{where}.generated_cases[{position}]")
-        for position, item in enumerate(fields.items("generated_cases"))
+        for position, item in enumerate(fields.optional_items("generated_cases"))
+    )
+    return StreamDeclaration(
+        fields.text("stream_id"),
+        fields.text("source_sha256"),
+        fields.optional_selection("selection"),
+        generated_cases,
     )

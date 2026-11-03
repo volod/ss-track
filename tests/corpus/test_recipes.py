@@ -6,12 +6,14 @@ import pytest
 
 from ss_track.corpus import CorpusRefusal, RefusalCode
 from ss_track.corpus.declaration import load_corpus_declaration
-from ss_track.corpus.recipes import MAX_SEED, MAX_SPRITES
 from ss_track.corpus.transforms import TRANSFORM_REVISIONS
 from tests.corpus.conftest import case_of, encounter_of, group_of, write_groups
 
 _SHA256 = "a" * 64
 _REGION = {"x": 0, "y": 0, "width": 4, "height": 4}
+# The bounds the corpus declaration contract states, one past each.
+_SEED_BEYOND = 2**63
+_SPRITES_BEYOND = 257
 
 
 def _write(media: Path, recipe: object) -> Path:
@@ -71,18 +73,20 @@ def test_a_window_is_read_as_a_half_open_selection(media: Path) -> None:
 @pytest.mark.parametrize(
     ("change", "fragment"),
     [
-        pytest.param({"split": "locked"}, "unknown fields", id="own-split"),
-        pytest.param({"encounter_id": "new"}, "unknown fields", id="own-encounter"),
-        pytest.param({"group_id": "new"}, "unknown fields", id="own-group"),
+        pytest.param({"split": "locked"}, "Additional properties", id="own-split"),
+        pytest.param({"encounter_id": "new"}, "Additional properties", id="own-encounter"),
+        pytest.param({"group_id": "new"}, "Additional properties", id="own-group"),
         pytest.param({"seed": -1}, "seed", id="negative-seed"),
         pytest.param({"seed": True}, "seed", id="bool-seed"),
         pytest.param({"seed": "7"}, "seed", id="text-seed"),
-        pytest.param({"seed": MAX_SEED + 1}, "seed", id="seed-too-large"),
+        pytest.param({"seed": _SEED_BEYOND}, "seed", id="seed-too-large"),
         pytest.param({"case_id": "../escape"}, "case_id", id="traversal-id"),
         pytest.param({"window": {"start_frame": 5, "end_frame": 5}}, "window", id="empty-window"),
         pytest.param({"parameters": {}}, "max_radius", id="no-parameter"),
         pytest.param({"parameters": {"max_radius": 0}}, "max_radius", id="zero-radius"),
-        pytest.param({"parameters": {"max_radius": 1, "x": 1}}, "unknown", id="extra-parameter"),
+        pytest.param(
+            {"parameters": {"max_radius": 1, "x": 1}}, "Additional properties", id="extra-parameter"
+        ),
     ],
 )
 def test_a_malformed_recipe_is_refused(
@@ -117,7 +121,7 @@ def test_nothing_in_a_recipe_has_a_default(media: Path, missing: str) -> None:
             "moving_background",
             {
                 "region": _REGION,
-                "sprite_count": MAX_SPRITES + 1,
+                "sprite_count": _SPRITES_BEYOND,
                 "sprite_size": 1,
                 "max_speed": 1,
             },

@@ -18,6 +18,8 @@ from ss_track.refusal import JsonValue
 
 VIOLATION_LIMIT = 20
 _END_ANCHOR = "$"
+_UNION = "oneOf"
+_ABSENT = object()
 _POINTER_ESCAPES = (("~", "~0"), ("/", "~1"))
 
 type Schema = dict[str, Any]
@@ -68,11 +70,81 @@ def _pointer(error: ValidationError) -> str:
     return "".join(parts)
 
 
+def branch_tags(branch: Mapping[str, Any]) -> dict[str, object]:
+    """Return the properties that identify one branch: required, with one fixed value."""
+    required = branch.get("required", ())
+    properties = branch.get("properties", {})
+    return {
+        name: child["const"]
+        for name, child in properties.items()
+        if name in required and "const" in child
+    }
+
+
+def union_tag(branches: list[dict[str, object]]) -> str | None:
+    """Return a property that tells every branch from every other, if one exists."""
+    shared = set(branches[0]).intersection(*branches[1:])
+    for name in sorted(shared):
+        values = [branch[name] for branch in branches]
+        if all(values.count(value) == 1 for value in values):
+            return name
+    return None
+
+
+def _tagging(error: ValidationError) -> tuple[dict[str, Any], list[dict[str, object]], str] | None:
+    """Return the instance, branch tags and tag of a failed tagged union, or nothing."""
+    branches, instance = error.validator_value, error.instance
+    if error.validator != _UNION or not isinstance(branches, list):
+        return None
+    if not isinstance(instance, dict):
+        return None
+    tags = [branch_tags(branch) for branch in branches]
+    tag = union_tag(tags)
+    return None if tag is None else (instance, tags, tag)
+
+
+def _unknown_tag(
+    error: ValidationError, tags: list[dict[str, object]], tag: str, value: object
+) -> ValidationError:
+    if value is _ABSENT:
+        return ValidationError(
+            f"{tag!r} is a required property", validator=_UNION, path=[*error.absolute_path]
+        )
+    allowed = sorted(str(branch[tag]) for branch in tags)
+    return ValidationError(
+        f"{value!r} is not one of {allowed}",
+        validator=_UNION,
+        path=[*error.absolute_path, tag],
+        instance=value,
+    )
+
+
+def _through_tag(error: ValidationError) -> Iterator[ValidationError]:
+    """Report a tagged union through the branch its tag selects, not as a failure of every branch.
+
+    Otherwise a wrong seed in one recipe reads as "not valid under any of the given schemas".
+    """
+    tagging = _tagging(error)
+    if tagging is None:
+        yield error
+        return
+    instance, tags, tag = tagging
+    value = instance.get(tag, _ABSENT)
+    chosen = [index for index, branch in enumerate(tags) if branch[tag] == value]
+    if not chosen:
+        yield _unknown_tag(error, tags, tag, value)
+        return
+    for item in error.context:
+        if item.relative_schema_path[0] == chosen[0]:
+            yield from _through_tag(item)
+
+
 def violations(document: object, schema: Schema, registry: Registry[Any]) -> list[Violation]:
     """Return up to `VIOLATION_LIMIT` violations in one order, so one input gives one report."""
     validator = StrictValidator(
         schema, registry=registry, format_checker=Draft202012Validator.FORMAT_CHECKER
     )
-    errors = islice(validator.iter_errors(document), VIOLATION_LIMIT)
+    expanded = (item for error in validator.iter_errors(document) for item in _through_tag(error))
+    errors = islice(expanded, VIOLATION_LIMIT)
     found = [Violation(_pointer(error), str(error.validator), error.message) for error in errors]
     return sorted(found, key=lambda item: (item.pointer, item.keyword, item.message))

@@ -10,9 +10,8 @@ from referencing.jsonschema import DRAFT202012
 
 from ss_track.refusal import JsonValue
 from ss_track.schema._change_rules import MAJOR, MEANING, MINOR, RANK, keyword_class
-from ss_track.schema.dialect import _tags
 from ss_track.schema.store import damaged
-from ss_track.schema.strict import Schema
+from ss_track.schema.strict import Schema, branch_tags
 
 _CHILDREN = {"properties", "$defs", "items", "prefixItems", "oneOf", "required"}
 _IDENTITY = {"$id", "$schema"}
@@ -89,7 +88,7 @@ def _branch_maps(
 ) -> tuple[dict[str, tuple[int, Schema]], dict[str, tuple[int, Schema]]] | None:
     if not before or not after:
         return None
-    tags = [_tags(branch) for branch in before + after]
+    tags = [branch_tags(branch) for branch in before + after]
     shared = set(tags[0]).intersection(*tags[1:])
     for tag in sorted(shared):
         maps = [

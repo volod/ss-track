@@ -23,7 +23,7 @@ from ss_track.corpus import (
 )
 from ss_track.corpus.hash_comparison import HASH_COMPARISON_NAME
 from ss_track.corpus.host_hashes import STAGED_HASHES_NAME, run_directory
-from ss_track.corpus.sealed import seal
+from tests._sealing import self_sealed
 from tests.corpus._media import FRAME_COUNT
 from tests.corpus.conftest import WriteCorpus, WriteRecording, case_of, stream_of
 
@@ -71,7 +71,7 @@ def _other_host(path: Path, target_root: Path, change: Change) -> Path:
     record = json.loads(path.read_text(encoding="ascii"))
     record.pop(SEAL_FIELD)
     change(record)
-    target.write_text(json.dumps(seal(record)), encoding="ascii")
+    target.write_text(json.dumps(self_sealed(record)), encoding="ascii")
     return target
 
 

@@ -48,10 +48,22 @@ the project root, then `.data`. Relative values resolve against the project root
 
 ## Declarations
 
-Both files reject unknown fields, repeated keys and any other schema version, so a misspelled key
-cannot silently drop a fact. A recording is schema 2 and a corpus is schema 3. There are no defaults
-for rights, sensitivity, split or scenario rights: a declaration without them is refused, and `basis`
-has no `unknown` value.
+Each file is checked in full against its contract on read, `declaration/recording` 2.0.0 and
+`declaration/corpus` 3.0.0, before any reader takes a value from it. Both reject unknown fields,
+repeated keys, non-finite numbers and any other schema version, so a misspelled key cannot silently
+drop a fact. A recording is schema 2 and a corpus is schema 3. There are no defaults for rights,
+sensitivity, split or scenario rights: a declaration without them is refused, and `basis` has no
+`unknown` value. A refusal names the contract version and the first violation by JSON pointer, a wrong
+`schema_version` before anything else, and its details list up to 20 violations, as
+[`contracts validate`](contracts.md#commands) reports them.
+
+`src/ss_track/schema/enforce.py` parses and validates; `src/ss_track/corpus/fields.py` then gives the
+readers typed access. The readers keep only rules the contract states as `x-rules` or does not state:
+a range status needs its value and method, a corpus cannot supersede itself, a frame window must be
+non-empty, and an absent range status means `unknown`. Two text rules are not yet in any contract
+major: text that is only whitespace is refused, and so is a value YAML read as a date where text
+belongs, such as an unquoted `holder: 2024-01-05`. A date field such as `retain_until` takes an
+unquoted date as its ISO text.
 
 ```yaml
 # recording.yaml
@@ -796,9 +808,16 @@ MPEG program streams import as `missing`, because they do not store a presentati
 `read_sealed` in `src/ss_track/corpus/sealed.py` is the one way to read a sealed record, and
 `tests/corpus/test_sealed_reads.py` scans the package so that no module reads around it. It verifies
 the seal, then the kind, then the major, and interprets nothing before the seal has held. Each format
-is one `RecordFormat` beside its writer, holding its kind, the one major this code reads and the
-remedy for an older record. Acceptance is exact: an older major is not read as evidence, and a record
-is never rewritten to fit.
+is one `RecordFormat` beside its writer, holding its kind and the one major this code reads and
+writes. Acceptance is exact: an older major is not read as evidence, and a record is never rewritten
+to fit.
+
+A record is validated once, in full, by `seal`, before anything is written: a writer defect is
+`RECORD_INVALID` with nothing sealed, and its details name the contract version and violations. A read
+walks no field, so opening a million-frame bundle record costs what it did before contracts were
+enforced; `tests/corpus/test_read_cost.py` holds that fixture. Validating such a record at staging
+costs about 32 seconds, measured on the kept bundle grown to a million frames, which decoding and
+writing those frames far exceeds.
 
 A record of another major is refused with what an operator needs to act on it:
 
@@ -807,15 +826,20 @@ A record of another major is refused with what an operator needs to act on it:
  "message": "manifest.json (ss-track.source-manifest) has older schema 1; ...",
  "details": {"record": "manifest.json", "path": ".../import/<sha256>/manifest.json",
   "kind": "ss-track.source-manifest", "found_schema_version": 1, "accepted_schema_versions": [2],
-  "age": "older", "remedy": "record its terms with ss-track import --amend-terms"}}
+  "age": "older", "remedy": "Record its terms with ss-track import --amend-terms."}}
 ```
+
+The remedy for an older record is the `migration` text of the contract's change log, its one
+statement: a retired major's own entry in `retired_majors`, or else the first major transition after
+it. A major with neither, which no ss-track version wrote, is told to restore the record from a
+trusted copy.
 
 | Format | Reads | Remedy for an older record |
 | --- | --- | --- |
 | Source manifest | 2 | `ss-track import --amend-terms` |
 | Corpus manifest | 3 | Build a new corpus version under a new `corpus_id` |
-| Frame bundle, frame set | 3, 1 | Build and stage a new corpus version |
-| Staged hashes | 1 | Run `corpus hashes` again on that host |
+| Frame bundle | 3 | Build and stage a new corpus version |
+| Frame set, staged hashes | 1 | No older major exists |
 
 `age` is `older`, `newer` or `unstated`. A newer record is refused because this code cannot know what
 a newer field means, and its remedy is to install the version that wrote it. A version that is not a
@@ -839,7 +863,7 @@ of the commit in its name and listed in its `README.md`, and a test fails when a
 
 | Code | Raised when |
 | --- | --- |
-| `MANIFEST_INVALID` | A declaration is unreadable or does not match its schema |
+| `MANIFEST_INVALID` | A declaration is unreadable, breaks its contract, or breaks a reader rule above |
 | `SOURCE_NOT_FOUND` | The declared source does not exist |
 | `SOURCE_UNREADABLE` | The source is not a readable file, cannot be opened, or has no usable video stream |
 | `SOURCE_EMPTY` | The source has zero length |
@@ -859,6 +883,7 @@ of the commit in its name and listed in its `README.md`, and a test fails when a
 | `CASE_INVALID` | A generated case does not fit its parent, or changes no frame of it |
 | `TRANSFORM_REVISION_MISMATCH` | A stored case needs a transform revision this code does not provide |
 | `RECORD_TAMPERED` | A sealed record is missing, malformed, of another kind or fails its seal, or a re-import finds changed stored bytes |
+| `RECORD_INVALID` | A writer produced a record its contract refuses; nothing is sealed or written. This is a defect of ss-track, not of the input |
 | `RECORD_SCHEMA_UNSUPPORTED` | [Any sealed record](#reading-sealed-records) is of a major this code does not read, including at a re-import or rebuild over it, corpus source terms are absent, or an amendment finds a record it cannot write forward |
 | `DECODE_POLICY_MISMATCH` | A source or pin uses a decode policy other than the installed one |
 | `IMPORT_CONFLICT` | The same source was imported at the current major with another declaration or decoder, or an amendment names bytes with no record or changes more than terms |

@@ -1,22 +1,17 @@
-"""Strict reading of operator-written YAML, with no silent defaults or ignored keys."""
+"""Typed access to an operator declaration that its contract has already validated.
 
-import math
-import re
-from collections.abc import Collection
+The contract states every structural rule: keys, types, vocabularies, bounds and patterns. What is
+left here is typing, defaults the contract's `x-rules` name, and the rules no contract states: a
+frame window's order, text that is not blank, and text that YAML did not read as a date.
+"""
+
 from dataclasses import dataclass
-from datetime import date
-from pathlib import Path
-from types import TracebackType
-from typing import Self
+from typing import cast
 
-import yaml
+from ss_track.refusal import CorpusRefusal, JsonValue, RefusalCode
+from ss_track.strict_yaml import YamlDate
 
-from ss_track.refusal import CorpusRefusal, RefusalCode
-from ss_track.strict_yaml import UniqueKeyLoader
-
-SCHEMA_VERSION = 1
-SHA256_PATTERN = re.compile(r"[0-9a-f]{64}")
-IDENTIFIER_PATTERN = re.compile(r"[a-z0-9][a-z0-9._-]{0,63}")
+type _Scalar = str | int | float
 
 
 @dataclass(frozen=True, slots=True)
@@ -32,41 +27,14 @@ def invalid(message: str) -> CorpusRefusal:
     return CorpusRefusal(RefusalCode.MANIFEST_INVALID, message)
 
 
-def load_yaml_mapping(path: Path) -> object:
-    """Parse one YAML file, reporting any read or syntax failure as a refusal."""
-    try:
-        text = path.read_text(encoding="utf-8")
-        return yaml.load(text, Loader=UniqueKeyLoader)
-    except (OSError, UnicodeDecodeError, yaml.YAMLError) as error:
-        raise invalid(f"cannot read {path.name}: {error}") from error
-
-
 class Fields:
-    """Read one mapping once; closing it refuses any key that was never read."""
+    """Read one validated mapping. A type its contract did not promise is a defect of this code."""
 
     def __init__(self, raw: object, where: str) -> None:
         if not isinstance(raw, dict):
-            raise invalid(f"{where} must be a mapping")
-        self._raw: dict[object, object] = dict(raw)
+            raise TypeError(f"{where} is not a mapping: its contract and reader disagree")
+        self._raw: dict[str, object] = raw
         self._where = where
-
-    def __enter__(self) -> Self:
-        return self
-
-    def __exit__(
-        self,
-        kind: type[BaseException] | None,
-        error: BaseException | None,
-        traceback: TracebackType | None,
-    ) -> None:
-        if kind is None:
-            self.close()
-
-    def close(self) -> None:
-        """Refuse keys the schema does not define, so a misspelling cannot vanish."""
-        if self._raw:
-            names = sorted(str(key) for key in self._raw)
-            raise invalid(f"{self._where} has unknown fields: {', '.join(names)}")
 
     @property
     def where(self) -> str:
@@ -76,109 +44,63 @@ class Fields:
     def has(self, key: str) -> bool:
         return key in self._raw
 
-    def _take(self, key: str) -> object:
-        if key not in self._raw:
-            raise invalid(f"{self._where}.{key} is required")
-        return self._raw.pop(key)
+    def _get[T](self, key: str, kind: type[T] | tuple[type, ...]) -> T:
+        value = self._raw[key]
+        if (isinstance(value, bool) and kind is not bool) or not isinstance(value, kind):
+            raise TypeError(f"{self._where}.{key} is not {kind}: its contract and reader disagree")
+        return cast(T, value)
 
     def text(self, key: str) -> str:
-        """Read a required, non-blank string."""
-        value = self._take(key)
-        if not isinstance(value, str) or not value.strip():
-            raise invalid(f"{self._where}.{key} must be a non-empty string")
+        """Read a required string, refusing one that is only whitespace or was an unquoted date."""
+        value = self._get(key, str)
+        if isinstance(value, YamlDate):
+            raise invalid(f"{self._where}.{key} must be quoted text, not a date")
+        if not value.strip():
+            raise invalid(f"{self._where}.{key} must not be blank")
         return value
-
-    def boolean(self, key: str) -> bool:
-        """Read an explicit boolean, never a number or string."""
-        value = self._take(key)
-        if not isinstance(value, bool):
-            raise invalid(f"{self._where}.{key} must be a boolean")
-        return value
-
-    def nullable_date(self, key: str) -> str | None:
-        """Read a required ISO calendar date or explicit null for no end."""
-        value = self._take(key)
-        if value is None:
-            return None
-        if type(value) is date:
-            return value.isoformat()
-        if isinstance(value, str):
-            try:
-                parsed = date.fromisoformat(value)
-                if parsed.isoformat() == value:
-                    return value
-            except ValueError:
-                pass
-        raise invalid(f"{self._where}.{key} must be YYYY-MM-DD or null")
 
     def optional_text(self, key: str) -> str | None:
         return self.text(key) if self.has(key) else None
 
-    def identifier(self, key: str) -> str:
-        """Read a required name that is safe in a path and stable in a record."""
-        value = self.text(key)
-        if not IDENTIFIER_PATTERN.fullmatch(value):
-            raise invalid(f"{key} must match {IDENTIFIER_PATTERN.pattern}")
-        return value
+    def nullable_date(self, key: str) -> str | None:
+        """Read a required ISO date, quoted or as YAML wrote it, or an explicit null."""
+        value = self._raw[key]
+        return None if value is None else str(self._get(key, str))
 
-    def choice(self, key: str, allowed: Collection[str]) -> str:
-        """Read a string limited to a closed vocabulary."""
-        value = self.text(key)
-        if value not in allowed:
-            options = ", ".join(sorted(allowed))
-            raise invalid(f"{self._where}.{key} must be one of: {options}")
-        return value
+    def boolean(self, key: str) -> bool:
+        return self._get(key, bool)
 
     def index(self, key: str) -> int:
-        """Read a required non-negative integer; a YAML boolean is not one."""
-        value = self._take(key)
-        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
-            raise invalid(f"{self._where}.{key} must be a non-negative integer")
-        return value
+        return self._get(key, int)
 
-    def sha256(self, key: str) -> str:
-        """Read a required lowercase SHA-256 digest."""
-        value = self.text(key)
-        if not SHA256_PATTERN.fullmatch(value):
-            raise invalid(f"{self._where}.{key} must be 64 lowercase hex characters")
-        return value
-
-    def scalar(self, key: str) -> str | int | float | None:
+    def scalar(self, key: str) -> _Scalar | None:
         """Read an optional descriptive value, keeping an absent one as unknown."""
-        if not self.has(key):
-            return None
-        value = self._take(key)
-        if isinstance(value, bool) or not isinstance(value, str | int | float):
-            raise invalid(f"{self._where}.{key} must be a string or a number")
-        if isinstance(value, float) and not math.isfinite(value):
-            raise invalid(f"{self._where}.{key} must be a finite number")
-        return value
+        return cast(_Scalar, self._get(key, (str, int, float))) if self.has(key) else None
 
     def child(self, key: str) -> "Fields":
-        """Read a required nested mapping."""
-        return Fields(self._take(key), f"{self._where}.{key}")
+        return Fields(self._raw[key], f"{self._where}.{key}")
 
     def optional_child(self, key: str) -> "Fields":
         """Read a nested mapping, treating an absent one as empty."""
-        return Fields(self._raw.pop(key, {}), f"{self._where}.{key}")
+        return Fields(self._raw.get(key, {}), f"{self._where}.{key}")
 
     def items(self, key: str) -> list[object]:
-        """Read a required, non-empty list."""
-        value = self._take(key)
-        if not isinstance(value, list) or not value:
-            raise invalid(f"{self._where}.{key} must be a non-empty list")
-        return value
+        return self._get(key, list)
+
+    def optional_items(self, key: str) -> list[object]:
+        return self.items(key) if self.has(key) else []
+
+    def mapping(self, key: str) -> dict[str, JsonValue]:
+        """Read a nested mapping whole, as the contract stated every value in it."""
+        return cast(dict[str, JsonValue], self._get(key, dict))
 
     def selection(self, key: str) -> Selection:
-        """Read a required, non-empty frame window."""
-        with self.child(key) as window:
-            selection = Selection(window.index("start_frame"), window.index("end_frame"))
+        """Read a frame window, which must be non-empty: a rule across its two fields."""
+        window = self.child(key)
+        selection = Selection(window.index("start_frame"), window.index("end_frame"))
         if selection.start_frame >= selection.end_frame:
             raise invalid(f"{self._where}.{key} must have start_frame before end_frame")
         return selection
 
-    def schema_version(self, expected: int = SCHEMA_VERSION) -> None:
-        """Refuse any declaration written for another schema."""
-        version = self._take("schema_version")
-        if type(version) is not int or version != expected:
-            raise invalid(f"{self._where}.schema_version must be {expected}")
+    def optional_selection(self, key: str) -> Selection | None:
+        return self.selection(key) if self.has(key) else None

@@ -369,36 +369,6 @@ import, build, stage and verify as one path.
 
 ### Data contracts -- `data-contracts`
 
-#### contract-enforced-readers
-
-A format stays stated twice, in its contract and in hand-written readers, so the two can disagree.
-
-- Serves: `data-contracts` -- [Enforcement](../design/spec.md#174-enforcement)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: A declaration on read and a record before sealing are checked for structure
-  by their contract alone, with the same refusal codes, and a refusal of an old record names the
-  migration from its change log.
-- Scope boundary: Structural rules move out of `Fields`, `read_recipe` and the declaration readers.
-  Cross-field and cross-file rules stay in code. A sealed read checks seal, kind and major only. No
-  record byte changes.
-- Data and artifact paths: `src/ss_track/corpus/`, `src/ss_track/schema/`, `tests/corpus/`,
-  `tests/schema/`.
-- Execution path: Reuse the strict declaration parser and its duplicate-key refusal, non-finite
-  refusal and date normalization, validate each declaration, validate before `seal`, and reduce
-  `Fields` to typed access. Remove the key check in `terms.py`, which stands in for a version the
-  contract now states.
-  Replace `RecordFormat.older_remedy` with the migration text from each change log, so a remedy has
-  one source. `SHA256_PATTERN` and `IDENTIFIER_PATTERN` in `fields.py` go with the rules they serve,
-  and so do the checks in `tests/schema/test_agreement.py` that hold them equal to `shared/types`.
-- Acceptance gates: Every existing refusal code holds across the existing suite. `1.0` as an index, a
-  non-finite number, a repeated key and an unquoted date each keep today's result. A writer defect is
-  `RECORD_INVALID` before anything is sealed. `corpus verify` on a million-frame index takes no longer
-  than before, shown by a benchmark fixture.
-- Documentation target: [Current implementation](current.md#areas), pages `current/contracts.md` and
-  `current/corpus.md`.
-
 #### record-read-window
 
 A format change sends every record to a fresh data root, and a predecessor of another major cannot be
@@ -407,7 +377,7 @@ compared, so the only exit drops `supersedes` and the split guard with it.
 - Serves: `data-contracts` -- [Reading older records](../design/spec.md#reading-older-records)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: contract-enforced-readers.
+- Dependencies: none.
 - User-visible outcome: Each older major declares `view`, `facts` or `retired`. A view record serves
   as evidence with no byte, seal or cohort change, and `supersedes` works across majors.
 - Scope boundary: Pure in-memory views stepping one major at a time, one comparison projection per
@@ -422,8 +392,11 @@ compared, so the only exit drops `supersedes` and the split guard with it.
   major of a real contract in the tests. Replace the `older_majors` argument and the older-major
   constant in `amendment.py` with the `facts` disposition, and keep `SEQUENCE_KEYS` as the check that
   a record holds the current facts. Read a predecessor's bundle through its projection, so
-  `other_schema` means only that no projection exists, and rewrite the older corpus remedy, which warns
-  that nothing checks splits against a version `supersedes` cannot name.
+  `other_schema` means only that no projection exists, and rewrite the corpus-manifest `migration`
+  text in `contracts/registry.yaml`, which warns that nothing checks splits against a version
+  `supersedes` cannot name. The key check in `terms.py` still refuses a schema-3 corpus manifest
+  sealed before source terms existed, such as `corpus-schema-3-d6b704d.json`, because no major tells
+  it apart: give that shape one stated route on the read path and remove the check.
 - Acceptance gates: A view major verifies with its frame-set hash and file bytes unchanged. A
   `facts` major is refused as evidence, stays inspectable, and a move of its source is
   `SPLIT_LEAKAGE` and not a schema refusal. A view that derives a rights field fails a test.
@@ -485,7 +458,7 @@ A future consumer cannot find, judge or load a corpus version without this repos
   descriptors](../design/spec.md#175-dataset-descriptors-and-self-service)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: contract-enforced-readers.
+- Dependencies: none.
 - User-visible outcome: `ss-track corpus describe` writes a Croissant 1.1 document, a dataset card and
   the contract versions used.
 - Scope boundary: Inputs are sealed records, frozen contracts and one `declaration/dataset` supplying
@@ -542,13 +515,16 @@ twice and an older-major rule can sit in code the registry should own.
   `contracts/declaration/`, `contracts/record/`, `contracts/result/`.
 - Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from the
   code that still knows a version: the older-major constant in `amendment.py`, `SEQUENCE_KEYS`, and
-  any structural rule left in a hand-written reader. Then replay every record in
-  `tests/corpus/records/` and compare the change log with the real bumps.
+  any structural rule left in a hand-written reader. `Fields.text` in `corpus/fields.py` refuses
+  whitespace-only text and a value YAML read as a date, which `declaration/recording` 2.0.0 and
+  `declaration/corpus` 3.0.0 do not state, so `contracts validate` accepts what a reader refuses:
+  state both in each next declaration major or keep them as named reader rules. Then replay every
+  record in `tests/corpus/records/` and compare the change log with the real bumps.
 - Acceptance gates: Every historic record reads under its disposition with its bytes and seal
   unchanged, a static search finds no version check outside the read path, and `corpus verify` on a
-  million-frame index is no slower than before. Every finding is fixed, routed to a task or dropped
-  with its reason, and `make quality` passes. Finding nothing is a valid result when the record
-  states what was reviewed.
+  million-frame index is no slower than before, as `tests/corpus/test_read_cost.py` shows. Every
+  finding is fixed, routed to a task or dropped with its reason, and `make quality` passes. Finding
+  nothing is a valid result when the record states what was reviewed.
 - Documentation target: [Current implementation](current.md#areas), pages `current/corpus.md` and
   `current/contracts.md`.
 
@@ -2093,7 +2069,7 @@ Telemetry has nowhere to live as evidence, because import takes only video.
 - Serves: `telemetry-ingest` -- [Telemetry bundles](../design/spec.md#182-telemetry-bundles)
 - Agent status: CLEAR
 - Milestone: M6
-- Dependencies: contract-enforced-readers.
+- Dependencies: none.
 - User-visible outcome: `ss-track telemetry import`, `stage` and `verify` turn a declared source into
   a sealed bundle of raw typed columns.
 - Scope boundary: Contracts for the source declaration and the source and bundle records, the column

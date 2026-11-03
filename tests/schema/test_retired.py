@@ -22,7 +22,10 @@ def test_listing_exposes_retired_majors_and_their_reason() -> None:
     assert isinstance(retired, list)
     assert [item["major"] for item in retired if isinstance(item, dict)] == [1, 2]
     assert all(
-        isinstance(item, dict) and item["status"] == "retired" and item["reason"]
+        isinstance(item, dict)
+        and item["status"] == "retired"
+        and item["reason"]
+        and item["migration"]
         for item in retired
     )
 
@@ -34,15 +37,22 @@ def test_retired_majors_cannot_repeat_or_overlap_a_frozen_version(
     registry = read_registry(contract_root)
     entry = next(item for item in registry["contracts"] if item["id"] == "corpus-manifest")
     entry["retired_majors"] = [
-        {"major": major, "status": "retired", "reason": "No runtime evidence."} for major in majors
+        {
+            "major": major,
+            "status": "retired",
+            "reason": "No runtime evidence.",
+            "migration": "Write it again.",
+        }
+        for major in majors
     ]
     write_registry(contract_root, registry)
     assert any("retired major" in finding for finding in check_contract_set(contract_root))
 
 
-def test_retirement_requires_a_reason(contract_root: Path) -> None:
+@pytest.mark.parametrize("field", ["reason", "migration"])
+def test_retirement_requires_a_reason_and_a_migration(contract_root: Path, field: str) -> None:
     registry = read_registry(contract_root)
     entry = next(item for item in registry["contracts"] if item["id"] == "corpus-manifest")
-    del entry["retired_majors"][0]["reason"]
+    del entry["retired_majors"][0][field]
     write_registry(contract_root, registry)
-    assert "reason" in check_contract_set(contract_root)[0]
+    assert field in check_contract_set(contract_root)[0]

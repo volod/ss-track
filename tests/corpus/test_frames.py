@@ -15,7 +15,8 @@ from ss_track.corpus import (
     verify_corpus_frames,
 )
 from ss_track.corpus.frames import FrameDamage, frame_name, frames_corrupted
-from ss_track.corpus.sealed import seal, sha256_file
+from ss_track.corpus.sealed import sha256_file
+from tests._sealing import self_sealed
 from tests.corpus._media import FRAME_COUNT, HEIGHT, WIDTH, write_clip
 from tests.corpus.conftest import WriteCorpus, WriteRecording, reseal, stream_of
 
@@ -280,7 +281,7 @@ def test_an_incomplete_record_is_refused(staged: Path) -> None:
     path = staged / "manifest.json"
     record = json.loads(path.read_text(encoding="ascii"))
     del record["identity"], record["manifest_sha256"]
-    _writable(path).write_text(json.dumps(seal(record)), encoding="ascii")
+    _writable(path).write_text(json.dumps(self_sealed(record)), encoding="ascii")
 
     with pytest.raises(CorpusRefusal) as caught:
         open_frame_bundle(staged)

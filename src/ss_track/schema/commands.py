@@ -7,6 +7,7 @@ from pathlib import Path
 from ss_track.canonical import SEAL_FIELD, seal_of
 from ss_track.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.schema._documents import _read_document
+from ss_track.schema.enforce import require_conforming
 from ss_track.schema.store import (
     DECLARATION_FAMILY,
     KIND_FIELD,
@@ -17,9 +18,7 @@ from ss_track.schema.store import (
     ContractSet,
     FrozenVersion,
     load_contract_set,
-    version_key,
 )
-from ss_track.schema.strict import VIOLATION_LIMIT, violations
 
 STATUS_LISTED = "listed"
 STATUS_VALID = "valid"
@@ -94,14 +93,6 @@ def list_contracts(root: Path | None = None) -> ContractList:
     return ContractList(contracts.root, contracts.contracts)
 
 
-def _kind_of(contracts: ContractSet, contract: Contract) -> object:
-    """Return the `kind` a format stamps, which only its newest version needs to state."""
-    if not contract.versions:
-        return None
-    schema = contracts.frozen_schema(contract, contract.versions[-1])
-    return schema.get("properties", {}).get(KIND_FIELD, {}).get("const")
-
-
 def _contract_of(contracts: ContractSet, document: object) -> Contract:
     """Find the contract of a document that names its own format."""
     kind = document.get(KIND_FIELD) if isinstance(document, dict) else None
@@ -110,7 +101,7 @@ def _contract_of(contracts: ContractSet, document: object) -> Contract:
             RefusalCode.CONTRACT_UNKNOWN, f"no {KIND_FIELD} in this file: name it with --contract"
         )
     for contract in contracts.contracts:
-        if _kind_of(contracts, contract) == kind:
+        if contracts.kind_of(contract) == kind:
             return contract
     raise CorpusRefusal(
         RefusalCode.CONTRACT_UNKNOWN, f"no contract states kind {kind}", {KIND_FIELD: kind}
@@ -145,11 +136,11 @@ def _version_of(contract: Contract, document: object, requested: str | None) -> 
         if isinstance(document, dict) and contract.family in (RECORD_FAMILY, DECLARATION_FAMILY)
         else None
     )
-    matching = [frozen for frozen in contract.versions if frozen.major == stamped]
-    candidates = matching or list(contract.versions)
-    if not candidates:
+    of_major = contract.newest(stamped) if type(stamped) is int else None
+    chosen = of_major or contract.newest()
+    if chosen is None:
         raise _unknown_version(contract, None)
-    return max(candidates, key=lambda frozen: version_key(frozen.version))
+    return chosen
 
 
 def _invalid_code(contract: Contract) -> RefusalCode:
@@ -184,15 +175,9 @@ def validate_file(
     )
     contract = named if named is not None else _contract_of(contracts, document)
     frozen = _version_of(contract, document, version)
-    schema = contracts.frozen_schema(contract, frozen)
-    found = violations(document, schema, contracts.schema_registry())
-    if found:
-        listed: list[JsonValue] = [item.to_record() for item in found]
-        raise CorpusRefusal(
-            _invalid_code(contract),
-            f"{path.name} breaks {contract.urn(frozen)}: {found[0].pointer} {found[0].message}",
-            {"urn": contract.urn(frozen), "violations": listed, "limit": VIOLATION_LIMIT},
-        )
+    require_conforming(
+        document, contracts, contract, frozen, code=_invalid_code(contract), label=path.name
+    )
     sealed = contract.family == RECORD_FAMILY
     if sealed and isinstance(document, dict):
         _require_seal(path, document)

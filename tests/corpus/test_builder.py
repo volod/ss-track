@@ -8,6 +8,7 @@ from ss_track.corpus.builder import CORPUS_MANIFEST, load_corpus_manifest
 from ss_track.corpus.decode import current_decode_policy
 from ss_track.corpus.importer import decode_policy_sha256
 from ss_track.corpus.sealed import read_sealed
+from ss_track.schema.enforce import older_remedy
 from tests.corpus._media import FRAME_COUNT, HEIGHT, WIDTH
 from tests.corpus.conftest import WriteCorpus, reseal, stream_of
 
@@ -192,7 +193,7 @@ def test_a_corpus_from_another_schema_is_refused_by_name(
         "found_schema_version": 1,
         "accepted_schema_versions": [3],
         "age": "older",
-        "remedy": CORPUS_MANIFEST.older_remedy,
+        "remedy": older_remedy(CORPUS_MANIFEST.kind, 1),
     }
 
 

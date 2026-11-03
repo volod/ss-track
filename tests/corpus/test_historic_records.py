@@ -27,6 +27,7 @@ from ss_track.corpus.hash_comparison import HASH_COMPARISON_KIND, HASH_COMPARISO
 from ss_track.corpus.host_hashes import STAGED_HASHES, read_staged_hashes
 from ss_track.corpus.importer import SOURCE_MANIFEST
 from ss_track.corpus.sealed import RecordFormat, read_sealed
+from ss_track.schema.enforce import older_remedy
 from tests.corpus._amending import read_source, rights_with
 from tests.corpus._historic import RECORDS, place_record
 from tests.corpus.conftest import (
@@ -45,7 +46,7 @@ _FORMATS = {
     "bundle": FRAME_BUNDLE,
     "corpus": CORPUS_MANIFEST,
     "frame-set": FRAME_SET,
-    "hash-comparison": RecordFormat(HASH_COMPARISON_KIND, HASH_COMPARISON_SCHEMA_VERSION, "none"),
+    "hash-comparison": RecordFormat(HASH_COMPARISON_KIND, HASH_COMPARISON_SCHEMA_VERSION),
     "source": SOURCE_MANIFEST,
     "staged-hashes": STAGED_HASHES,
 }
@@ -65,7 +66,8 @@ def _older(details: dict[str, object], record_format: RecordFormat, major: int) 
     assert details["found_schema_version"] == major
     assert details["accepted_schema_versions"] == [record_format.major]
     assert details["age"] == "older"
-    assert record_format.older_remedy in str(details["remedy"])
+    migration = older_remedy(record_format.kind, major)
+    assert migration is not None and details["remedy"] == migration
 
 
 def _major_of(name: str) -> int:
@@ -221,8 +223,21 @@ def test_a_newer_source_is_told_apart_from_an_older_one(
     assert "install the ss-track version" in str(refusal.details["remedy"])
 
 
-def test_the_remedy_of_an_older_corpus_warns_that_no_guard_checks_its_splits() -> None:
-    assert "keep every source in the split" in CORPUS_MANIFEST.older_remedy
+@pytest.mark.parametrize("major", [1, 2])
+def test_the_remedy_of_an_older_corpus_warns_that_no_guard_checks_its_splits(major: int) -> None:
+    assert "keep every source in the split" in str(older_remedy(CORPUS_MANIFEST.kind, major))
+
+
+@pytest.mark.parametrize(
+    "record_format",
+    [record_format for record_format in _FORMATS.values() if record_format.major > 1],
+    ids=lambda record_format: record_format.kind,
+)
+def test_every_older_major_of_a_current_format_has_a_migration(
+    record_format: RecordFormat,
+) -> None:
+    for major in range(1, record_format.major):
+        assert older_remedy(record_format.kind, major)
 
 
 def test_a_rebuild_over_an_older_corpus_is_refused_for_its_schema(

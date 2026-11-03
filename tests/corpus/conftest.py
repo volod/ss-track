@@ -10,7 +10,8 @@ import yaml
 
 from ss_track.corpus import import_source
 from ss_track.corpus.importer import ImportResult
-from ss_track.corpus.sealed import seal, sha256_file
+from ss_track.corpus.sealed import sha256_file
+from tests._sealing import self_sealed
 from tests.corpus._media import WIDTH, X264_WITH_B_FRAMES, remux, write_clip
 
 type Recording = dict[str, object]
@@ -88,7 +89,7 @@ def reseal(path: Path, **changes: object) -> None:
     record = json.loads(path.read_text(encoding="ascii"))
     record.pop("manifest_sha256")
     path.chmod(0o644)
-    path.write_text(json.dumps(seal(record | changes)), encoding="ascii")
+    path.write_text(json.dumps(self_sealed(record | changes)), encoding="ascii")
 
 
 def last_record(caplog: pytest.LogCaptureFixture) -> dict[str, object]:

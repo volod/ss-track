@@ -15,7 +15,6 @@ from ss_track.corpus.declaration import (
     load_corpus_declaration,
 )
 from ss_track.corpus.decode import current_decode_policy
-from ss_track.corpus.fields import IDENTIFIER_PATTERN
 from ss_track.corpus.grouping import (
     SplitSummary,
     require_derived_frames,
@@ -42,17 +41,13 @@ from ss_track.corpus.recipes import case_records
 from ss_track.corpus.sealed import RecordFormat, read_sealed, seal, sha256_file, write_sealed
 from ss_track.corpus.terms import changed_terms, evaluation_date, require_retention
 from ss_track.refusal import CorpusRefusal, JsonValue, RefusalCode
+from ss_track.schema.enforce import is_shared_type
 
 CORPUS_MANIFEST_SCHEMA_VERSION = 3
 CORPUS_MANIFEST_KIND = "ss-track.corpus-manifest"
 CORPUS_DIRECTORY = "corpus"
 CAMERA_MODALITY = "camera"
-CORPUS_MANIFEST = RecordFormat(
-    CORPUS_MANIFEST_KIND,
-    CORPUS_MANIFEST_SCHEMA_VERSION,
-    "build a new corpus version under a new corpus_id; it cannot name this one in supersedes, so "
-    "nothing checks its splits against this one: keep every source in the split this one gave it",
-)
+CORPUS_MANIFEST = RecordFormat(CORPUS_MANIFEST_KIND, CORPUS_MANIFEST_SCHEMA_VERSION)
 
 
 @dataclass(frozen=True, slots=True)
@@ -85,7 +80,7 @@ class BuildResult:
 def load_corpus_manifest(corpus_id: str, data_root: Path) -> dict[str, JsonValue]:
     """Read one built corpus version, refusing an identifier that cannot name one."""
     path = data_root / CORPUS_DIRECTORY / corpus_id / MANIFEST_NAME
-    if not IDENTIFIER_PATTERN.fullmatch(corpus_id) or not path.is_file():
+    if not is_shared_type("identifier", corpus_id) or not path.is_file():
         raise CorpusRefusal(
             RefusalCode.CORPUS_NOT_BUILT, "no such corpus version", {"corpus_id": corpus_id}
         )

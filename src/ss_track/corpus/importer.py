@@ -35,9 +35,7 @@ SOURCE_MANIFEST_KIND = "ss-track.source-manifest"
 SCHEMA_VERSION = 2
 IMPORT_DIRECTORY = "import"
 MANIFEST_NAME = "manifest.json"
-SOURCE_MANIFEST = RecordFormat(
-    SOURCE_MANIFEST_KIND, SCHEMA_VERSION, f"record its terms with {AMEND_COMMAND}"
-)
+SOURCE_MANIFEST = RecordFormat(SOURCE_MANIFEST_KIND, SCHEMA_VERSION)
 SEQUENCE_KEYS = frozenset(item.name for item in fields(MediaInspection)) | {
     "frame_count",
     "timestamp_quality",

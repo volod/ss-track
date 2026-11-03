@@ -28,7 +28,12 @@ def evaluation_date(today: date | None) -> date:
 
 
 def require_retention(stream: Mapping[str, Any], today: date) -> None:
-    """Allow retention through the declared day; refuse afterwards without deleting bytes."""
+    """Allow retention through the declared day; refuse afterwards without deleting bytes.
+
+    A corpus manifest sealed at schema 3 before source terms existed lacks them, and no major tells
+    it apart from one that has them. A sealed read checks only seal, kind and major, so this check
+    is what refuses that record until an older-record disposition can.
+    """
     rights = stream["rights"]
     if "retain_until" not in rights or "derived_frames" not in rights:
         raise CorpusRefusal(

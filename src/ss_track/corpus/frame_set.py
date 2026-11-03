@@ -19,9 +19,7 @@ from ss_track.refusal import CorpusRefusal, JsonValue, RefusalCode
 
 FRAME_SET_KIND = "ss-track.frame-set"
 FRAME_SET_SCHEMA_VERSION = 1
-FRAME_SET = RecordFormat(
-    FRAME_SET_KIND, FRAME_SET_SCHEMA_VERSION, "build and stage a new corpus version"
-)
+FRAME_SET = RecordFormat(FRAME_SET_KIND, FRAME_SET_SCHEMA_VERSION)
 FRAME_SET_NAME = "frame-set.json"
 MISSING = "missing"
 REPLACED = "replaced"

@@ -1,4 +1,8 @@
-"""Check production writer outputs throughout the suite, before tests corrupt fixtures."""
+"""Check production writer outputs throughout the suite, before tests corrupt fixtures.
+
+Production `seal` already validates each record. This hook is the independent second statement: it
+reads the contracts its own way, and it also covers command results and archived older majors.
+"""
 
 import json
 import sys
@@ -28,7 +32,7 @@ def _require_retired_archive(path: Path, record: Mapping[str, Any], contract: Co
 
 @pytest.fixture(scope="session", autouse=True)
 def validate_written_contracts() -> Iterator[Counter[str]]:
-    """Intercept production writes, including imported aliases, without changing runtime readers."""
+    """Intercept production writes, including imported aliases, without changing runtime code."""
     contracts = load_contract_set()
     registry = contracts.schema_registry()
     schemas = {
