@@ -21,7 +21,7 @@ baseline scope and evidence. The installed set contains these document contracts
 | `record/staged-hashes` | `1.0.0` |
 | `record/hash-comparison` | `1.0.0` |
 | `record/source-manifest` | `2.0.0` |
-| `result/command` | `1.0.0` |
+| `result/command` | `1.0.0`, `1.1.0` |
 
 `shared/types` supplies hashes and identifiers. Every shipped document format has a frozen contract,
 and every frame-set reference resolves at its annotated schema pointer. Capture fields preserve
@@ -50,8 +50,8 @@ ss-track contracts validate --file result.json --contract result/command
 ss-track contracts validate --file frame-set.json --contract record/frame-set --version 1.0.0
 ```
 
-Neither reads the data root, and both work from an installed wheel. Each logs one JSON record, as
-every command does.
+The commands do not read the data root and work from an installed wheel. Each logs one JSON record.
+`diff` and `freeze` are described under [evolution](#evolution).
 
 `list` states each contract, its family, owner and status, and each frozen version with its URN,
 pins and change-log entry. `validate` checks every field of a JSON file, or an explicitly named
@@ -99,9 +99,13 @@ checkout and a wheel.
 | `schema/store.py` | The registry, frozen files, identity and `$ref` resolution by URN |
 | `schema/fingerprints.py` | The schema walk and both fingerprints |
 | `schema/dialect.py` | The meta-schema check and the shared-tag rule |
-| `schema/check.py` | `make lint-contracts` |
+| `schema/check.py` | Registry, file, dialect, identity and reference checks without Git |
+| `schema/evolution.py`, `schema/_change_rules.py` | JSON-pointer comparison and keyword compatibility rules |
+| `schema/versioning.py` | Minimum bump, change-log and backward-transitive policy |
+| `schema/freeze.py`, `schema/_publishing.py` | Candidate validation, generated pins and locked publication |
+| `schema/history.py` | `make lint-contracts`: merge-base immutability and transition checks |
 | `schema/commands.py` | `contracts list` and `contracts validate` |
-| `schema/_documents.py` | Private strict JSON/YAML parsing used only by explicit validation |
+| `schema/_documents.py`, `strict_json.py` | Private document parsing and shared strict JSON decoder hooks |
 
 `ss_track.schema` imports nothing from `ss_track.corpus`, because the corpus writers will validate
 through it. `ss_track.refusal`, `ss_track.canonical` and `ss_track.strict_yaml` sit below both, and
@@ -122,7 +126,8 @@ newline under an engine with Python's `$`.
 
 ## The gate
 
-`make lint-contracts` runs inside `make ci` and reports each of these by contract and version:
+`make lint-contracts` runs inside `make ci`. Its local set check reports these by contract and
+version:
 
 - the registry against `meta/registry.json`, with contracts in family and id order and versions in
   numeric order, so a repeat cannot hide;
@@ -133,8 +138,7 @@ newline under an engine with Python's `$`.
   with distinct values, which needs two branches at once and so cannot be a meta-schema rule;
 - `schema_version` as the integer const of the major, in `declaration` and `record` contracts, and
   `kind` as a const with the seal required, in `record` contracts;
-- both fingerprints, stating the pinned and computed values, which is how an author learns them
-  until `freeze` exists;
+- both fingerprints, stating the pinned and computed values; `freeze` generates these pins;
 - every `$ref`, once every file above is intact.
 
 The fingerprints walk schema positions, because a property may be named `title` or `description`,
@@ -144,8 +148,17 @@ meaning. `structure` drops annotations and `$id`, so two
 versions of one shape compare equal. `meaning` keeps annotations and `const` and `enum` values, and
 drops whatever is left empty, so a definition with no annotation does not move it.
 
-The gate compares a file only with its registry entry. A file edited together with its entry passes,
-and only review or a comparison with the history can see that.
+The history gate also compares every frozen file and its complete version entry with the merge
+base of `HEAD` and `CONTRACT_BASE_REF` (default `origin/main`). It compares with `HEAD` too, so local
+edits to a version already committed on the feature branch are caught. Deleting a version or
+editing it together with its registry pins fails. Missing refs and shallow history fail closed.
+A baseline predating `contracts/registry.yaml` permits the initial set; all subsequent transitions
+still undergo compatibility checks. `python -m ss_track.schema.check --root <contracts>` remains the
+Git-free check for an installed or copied set.
+
+CI checks out full history. A pull request uses its base SHA, and a push uses its before SHA, so a
+push to main cannot compare only with itself. The gate recalculates every transition's required
+bump and verifies every earlier minor of the same major, including transitions entered by hand.
 
 `tests/schema/` proves each construct the dialect refuses at the root and at each nested position,
 each way of breaking the set, the wheel built from a source distribution as `uv build` builds it,
@@ -176,3 +189,55 @@ every frozen document contract. Baseline tests also hold the refusal-code enum e
 check units and vocabularies, exercise transform branches and resolve the available frame-set
 references. Scalar-union fixtures check text, numeric, nullable and invalid values. Runtime reader
 enforcement remains future work under `contract-enforced-readers`.
+
+## Evolution
+
+```bash
+ss-track contracts diff record/frame-set --file frame-set-next.json --root contracts
+ss-track contracts freeze record/frame-set --file frame-set-next.json --root contracts \
+  --summary "Describe the change."
+```
+
+The candidate's `$id` names its family, id and proposed version. `--root` defaults to the installed
+contract set; publishing needs a writable set. Initial contracts also require `--owner`. `diff`
+returns `status: diffed`, `contract`, `version`, `required_bump`, and `changes`, each with `pointer`,
+`class` and `reason`. A pointer refers to the new schema, or to the old schema for a removed node.
+A no-change or initial candidate reports `required_bump: none`. `freeze` returns the same shape with
+`status: frozen`; these outputs and the optional listing disposition use `result/command` 1.1.0.
+Existing command outputs still validate under 1.0.0.
+
+The walk compares nested properties, list items, fixed tuple positions, local and external reference
+targets, capture scalar unions and tagged branches matched by tag value. Reordering branches is
+not a change. Recursive shapes terminate by active reference pairs; dangling references and alias
+cycles refuse. Semantic annotations cannot silently change within a major. Adding an optional
+constraint under open `details` is major because previously legal values may fail it.
+
+Freeze stages the whole set, verifies identities, strict JSON, dialect, references and pins, then
+checks the bump and backward compatibility with every earlier minor in the same major. Major
+transitions require nonblank migration text and a `change.disposition` of `view`, `facts` or `retired`
+for the predecessor major. No runtime view is installed by freezing; `record-read-window` owns
+consuming that metadata. `CONTRACT_SET_INVALID` reports a bad candidate or forbidden publication.
+Directory locking and an atomic registry replacement prevent concurrent freezes from losing entries.
+A crash between schema creation and registry replacement leaves an unregistered file, which fails
+the gate and can be registered by retrying. All preexisting frozen bytes remain intact.
+
+Pattern inclusion is proven for removal, a literal, or a single positive class written with ASCII
+letters, digits, underscore and hyphen, with repetition bounds. Other rewrites conservatively require
+a major. The dev-only `jsoncompat==0.5.0`
+oracle is independent of runtime classification. Tests strip semantic annotations, resolve references
+and compare its backward-compatibility verdict with each frozen transition; disagreement or error
+fails CI. It rejects `^[ab]+$` to `^[abc]+$`, although inclusion is provable, and accepts an optional
+string constraint in an otherwise open object, although a numeric value then fails. Regression tests
+retain both disagreements as refusal cases; `contract-oracle-coverage` owns improving this coverage.
+Until then those transitions cannot pass the independent CI check. Recursive shapes also need
+independent-oracle coverage in that task; the classifier itself handles them.
+
+`tests/schema/test_evolution.py` repeats the compatibility table at nested and tagged paths.
+Reference tests cover external targets and recursion. Freeze and history tests exercise insufficient
+bumps, missing metadata, rollback, repinning, deletion and missing history in isolated Git repositories.
+Historic replay tests project observed keys and types from the five real bumps; they do not invent
+complete historic schemas or count a changed stamp as proof. Hash-stability tests replay the real
+frame-set producer, validate existing command output against the previous minor and reject new
+null/default fields, unannounced keys and changed existing values. The
+[evolution task record](../records/0019-data-contracts-contract-evolution-gate.md) holds acceptance
+and the routed oracle limitation.

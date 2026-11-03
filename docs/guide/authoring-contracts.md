@@ -14,10 +14,11 @@ in the change that introduces it. The
 3. Set `$schema` to JSON Schema 2020-12 and `$id` to
    `urn:ss-track:contract:<family>:<id>:<version>`, and give the root a `title` and `description`.
 4. State the format, as in [the dialect](#the-dialect).
-5. Add an entry to `contracts/registry.yaml`, in family and id order, with an `owner` from the
-   [capability registry](../design/spec.md#capability-registry) and a `change` of class `initial`.
-6. Run `make lint-contracts`. Each finding states the computed `file_sha256` or fingerprint. Copy
-   each into the entry and run it again.
+5. Run `ss-track contracts freeze <family>/<id> --file <candidate.json> --owner <capability>`
+   with `--summary "Initial contract."`. It creates the registry entry and pins after validating the
+   complete proposed set. Use `--root contracts` to select a writable set explicitly.
+6. Run `make lint-contracts`. Its history comparison needs a full Git checkout and the base ref
+   (default `origin/main`; override with `CONTRACT_BASE_REF=<ref>`).
 7. Add a test that a real output of the writer validates, and that the contract stamps what the
    writer stamps, as `tests/schema/test_agreement.py` does for the frame set.
 
@@ -55,11 +56,40 @@ carry it, because loosening it later takes a major.
 ## Freeze with care
 
 A frozen file is never edited, so read it once more before it merges. Everything in it, descriptions
-included, is covered by a pin. Until `ss-track contracts freeze` exists, change a format by copying
-the newest file to the next version, editing the copy, and adding a version to the registry entry
-with a `change` of class `patch`, `minor` or `major` per [section
-17.3](../design/spec.md#173-compatibility-rules). A major also states its `migration`, because that
-text is what a refusal shows a holder of an old record.
+included, is covered by a pin. Copy the newest file to a candidate, change its `$id` to the proposed
+version, and edit the copy. A candidate can be outside the set, or at its not-yet-registered target
+path. Do not add registry pins by hand.
+
+```bash
+ss-track contracts diff record/frame-set --file frame-set-next.json --root contracts
+ss-track contracts freeze record/frame-set --file frame-set-next.json --root contracts \
+  --summary "Describe the change."
+make lint-contracts
+make ci
+```
+
+`diff` names each change by schema JSON pointer, its minimum bump and its reason. `freeze` refuses
+an insufficient or non-increasing bump and validates every earlier minor in the candidate's major.
+A major starts at `<major>.0.0`; a minor starts at `<major>.<minor>.0`. A larger bump is allowed but
+still needs its metadata. A major also requires both `--migration "What the holder must do"` and
+`--disposition view|facts|retired`, describing the previous major. These fields are metadata; freezing
+does not implement a view or migrate a record. Runtime support follows its own plan task.
+
+Freeze validates a scratch copy before publishing. Directory locking serializes publication, the
+schema is created without overwriting different bytes, and the registry is replaced atomically.
+A failed publication removes only a schema it created. A process killed between the two writes can
+leave an unregistered candidate; the gate refuses it until a retry registers it. No frozen file is
+rewritten. Review the generated change-log entry and include the candidate and registry in the change.
+
+A new field must be absent when unused. Test production output against the previous frozen minor
+and compare retained canonical bytes for unchanged inputs; schema validation alone does not detect
+changed values. New-feature tests use the new schema explicitly. Existing `null` fields remain valid.
+
+Pattern removal, literal inclusion, and single positive classes written with ASCII letters, digits,
+underscore and hyphen, with repetition bounds, have local relaxation proofs. Other pattern rewrites
+require a major until inclusion can be proved. The pinned `jsoncompat` oracle checks every frozen transition in the tests and a disagreement
+fails CI. Its known pattern and open-object limits are described on the
+[current page](../impl/current/contracts.md#evolution); do not weaken a schema to obtain agreement.
 
 ## Historic formats
 

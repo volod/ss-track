@@ -1991,10 +1991,22 @@ a format cannot change unannounced.
 | Any change that alters the bytes of a record not using the change | Major |
 | Changed `x-unit`, `x-clock`, `x-frame`, `x-quantity` or `x-vocabulary` of an existing property, or a changed meaning of an enum value | Forbidden: add a property, or take a major |
 
+A constraint added inside the open command-result `details` object is major when it rejects a
+previously allowed value, even if the property is optional. Reference targets are compared at their
+use sites. A pattern rewrite is minor only when inclusion is proven; an unproven relationship is
+conservatively major. Removing a pattern is a relaxation. This policy does not attempt general
+regular-expression equivalence or infer semantic intent from prose.
+
+The independent development oracle checks structural compatibility, not annotations. An oracle
+error or disagreement on a frozen transition fails CI; it never overrides the repository's rules.
+Known oracle limitations need explicit regression evidence and an owner in the plan before broader
+coverage or a replacement can be accepted.
+
 **Hash stability.** A new record field is absent when unused, never written as `null` or a default.
 Because objects are closed, a writer's output for input using no new feature must still validate
-against the previous frozen minor, which proves its bytes and seal did not change. Existing fields
-that store an unknown as `null` keep doing so.
+against the previous frozen minor. That detects new fields, but does not prove existing values or
+hashes stayed equal: replay tests also compare canonical bytes and seals with retained output.
+Existing fields that store an unknown as `null` keep doing so.
 
 **Events** follow the same intent with protobuf rules: fields are additive, a field number or name is
 reserved rather than reused, and `json_name` never changes, because G0 events travel as JSON. The gate

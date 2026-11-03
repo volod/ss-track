@@ -26,6 +26,7 @@ from ss_track.corpus import import_source as run_import
 from ss_track.metadata import project_info
 from ss_track.paths import resolve_data_root
 from ss_track.schema import ContractList, ValidationResult, list_contracts, validate_file
+from ss_track.schema.freeze import EvolutionResult, diff_contract, freeze_contract
 
 EXIT_OK = 0
 EXIT_REFUSED = 1
@@ -57,7 +58,9 @@ def _report(action: Callable[[Path], CorpusResult]) -> int:
     return _reported(lambda: action(resolve_data_root()))
 
 
-def _reported(action: Callable[[], CorpusResult | ContractList | ValidationResult]) -> int:
+def _reported(
+    action: Callable[[], CorpusResult | ContractList | ValidationResult | EvolutionResult],
+) -> int:
     """Run one action and report one JSON record for its result or its refusal."""
     try:
         result = action()
@@ -112,6 +115,42 @@ def _run_contracts_validate(args: argparse.Namespace) -> int:
     )
 
 
+def _run_contracts_diff(args: argparse.Namespace) -> int:
+    return _reported(lambda: diff_contract(args.contract, args.file, args.root))
+
+
+def _run_contracts_freeze(args: argparse.Namespace) -> int:
+    return _reported(
+        lambda: freeze_contract(
+            args.contract,
+            args.file,
+            root=args.root,
+            summary=args.summary,
+            migration=args.migration,
+            disposition=args.disposition,
+            owner=args.owner,
+        )
+    )
+
+
+def _add_evolution_commands(
+    commands: "argparse._SubParsersAction[argparse.ArgumentParser]",
+) -> None:
+    for name, handler in (("diff", _run_contracts_diff), ("freeze", _run_contracts_freeze)):
+        command = commands.add_parser(name, help=f"{name} a candidate contract")
+        command.add_argument("contract", help="family/id")
+        command.add_argument("--file", type=Path, required=True, help="candidate schema JSON")
+        command.add_argument(
+            "--root", type=Path, help="writable contract set; defaults to installed set"
+        )
+        command.set_defaults(handler=handler)
+        if name == "freeze":
+            command.add_argument("--summary", required=True)
+            command.add_argument("--migration")
+            command.add_argument("--disposition", choices=("view", "facts", "retired"))
+            command.add_argument("--owner", help="owning capability for an initial contract")
+
+
 def _add_contract_commands(
     subcommands: "argparse._SubParsersAction[argparse.ArgumentParser]",
 ) -> None:
@@ -134,6 +173,7 @@ def _add_contract_commands(
         "--version", help="an exact frozen version; the newest of the file's major when omitted"
     )
     validate.set_defaults(handler=_run_contracts_validate)
+    _add_evolution_commands(commands)
 
 
 def build_parser() -> argparse.ArgumentParser:

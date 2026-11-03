@@ -8,18 +8,8 @@ from pathlib import Path
 import yaml
 
 from ss_track.refusal import CorpusRefusal, RefusalCode
+from ss_track.strict_json import finite_float, reject_constant, unique_object
 from ss_track.strict_yaml import UniqueKeyLoader
-
-
-def _unique(pairs: list[tuple[str, object]]) -> dict[str, object]:
-    document = dict(pairs)
-    if len(document) != len(pairs):
-        raise ValueError("a key is repeated")
-    return document
-
-
-def _constant(name: str) -> None:
-    raise ValueError(f"{name} is not JSON")
 
 
 def _mapping(value: dict[object, object]) -> dict[str, object]:
@@ -51,6 +41,13 @@ def _read_document(path: Path, *, declaration: bool = False) -> object:
         payload = path.read_text(encoding="utf-8")
         if declaration:
             return _normalize(yaml.load(payload, Loader=UniqueKeyLoader))
-        return _normalize(json.loads(payload, object_pairs_hook=_unique, parse_constant=_constant))
+        return _normalize(
+            json.loads(
+                payload,
+                object_pairs_hook=unique_object,
+                parse_constant=reject_constant,
+                parse_float=finite_float,
+            )
+        )
     except (ValueError, RecursionError, yaml.YAMLError) as error:
         raise CorpusRefusal(code, f"{path.name} is not valid {encoding}: {error}") from error

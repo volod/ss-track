@@ -369,36 +369,6 @@ import, build, stage and verify as one path.
 
 ### Data contracts -- `data-contracts`
 
-#### contract-evolution-gate
-
-A format can change only by a new integer that refuses every earlier record, and nothing notices a
-changed unit.
-
-- Serves: `data-contracts` -- [Compatibility rules](../design/spec.md#173-compatibility-rules)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: `ss-track contracts diff` names each change and its class, `freeze` refuses a
-  wrong bump and writes the change-log entry, and CI refuses an unreviewed change.
-- Scope boundary: JSON Schema contracts. The protobuf gate belongs to `event-schema-contract`.
-- Data and artifact paths: `src/ss_track/schema/`, `contracts/`, `tests/schema/`.
-- Execution path: Classify by walking both versions through nested objects, array items, fixed tuple
-  positions, `$ref` targets and tagged branches, including capture scalar unions and the open
-  command-result `details` boundary.
-  Name each change by JSON pointer. Keep `jsoncompat` pinned in the dev
-  extra as an independent oracle, never as the authority. Add the hash-stability test: writer output
-  for input using no new feature validates against the previous frozen minor. `make lint-contracts`
-  compares a frozen file only with its registry entry, so compare both with the frozen set of the merge
-  base, and give the CI checkout the history that needs. `freeze` replaces copying pins by hand.
-- Acceptance gates: Table-driven fixtures pass every row of spec section 17.3, each at a nested path
-  and inside a tagged branch. A bump that is too small fails, and a disagreement with the oracle fails.
-  Replaying the kept historic records classifies all five real bumps as major. A frozen file edited
-  together with its registry entry fails. A new field written as
-  `null` fails hash stability, as does a writer adding a key under an unchanged version, which is how
-  source terms entered schema 3 corpus manifests. A major with no migration text or no disposition
-  fails to freeze.
-- Documentation target: [Current implementation](current.md#areas), page `current/contracts.md`.
-
 #### contract-enforced-readers
 
 A format stays stated twice, in its contract and in hand-written readers, so the two can disagree.
@@ -406,7 +376,7 @@ A format stays stated twice, in its contract and in hand-written readers, so the
 - Serves: `data-contracts` -- [Enforcement](../design/spec.md#174-enforcement)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: contract-evolution-gate.
+- Dependencies: none.
 - User-visible outcome: A declaration on read and a record before sealing are checked for structure
   by their contract alone, with the same refusal codes, and a refusal of an old record names the
   migration from its change log.
@@ -446,7 +416,8 @@ compared, so the only exit drops `supersedes` and the split guard with it.
   whose records are test data only.
 - Data and artifact paths: `src/ss_track/schema/`, `src/ss_track/corpus/`, `tests/schema/`,
   `tests/corpus/`.
-- Execution path: Add the disposition to the registry and read path, then route `lineage.py`,
+- Execution path: Consume each major transition's `change.disposition` in the read path, then route
+  `lineage.py`,
   `duplicate_frames.py` and the unlinked listing through the projection. Prove it with a synthetic next
   major of a real contract in the tests. Replace the `older_majors` argument and the older-major
   constant in `amendment.py` with the `facts` disposition, and keep `SEQUENCE_KEYS` as the check that
@@ -463,6 +434,30 @@ compared, so the only exit drops `supersedes` and the split guard with it.
 - Documentation target: [Current implementation](current.md#areas), pages `current/contracts.md` and
   `current/corpus.md`.
 
+#### contract-oracle-coverage (optional)
+
+An independent structural oracle must distinguish real compatibility breaks from gaps in its own
+reasoning, without overriding the repository's semantic rules.
+
+- Serves: `data-contracts` -- [Compatibility rules](../design/spec.md#173-compatibility-rules)
+- Agent status: CLEAR
+- Milestone: M1
+- Research: yes
+- Dependencies: none.
+- User-visible outcome: Provable pattern relaxations and open-object constraints receive reliable
+  independent compatibility checks, with disagreements still failing CI.
+- Scope boundary: Improve or replace the development oracle and extend local pattern proofs where
+  justified. No runtime oracle dependency and no automatic override of a semantic major.
+- Data and artifact paths: `tests/schema/`, `src/ss_track/schema/`, `pyproject.toml`, `uv.lock`.
+- Execution path: Exercise pattern widening from `^[ab]+$` to `^[abc]+$`, an optional string
+  constraint added inside open command-result `details`, and recursive references. Investigate a
+  corrected pinned oracle or an independently verified alternative; preserve concrete witnesses.
+- Acceptance gates: The oracle accepts the proven relaxation, refuses the open-object constraint
+  with its numeric counterexample, terminates on recursive references and agrees on the existing
+  structural table. All actual frozen transitions remain checked. A valid negative result retains
+  fail-closed behavior and explicitly states the unsupported relationships; `make ci` passes.
+- Documentation target: [Current implementation](current.md#areas), page `current/contracts.md`.
+
 #### contract-reference-docs (optional)
 
 A reader of a contract should not need to read JSON Schema to learn what a field means, or how
@@ -471,7 +466,7 @@ records link.
 - Serves: `data-contracts` -- [Identity and versions](../design/spec.md#172-identity-and-versions)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: contract-evolution-gate.
+- Dependencies: none.
 - User-visible outcome: `ss-track contracts docs --out <dir>` writes a data dictionary per contract,
   the first version of each field, and a lineage graph from `x-references`.
 - Scope boundary: Generated Markdown only. No site or hosting. The change log stays the authored
@@ -515,7 +510,7 @@ A data catalog may expect ODCS, and a generated view costs little once contracts
   descriptors](../design/spec.md#175-dataset-descriptors-and-self-service)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: contract-evolution-gate.
+- Dependencies: none.
 - User-visible outcome: `ss-track contracts export --format odcs` writes one ODCS document per
   contract.
 - Scope boundary: A generated view, never authored or read back. A tagged union is listed as the

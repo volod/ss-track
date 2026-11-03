@@ -33,3 +33,9 @@ Fixed tuples use `prefixItems` with `items: false` and exact length bounds. Only
 `details` is open. Descriptive capture scalars use exactly `["string", "number"]` or
 `["string", "number", "null"]`. These extensions preserve the remaining closed-object and tagged-union
 rules, and do not reinterpret descriptive metadata as measured quantities.
+
+Every version's `change` gives its class and summary. A major transition also gives `migration` and
+`disposition` (`view`, `facts` or `retired`) for the predecessor major. This metadata describes the
+transition; it does not supply executable migration code. `ss-track contracts diff` explains a
+candidate by JSON pointer and `ss-track contracts freeze` generates its pins and log entry. CI
+compares frozen bytes and entries with Git history and rejects an insufficient version bump.

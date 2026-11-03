@@ -18,6 +18,7 @@ from referencing.jsonschema import DRAFT202012
 from ss_track.canonical import sha256_bytes
 from ss_track.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.schema.strict import Schema, violations
+from ss_track.strict_json import finite_float, reject_constant, unique_object
 from ss_track.strict_yaml import UniqueKeyLoader
 
 CONTRACT_FILES_PACKAGE = "ss_track.contract_files"
@@ -119,16 +120,34 @@ def _contract(entry: Mapping[str, Any]) -> Contract:
 def read_schema(path: Path) -> Schema:
     """Read one schema file of the set, whose damage is the set's and not the caller's."""
     try:
-        schema: Schema = json.loads(path.read_bytes())
-    except (OSError, ValueError) as error:
+        schema = json.loads(
+            path.read_bytes(),
+            object_pairs_hook=unique_object,
+            parse_constant=reject_constant,
+            parse_float=finite_float,
+        )
+        if not isinstance(schema, dict):
+            raise ValueError("a schema must be a JSON object")
+    except (OSError, ValueError, RecursionError) as error:
         raise damaged(f"cannot read contract file {path.name}: {error}") from error
     return schema
+
+
+def registry_document(payload: bytes) -> dict[str, Any]:
+    """Parse registry bytes for a freeze; the staged contract-set check validates their shape."""
+    try:
+        document = yaml.load(payload.decode("utf-8"), Loader=UniqueKeyLoader)
+        if not isinstance(document, dict):
+            raise ValueError("registry must be a mapping")
+    except (ValueError, yaml.YAMLError) as error:
+        raise damaged(f"cannot read {REGISTRY_NAME}: {error}") from error
+    return document
 
 
 def _read_registry(root: Path) -> object:
     path = root / REGISTRY_NAME
     try:
-        return yaml.load(path.read_text(encoding="utf-8"), Loader=UniqueKeyLoader)
+        return registry_document(path.read_bytes())
     except (OSError, UnicodeDecodeError, yaml.YAMLError) as error:
         raise damaged(f"cannot read {REGISTRY_NAME}: {error}") from error
 

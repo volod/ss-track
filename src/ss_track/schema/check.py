@@ -1,4 +1,4 @@
-"""The build gate over a contract set: `make lint-contracts`.
+"""The Git-free set checks used by `make lint-contracts` and candidate freezing.
 
 It compares each frozen file with what the registry pinned, so it cannot see a file edited together
 with its registry entry. Comparing with the history is the job of the evolution gate.

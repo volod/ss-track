@@ -7,6 +7,7 @@ PYTHON_VERSION ?= 3.12
 DATA_DIR ?= .data
 DATA_ROOT := $(if $(filter /%,$(DATA_DIR)),$(DATA_DIR),$(PROJECT_ROOT)/$(DATA_DIR))
 RUN_ID ?= local
+CONTRACT_BASE_REF ?= origin/main
 FIXED_SOURCES ?= $(DATA_ROOT)/run/$(RUN_ID)/sources
 PYTEST_CACHE := -o cache_dir=$(DATA_ROOT)/cache/pytest
 
@@ -89,8 +90,8 @@ lint-doc-links: ## Check that relative Markdown links and anchors resolve
 lint-spec-plan: ## Check capability registry, task structure, status, and ordering
 	@"$(PY)" -m ss_track.quality.plan_integrity --root "$(PROJECT_ROOT)"
 
-lint-contracts: ## Check frozen contracts against their registry, dialect and fingerprints
-	@"$(PY)" -m ss_track.schema.check --root "$(PROJECT_ROOT)/contracts"
+lint-contracts: ## Check frozen contracts, compatibility and merge-base history
+	@"$(PY)" -m ss_track.schema.history --project "$(PROJECT_ROOT)" --base-ref "$(CONTRACT_BASE_REF)"
 
 plan-status: ## Count tasks by lane/status and show the next eligible work
 	@"$(VENV)/bin/ss-track-plan" --root "$(PROJECT_ROOT)"

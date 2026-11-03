@@ -348,12 +348,20 @@ def test_a_contract_past_draft_has_a_version(contract_root: Path, status: str) -
     assert check_contract_set(contract_root)
 
 
-def test_a_major_states_its_migration(contract_root: Path) -> None:
+@pytest.mark.parametrize("missing", ["migration", "disposition"])
+def test_a_major_states_its_migration_and_disposition(contract_root: Path, missing: str) -> None:
     registry = read_registry(contract_root)
-    _frame_set_entry(registry)["change"] = {"class": "major", "summary": "Changed."}
+    change = {
+        "class": "major",
+        "summary": "Changed.",
+        "migration": "Rebuild.",
+        "disposition": "facts",
+    }
+    del change[missing]
+    _frame_set_entry(registry)["change"] = change
     write_registry(contract_root, registry)
 
-    assert "migration" in check_contract_set(contract_root)[0]
+    assert missing in check_contract_set(contract_root)[0]
 
 
 def test_the_gate_exits_by_its_findings(

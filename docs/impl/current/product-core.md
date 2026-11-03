@@ -11,7 +11,8 @@ distribution metadata is unavailable.
 `src/ss_track/cli.py` owns argument parsing. The installed `ss-track info` command logs the same
 identity, providing a packaging and executable-path smoke test. `ss-track import` and
 `ss-track corpus build`, `corpus stage` and `corpus verify` are described under
-[Corpus](corpus.md), and `ss-track contracts list` and `contracts validate` under
+[Corpus](corpus.md), and `ss-track contracts list`, `contracts validate`, `contracts diff` and
+`contracts freeze` under
 [Contracts](contracts.md). No run, evaluation or report behavior exists yet; the
 [implementation plan](../plan.md) describes the scheduled work.
 

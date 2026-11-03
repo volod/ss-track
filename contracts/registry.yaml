@@ -173,6 +173,14 @@ contracts:
     change:
       class: initial
       summary: The shipped format at major 1, with no record bytes changed.
+  - version: 1.1.0
+    file_sha256: 4d14f1e3939f544d4c4cbda55f1149144994138819b05bf91f326816b63d3570
+    fingerprints:
+      structure: 094287509dcbe13cdb582488ca8c99b68381263af22a2e873853632b5dcc462e
+      meaning: 66eaa973f481973ac180a16311f86f1f4450c9b63f7b88abe4f8661a5a4ea1e9
+    change:
+      class: minor
+      summary: Add contract diff and freeze results and predecessor-major dispositions.
 - family: shared
   id: types
   owner: data-contracts

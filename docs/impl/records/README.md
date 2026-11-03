@@ -23,5 +23,6 @@ Copy the [template](template.md) using the
 | 0016 | `record-read-gate` | [0016-data-contracts-record-read-gate](0016-data-contracts-record-read-gate.md) |
 | 0017 | `contract-registry` | [0017-data-contracts-contract-registry](0017-data-contracts-contract-registry.md) |
 | 0018 | `corpus-contract-baseline` | [0018-data-contracts-corpus-contract-baseline](0018-data-contracts-corpus-contract-baseline.md) |
+| 0019 | `contract-evolution-gate` | [0019-data-contracts-contract-evolution-gate](0019-data-contracts-contract-evolution-gate.md) |
 
-Next unused sequence: `0019`.
+Next unused sequence: `0020`.

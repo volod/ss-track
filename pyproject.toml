@@ -28,6 +28,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "complexipy==6.0.0",
+  "jsoncompat==0.5.0",
   "mypy>=1.15,<2",
   "pymarkdownlnt>=0.9.32,<1",
   "pytest>=8,<10",

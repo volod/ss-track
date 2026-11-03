@@ -108,6 +108,10 @@
               "minLength": 1,
               "description": "What changed."
             },
+            "disposition": {
+              "enum": ["view", "facts", "retired"],
+              "description": "Disposition of the predecessor major."
+            },
             "migration": {
               "type": "string",
               "minLength": 1,
@@ -115,7 +119,7 @@
             }
           },
           "if": {"properties": {"class": {"const": "major"}}},
-          "then": {"required": ["migration"]}
+          "then": {"required": ["migration", "disposition"]}
         }
       }
     },

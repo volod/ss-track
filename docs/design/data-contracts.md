@@ -126,8 +126,8 @@ the backward-transitive rule. A descriptor lists exact contract versions outside
 
 Hash stability has an elegant test. Because objects are closed, a writer's output for input that uses
 no new feature must still validate against the previous frozen minor. If it does, no field was added
-to those records, so their bytes did not change. The test needs no golden hash, so it does not depend
-on the decoder or the media.
+to those records. This alone cannot prove existing values stayed equal; replay tests also compare
+canonical bytes and seals with retained output, using fixed facts independent of the decoder.
 
 ## Reading older records
 
@@ -259,8 +259,8 @@ stay outside the repository.
 
 ```text
 copy the newest frozen file to the next version -> edit it
-ss-track contracts diff <contract>     # names each change and its class
-ss-track contracts freeze <contract>   # refuses a wrong bump, stamps fingerprints, adds the log entry
+ss-track contracts diff <contract> --file <candidate.json>
+ss-track contracts freeze <contract> --file <candidate.json> --summary "What changed"
 make ci                                # refuses an edited frozen file or a stale fingerprint
 ```
 
