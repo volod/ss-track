@@ -64,6 +64,8 @@ After every product or developer-facing change, before reporting completion:
 4. Route everything surfaced during implementation exactly once, in the same change:
    - a chore: do it now when necessary, otherwise drop it;
    - an audit of the work just produced: perform it as part of completion, then drop it;
+   - a bug or an improvement not fixed in this change: report it and add or amend a plan task that
+     states it (see [Findings](#findings));
    - more work for a registered capability, including a gap, limitation, risk or follow-up: amend the
      open task that owns it so its text states the work, or add a future task, optional when it is a
      refinement;
@@ -78,6 +80,26 @@ separate session.
 A note in a task record is not routing. Every audit handoff entry and every limitation that affects a
 result must reach an open task whose text states it, or be recorded as dropped with its reason.
 "No plan task exists" is not a valid owner, and an owner task that does not mention the item loses it.
+
+### Findings
+
+A bug or an improvement is never dropped. When it is not fixed in the change that found it:
+
+- Report it in the task record's audit handoff and in the completion report to the user.
+- Give it a plan task with a proper description: the observed behavior and the expected one, a
+  minimal reproduction or the evidence, its impact, the fix or the improvement to make, and
+  acceptance gates that prove it. Amending an open task is enough only when that task's text then
+  states all of this.
+- A bug's task is required, never `(optional)`. An improvement's task is `(optional)` when it is a
+  refinement.
+- A bug in a third-party package is fixed here in the same change, because this project does not
+  control third-party packages: a check, a wrapper or a patch around the faulty behavior, never a
+  fork or vendored copy. Add a test that fails once the pinned release no longer shows the bug,
+  with a message saying to remove the workaround. Such a bug is not reported upstream and gets no
+  plan task.
+
+Only a chore, an observation that needs no work, or a finding fixed in the same change, including a
+third-party bug behind a workaround, may be dropped, each with its reason.
 
 Keep current-state documentation focused on current contracts, constraints, rationale, and actionable
 limitations. Do not retain task-count snapshots, migration narratives, completed audit logs, or

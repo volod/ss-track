@@ -41,7 +41,7 @@ change classifiable.
 | A `oneOf` holds inline closed objects sharing one required `const` property with distinct values | The tag says which branch applies, so a change inside a branch can be classified |
 | No `if`, `then`, `else`, `not`, `anyOf`, `allOf` or `patternProperties` | They hide which rule applies to a value |
 | `$ref` names `#/$defs/<name>`, or a frozen URN with a fragment, with only annotations beside it | A reference to an exact version cannot change under a contract |
-| A `pattern` is anchored with `^` and `$` and avoids `\d`, `\w`, `\s` and `\b` | Those classes differ between regular expression engines |
+| A `pattern` is anchored with `^` and `$` and uses only ASCII literals, escapes, positive classes, groups, alternation and quantifiers: no `\d`, `\w`, `\s`, `\b`, `.`, negated class, lookaround or backreference | The rest differs between regular expression engines, or no change to it can be classified; write a literal `.` as `\.` or inside a class |
 | `format` is `date` | No other format is enforced |
 | A positional tuple uses `prefixItems`, `items: false`, and equal `minItems`/`maxItems` matching its length | Each position is checked and fingerprinted |
 
@@ -94,12 +94,13 @@ A new field must be absent when unused. Test production output against the previ
 and compare retained canonical bytes for unchanged inputs; schema validation alone does not detect
 changed values. New-feature tests use the new schema explicitly. Existing `null` fields remain valid.
 
-Pattern removal, literal inclusion, and single positive classes written with ASCII letters, digits,
-underscore and hyphen, with repetition bounds, have local relaxation proofs. Other pattern rewrites
-require a major until inclusion can be proved. The pinned `jsoncompat` oracle checks every frozen
-transition in the tests and a disagreement fails CI. Its known pattern and open-object limits are
-described on the
-[current page](../impl/current/contracts.md#evolution); do not weaken a schema to obtain agreement.
+A pattern relaxation is minor only when its inclusion is proven. Removing a pattern, widening a
+class or a count, adding an alternative or a part that may occur zero times, and a literal the new
+pattern matches are proven; the [current page](../impl/current/contracts.md#pattern-proofs) states
+the syntax read. Any other rewrite requires a major. The test oracle checks every frozen transition
+independently, and a disagreement in either direction fails CI. When it says the classifier misses a
+proven relaxation, strengthen the proof in `schema/_patterns.py`; do not weaken a schema to obtain
+agreement.
 
 ## Historic formats
 

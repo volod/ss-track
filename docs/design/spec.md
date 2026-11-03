@@ -1917,17 +1917,20 @@ change.
 | `external` | Formats this product does not own, such as MOTChallenge export, ULog and MAVLink dialects | The upstream definition, pinned by hash | By its adapter | A new upstream revision is a new pinned input, never accepted silently |
 | `shared` | Value types that other contracts reference, such as a SHA-256 digest | JSON Schema definitions, stating no document | Through the contract that references them | A change is a new version, and a referencing contract moves to it by its own change |
 
-Document contracts use a restricted dialect of
-[JSON Schema 2020-12](https://json-schema.org/draft/2020-12): closed objects, `const`, `enum`, `oneOf`
-tagged by a `const` property, bounds, anchored `pattern`, the `date` format, and `$ref` to an exact
-version. Conditional keywords, `not` and arbitrary untagged unions are refused. A property that may be
-`null` pairs one type with `null`. Descriptive capture scalars may instead use exactly
+Document contracts use a restricted dialect of [JSON Schema
+2020-12](https://json-schema.org/draft/2020-12): closed objects, `const`, `enum`, `oneOf` tagged by
+a `const` property, bounds, anchored `pattern`, the `date` format, and `$ref` to an exact version. A
+pattern uses only ASCII literals, escapes, positive classes, groups, alternation and quantifiers,
+the syntax every regular-expression engine reads alike; `.`, negated classes, lookaround and
+backreferences are refused. Conditional keywords, `not` and arbitrary untagged unions are refused. A
+property that may be `null` pairs one type with `null`. Descriptive capture scalars may instead use exactly
 `["string", "number"]` or `["string", "number", "null"]`, preserving the shipped operator values
 without converting descriptions into measurements. The restriction keeps every change classifiable,
 every contract projectable onto a descriptor, and each pattern the same in every validator.
 Widening it changes one meta-schema
 under review. A meta-schema states all of this except that a union's branches share one tag, which
-needs two branches at once and so belongs to the build gate. Fixed positional arrays use
+needs two branches at once, and the pattern syntax, which needs a parser; both belong to the build
+gate. Fixed positional arrays use
 `prefixItems`, `items: false`, and equal length bounds. Only the command result's root `details`
 object may be open. The build gate also enforces tuple-length equality and that open-object boundary.
 
@@ -1994,14 +1997,18 @@ a format cannot change unannounced.
 
 A constraint added inside the open command-result `details` object is major when it rejects a
 previously allowed value, even if the property is optional. Reference targets are compared at their
-use sites. A pattern rewrite is minor only when inclusion is proven; an unproven relationship is
-conservatively major. Removing a pattern is a relaxation. This policy does not attempt general
-regular-expression equivalence or infer semantic intent from prose.
+use sites. A pattern rewrite is minor only when inclusion is proven by structure, over the ASCII
+syntax every regular-expression engine reads alike; an unproven relationship is conservatively
+major. Removing a pattern is a relaxation. This policy does not attempt general regular-expression
+equivalence or infer semantic intent from prose.
 
-The independent development oracle checks structural compatibility, not annotations. An oracle
-error or disagreement on a frozen transition fails CI; it never overrides the repository's rules.
-Known oracle limitations need explicit regression evidence and an owner in the plan before broader
-coverage or a replacement can be accepted.
+The independent development oracle checks structural compatibility, not annotations. It shares no
+rule with the classifier, decides pattern inclusion with automata, and counts a counterexample only
+when the repository's own validator confirms it. A disagreement in either direction on a frozen
+transition fails CI, and so does a pair the oracle cannot decide; the oracle never overrides the
+repository's rules and never relaxes them. A relationship neither the classifier nor the oracle
+can decide stays major and fails closed. Known oracle limitations need explicit regression evidence
+and an owner in the plan before broader coverage or a replacement can be accepted.
 
 **Hash stability.** A new record field is absent when unused, never written as `null` or a default.
 Because objects are closed, a writer's output for input using no new feature must still validate

@@ -33,9 +33,11 @@ Missing, mocked or stale evidence does not prove acceptance. Runtime artifacts s
 ## Audit handoff
 
 `none identified` with the reviewed scope, or one entry per `AUD-<task-id>-N`: the observation,
-blocking or nonblocking, its evidence and impact, and exactly one owner: an open plan task whose text
-states the item, added or amended in this change. A capability alone is not an owner. Every limitation
-that affects a result is routed the same way, or says why it needs no work.
+blocking or nonblocking, its evidence and impact, and exactly one owner: an open plan task whose
+text states the item, added or amended in this change. A bug or an improvement is never dropped; it
+gets a task under the [findings rule](../../../AGENTS.md#findings), and a bug's task is required. A
+capability alone is not an owner. Every limitation that affects a result is routed the same way, or
+says why it needs no work.
 
 ## Close or resume
 

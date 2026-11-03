@@ -107,6 +107,17 @@ _REFUSED = {
         "pattern": "^\\d+$",
     },
     "unparsable pattern": {"type": "string", "description": "A.", "pattern": "^[a$"},
+    **{
+        f"pattern with {name}": {"type": "string", "description": "A.", "pattern": pattern}
+        for name, pattern in {
+            "any character": "^.+$",
+            "negated class": "^[^a]+$",
+            "lookahead": "^(?=a)a+$",
+            "backreference": "^(a)\\1$",
+            "top-level alternation": "^a|b$",
+            "non-ASCII text": "^\u00e9+$",
+        }.items()
+    },
     "format no local check enforces": {
         "type": "string",
         "description": "A.",
@@ -249,6 +260,10 @@ def test_tags_on_different_properties_are_not_a_shared_tag() -> None:
             id="annotated",
         ),
         pytest.param({"type": "string", "description": "A.", "format": "date"}, id="date"),
+        pytest.param(
+            {"type": "string", "description": "A.", "pattern": "^[a-z0-9._-]+(\\.[0-9]+)?$"},
+            id="literal dot in a class or escaped",
+        ),
         pytest.param(
             {"oneOf": [_branch("a"), _branch("b")], "description": "A union."}, id="tagged union"
         ),

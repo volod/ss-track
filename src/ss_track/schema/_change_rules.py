@@ -4,6 +4,8 @@ import json
 import re
 from typing import Any
 
+from ss_track.schema._patterns import covers, parse
+
 PATCH = "patch"
 MINOR = "minor"
 MAJOR = "major"
@@ -23,38 +25,11 @@ def _types(value: Any) -> set[str]:
     return result
 
 
-def _character_run(pattern: str) -> tuple[set[str], int, float] | None:
-    """Prove inclusion for a single positive ASCII class with a repetition bound."""
-    match = re.fullmatch(r"\^\[([a-zA-Z0-9_-]+)\](\+|\*|\?|\{[0-9]+(?:,[0-9]*)?\})?\$", pattern)
-    if match is None:
-        return None
-    source, quantifier = match.groups()
-    chars: set[str] = set()
-    index = 0
-    while index < len(source):
-        if index + 2 < len(source) and source[index + 1] == "-":
-            chars.update(
-                chr(code) for code in range(ord(source[index]), ord(source[index + 2]) + 1)
-            )
-            index += 3
-        else:
-            chars.add(source[index])
-            index += 1
-    bounds = {None: (1, 1), "+": (1, float("inf")), "*": (0, float("inf")), "?": (0, 1)}
-    if quantifier in bounds:
-        low, high = bounds[quantifier]
-    else:
-        parts = quantifier.strip("{}").split(",")
-        low = int(parts[0])
-        high = float(parts[-1]) if parts[-1] else float("inf")
-    return chars, low, high
-
-
 def pattern_relaxed(old: str, new: str) -> bool:
     """Return true only for proven inclusion; unsupported rewrites conservatively need a major."""
-    before, after = _character_run(old), _character_run(new)
-    if before is not None and after is not None:
-        return before[0] <= after[0] and before[1] >= after[1] and before[2] <= after[2]
+    before, after = parse(old), parse(new)
+    if before is not None and after is not None and covers(after, before):
+        return True
     if re.fullmatch(r"\^[a-zA-Z0-9 _/-]+\$", old):
         return re.fullmatch(new.removeprefix("^").removesuffix("$"), old[1:-1]) is not None
     return False

@@ -9,6 +9,7 @@ from referencing.jsonschema import DRAFT202012
 
 from ss_track.refusal import CorpusRefusal
 from ss_track.schema.evolution import diff_schemas, required_bump
+from tests.schema._oracle import require_oracle_agreement
 from tests.schema.test_evolution import NUMBER, TEXT, obj
 
 
@@ -40,6 +41,14 @@ def test_recursive_shapes_terminate_and_still_compare_fields() -> None:
     changes = diff_schemas(old, new)
     assert required_bump(changes) == "major"
     assert any(change.pointer == "/properties/head/properties/value/type" for change in changes)
+    assert require_oracle_agreement(old, new).witness == {"head": {"value": ""}}
+    widened = copy.deepcopy(old)
+    widened["$defs"]["node"]["properties"]["note"] = TEXT
+    assert required_bump(diff_schemas(old, widened)) == "minor"
+    assert require_oracle_agreement(old, widened).compatible
+    deeper = copy.deepcopy(old)
+    deeper["$defs"]["node"]["properties"]["value"] = TEXT | {"pattern": "^[ab]+$"}
+    assert require_oracle_agreement(old, deeper).witness == {"head": {"value": ""}}
 
 
 @pytest.mark.parametrize("target", ["missing", "cycle"])

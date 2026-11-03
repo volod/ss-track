@@ -4,11 +4,10 @@ import copy
 import json
 from typing import Any
 
-import jsoncompat
 import pytest
 
 from ss_track.schema.evolution import diff_schemas, required_bump
-from tests.schema._oracle import require_oracle_agreement
+from tests.schema._oracle import require_oracle_agreement, verdict
 
 
 def obj(properties: dict[str, Any], required: list[str] | None = None) -> dict[str, Any]:
@@ -73,9 +72,7 @@ def test_rule_table_and_independent_oracle(
     assert required_bump(changes) == bump
     prefix = "/properties/nested" + ("/oneOf/0" if branch else "") + "/properties/payload"
     assert changes and all(change.pointer.startswith(prefix) for change in changes)
-    assert (
-        jsoncompat.check_compat(json.dumps(before), json.dumps(after), "deserializer") is compatible
-    )
+    assert verdict(before, after).compatible is compatible
 
 
 @pytest.mark.parametrize(
@@ -128,29 +125,35 @@ def test_tag_reordering_is_no_change_but_addition_and_removal_are_classified() -
 
 
 def test_optional_constraint_inside_open_details_is_breaking() -> None:
-    old = obj({}) | {"additionalProperties": True}
-    new = obj({"value": TEXT}) | {"additionalProperties": True}
+    old = obj({"details": obj({}) | {"additionalProperties": True}}, ["details"])
+    new = obj({"details": obj({"value": TEXT}) | {"additionalProperties": True}}, ["details"])
     assert required_bump(diff_schemas(old, new)) == "major"
-    with pytest.raises(AssertionError, match="jsoncompat disagreement"):
+    assert require_oracle_agreement(old, new).witness == {"details": {"value": 0}}
+
+
+def test_structural_pattern_proofs_cover_groups_and_optional_parts() -> None:
+    for old, new in (("^(ab)+$", "^(ab|cd)+$"), ("^[0-9]+/[1-9][0-9]*$", "^-?[0-9]+/[1-9][0-9]*$")):
+        before, after = TEXT | {"pattern": old}, TEXT | {"pattern": new}
+        assert required_bump(diff_schemas(before, after)) == "minor"
+        assert require_oracle_agreement(before, after).proofs == (f"{old} within {new}",)
+
+
+def test_unproven_pattern_relationship_requires_a_major_and_the_oracle_says_so() -> None:
+    old, new = TEXT | {"pattern": "^(ab)*$"}, TEXT | {"pattern": "^a*(ba)*b*$"}
+    assert required_bump(diff_schemas(old, new)) == "major"
+    with pytest.raises(AssertionError, match="classifier backward=False, oracle=True"):
         require_oracle_agreement(old, new)
-
-
-def test_unknown_pattern_relationship_requires_a_major() -> None:
-    assert (
-        required_bump(diff_schemas(TEXT | {"pattern": "^(ab)+$"}, TEXT | {"pattern": "^(ab|cd)+$"}))
-        == "major"
-    )
 
 
 def test_const_boolean_is_not_the_integer_one() -> None:
     assert required_bump(diff_schemas({"const": True}, {"const": 1})) == "major"
 
 
-def test_pattern_relaxation_is_proven_but_oracle_disagreement_fails() -> None:
+def test_pattern_relaxation_is_proven_by_classifier_and_oracle() -> None:
     old, new = TEXT | {"pattern": "^[ab]+$"}, TEXT | {"pattern": "^[abc]+$"}
     assert required_bump(diff_schemas(old, new)) == "minor"
-    with pytest.raises(AssertionError, match="jsoncompat disagreement"):
-        require_oracle_agreement(old, new)
+    assert require_oracle_agreement(old, new).proofs == ("^[ab]+$ within ^[abc]+$",)
+    assert require_oracle_agreement(new, old).witness == "c"
 
 
 def test_every_real_transition_agrees_with_the_oracle() -> None:

@@ -370,30 +370,6 @@ import, build, stage and verify as one path.
 
 ### Data contracts -- `data-contracts`
 
-#### contract-oracle-coverage (optional)
-
-An independent structural oracle must distinguish real compatibility breaks from gaps in its own
-reasoning, without overriding the repository's semantic rules.
-
-- Serves: `data-contracts` -- [Compatibility rules](../design/spec.md#173-compatibility-rules)
-- Agent status: CLEAR
-- Milestone: M1
-- Research: yes
-- Dependencies: none.
-- User-visible outcome: Provable pattern relaxations and open-object constraints receive reliable
-  independent compatibility checks, with disagreements still failing CI.
-- Scope boundary: Improve or replace the development oracle and extend local pattern proofs where
-  justified. No runtime oracle dependency and no automatic override of a semantic major.
-- Data and artifact paths: `tests/schema/`, `src/ss_track/schema/`, `pyproject.toml`, `uv.lock`.
-- Execution path: Exercise pattern widening from `^[ab]+$` to `^[abc]+$`, an optional string
-  constraint added inside open command-result `details`, and recursive references. Investigate a
-  corrected pinned oracle or an independently verified alternative; preserve concrete witnesses.
-- Acceptance gates: The oracle accepts the proven relaxation, refuses the open-object constraint
-  with its numeric counterexample, terminates on recursive references and agrees on the existing
-  structural table. All actual frozen transitions remain checked. A valid negative result retains
-  fail-closed behavior and explicitly states the unsupported relationships; `make ci` passes.
-- Documentation target: [Current implementation](current.md#areas), page `current/contracts.md`.
-
 #### contract-reference-docs (optional)
 
 A reader of a contract should not need to read JSON Schema to learn what a field means, or how
@@ -456,6 +432,56 @@ A data catalog may expect ODCS, and a generated view costs little once contracts
   hash.
 - Acceptance gates: Every document validates, with id and version matching its contract. Every
   property appears, and each construct lost in projection is listed.
+- Documentation target: [Current implementation](current.md#areas), page `current/contracts.md`.
+
+#### pattern-reshaped-inclusion (optional)
+
+The classifier requires a major for a true pattern inclusion whose shape changed, so that relaxation
+cannot ship as a minor, and the independent oracle reports the pair as a disagreement.
+
+- Serves: `data-contracts` -- [Compatibility rules](../design/spec.md#173-compatibility-rules)
+- Agent status: CLEAR
+- Milestone: M1
+- Research: yes
+- Dependencies: none.
+- User-visible outcome: `contracts diff` gives `minor` for a proven relaxation of another shape,
+  such as `^(ab)*$` to `^a*(ba)*b*$`, and the oracle agrees.
+- Scope boundary: Proofs over the dialect's pattern syntax in `schema/_patterns.py`. The classifier
+  shares no code with `tests/schema/_automaton.py`, gains no runtime dependency, and keeps an
+  unproven relationship major.
+- Data and artifact paths: `src/ss_track/schema/`, `tests/schema/`.
+- Execution path: Today that pair fails `require_oracle_agreement` with `classifier backward=False,
+  oracle=True`, held by `test_unproven_pattern_relationship_requires_a_major_and_the_oracle_says_so`.
+  Evaluate a decision procedure for the classifier, such as Brzozowski derivatives, written apart
+  from the test automaton so the oracle still checks it with different code. Measure its cost on the
+  contract patterns and on a generated table of reshaped pairs.
+- Acceptance gates: The reshaped pairs are minor and agree with the oracle, every pair the
+  structural proof decides keeps its verdict, and the gate's run time on the installed set does not
+  grow measurably. A valid negative result keeps the conservative major and names the shapes left
+  unproven. `make ci` passes.
+- Documentation target: [Current implementation](current.md#areas), page `current/contracts.md`.
+
+#### oracle-coordinated-witnesses (optional)
+
+The oracle's own witness search changes one position of the smallest seeds, so a break that needs two
+values changed together goes unfound whenever jsoncompat wrongly calls it compatible.
+
+- Serves: `data-contracts` -- [Compatibility rules](../design/spec.md#173-compatibility-rules)
+- Agent status: CLEAR
+- Milestone: M1
+- Dependencies: none.
+- User-visible outcome: A wrong compatible verdict from jsoncompat is refuted for breaks that need
+  two coordinated values, such as a value that is only reachable once an optional sibling is set.
+- Scope boundary: `tests/schema/_witness.py` only. The search stays deterministic and bounded, and
+  every witness is still confirmed by `StrictValidator`.
+- Data and artifact paths: `tests/schema/`.
+- Execution path: Build a table of breaks that need two coordinated values and show which ones the
+  single-position search misses with `analyze_compat` forced to `compatible`. Then extend the
+  search to pairs of positions and to seeds for each combination of `oneOf` branches, with a bound
+  on trials.
+- Acceptance gates: Every break in the table is refuted with a confirmed, shrunk witness under a
+  forced compatible verdict. `test_every_real_transition_agrees_with_the_oracle` stays under two
+  seconds. `make ci` passes.
 - Documentation target: [Current implementation](current.md#areas), page `current/contracts.md`.
 
 #### data-contracts-audit (optional)

@@ -266,11 +266,15 @@ make ci                                # refuses an edited frozen file or a stal
 
 A breaking change also states its migration in the change log, because that text is what a refusal
 shows a person holding an old record. The classifier is written here because it must name each
-changed field, and `jsoncompat` answers only yes or no. `jsoncompat` stays a dev-only independent
-oracle in the tests, so a disagreement fails CI. It is a small project at version 0.5.0, MIT licensed,
-and being an oracle rather than the authority makes it replaceable. In the spike its answers on a
-closed object matched the rule table on all ten structural change kinds tried. It cannot see an
-annotation, so a unit change stays with the meaning fingerprint.
+changed field, and `jsoncompat` answers only compatible, incompatible with a counterexample, or
+unknown. `jsoncompat` stays a dev-only independent oracle in the tests, so a disagreement fails CI.
+It is a small project at version 0.5.0, MIT licensed, and being an oracle rather than the authority
+makes it replaceable. In the spike its answers on a closed object matched the rule table on all ten
+structural change kinds tried. On an open object it called an added optional constraint
+compatible, and it cannot decide pattern widening or a raised bound. The tests therefore wrap it:
+equivalent rewrites, an automaton for patterns, and a deterministic witness search, with every
+counterexample confirmed by the local validator. It cannot see an annotation, so a unit change
+stays with the meaning fingerprint.
 
 ## Risks
 

@@ -147,6 +147,7 @@ checkout and a wheel.
 | `schema/dialect.py` | The meta-schema check and the shared-tag rule |
 | `schema/check.py` | Registry, file, dialect, identity and reference checks without Git |
 | `schema/evolution.py`, `schema/_change_rules.py` | JSON-pointer comparison and keyword compatibility rules |
+| `schema/_patterns.py` | The structural pattern-inclusion proof |
 | `schema/versioning.py` | Minimum bump, change-log, disposition-floor and backward-transitive policy |
 | `schema/dispositions.py` | The disposition floor and the properties no view may derive |
 | `schema/freeze.py`, `schema/_publishing.py` | Candidate validation, generated pins and locked publication |
@@ -169,6 +170,11 @@ dependencies, and an unenforced format would read as a rule.
 
 The dialect closes what it can for a third-party validator. It refuses `\d`, `\w`, `\s` and `\b`,
 whose meaning differs between regular expression engines, and bounds every pattern at both ends.
+`pattern_findings` in `schema/dialect.py` then refuses any pattern outside the syntax
+`schema/_patterns.py` reads: ASCII literals, escapes, positive classes, groups, alternation and
+quantifiers, with no top-level alternation. `.` and a negated class match line terminators and
+astral characters differently in Python's `re` and ECMA-262, and no change to lookaround or a
+backreference could be classified. A literal `.` stays available escaped or inside a class.
 What stays looser elsewhere is `1.0` for an integer, which JSON Schema itself accepts, and a final
 newline under an engine with Python's `$`.
 
@@ -184,6 +190,7 @@ version:
 - `$id` against the path;
 - the dialect, including the rule that the branches of a `oneOf` share one required `const` property
   with distinct values, which needs two branches at once and so cannot be a meta-schema rule;
+- the pattern syntax, which needs a parser and so cannot be a meta-schema rule;
 - `schema_version` as the integer const of the major, in `declaration` and `record` contracts, and
   `kind` as a const with the seal required, in `record` contracts;
 - both fingerprints, stating the pinned and computed values; `freeze` generates these pins;
@@ -280,20 +287,63 @@ Directory locking and an atomic registry replacement prevent concurrent freezes 
 A crash between schema creation and registry replacement leaves an unregistered file, which fails
 the gate and can be registered by retrying. All preexisting frozen bytes remain intact.
 
-Pattern inclusion is proven for removal, a literal, or a single positive class written with ASCII
-letters, digits, underscore and hyphen, with repetition bounds. Other rewrites conservatively require
-a major. The dev-only `jsoncompat==0.5.0`
-oracle is independent of runtime classification. Tests strip semantic annotations, resolve references
-and compare its backward-compatibility verdict with each frozen transition; disagreement or error
-fails CI. It rejects `^[ab]+$` to `^[abc]+$`, although inclusion is provable, and accepts an optional
-string constraint in an otherwise open object, although a numeric value then fails. Regression tests
-retain both disagreements as refusal cases; `contract-oracle-coverage` owns improving this coverage.
-Until then those transitions cannot pass the independent CI check. Recursive shapes also need
-independent-oracle coverage in that task; the classifier itself handles them.
+### Pattern proofs
+
+`schema/_patterns.py` proves pattern inclusion by structure. The old and new pattern are read as
+sequences of parts, and the new one must hold the old one's parts in order, each admitting at least
+what its counterpart does, plus parts that may occur zero times. A class covers a smaller class, a
+repetition a narrower count, and a group covers each old alternative with some new one. An old
+repetition may give up one occurrence to a new single part, so `^[0-9a-f]{64}$` fits
+`^[a-z0-9][a-z0-9._-]{0,63}$`. Removing a pattern and a literal the new pattern matches are also
+relaxations. The syntax read is ASCII literals, escapes, positive classes, groups, alternation and
+quantifiers, where `re` and ECMA-262 agree, and the dialect refuses every other pattern. A true
+inclusion of a different shape, such as `^(ab)*$` within `^a*(ba)*b*$`, conservatively requires a
+major. On the patterns the frozen contracts use, the proof decides
+exactly what an automaton decides.
+
+### Independent oracle
+
+The [oracle record](../records/0022-data-contracts-contract-oracle-coverage.md) holds the accepted
+task, its decisions and its evidence. The oracle lives in the tests and shares no compatibility
+rule with the classifier. `tests/schema/_oracle.py` strips meaning keywords, inlines references and
+keeps a recursive target once under `$defs`, so recursive shapes terminate. Two sound rewrites then
+run at aligned positions, and `jsoncompat==0.5.0` `analyze_compat` decides the result:
+
+- an explicitly open object in the old schema states each property the new one adds as any JSON
+  value, which accepts exactly what it did. Without it, jsoncompat calls an optional string
+  constraint in open `details` compatible, although `{"value": 0}` then fails. The project does
+  not patch third-party packages, so this rewrite is the fix.
+  `test_open_object_workaround_is_still_needed` fails once a pinned release sees the break itself,
+  which is the signal to remove the rewrite;
+- a new pattern that `tests/schema/_automaton.py` proves admits the old one is replaced by the old
+  one, which only narrows the new schema. jsoncompat alone returns unknown for `^[ab]+$` to
+  `^[abc]+$`. The automaton builds both patterns as automata and walks them together, so it proves
+  inclusion or returns the shortest string that breaks it.
+
+A counterexample counts only once `StrictValidator` accepts it under the original old schema and
+refuses it under the new; it is then shrunk to its simplest values. When jsoncompat returns none,
+`tests/schema/_witness.py` builds the old schema's smallest instances and tries each position with
+every boundary value the two schemas name and each object with every property name they state. So
+a compatible verdict is checked, and an unknown verdict such as a raised `minimum` is still refuted,
+by `1`.
+
+`require_oracle_agreement` compares the classifier's verdict on the stripped pair with the oracle's,
+on the rule table, on reference and recursion cases and on every consecutive pair of frozen
+versions. A disagreement in either direction fails CI and names the witness or proof. A
+classifier that misses a break fails, and so does one that requires a major for a relationship the
+automaton proves; the remedy is a stronger local proof, never a weaker schema. The oracle fails
+closed with `Undecided` when jsoncompat returns unknown and no witness is found, when a
+counterexample is not confirmed, or when a changed pattern uses syntax the automaton does not read.
+The automaton reads the dialect's whole pattern syntax, so the last case arises only for schemas
+outside the dialect.
+
+### Evolution tests
 
 `tests/schema/test_evolution.py` repeats the compatibility table at nested and tagged paths.
-Reference tests cover external targets and recursion. Freeze and history tests exercise insufficient
-bumps, missing metadata, rollback, repinning, deletion and missing history in isolated Git repositories.
+Reference tests cover external targets and recursion, each also under the oracle.
+`tests/schema/test_patterns.py` checks every structural proof against the automaton. Freeze and
+history tests exercise insufficient bumps, missing metadata, rollback, repinning, deletion and
+missing history in isolated Git repositories.
 Historic replay tests project observed keys and types from the five real bumps; they do not invent
 complete historic schemas or count a changed stamp as proof. The same replay gives each bump its
 warranted disposition: the floor and a candidate view applied to the real older record give `view`
@@ -302,5 +352,5 @@ for bundle 1 to 2, bundle 2 to 3 and corpus 2 to 3, and `facts` for corpus 1 to 
 refusal. Hash-stability tests replay the real
 frame-set producer, validate existing command output against the previous minor and reject new
 null/default fields, unannounced keys and changed existing values. The
-[evolution task record](../records/0019-data-contracts-contract-evolution-gate.md) holds acceptance
-and the routed oracle limitation.
+[evolution task record](../records/0019-data-contracts-contract-evolution-gate.md) holds the gate's
+acceptance.

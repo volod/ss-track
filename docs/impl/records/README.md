@@ -26,5 +26,6 @@ Copy the [template](template.md) using the
 | 0019 | `contract-evolution-gate` | [0019-data-contracts-contract-evolution-gate](0019-data-contracts-contract-evolution-gate.md) |
 | 0020 | `contract-enforced-readers` | [0020-data-contracts-contract-enforced-readers](0020-data-contracts-contract-enforced-readers.md) |
 | 0021 | `record-read-window` | [0021-data-contracts-record-read-window](0021-data-contracts-record-read-window.md) |
+| 0022 | `contract-oracle-coverage` | [0022-data-contracts-contract-oracle-coverage](0022-data-contracts-contract-oracle-coverage.md) |
 
-Next unused sequence: `0022`.
+Next unused sequence: `0023`.

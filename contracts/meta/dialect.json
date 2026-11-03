@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:ss-track:meta:dialect",
   "title": "Contract dialect",
-  "description": "The restricted JSON Schema 2020-12 that every contract is written in. It keeps each change classifiable. The registry check adds contextual rules: union branches share a required const tag with distinct values; tuple bounds equal their positional length; only command-result root details may be open.",
+  "description": "The restricted JSON Schema 2020-12 that every contract is written in. It keeps each change classifiable. The registry check adds contextual rules: union branches share a required const tag with distinct values; tuple bounds equal their positional length; only command-result root details may be open; a pattern uses only ASCII literals, escapes, positive classes, groups, alternation and quantifiers, with no top-level alternation.",
   "$ref": "#/$defs/contract",
   "$defs": {
     "contract": {
