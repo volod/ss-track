@@ -31,6 +31,10 @@ VERSION_FIELD = "schema_version"
 RECORD_FAMILY = "record"
 DECLARATION_FAMILY = "declaration"
 SHARED_FAMILY = "shared"
+VIEW = "view"
+FACTS = "facts"
+RETIRED = "retired"
+DISPOSITIONS = (VIEW, FACTS, RETIRED)  # from most to least usable, so the strictest step wins
 _URN_PREFIX = "urn:ss-track:contract"
 
 
@@ -109,6 +113,20 @@ class Contract:
         for frozen in self.versions:
             if frozen.major > major and frozen.change["class"] == "major":
                 return str(frozen.change["migration"])
+        return None
+
+    def disposition_of(self, major: int) -> str | None:
+        """Return how a record of an earlier major is read, as one change-log entry states it.
+
+        A historic major with no frozen contract states its own. Otherwise the major transition that
+        replaced it declared it. A major that neither names, which no version wrote, has none.
+        """
+        for entry in self.retired_majors:
+            if entry["major"] == major:
+                return str(entry["status"])
+        for frozen in self.versions:
+            if frozen.major == major + 1 and frozen.change["class"] == "major":
+                return str(frozen.change["disposition"])
         return None
 
 

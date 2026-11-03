@@ -21,7 +21,7 @@ baseline scope and evidence. The installed set contains these document contracts
 | `record/staged-hashes` | `1.0.0` |
 | `record/hash-comparison` | `1.0.0` |
 | `record/source-manifest` | `2.0.0` |
-| `result/command` | `1.0.0`, `1.1.0`, `1.2.0` |
+| `result/command` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0` |
 
 `shared/types` supplies hashes and identifiers. Every shipped document format has a frozen contract,
 and every frame-set reference resolves at its annotated schema pointer. Capture fields preserve
@@ -32,14 +32,17 @@ The extension does not allow arbitrary scalar unions or change a recording's acc
 Declaration and sealed-record majors are independent constants in `corpus/declaration.py`,
 `corpus/builder.py` and `corpus/importer.py`; their existing integer values and written bytes remain
 unchanged. The corpus contract requires source terms even at major 3: an earlier schema-3 manifest
-without them fails explicit validation, and at runtime the source-terms check in `corpus/terms.py`
-refuses it, as no major tells it apart.
+without them fails explicit validation, and at runtime the read path tells it apart as a stated
+shape with the `facts` disposition, as no major does.
 
 Earlier recording/source major 1 and corpus/bundle majors 1 and 2 are listed in `retired_majors`
-without frozen schemas. The reason distinguishes retained runtime evidence from historic test
-fixtures, and `migration` states what a holder of such a record must do. That text is the remedy a
-`RECORD_SCHEMA_UNSUPPORTED` refusal of an older record gives. This registry metadata does not change
-the reader's accepted majors or amendment path.
+without frozen schemas. Each entry's `status` is its disposition, `facts` or `retired`, and the read
+path consumes it. Source major 1 is `facts`, because `--amend-terms` reads its stated facts and
+writes the current major; every other entry is `retired`, because no retained record needs it.
+The reason distinguishes retained runtime evidence from historic test fixtures, and `migration`
+states what a holder of such a record must do. That text is the remedy a
+`RECORD_SCHEMA_UNSUPPORTED` refusal of an older record gives. `result/command` 1.3.0 lists either
+status; it was frozen for this and for lineage `not_compared`.
 
 ## Runtime enforcement
 
@@ -58,11 +61,18 @@ Contracts state structure at runtime, in `schema/enforce.py`, with the refusal c
   including an unregistered kind, a major with no frozen version or a `NaN`, is `RECORD_INVALID`
   with nothing written.
 - `older_remedy` returns the change log's migration for an older major of a record kind.
+- `older_disposition` returns how a record of an earlier major is read: the strictest disposition
+  of each major it steps through to the current one, from `Contract.disposition_of`, which reads a
+  `retired_majors` entry or the `change.disposition` of the major transition that replaced it. A
+  step no change log states gives none, and the record is refused as unwritten.
+  `readable_majors` lists the current major and every one a chain of views reaches, which a
+  refusal reports as `accepted_schema_versions`.
 - `is_shared_type` checks a value against a `shared/types` definition. Run ids and corpus ids given
   on the command line are checked as identifiers this way, so the pattern has one statement.
 
-The installed set is read once per process. A sealed read never comes here: it checks seal, kind and
-major only, so `corpus verify` costs what it did before. Validation does not run `x-rules`.
+The installed set is read once per process. A sealed read never validates: it checks seal, kind and
+the disposition of its major, so `corpus verify` costs what it did before. Validation does not run
+`x-rules`. The [corpus read path](corpus.md#reading-sealed-records) applies dispositions.
 
 The validator reports a tagged `oneOf` through the branch its tag selects, so a wrong seed in a
 `blur` recipe is `/groups/0/encounters/0/streams/0/generated_cases/0/seed` and not "not valid under
@@ -137,11 +147,12 @@ checkout and a wheel.
 | `schema/dialect.py` | The meta-schema check and the shared-tag rule |
 | `schema/check.py` | Registry, file, dialect, identity and reference checks without Git |
 | `schema/evolution.py`, `schema/_change_rules.py` | JSON-pointer comparison and keyword compatibility rules |
-| `schema/versioning.py` | Minimum bump, change-log and backward-transitive policy |
+| `schema/versioning.py` | Minimum bump, change-log, disposition-floor and backward-transitive policy |
+| `schema/dispositions.py` | The disposition floor and the properties no view may derive |
 | `schema/freeze.py`, `schema/_publishing.py` | Candidate validation, generated pins and locked publication |
 | `schema/history.py` | `make lint-contracts`: merge-base immutability and transition checks |
 | `schema/commands.py` | `contracts list` and `contracts validate` |
-| `schema/enforce.py` | Runtime validation of declarations and records, change-log remedies and shared types |
+| `schema/enforce.py` | Runtime validation of declarations and records, change-log remedies and dispositions, and shared types |
 | `schema/_documents.py`, `strict_json.py` | Private document parsing and shared strict JSON decoder hooks |
 
 `ss_track.schema` imports nothing from `ss_track.corpus`, because the corpus writers will validate
@@ -250,13 +261,21 @@ The walk compares nested properties, list items, fixed tuple positions, local an
 targets, capture scalar unions and tagged branches matched by tag value. Reordering branches is
 not a change. Recursive shapes terminate by active reference pairs; dangling references and alias
 cycles refuse. Semantic annotations cannot silently change within a major. Adding an optional
-constraint under open `details` is major because previously legal values may fail it.
+constraint under open `details` is major because previously legal values may fail it. A `const`
+replaced by an `enum` that holds its value is one minor change at `/enum`, as `result/command` 1.3.0
+did for a historic major's status.
 
 Freeze stages the whole set, verifies identities, strict JSON, dialect, references and pins, then
 checks the bump and backward compatibility with every earlier minor in the same major. Major
 transitions require nonblank migration text and a `change.disposition` of `view`, `facts` or `retired`
-for the predecessor major. No runtime view is installed by freezing; `record-read-window` owns
-consuming that metadata. `CONTRACT_SET_INVALID` reports a bad candidate or forbidden publication.
+for the predecessor major. `view` is refused below the disposition floor: a major that adds or
+changes a property in `PROTECTED_PROPERTIES` (`schema/dispositions.py`: rights, sensitivity,
+scenario rights, retention, split, group, encounter, decode policy, transform, recipe and revision)
+floors at `facts`. The floor reads property names on each major change's pointer, and inside an added
+node except what an added list holds, since a view may derive an empty list. A removal never raises
+it. A freeze installs no view: a view is code in `corpus/read_window.py`, and a declared view with no
+function there is `CONTRACT_SET_INVALID` when a record of that major is read.
+`CONTRACT_SET_INVALID` also reports a bad candidate or forbidden publication.
 Directory locking and an atomic registry replacement prevent concurrent freezes from losing entries.
 A crash between schema creation and registry replacement leaves an unregistered file, which fails
 the gate and can be registered by retrying. All preexisting frozen bytes remain intact.
@@ -276,7 +295,11 @@ independent-oracle coverage in that task; the classifier itself handles them.
 Reference tests cover external targets and recursion. Freeze and history tests exercise insufficient
 bumps, missing metadata, rollback, repinning, deletion and missing history in isolated Git repositories.
 Historic replay tests project observed keys and types from the five real bumps; they do not invent
-complete historic schemas or count a changed stamp as proof. Hash-stability tests replay the real
+complete historic schemas or count a changed stamp as proof. The same replay gives each bump its
+warranted disposition: the floor and a candidate view applied to the real older record give `view`
+for bundle 1 to 2, bundle 2 to 3 and corpus 2 to 3, and `facts` for corpus 1 to 2 and source 1 to 2.
+`tests/schema/test_dispositions.py` covers the installed dispositions, the floor and its freeze
+refusal. Hash-stability tests replay the real
 frame-set producer, validate existing command output against the previous minor and reject new
 null/default fields, unannounced keys and changed existing values. The
 [evolution task record](../records/0019-data-contracts-contract-evolution-gate.md) holds acceptance

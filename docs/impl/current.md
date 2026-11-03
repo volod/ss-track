@@ -16,5 +16,5 @@ change. Write behavior, modules, commands, tests, and results at the narrowest l
 | [Developer tooling](current/developer-tooling.md) | Locked setup, Make workflows, CI, quality gates, artifact roots |
 | [Product core](current/product-core.md) | Package identity and CLI |
 | [Contracts](current/contracts.md) | Contract registry, dialect, fingerprints, `ss-track contracts`, packaged contract set, evolution and history gates |
-| [Corpus](current/corpus.md) | Source import, canonical decode policy, corpus manifests, encounter grouping, splits, version lineage, scenario rights, staged frame bundles, frame sets, shared-frame refusals, generated fixture cases, refusal codes |
+| [Corpus](current/corpus.md) | Source import, canonical decode policy, corpus manifests, reading older records, encounter grouping, splits, version lineage, scenario rights, staged frame bundles, frame sets, shared-frame refusals, generated fixture cases, refusal codes |
 | [Governance](current/governance.md) | Agent adapters, capability registry, plan lanes, integrity checks |

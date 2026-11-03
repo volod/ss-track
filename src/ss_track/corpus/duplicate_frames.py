@@ -3,7 +3,8 @@
 `shared_runs.py` owns the rule and reads what it is given. This module finds what there is to give it
 on disk, and says what it could not find, because a version that was not compared has not been
 shown to be clear. Only streams are read: a generated case stays in its parent's group and holds
-nothing but its parent's frames or new ones.
+nothing but its parent's frames or new ones. A predecessor and its bundles are read through their
+majors' projections, so `other_schema` means only that a major keeps none.
 """
 
 from collections.abc import Mapping
@@ -11,10 +12,18 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from ss_track.corpus.builder import load_corpus_manifest
+from ss_track.corpus.builder import load_predecessor
 from ss_track.corpus.frame_set import frame_set_path
-from ss_track.corpus.frames import frames_root, open_corpus_bundle
+from ss_track.corpus.frames import (
+    FRAME_BUNDLE,
+    frames_root,
+    open_corpus_bundle,
+    require_bundle_place,
+)
+from ss_track.corpus.importer import MANIFEST_NAME
 from ss_track.corpus.lineage import follow_links
+from ss_track.corpus.projections import OTHER_SCHEMA, NotCompared, Unprojected, bundle_frames
+from ss_track.corpus.sealed import read_comparable
 from ss_track.corpus.shared_runs import (
     MIN_SHARED_FRAMES,
     StreamFrames,
@@ -27,26 +36,8 @@ MANIFEST_REMOVED = "manifest_removed"
 NO_FRAME_SET = "no_frame_set"
 BUNDLES_REMOVED = "bundles_removed"
 OTHER_DECODE_POLICY = "other_decode_policy"
-OTHER_SCHEMA = "other_schema"
 
 type Manifest = Mapping[str, Any]
-
-
-@dataclass(frozen=True, slots=True)
-class NotCompared:
-    """A declared predecessor, or some of its streams, that this check cannot speak for."""
-
-    corpus_id: str
-    reason: str
-    stream_ids: tuple[str, ...] = ()
-
-    def to_record(self) -> dict[str, JsonValue]:
-        """Return the JSON-compatible form."""
-        return {
-            "corpus_id": self.corpus_id,
-            "reason": self.reason,
-            "stream_ids": list(self.stream_ids),
-        }
 
 
 @dataclass(frozen=True, slots=True)
@@ -80,20 +71,21 @@ def _indexed(version: Manifest, stream: Mapping[str, Any], data_root: Path) -> S
     return stream_frames(corpus_id, stream, entries)
 
 
-def _comparable(
-    version: Manifest, stream: Mapping[str, Any], data_root: Path
+def _predecessor_frames(
+    version: Manifest, stream: Mapping[str, Any], root: Path
 ) -> StreamFrames | None:
-    """Index one predecessor stream, or return None when this code cannot read its bundle's major.
+    """Index one predecessor stream through its bundle's projection, or None if it keeps none.
 
-    A format change alone must not fail a successor. Damage still refuses, as it says something
-    about the evidence and not about the tool.
+    A format change alone must not fail a successor. Damage, or a bundle staged from another
+    version or stream, still refuses, as that says something about the evidence.
     """
-    try:
-        return _indexed(version, stream, data_root)
-    except CorpusRefusal as refusal:
-        if refusal.code is not RefusalCode.RECORD_SCHEMA_UNSUPPORTED:
-            raise
+    stream_id = stream["stream_id"]
+    found = read_comparable(root / stream_id / MANIFEST_NAME, FRAME_BUNDLE)
+    bundle = found.projected
+    if bundle is None:
         return None
+    require_bundle_place(stream_id, version, bundle["corpus_manifest_sha256"], bundle["stream_id"])
+    return stream_frames(version["corpus_id"], stream, bundle_frames(bundle))
 
 
 def _linked_versions(
@@ -102,7 +94,9 @@ def _linked_versions(
     """Return what the chain reaches. A removed manifest ends it, as older links went with it."""
     reached: list[Manifest] = []
     try:
-        for version in follow_links(corpus, lambda name: load_corpus_manifest(name, data_root)):
+        for version in follow_links(corpus, lambda name: load_predecessor(name, data_root)):
+            if isinstance(version, Unprojected):
+                return reached, version.gap()
             reached.append(version)
     except CorpusRefusal as refusal:
         if refusal.code is not RefusalCode.CORPUS_NOT_BUILT:
@@ -129,7 +123,7 @@ def _staged_streams(version: Manifest, policy: str, data_root: Path) -> _ChainSt
         stream_id = stream["stream_id"]
         if not (root / stream_id).is_dir():
             missed[BUNDLES_REMOVED].append(stream_id)
-        elif (indexed := _comparable(version, stream, data_root)) is None:
+        elif (indexed := _predecessor_frames(version, stream, root)) is None:
             missed[OTHER_SCHEMA].append(stream_id)
         else:
             indexes.append(indexed)

@@ -1942,10 +1942,11 @@ Each contract has an id, a family, an owning capability, a status (`draft`, `act
 dialect states its shape. Each version is one file,
 named by its version, identified by `urn:ss-track:contract:<family>:<id>:<version>` and never edited
 after it is frozen. A frozen version also carries a change-log entry: its class, a summary and, for a
-major, the migration a holder of an old record must make. Historic majors with no retained runtime
-evidence may be listed separately as `retired_majors`, each with a `retired` disposition, a reason
-and that migration, without inventing a frozen contract. Compatibility test fixtures do not make
-those majors usable corpus evidence.
+major, the migration a holder of an old record must make. Historic majors with no frozen contract
+are listed separately as `retired_majors`, each with a reason, that migration and a disposition,
+without inventing a contract: `facts` while a retained record of that major still has a route, as
+an amendment gives source major 1, and `retired` once none needs one. Such a major has no view.
+Compatibility test fixtures do not make those majors usable corpus evidence.
 
 The registry stores the file hash and two fingerprints of each version. `structure` hashes the
 canonical schema without annotations or its own identity. `meaning` hashes the annotations and the
@@ -2029,7 +2030,7 @@ text belongs, and text that is only whitespace, until a declaration major states
 
 A record is validated once, in full, before it is sealed, and a writer defect is `RECORD_INVALID` with
 nothing sealed. A seal proves a record has not changed since, so a read checks the seal, kind and major
-and does not walk its fields. `ss-track contracts validate`
+and walks no field beyond a stated shape's one test. `ss-track contracts validate`
 gives a deep check of any file on demand, under any frozen version: its structure and, for a record,
 its seal, so a record whose content moved is not called valid. It does not run `x-rules`, which stay
 with the code that reads the record. `CONTRACT_UNKNOWN` means no frozen version applies, and
@@ -2047,7 +2048,8 @@ record any other way, so no caller can skip the check. `ss-track contracts valid
 and gives a verdict: it hands no record to anything, so it serves no evidence and needs no disposition.
 
 Nothing rewrites a sealed record, and writers always write the current major. Freezing a new major
-declares the disposition of the one it replaces:
+declares the disposition of the one it replaces, and a record of an older major takes the strictest
+disposition of the majors it steps through:
 
 | Disposition | Applies when | A tool then |
 | --- | --- | --- |
@@ -2058,11 +2060,23 @@ declares the disposition of the one it replaces:
 A view steps one major at a time, and views compose. It names each value it derived. It never derives
 rights, sensitivity, retention, a split, a group, an encounter or any other operator judgment, and it
 fills no default. It changes no decode policy or transform revision, whose refusals stand: those are
-algorithm revisions, and new pixels need new evidence.
+algorithm revisions, and new pixels need new evidence. A freeze refuses `view` for a major that adds
+or changes such a property, whose predecessor's records then lack facts only an operator can state,
+and a view that names one is a damaged installation. A view is installed code beside the contract,
+because a freeze declares a disposition and cannot write the function.
+
+The read path has three entries and no caller reads around them. Evidence is the current major, or a
+`view` major as the current one in memory. Inspection returns a `facts` or `view` record as written,
+for the amendment that writes its successor. Comparison reads any major through its projection.
+
+A format that entered a major without a version of its own, as source terms entered corpus schema 3,
+has one stated test on the read path that tells it apart, and its own disposition. It is read no more
+freely than its major, and a view never serves it.
 
 A comparison rule reads every major. Lineage and shared-frame checks need only source hashes, groups,
-splits and frame hashes, so each major keeps a projection of those facts for as long as records of it
-may exist, and its disposition does not end that. A leak guard must not expire, and a format change
+splits and frame hashes, so each major that holds those facts keeps a projection of them for as long
+as records of it may exist, and its disposition does not end that: a retired major is refused as
+evidence and still compared. A leak guard must not expire, and a format change
 must not be a way around one. A predecessor that yields no projection is `not_compared` under its own
 reason, named in the result as section 4.1 requires, and it never fails a successor by format alone.
 

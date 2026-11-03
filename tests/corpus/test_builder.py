@@ -193,6 +193,7 @@ def test_a_corpus_from_another_schema_is_refused_by_name(
         "found_schema_version": 1,
         "accepted_schema_versions": [3],
         "age": "older",
+        "disposition": "retired",
         "remedy": older_remedy(CORPUS_MANIFEST.kind, 1),
     }
 

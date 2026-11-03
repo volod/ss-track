@@ -9,7 +9,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-from ss_track.corpus.builder import load_corpus_manifest, require_policy, require_source_record
+from ss_track.corpus.builder import load_corpus_manifest, require_policy
 from ss_track.corpus.bundle_writer import write_bundle
 from ss_track.corpus.decode import DecodePolicy, current_decode_policy
 from ss_track.corpus.duplicate_frames import SharedFramesCheck, require_unshared_frames
@@ -24,6 +24,7 @@ from ss_track.corpus.frames import (
 from ss_track.corpus.generated import write_case_bundle
 from ss_track.corpus.importer import MANIFEST_NAME, decode_policy_sha256
 from ss_track.corpus.sealed import SCRATCH_PREFIX
+from ss_track.corpus.sources import require_source_record
 from ss_track.corpus.terms import evaluation_date, require_retention
 from ss_track.corpus.transforms import require_transform_revision
 from ss_track.refusal import CorpusRefusal, JsonValue, RefusalCode

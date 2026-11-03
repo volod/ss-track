@@ -1,10 +1,9 @@
 """Version and change-log policy shared by freeze and the history gate."""
 
 from ss_track.schema._change_rules import RANK
+from ss_track.schema.dispositions import disposition_floor
 from ss_track.schema.evolution import diff_schemas, required_bump
-from ss_track.schema.store import Contract, ContractSet, FrozenVersion, version_key
-
-DISPOSITIONS = ("view", "facts", "retired")
+from ss_track.schema.store import DISPOSITIONS, Contract, ContractSet, FrozenVersion, version_key
 
 
 def bump_kind(before: str, after: str) -> str:
@@ -36,9 +35,16 @@ def transition_findings(
     if actual == "major":
         if not str(current.change.get("migration", "")).strip():
             findings.append("a major requires migration text")
-        if current.change.get("disposition") not in DISPOSITIONS:
+        disposition = current.change.get("disposition")
+        if disposition not in DISPOSITIONS:
             findings.append(
                 "a major requires the predecessor's disposition: view, facts or retired"
+            )
+        elif DISPOSITIONS.index(str(disposition)) < DISPOSITIONS.index(
+            floor := disposition_floor(changes, new, registry)
+        ):
+            findings.append(
+                f"this major changes an operator judgment, so its disposition is {floor}"
             )
     return findings + _transitive_findings(contracts, contract, current)
 

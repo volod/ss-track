@@ -26,9 +26,9 @@ frame sets, staged hashes, hash comparisons and command results. Every frame-set
 resolves at its exact schema pointer. General drafts still have a `reason` and must not be treated
 as validated without a frozen version.
 
-`retired_majors` lists earlier majors with no frozen contract, each with a disposition, a reason and
-the `migration` a holder of such a record must make. Historic compatibility fixtures are retained
-separately from usable runtime evidence.
+`retired_majors` lists earlier majors with no frozen contract, each with a disposition (`facts` or
+`retired`, as its `status`), a reason and the `migration` a holder of such a record must make.
+Historic compatibility fixtures are retained separately from usable runtime evidence.
 
 Fixed tuples use `prefixItems` with `items: false` and exact length bounds. Only command-result
 `details` is open. Descriptive capture scalars use exactly `["string", "number"]` or
@@ -36,7 +36,9 @@ Fixed tuples use `prefixItems` with `items: false` and exact length bounds. Only
 rules, and do not reinterpret descriptive metadata as measured quantities.
 
 Every version's `change` gives its class and summary. A major transition also gives `migration` and
-`disposition` (`view`, `facts` or `retired`) for the predecessor major. This metadata describes the
-transition; it does not supply executable migration code. `ss-track contracts diff` explains a
+`disposition` (`view`, `facts` or `retired`) for the predecessor major. ss-track reads a `view`
+record as the next major in memory, keeps a `facts` record readable for inspection and comparison
+but not as evidence, and refuses a `retired` one. The metadata supplies no executable migration
+code, and no record is rewritten. `ss-track contracts diff` explains a
 candidate by JSON pointer and `ss-track contracts freeze` generates its pins and log entry. CI
 compares frozen bytes and entries with Git history and rejects an insufficient version bump.

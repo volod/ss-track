@@ -13,6 +13,8 @@ from ss_track.schema._change_rules import MAJOR, MEANING, MINOR, RANK, keyword_c
 from ss_track.schema.store import damaged
 from ss_track.schema.strict import Schema, branch_tags
 
+ENTRY_ADDED = "entry added"
+ENTRY_REMOVED = "entry removed"
 _CHILDREN = {"properties", "$defs", "items", "prefixItems", "oneOf", "required"}
 _IDENTITY = {"$id", "$schema"}
 
@@ -39,7 +41,7 @@ def required_bump(changes: list[Change]) -> str:
     return max((change.bump for change in changes), key=RANK.__getitem__, default="none")
 
 
-def _resolved(node: Schema, resolver: Any) -> tuple[Schema, Any]:
+def resolved(node: Schema, resolver: Any) -> tuple[Schema, Any]:
     seen: set[int] = set()
     annotations: Schema = {}
     while "$ref" in node:
@@ -56,9 +58,21 @@ def _resolved(node: Schema, resolver: Any) -> tuple[Schema, Any]:
     return node | annotations, resolver
 
 
+def _const_widened(old: Schema, new: Schema) -> bool:
+    """Say whether a single value became an enum holding it, which only admits more values."""
+    if "const" not in old or "enum" in old or "const" in new or "enum" not in new:
+        return False
+    held = json.dumps(old["const"], sort_keys=True)
+    return any(json.dumps(value, sort_keys=True) == held for value in new["enum"])
+
+
 def _scalars(old: Schema, new: Schema, path: str) -> list[Change]:
     changes = []
-    for key in sorted((old.keys() | new.keys()) - _CHILDREN - _IDENTITY):
+    skipped = set()
+    if _const_widened(old, new):
+        skipped = {"const", "enum"}
+        changes.append(Change(pointer(path, "enum"), MINOR, "const widened to an enum holding it"))
+    for key in sorted((old.keys() | new.keys()) - _CHILDREN - _IDENTITY - skipped):
         if (
             key in old
             and key in new
@@ -116,8 +130,8 @@ class _Walker:
             return
         if referenced:
             self.active.add(pair)
-        before, left = _resolved(old, left)
-        after, right = _resolved(new, right)
+        before, left = resolved(old, left)
+        after, right = resolved(new, right)
         self.changes += _scalars(before, after, path)
         for keyword in ("properties", "$defs"):
             self.named(before, after, path, keyword, left, right)
@@ -133,13 +147,13 @@ class _Walker:
             if name in before and name in after:
                 self.compare(before[name], after[name], location, left, right)
             elif name not in after:
-                self.changes.append(Change(location, MAJOR, f"{key} entry removed"))
+                self.changes.append(Change(location, MAJOR, f"{key} {ENTRY_REMOVED}"))
             else:
                 required = name in new.get("required", [])
                 # An optional constraint on an open object still rejects previously legal values.
                 constrained_open = key == "properties" and old.get("additionalProperties") is True
                 bump = MAJOR if required or constrained_open else MINOR
-                self.changes.append(Change(location, bump, f"{key} entry added"))
+                self.changes.append(Change(location, bump, f"{key} {ENTRY_ADDED}"))
 
     def arrays(self, old: Schema, new: Schema, path: str, left: Any, right: Any) -> None:
         before, after = old.get("items"), new.get("items")

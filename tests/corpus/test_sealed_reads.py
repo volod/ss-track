@@ -12,7 +12,7 @@ from ss_track.schema import ValidationResult, commands
 
 _PACKAGE = Path(ss_track.__file__).parent
 _GATE = Path("corpus/sealed.py")
-_OLDER_MAJOR_READER = Path("corpus/amendment.py")
+_FACTS_READER = Path("corpus/amendment.py")  # reads a `facts` record to write its successor
 _DECLARATION_LOADER = Path("schema/enforce.py")  # validates a declaration; serializes records
 _CONTRACT_FILE_READER = Path("schema/store.py")  # reads the contract set, which holds no record
 _DEEP_CHECK = Path("schema/commands.py")  # gives a verdict on a file, and hands no record onward
@@ -22,6 +22,7 @@ _JSON_READERS = {_GATE, _CONTRACT_FILE_READER, _DEEP_PARSER, _DECLARATION_LOADER
 _YAML_READERS = {_CONTRACT_FILE_READER, _DEEP_PARSER}
 _PARSER_USERS = {_DEEP_CHECK, _DECLARATION_LOADER}
 _LOADERS = {"json.load", "json.loads", "yaml.load", "yaml.safe_load"}
+_READS = {"read_sealed", "read_stated", "read_comparable"}
 
 
 def _called_name(call: ast.Call) -> str:
@@ -46,11 +47,30 @@ def _call_findings(call: ast.Call, relative: Path) -> Iterator[str]:
         yield f"calls {called}"
     if is_yaml_load and relative not in _YAML_READERS:
         yield f"calls {called}"
-    names_older = any(keyword.arg == "older_majors" for keyword in call.keywords)
-    if names_older and relative != _OLDER_MAJOR_READER:
-        yield "reads an older major"
-    if called == "read_sealed" and len(call.args) != 2:
-        yield "calls read_sealed without a format"
+    if called == "read_stated" and relative != _FACTS_READER:
+        yield "reads stated facts outside the amendment"
+    if called in _READS and (len(call.args) != 2 or call.keywords):
+        yield f"calls {called} without exactly a path and a format"
+
+
+def _names_version(node: ast.expr) -> bool:
+    return (
+        isinstance(node, ast.Subscript)
+        and isinstance(node.slice, ast.Constant)
+        and node.slice.value == "schema_version"
+    ) or (
+        isinstance(node, ast.Call)
+        and _called_name(node).endswith(".get")
+        and bool(node.args)
+        and isinstance(node.args[0], ast.Constant)
+        and node.args[0].value == "schema_version"
+    )
+
+
+def _compare_findings(compare: ast.Compare, relative: Path) -> Iterator[str]:
+    """A record's major decides only on the read path, which states each route in one place."""
+    if relative != _GATE and any(map(_names_version, [compare.left, *compare.comparators])):
+        yield "checks a record's major outside the read path"
 
 
 def scan(source: str, relative: Path) -> list[str]:
@@ -68,6 +88,8 @@ def scan(source: str, relative: Path) -> list[str]:
             found.append("names require_schema")
         elif isinstance(node, ast.Call):
             found.extend(_call_findings(node, relative))
+        elif isinstance(node, ast.Compare):
+            found.extend(_compare_findings(node, relative))
     return found
 
 
@@ -98,10 +120,10 @@ def test_the_deep_check_returns_a_verdict_and_never_the_record() -> None:
     assert not hasattr(commands, "read_document")
 
 
-def test_the_exemption_for_an_older_major_is_still_used() -> None:
-    source = (_PACKAGE / _OLDER_MAJOR_READER).read_text(encoding="utf-8")
+def test_the_facts_route_is_still_used() -> None:
+    source = (_PACKAGE / _FACTS_READER).read_text(encoding="utf-8")
 
-    assert "older_majors=" in source
+    assert "read_stated(" in source
 
 
 @pytest.mark.parametrize(
@@ -112,9 +134,28 @@ def test_the_exemption_for_an_older_major_is_still_used() -> None:
         pytest.param("from json import loads", "imports json.loads", id="json-import"),
         pytest.param("import yaml\nyaml.safe_load(text)", "calls yaml.safe_load", id="yaml"),
         pytest.param("require_schema(record, 1, path)", "names require_schema", id="old-pair"),
-        pytest.param("read_sealed(path)", "calls read_sealed without a format", id="no-format"),
         pytest.param(
-            "read_sealed(path, FORMAT, older_majors=(1,))", "reads an older major", id="older"
+            "read_sealed(path)",
+            "calls read_sealed without exactly a path and a format",
+            id="no-format",
+        ),
+        pytest.param(
+            "read_sealed(path, FORMAT, older_majors=(1,))",
+            "calls read_sealed without exactly a path and a format",
+            id="older",
+        ),
+        pytest.param(
+            "read_stated(path, FORMAT)", "reads stated facts outside the amendment", id="stated"
+        ),
+        pytest.param(
+            'if record["schema_version"] == 1: pass',
+            "checks a record's major outside the read path",
+            id="version",
+        ),
+        pytest.param(
+            'if 2 > record.get("schema_version"): pass',
+            "checks a record's major outside the read path",
+            id="get",
         ),
     ],
 )

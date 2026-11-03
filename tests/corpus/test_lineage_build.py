@@ -424,21 +424,63 @@ def test_a_damaged_predecessor_is_refused(
     )
 
 
-def test_a_predecessor_from_another_schema_is_refused_by_name(
+def test_a_move_from_a_predecessor_of_another_major_is_leakage_not_a_schema_refusal(
     first: ImportResult, write_grouped_corpus: WriteCorpus, data_root: Path
 ) -> None:
-    groups = [_single("site-a", "development", stream_of(first))]
-    v1 = _built(write_grouped_corpus, data_root, "pilot-v1", groups)
+    stream = stream_of(first)
+    v1 = _built(
+        write_grouped_corpus, data_root, "pilot-v1", [_single("site-a", "development", stream)]
+    )
     reseal(v1.manifest_path, schema_version=2)
 
-    _refused(
+    refusal = _refused(
         write_grouped_corpus,
         data_root,
         "pilot-v2",
-        groups,
-        RefusalCode.RECORD_SCHEMA_UNSUPPORTED,
+        [_single("held-out", "locked", stream)],
+        RefusalCode.SPLIT_LEAKAGE,
         supersedes="pilot-v1",
     )
+
+    assert refusal.details["moved_sources"] == [
+        {
+            "source_sha256": first.source_sha256,
+            "from": place_of("pilot-v1", "site-a", "development"),
+            "to": place_of("pilot-v2", "held-out", "locked"),
+        }
+    ]
+
+
+@pytest.mark.parametrize("major", [4, 1.0], ids=["newer", "unstated"])
+def test_a_predecessor_with_no_projection_is_not_compared_and_fails_nothing(
+    first: ImportResult, write_grouped_corpus: WriteCorpus, data_root: Path, major: object
+) -> None:
+    stream = stream_of(first)
+    v1 = _built(
+        write_grouped_corpus, data_root, "pilot-v1", [_single("site-a", "development", stream)]
+    )
+    reseal(v1.manifest_path, schema_version=major)
+    resealed = json.loads(v1.manifest_path.read_text(encoding="ascii"))["manifest_sha256"]
+
+    v2 = _built(
+        write_grouped_corpus,
+        data_root,
+        "pilot-v2",
+        [_single("held-out", "locked", stream)],
+        supersedes="pilot-v1",
+    )
+
+    lineage = v2.to_record()["lineage"]
+    assert lineage == {
+        "status": "linked",
+        "supersedes": "pilot-v1",
+        "supersedes_manifest_sha256": resealed,
+        "compared_versions": [],
+        "added": [],
+        "removed": [],
+        "kept": [],
+        "not_compared": [{"corpus_id": "pilot-v1", "reason": "other_schema", "stream_ids": []}],
+    }
 
 
 @pytest.mark.parametrize(

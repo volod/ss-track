@@ -8,14 +8,14 @@ import jsoncompat
 from referencing import Registry
 from referencing.jsonschema import DRAFT202012
 
-from ss_track.schema.evolution import _resolved, diff_schemas, required_bump
+from ss_track.schema.evolution import diff_schemas, required_bump, resolved
 from ss_track.schema.fingerprints import subschemas
 
 
 def _expanded(schema: dict[str, Any], registry: Registry[Any]) -> dict[str, Any]:
     def expand(node: dict[str, Any], resolver: Any) -> dict[str, Any]:
-        resolved, scope = _resolved(node, resolver)
-        result = copy.deepcopy(resolved)
+        target, scope = resolved(node, resolver)
+        result = copy.deepcopy(target)
         for child in subschemas(result):
             changed = expand(dict(child), scope)
             child.clear()

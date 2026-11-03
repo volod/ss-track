@@ -1,4 +1,7 @@
-"""A predecessor holding a bundle of another major: named and never a failure of its successor."""
+"""A predecessor's bundles of another major: compared through their projection, else named.
+
+`other_schema` means only that a bundle's major keeps no projection, and it never fails a successor.
+"""
 
 from pathlib import Path
 
@@ -9,7 +12,8 @@ from ss_track.corpus import (
     stage_corpus,
     verify_corpus_frames,
 )
-from tests.corpus._historic import kept_record
+from ss_track.corpus.frame_set import frame_set_path
+from tests.corpus._historic import place_record
 from tests.corpus._shared_frames import (
     V1,
     V2,
@@ -19,19 +23,35 @@ from tests.corpus._shared_frames import (
     single,
     stage_refused,
 )
-from tests.corpus.conftest import WriteCorpus, stream_of
+from tests.corpus.conftest import WriteCorpus, reseal, stream_of
+
+_NO_PROJECTION = 4  # a newer major: this code keeps no projection of it
 
 
-def _give_older_bundle(data_root: Path, stream_id: str) -> None:
-    """Leave one of a predecessor's bundles as the real record of an earlier major."""
+def _give_unprojected_bundle(data_root: Path, stream_id: str) -> None:
+    """Leave one of a predecessor's bundles at a major this code cannot project."""
     bundle = data_root / "corpus" / V1 / "frames" / stream_id
     bundle.chmod(0o755)
-    manifest = bundle / "manifest.json"
-    manifest.chmod(0o644)
-    manifest.write_bytes(kept_record("bundle-schema-2-78db68c.json"))
+    reseal(bundle / "manifest.json", schema_version=_NO_PROJECTION)
 
 
-def test_a_predecessor_holding_another_majors_bundle_is_named_and_fails_nothing(
+def test_a_real_predecessor_of_major_2_is_compared_through_its_projections(
+    copy: ImportResult, write_grouped_corpus: WriteCorpus, data_root: Path
+) -> None:
+    corpus = data_root / "corpus" / V1
+    place_record("corpus-schema-2-78db68c.json", corpus / "manifest.json")
+    place_record("bundle-schema-2-78db68c.json", corpus / "frames" / "one" / "manifest.json")
+    place_record("frame-set-schema-1-fd982a1.json", frame_set_path(data_root, V1))
+    v2 = [single("site-b", "locked", stream_of(copy, stream_id="moved"))]
+    build_corpus(write_grouped_corpus(v2, corpus_id=V2, supersedes=V1), data_root)
+
+    result = stage_corpus(V2, data_root)
+
+    assert check_of(result)["compared_versions"] == [V1]
+    assert not_compared(result) == [(V1, "other_decode_policy", [])]
+
+
+def test_a_predecessor_holding_an_unprojected_bundle_names_it_and_fails_nothing(
     copy: ImportResult,
     original: ImportResult,
     write_grouped_corpus: WriteCorpus,
@@ -40,7 +60,7 @@ def test_a_predecessor_holding_another_majors_bundle_is_named_and_fails_nothing(
     v1 = [single("site-a", "development", stream_of(original, stream_id="seen"))]
     build_corpus(write_grouped_corpus(v1, corpus_id=V1), data_root)
     stage_corpus(V1, data_root)
-    _give_older_bundle(data_root, "seen")
+    _give_unprojected_bundle(data_root, "seen")
     v2 = [single("site-b", "locked", stream_of(copy, stream_id="moved"))]
     build_corpus(write_grouped_corpus(v2, corpus_id=V2, supersedes=V1), data_root)
 
@@ -52,7 +72,7 @@ def test_a_predecessor_holding_another_majors_bundle_is_named_and_fails_nothing(
     assert not_compared(verify_corpus_frames(V2, data_root)) == [(V1, "other_schema", ["seen"])]
 
 
-def test_a_predecessor_with_one_bundle_of_another_major_is_compared_on_the_rest(
+def test_a_predecessor_with_one_unprojected_bundle_is_compared_on_the_rest(
     copy: ImportResult,
     original: ImportResult,
     third: ImportResult,
@@ -65,7 +85,7 @@ def test_a_predecessor_with_one_bundle_of_another_major_is_compared_on_the_rest(
     ]
     build_corpus(write_grouped_corpus(v1, corpus_id=V1), data_root)
     stage_corpus(V1, data_root)
-    _give_older_bundle(data_root, "seen")
+    _give_unprojected_bundle(data_root, "seen")
     v2 = [single("site-b", "locked", stream_of(copy, stream_id="held-out"))]
     build_corpus(write_grouped_corpus(v2, corpus_id=V2, supersedes=V1), data_root)
 

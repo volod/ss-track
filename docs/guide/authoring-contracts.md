@@ -74,8 +74,15 @@ make ci
 an insufficient or non-increasing bump and validates every earlier minor in the candidate's major.
 A major starts at `<major>.0.0`; a minor starts at `<major>.<minor>.0`. A larger bump is allowed but
 still needs its metadata. A major also requires both `--migration "What the holder must do"` and
-`--disposition view|facts|retired`, describing the previous major. These fields are metadata; freezing
-does not implement a view or migrate a record. Runtime support follows its own plan task.
+`--disposition view|facts|retired`, describing the previous major, and readers consume it. Choose
+`view` only when every new field follows from an old record and the records it pins by a pure
+function; freeze refuses `view` when the major adds or changes an operator judgment or an algorithm
+revision, listed as `PROTECTED_PROPERTIES` in `src/ss_track/schema/dispositions.py`. A `view` also
+needs its function: add a `View` to `src/ss_track/corpus/read_window.py` in the same change, naming
+every value it derives, and test it with `check_view` on the kept real record of the older major.
+Without it, reading such a record is `CONTRACT_SET_INVALID`. Freezing never rewrites a record. A
+format whose facts a leak guard reads also adds the new major's entry to
+`src/ss_track/corpus/projections.py`, and keeps the older one.
 
 Freeze validates a scratch copy before publishing. Directory locking serializes publication, the
 schema is created without overwriting different bytes, and the registry is replaced atomically.
@@ -96,8 +103,10 @@ described on the
 
 ## Historic formats
 
-Use `retired_majors` for historic majors with no frozen contract and no retained runtime evidence.
-Each entry states `major`, `status: retired`, `reason` and `migration`; majors must be unique, sorted,
-and cannot also have a frozen version. `migration` is the remedy ss-track gives when it refuses a
+Use `retired_majors` for historic majors with no frozen contract. Each entry states `major`,
+`status`, `reason` and `migration`; majors must be unique, sorted, and cannot also have a frozen
+version. `status` is the disposition: `facts` while a retained record of that major has a route,
+such as an amendment that reads it, and `retired` once none needs one. A historic major is never a
+view. `migration` is the remedy ss-track gives when it refuses a
 record of that major, so write it as what the holder must do. Kept compatibility fixtures are not
 runtime evidence.

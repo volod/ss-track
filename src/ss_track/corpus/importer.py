@@ -18,6 +18,7 @@ from ss_track.corpus.decode import (
     current_decode_policy,
     inspect_media,
 )
+from ss_track.corpus.kinds import SOURCE_MANIFEST_KIND
 from ss_track.corpus.sealed import (
     READ_ONLY_FILE_MODE,
     RecordFormat,
@@ -31,7 +32,6 @@ from ss_track.corpus.terms import AMEND_COMMAND, changed_terms
 from ss_track.corpus.timestamps import assess_timestamps
 from ss_track.refusal import CorpusRefusal, JsonValue, RefusalCode
 
-SOURCE_MANIFEST_KIND = "ss-track.source-manifest"
 SCHEMA_VERSION = 2
 IMPORT_DIRECTORY = "import"
 MANIFEST_NAME = "manifest.json"

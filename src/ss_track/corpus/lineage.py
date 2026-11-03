@@ -12,14 +12,15 @@ from dataclasses import asdict, dataclass, replace
 from typing import Any
 
 from ss_track.canonical import SEAL_FIELD
+from ss_track.corpus.projections import SUPERSEDES_FIELD, NotCompared, Unprojected
 from ss_track.refusal import CorpusRefusal, JsonValue, RefusalCode
 
-SUPERSEDES_FIELD = "supersedes"
 LINKED = "linked"
 NO_LINEAGE = "no_lineage"
 
 type Manifest = Mapping[str, Any]
-type ManifestLoader = Callable[[str], Manifest]
+type Predecessor = Manifest | Unprojected
+type ManifestLoader = Callable[[str], Predecessor]
 type StreamRecord = Mapping[str, Any]
 
 
@@ -49,11 +50,16 @@ class Lineage:
     supersedes_manifest_sha256: str
     compared_versions: tuple[str, ...]
     delta: VersionDelta
+    not_compared: tuple[NotCompared, ...] = ()
 
     def to_record(self) -> dict[str, JsonValue]:
-        """Return the JSON-compatible form. `added` and `removed` read the named version only."""
+        """Return the JSON-compatible form. `added` and `removed` read the named version only.
+
+        `not_compared` appears only when a version in the chain could not be compared, so a fully
+        compared chain reports exactly what it did before projections existed.
+        """
         delta = self.delta
-        return {
+        record: dict[str, JsonValue] = {
             "status": LINKED,
             "supersedes": self.supersedes,
             "supersedes_manifest_sha256": self.supersedes_manifest_sha256,
@@ -62,6 +68,9 @@ class Lineage:
             "removed": _place_records(delta.removed),
             "kept": _place_records(delta.kept),
         }
+        if self.not_compared:
+            record["not_compared"] = [gap.to_record() for gap in self.not_compared]
+        return record
 
 
 def lineage_record(lineage: Lineage | None) -> dict[str, JsonValue]:
@@ -69,24 +78,28 @@ def lineage_record(lineage: Lineage | None) -> dict[str, JsonValue]:
     return lineage.to_record() if lineage is not None else {"status": NO_LINEAGE}
 
 
-def read_predecessors(supersedes: str | None, load: ManifestLoader) -> list[Manifest]:
+def read_predecessors(supersedes: str | None, load: ManifestLoader) -> list[Predecessor]:
     """Return the named version and every version linked behind it, nearest first."""
     if supersedes is None:
         return []
     nearest = load(supersedes)
+    if isinstance(nearest, Unprojected):
+        return [nearest]
     return [nearest, *follow_links(nearest, load)]
 
 
-def follow_links(version: Manifest, load: ManifestLoader) -> Iterator[Manifest]:
+def follow_links(version: Manifest, load: ManifestLoader) -> Iterator[Predecessor]:
     """Yield the versions linked behind one, nearest first.
 
     Each link pins the older version's seal, so a replaced version is refused, and a loop is
     impossible because it would need a manifest to contain its own hash. Yielding one at a time
-    lets a caller keep what it reached when a version further back is gone.
+    lets a caller keep what it reached when a version further back is gone. A version with no
+    projection ends the chain, as its own link cannot be read.
     """
     while (link := version.get(SUPERSEDES_FIELD)) is not None:
         older = load(link["corpus_id"])
-        if older[SEAL_FIELD] != link["manifest_sha256"]:
+        found = _identity(older)[1]
+        if found != link["manifest_sha256"]:
             raise CorpusRefusal(
                 RefusalCode.CORPUS_CONFLICT,
                 "a superseded version differs from the one its successor pinned",
@@ -94,30 +107,33 @@ def follow_links(version: Manifest, load: ManifestLoader) -> Iterator[Manifest]:
                     "corpus_id": link["corpus_id"],
                     "successor_corpus_id": version["corpus_id"],
                     "pinned_manifest_sha256": link["manifest_sha256"],
-                    "manifest_sha256": older[SEAL_FIELD],
+                    "manifest_sha256": found,
                 },
             )
         yield older
+        if isinstance(older, Unprojected):
+            return
         version = older
 
 
-def link_field(predecessors: Sequence[Manifest]) -> dict[str, JsonValue]:
+def link_field(predecessors: Sequence[Predecessor]) -> dict[str, JsonValue]:
     """Return the sealed link, or nothing, so a version naming none keeps its hash."""
     if not predecessors:
         return {}
-    nearest = predecessors[0]
-    return {
-        SUPERSEDES_FIELD: {
-            "corpus_id": nearest["corpus_id"],
-            "manifest_sha256": nearest[SEAL_FIELD],
-        }
-    }
+    corpus_id, manifest_sha256 = _identity(predecessors[0])
+    return {SUPERSEDES_FIELD: {"corpus_id": corpus_id, "manifest_sha256": manifest_sha256}}
+
+
+def projected(predecessors: Sequence[Predecessor]) -> list[Manifest]:
+    """Return the predecessors a comparison can read, nearest first."""
+    return [version for version in predecessors if not isinstance(version, Unprojected)]
 
 
 def require_same_places(
-    corpus_id: str, streams: Sequence[StreamRecord], predecessors: Sequence[Manifest]
+    corpus_id: str, streams: Sequence[StreamRecord], predecessors: Sequence[Predecessor]
 ) -> None:
     """Refuse a source or group that a declared predecessor held elsewhere, naming every one."""
+    predecessors = projected(predecessors)
     moved_sources = _moved_sources(corpus_id, streams, predecessors)
     moved_groups = _moved_groups(corpus_id, streams, predecessors)
     if moved_sources or moved_groups:
@@ -178,18 +194,36 @@ def compare_versions(
 
 
 def trace_lineage(
-    streams: Sequence[StreamRecord], predecessors: Sequence[Manifest]
+    streams: Sequence[StreamRecord], predecessors: Sequence[Predecessor]
 ) -> Lineage | None:
-    """Describe a version that has passed `require_same_places`, or None if it named no version."""
+    """Describe a version that has passed `require_same_places`, or None if it named no version.
+
+    The delta reads the named version, so it is empty when that one could not be compared.
+    """
     if not predecessors:
         return None
     nearest = predecessors[0]
+    supersedes, manifest_sha256 = _identity(nearest)
     return Lineage(
-        supersedes=nearest["corpus_id"],
-        supersedes_manifest_sha256=nearest[SEAL_FIELD],
-        compared_versions=tuple(version["corpus_id"] for version in predecessors),
-        delta=compare_versions(streams, nearest["streams"]),
+        supersedes=supersedes,
+        supersedes_manifest_sha256=manifest_sha256,
+        compared_versions=tuple(version["corpus_id"] for version in projected(predecessors)),
+        delta=(
+            VersionDelta((), (), ())
+            if isinstance(nearest, Unprojected)
+            else compare_versions(streams, nearest["streams"])
+        ),
+        not_compared=tuple(
+            version.gap() for version in predecessors if isinstance(version, Unprojected)
+        ),
     )
+
+
+def _identity(version: Predecessor) -> tuple[str, str]:
+    """Return a predecessor's name and seal, which every major states."""
+    if isinstance(version, Unprojected):
+        return version.corpus_id, version.manifest_sha256
+    return str(version["corpus_id"]), str(version[SEAL_FIELD])
 
 
 def _placements(streams: Iterable[StreamRecord]) -> dict[str, Placement]:

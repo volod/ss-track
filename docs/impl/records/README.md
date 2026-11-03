@@ -25,5 +25,6 @@ Copy the [template](template.md) using the
 | 0018 | `corpus-contract-baseline` | [0018-data-contracts-corpus-contract-baseline](0018-data-contracts-corpus-contract-baseline.md) |
 | 0019 | `contract-evolution-gate` | [0019-data-contracts-contract-evolution-gate](0019-data-contracts-contract-evolution-gate.md) |
 | 0020 | `contract-enforced-readers` | [0020-data-contracts-contract-enforced-readers](0020-data-contracts-contract-enforced-readers.md) |
+| 0021 | `record-read-window` | [0021-data-contracts-record-read-window](0021-data-contracts-record-read-window.md) |
 
-Next unused sequence: `0021`.
+Next unused sequence: `0022`.

@@ -73,17 +73,16 @@ contracts:
     reason: No retained runtime evidence needs this major; historic files in tests
       are compatibility fixtures, not usable corpus evidence. No contract is frozen
       for this major.
-    migration: 'Build a new corpus version under a new corpus_id. It cannot name this
-      one in supersedes, so nothing checks its splits against this one: keep every
-      source in the split this one gave it.'
+    migration: Build a new corpus version under a new corpus_id that names this one
+      in supersedes. This major states no group or split, so lineage reports it as
+      not_compared and checks nothing against it.
   - major: 2
     status: retired
     reason: No retained runtime evidence needs this major; historic files in tests
       are compatibility fixtures, not usable corpus evidence. No contract is frozen
       for this major.
-    migration: 'Build a new corpus version under a new corpus_id. It cannot name this
-      one in supersedes, so nothing checks its splits against this one: keep every
-      source in the split this one gave it.'
+    migration: Build a new corpus version under a new corpus_id that names this one
+      in supersedes; lineage and shared frames compare it through this major's projection.
 - family: record
   id: frame-bundle
   owner: corpus-provenance
@@ -156,9 +155,10 @@ contracts:
         with no record bytes changed.
   retired_majors:
   - major: 1
-    status: retired
-    reason: No retained runtime evidence needs this major; historic files in tests
-      are compatibility fixtures, not usable corpus evidence. No contract is frozen
+    status: facts
+    reason: A retained source record of this major lacks retain_until and derived_frames,
+      which only an operator can state, so it serves no evidence; an amendment reads
+      its stated facts and writes the current major beside it. No contract is frozen
       for this major.
     migration: Record its terms with ss-track import --amend-terms.
 - family: record
@@ -206,6 +206,15 @@ contracts:
       class: minor
       summary: List the migration a holder of a record of each retired major must
         make.
+  - version: 1.3.0
+    file_sha256: 91c273d9a78cdb49548902f0fbda57e82433b6371abc0be2ca215d1eea85a063
+    fingerprints:
+      structure: 97a9cfe223c95e8c6c4e93da77caeb4b6ccf2feb8f527549905ce918622ae275
+      meaning: e2594fb21e9cb996da7fb6dd546578a46be9f5f76590385cb7f45d6f2a37d5b5
+    change:
+      class: minor
+      summary: List a historic major's facts disposition, and name the predecessors
+        a lineage could not compare.
 - family: shared
   id: types
   owner: data-contracts

@@ -13,10 +13,10 @@ from typing import Any
 from ss_track.canonical import SEAL_FIELD, canonical_json, sha256_bytes
 from ss_track.corpus.builder import CORPUS_DIRECTORY
 from ss_track.corpus.importer import MANIFEST_NAME
+from ss_track.corpus.kinds import FRAME_BUNDLE_KIND
 from ss_track.corpus.sealed import RecordFormat, read_sealed, sha256_file
 from ss_track.refusal import CorpusRefusal, JsonValue, RefusalCode
 
-FRAME_BUNDLE_KIND = "ss-track.frame-bundle"
 BUNDLE_SCHEMA_VERSION = 3
 FRAME_BUNDLE = RecordFormat(FRAME_BUNDLE_KIND, BUNDLE_SCHEMA_VERSION)
 FRAMES_DIRECTORY = "frames"
@@ -230,23 +230,30 @@ def open_corpus_bundle(stream_id: str, corpus: Mapping[str, Any], root: Path) ->
             {"stream_id": stream_id},
         )
     bundle = open_frame_bundle(directory)
-    if bundle.corpus_manifest_sha256 != corpus[SEAL_FIELD]:
+    require_bundle_place(stream_id, corpus, bundle.corpus_manifest_sha256, bundle.stream_id)
+    return bundle
+
+
+def require_bundle_place(
+    stream_id: str, corpus: Mapping[str, Any], staged_from: JsonValue, bundle_stream_id: JsonValue
+) -> None:
+    """Refuse a bundle staged from another corpus version, or holding another stream."""
+    if staged_from != corpus[SEAL_FIELD]:
         raise CorpusRefusal(
             RefusalCode.BUNDLE_CONFLICT,
             "this bundle was staged from a different corpus version",
             {
                 "stream_id": stream_id,
-                "bundle_corpus_manifest_sha256": bundle.corpus_manifest_sha256,
+                "bundle_corpus_manifest_sha256": staged_from,
                 "corpus_manifest_sha256": corpus[SEAL_FIELD],
             },
         )
-    if bundle.stream_id != stream_id:
+    if bundle_stream_id != stream_id:
         raise CorpusRefusal(
             RefusalCode.BUNDLE_CONFLICT,
             "this bundle belongs to another stream, which may sit in another split",
-            {"stream_id": stream_id, "bundle_stream_id": bundle.stream_id},
+            {"stream_id": stream_id, "bundle_stream_id": bundle_stream_id},
         )
-    return bundle
 
 
 def _identity(manifest: Mapping[str, Any]) -> dict[str, JsonValue]:

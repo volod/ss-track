@@ -11,7 +11,6 @@ from typing import Any
 import av
 
 from ss_track.canonical import SEAL_FIELD, sha256_bytes
-from ss_track.corpus.builder import load_verified_source
 from ss_track.corpus.decode import DecodePolicy, inspect_media
 from ss_track.corpus.frames import (
     BUNDLE_SCHEMA_VERSION,
@@ -42,6 +41,7 @@ from ss_track.corpus.sealed import (
     seal,
     write_sealed,
 )
+from ss_track.corpus.sources import load_verified_source
 from ss_track.refusal import CorpusRefusal, JsonValue, RefusalCode
 
 _LOG = logging.getLogger(__name__)

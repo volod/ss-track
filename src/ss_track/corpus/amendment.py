@@ -32,6 +32,7 @@ from ss_track.corpus.importer import (
 from ss_track.corpus.sealed import (
     SCRATCH_PREFIX,
     read_sealed,
+    read_stated,
     schema_details,
     seal,
     sha256_file,
@@ -39,13 +40,13 @@ from ss_track.corpus.sealed import (
 )
 from ss_track.corpus.terms import changed_terms
 from ss_track.refusal import CorpusRefusal, JsonValue, RefusalCode
+from ss_track.schema.store import FACTS, VIEW
 
 AMENDED = "amended"
 UNCHANGED = "unchanged"
 REPLACED_DIRECTORY = "replaced"
 _LOCK_NAME = ".amendment.lock"
 _REPLACED_SUFFIX = ".json"
-_SCHEMA_WITHOUT_TERMS = 1  # lacks retain_until and derived_frames, which only an operator can state
 _POLICY_KEYS = frozenset(item.name for item in fields(DecodePolicy))
 _DECODE_AGAIN_REMEDY = "remove this source's import directory and import it again"
 
@@ -127,8 +128,10 @@ def _exclusive_amendment(data_root: Path) -> Iterator[None]:
 
 def _amend(declaration: RecordingDeclaration, sha256: str, directory: Path) -> AmendmentResult:
     path = directory / MANIFEST_NAME
-    existing = read_sealed(path, SOURCE_MANIFEST, older_majors=(_SCHEMA_WITHOUT_TERMS,))
-    _require_amendable(existing, declaration, sha256, path)
+    stated = read_stated(path, SOURCE_MANIFEST)
+    # A view major reads as the current one; a `facts` major is what an amendment exists to replace.
+    existing = read_sealed(path, SOURCE_MANIFEST) if stated.disposition == VIEW else stated.record
+    _require_amendable(existing, stated.disposition, declaration, sha256, path)
     body = {key: value for key, value in existing.items() if key != SEAL_FIELD}
     sealed = seal(body | {"schema_version": SCHEMA_VERSION} | declared_terms(declaration))
     current = _policy_is_installed(existing)
@@ -150,9 +153,13 @@ def _amend(declaration: RecordingDeclaration, sha256: str, directory: Path) -> A
 
 
 def _require_amendable(
-    record: Mapping[str, Any], declaration: RecordingDeclaration, sha256: str, path: Path
+    record: Mapping[str, Any],
+    disposition: str | None,
+    declaration: RecordingDeclaration,
+    sha256: str,
+    path: Path,
 ) -> None:
-    if record["schema_version"] == _SCHEMA_WITHOUT_TERMS:
+    if disposition == FACTS:
         _require_current_facts(record, sha256, path)
     facts = changed_facts(record, declaration)
     if facts:
@@ -164,7 +171,11 @@ def _require_amendable(
 
 
 def _require_current_facts(record: Mapping[str, Any], sha256: str, path: Path) -> None:
-    """Refuse an older record that writing forward would leave short of the current major."""
+    """Refuse an older record that writing forward would leave short of the current major.
+
+    `SEQUENCE_KEYS` is the check that a record holds the current decoded facts: records of one
+    major differ here, since the earliest source records of major 1 lack four of them.
+    """
     sequence = record.get("sequence", {}).keys()
     policy = record.get("decode_policy", {}).keys()
     missing = [f"sequence.{key}" for key in sorted(SEQUENCE_KEYS - sequence)]

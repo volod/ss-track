@@ -102,8 +102,8 @@ split, and its build says only that it has no lineage.
   Source hashes on one data root only. Versions in the declared chain stay with the refusal.
 - Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/corpus/`.
 - Execution path: Scan `$DATA_DIR/corpus/*/manifest.json` and reuse the placement comparison in
-  `lineage.py`, reading every major through its projection once `record-read-window` provides one, and
-  naming a manifest it cannot read rather than skipping it.
+  `lineage.py`, reading every major through `read_comparable` and its projection, and naming a
+  manifest it cannot read, or one whose major keeps no projection, rather than skipping it.
 - Acceptance gates: A source placed in `locked` by an unlinked version and by a sibling branch are
   each listed with both versions, and both builds succeed. One state gives one listing in one order,
   and a version in the declared chain is never listed.
@@ -125,8 +125,9 @@ After `--amend-terms` an operator learns which corpus versions hold the affected
   an amendment that is already recorded. Other hosts stay out of reach.
 - Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/corpus/`.
 - Execution path: Scan `$DATA_DIR/corpus/*/manifest.json` for streams pinning the replaced seal, sharing
-  the scan with `unlinked-version-report` when that exists, reading every major through its projection
-  once `record-read-window` provides one, and naming a manifest it cannot read rather than skipping it.
+  the scan with `unlinked-version-report` when that exists. A corpus projection holds no pin, so add
+  `source_manifest_sha256` to each major's projection in `corpus/projections.py`, read every major
+  through `read_comparable`, and name a manifest it cannot read rather than skipping it.
 - Acceptance gates: A source pinned by two versions lists both, a version pinning another record is
   not listed, an unreadable manifest is named and the amendment still records, and a repeat reporting
   `unchanged` lists nothing. One state gives one listing in one order.
@@ -369,44 +370,6 @@ import, build, stage and verify as one path.
 
 ### Data contracts -- `data-contracts`
 
-#### record-read-window
-
-A format change sends every record to a fresh data root, and a predecessor of another major cannot be
-compared, so the only exit drops `supersedes` and the split guard with it.
-
-- Serves: `data-contracts` -- [Reading older records](../design/spec.md#reading-older-records)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: Each older major declares `view`, `facts` or `retired`. A view record serves
-  as evidence with no byte, seal or cohort change, and `supersedes` works across majors.
-- Scope boundary: Pure in-memory views stepping one major at a time, one comparison projection per
-  major, and accepted majors in the registry. Nothing rewrites a sealed record. A view never derives
-  an operator judgment or changes an algorithm revision. No views for the retired historic majors,
-  whose records are test data only.
-- Data and artifact paths: `src/ss_track/schema/`, `src/ss_track/corpus/`, `tests/schema/`,
-  `tests/corpus/`.
-- Execution path: Consume each major transition's `change.disposition` in the read path, then route
-  `lineage.py`,
-  `duplicate_frames.py` and the unlinked listing through the projection. Prove it with a synthetic next
-  major of a real contract in the tests. Replace the `older_majors` argument and the older-major
-  constant in `amendment.py` with the `facts` disposition, and keep `SEQUENCE_KEYS` as the check that
-  a record holds the current facts. Read a predecessor's bundle through its projection, so
-  `other_schema` means only that no projection exists, and rewrite the corpus-manifest `migration`
-  text in `contracts/registry.yaml`, which warns that nothing checks splits against a version
-  `supersedes` cannot name. The key check in `terms.py` still refuses a schema-3 corpus manifest
-  sealed before source terms existed, such as `corpus-schema-3-d6b704d.json`, because no major tells
-  it apart: give that shape one stated route on the read path and remove the check.
-- Acceptance gates: A view major verifies with its frame-set hash and file bytes unchanged. A
-  `facts` major is refused as evidence, stays inspectable, and a move of its source is
-  `SPLIT_LEAKAGE` and not a schema refusal. A view that derives a rights field fails a test.
-  `DECODE_POLICY_MISMATCH` still refuses through a view. A predecessor with no projection is
-  `not_compared`, never a failure of its successor. The five real bumps replay to their
-  dispositions: `view` for bundle 1 to 2, bundle 2 to 3 and corpus 2 to 3, and `facts` for corpus 1
-  to 2 and source 1 to 2.
-- Documentation target: [Current implementation](current.md#areas), pages `current/contracts.md` and
-  `current/corpus.md`.
-
 #### contract-oracle-coverage (optional)
 
 An independent structural oracle must distinguish real compatibility breaks from gaps in its own
@@ -514,11 +477,17 @@ twice and an older-major rule can sit in code the registry should own.
   `contracts/`, `src/ss_track/schema/`, `tests/schema/`, `docs/guide/authoring-contracts.md`,
   `contracts/declaration/`, `contracts/record/`, `contracts/result/`.
 - Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from the
-  code that still knows a version: the older-major constant in `amendment.py`, `SEQUENCE_KEYS`, and
-  any structural rule left in a hand-written reader. `Fields.text` in `corpus/fields.py` refuses
-  whitespace-only text and a value YAML read as a date, which `declaration/recording` 2.0.0 and
-  `declaration/corpus` 3.0.0 do not state, so `contracts validate` accepts what a reader refuses:
-  state both in each next declaration major or keep them as named reader rules. Then replay every
+  code that still knows a version: `SEQUENCE_KEYS`, the projection table in `corpus/projections.py`,
+  the stated-shape table in `corpus/read_window.py`, and any structural rule left in a hand-written
+  reader. `PROTECTED_PROPERTIES` in `schema/dispositions.py` names operator judgments and algorithm
+  revisions by property name, a rule the contracts could state as an annotation: state it there in
+  each next major or keep it as a named code rule. A view's purity and undeclared derivations are
+  checked by `check_view` in tests only, because walking every value of a million-frame bundle on
+  each read costs seconds: decide whether a view's first read should check it. `Fields.text` in
+  `corpus/fields.py` refuses whitespace-only text and a value YAML read as a date, which
+  `declaration/recording` 2.0.0 and `declaration/corpus` 3.0.0 do not state, so `contracts validate`
+  accepts what a reader refuses: state both in each next declaration major or keep them as named
+  reader rules. Then replay every
   record in `tests/corpus/records/` and compare the change log with the real bumps.
 - Acceptance gates: Every historic record reads under its disposition with its bytes and seal
   unchanged, a static search finds no version check outside the read path, and `corpus verify` on a

@@ -1,6 +1,5 @@
 """`ss-track corpus build`: bind imported sources into one immutable, hashed corpus version."""
 
-from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -25,26 +24,27 @@ from ss_track.corpus.grouping import (
 )
 from ss_track.corpus.importer import (
     MANIFEST_NAME,
-    SOURCE_MANIFEST,
     decode_policy_sha256,
-    source_directory,
 )
+from ss_track.corpus.kinds import CORPUS_MANIFEST_KIND
 from ss_track.corpus.lineage import (
     Lineage,
+    Predecessor,
     lineage_record,
     link_field,
     read_predecessors,
     require_same_places,
     trace_lineage,
 )
+from ss_track.corpus.projections import Unprojected
 from ss_track.corpus.recipes import case_records
-from ss_track.corpus.sealed import RecordFormat, read_sealed, seal, sha256_file, write_sealed
-from ss_track.corpus.terms import changed_terms, evaluation_date, require_retention
+from ss_track.corpus.sealed import RecordFormat, read_comparable, read_sealed, seal, write_sealed
+from ss_track.corpus.sources import load_verified_source
+from ss_track.corpus.terms import evaluation_date, require_retention
 from ss_track.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.schema.enforce import is_shared_type
 
 CORPUS_MANIFEST_SCHEMA_VERSION = 3
-CORPUS_MANIFEST_KIND = "ss-track.corpus-manifest"
 CORPUS_DIRECTORY = "corpus"
 CAMERA_MODALITY = "camera"
 CORPUS_MANIFEST = RecordFormat(CORPUS_MANIFEST_KIND, CORPUS_MANIFEST_SCHEMA_VERSION)
@@ -78,13 +78,25 @@ class BuildResult:
 
 
 def load_corpus_manifest(corpus_id: str, data_root: Path) -> dict[str, JsonValue]:
-    """Read one built corpus version, refusing an identifier that cannot name one."""
+    """Read one built corpus version as evidence, refusing an identifier that cannot name one."""
+    return read_sealed(_corpus_path(corpus_id, data_root), CORPUS_MANIFEST)
+
+
+def load_predecessor(corpus_id: str, data_root: Path) -> Predecessor:
+    """Read a declared predecessor of any major through its projection, for the comparison rules."""
+    found = read_comparable(_corpus_path(corpus_id, data_root), CORPUS_MANIFEST)
+    if found.projected is None:
+        return Unprojected(corpus_id, found.seal)
+    return found.projected
+
+
+def _corpus_path(corpus_id: str, data_root: Path) -> Path:
     path = data_root / CORPUS_DIRECTORY / corpus_id / MANIFEST_NAME
     if not is_shared_type("identifier", corpus_id) or not path.is_file():
         raise CorpusRefusal(
             RefusalCode.CORPUS_NOT_BUILT, "no such corpus version", {"corpus_id": corpus_id}
         )
-    return read_sealed(path, CORPUS_MANIFEST)
+    return path
 
 
 def build_corpus(
@@ -98,7 +110,7 @@ def build_corpus(
     require_policy(declaration.decode_policy_sha256, policy_sha256, "corpus declaration")
     require_one_membership(declaration)
     predecessors = read_predecessors(
-        declaration.supersedes, lambda corpus_id: load_corpus_manifest(corpus_id, data_root)
+        declaration.supersedes, lambda corpus_id: load_predecessor(corpus_id, data_root)
     )
     streams = sorted(
         (
@@ -158,51 +170,6 @@ def require_policy(found: JsonValue, expected: str, origin: str) -> None:
             f"{origin} uses a different decode policy than the installed decoder",
             {"found_decode_policy_sha256": found, "installed_decode_policy_sha256": expected},
         )
-
-
-def load_source_record(source_sha256: str, data_root: Path) -> dict[str, JsonValue]:
-    """Read one imported source's record, refusing a source that was never imported."""
-    manifest_path = source_directory(data_root, source_sha256) / MANIFEST_NAME
-    if not manifest_path.is_file():
-        raise CorpusRefusal(
-            RefusalCode.SOURCE_NOT_IMPORTED,
-            "the corpus names a source that has not been imported",
-            {"source_sha256": source_sha256},
-        )
-    return read_sealed(manifest_path, SOURCE_MANIFEST)
-
-
-def require_source_record(stream: Mapping[str, Any], data_root: Path) -> None:
-    """Refuse a stream whose source was re-imported, because the corpus states its old rights."""
-    manifest = load_source_record(stream["source_sha256"], data_root)
-    if manifest[SEAL_FIELD] != stream["source_manifest_sha256"]:
-        raise CorpusRefusal(
-            RefusalCode.SOURCE_RECORD_CHANGED,
-            "this source's record changed after the corpus was built; build a new corpus version",
-            {
-                "stream_id": stream["stream_id"],
-                "source_sha256": stream["source_sha256"],
-                "corpus_source_manifest_sha256": stream["source_manifest_sha256"],
-                "source_manifest_sha256": manifest[SEAL_FIELD],
-                "changed_terms": list(changed_terms(stream, manifest)),
-            },
-        )
-
-
-def load_verified_source(source_sha256: str, data_root: Path) -> dict[str, JsonValue]:
-    """Load a source record only if both the record and the stored bytes are still intact."""
-    manifest = load_source_record(source_sha256, data_root)
-    source = manifest["source"]
-    if not isinstance(source, dict):
-        raise CorpusRefusal(RefusalCode.RECORD_TAMPERED, "source record has no source section")
-    stored = source_directory(data_root, source_sha256) / str(source["stored_name"])
-    if not stored.is_file() or sha256_file(stored) != source_sha256:
-        raise CorpusRefusal(
-            RefusalCode.SOURCE_HASH_MISMATCH,
-            "stored source bytes do not match the imported hash",
-            {"source_sha256": source_sha256},
-        )
-    return manifest
 
 
 def _resolve_selection(stream: StreamDeclaration, frame_count: int) -> dict[str, JsonValue]:

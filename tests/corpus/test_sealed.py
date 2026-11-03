@@ -12,7 +12,9 @@ from ss_track.corpus.sealed import (
     UNSTATED,
     RecordFormat,
     copy_with_sha256,
+    read_comparable,
     read_sealed,
+    read_stated,
     seal,
     sha256_file,
     write_sealed,
@@ -209,11 +211,16 @@ def test_a_refusal_states_the_record_its_major_its_age_and_the_remedy(
     assert remedy in refusal.message
 
 
-def test_a_reader_that_replaces_an_older_major_may_name_it(tmp_path: Path) -> None:
+def test_an_older_record_no_change_log_states_is_neither_stated_nor_projected(
+    tmp_path: Path,
+) -> None:
     path = tmp_path / "record.json"
     path.write_text(json.dumps(self_sealed(BODY | {"schema_version": 2})), encoding="ascii")
 
-    assert read_sealed(path, FORMAT, older_majors=(2,))["schema_version"] == 2
     with pytest.raises(CorpusRefusal) as caught:
-        read_sealed(path, FORMAT, older_majors=(1,))
-    assert caught.value.details["accepted_schema_versions"] == [1, 3]
+        read_stated(path, FORMAT)
+    assert caught.value.details["disposition"] is None
+    assert caught.value.details["accepted_schema_versions"] == [3]
+    found = read_comparable(path, FORMAT)
+    assert (found.major, found.projected) == (2, None)
+    assert found.seal == json.loads(path.read_text(encoding="ascii"))["manifest_sha256"]

@@ -6,6 +6,7 @@ written by the code of its own era. See `records/README.md`.
 
 import re
 from pathlib import Path
+from unittest.mock import ANY
 
 import pytest
 import yaml
@@ -26,7 +27,7 @@ from ss_track.corpus.frames import FRAME_BUNDLE
 from ss_track.corpus.hash_comparison import HASH_COMPARISON_KIND, HASH_COMPARISON_SCHEMA_VERSION
 from ss_track.corpus.host_hashes import STAGED_HASHES, read_staged_hashes
 from ss_track.corpus.importer import SOURCE_MANIFEST
-from ss_track.corpus.sealed import RecordFormat, read_sealed
+from ss_track.corpus.sealed import RecordFormat, read_comparable, read_sealed
 from ss_track.schema.enforce import older_remedy
 from tests.corpus._amending import read_source, rights_with
 from tests.corpus._historic import RECORDS, place_record
@@ -86,9 +87,9 @@ def _format_of(name: str) -> RecordFormat:
 def test_a_kept_record_is_intact_named_for_what_it_holds_and_listed(name: str) -> None:
     major = _major_of(name)
 
-    record = read_sealed(RECORDS / name, _format_of(name), older_majors=(major,))
+    record = read_comparable(RECORDS / name, _format_of(name))
 
-    assert record["schema_version"] == major
+    assert record.major == major
     assert name in (RECORDS / "README.md").read_text(encoding="utf-8")
 
 
@@ -139,8 +140,9 @@ def test_a_corpus_that_entered_schema_3_without_terms_refuses_by_name(
     details = refusal["details"]
     assert isinstance(details, dict)
     assert "--amend-terms" in str(details["remedy"])
-    assert details["stream_id"] == "one"
-    assert details["source_sha256"]
+    assert details["shape"] == "corpus-3-without-source-terms"
+    assert details["disposition"] == "facts"
+    assert details["lacking"] == ["one"]
 
 
 @pytest.mark.parametrize("record", _OLDER_BUNDLES)
@@ -224,8 +226,11 @@ def test_a_newer_source_is_told_apart_from_an_older_one(
 
 
 @pytest.mark.parametrize("major", [1, 2])
-def test_the_remedy_of_an_older_corpus_warns_that_no_guard_checks_its_splits(major: int) -> None:
-    assert "keep every source in the split" in str(older_remedy(CORPUS_MANIFEST.kind, major))
+def test_the_remedy_of_an_older_corpus_names_it_in_supersedes(major: int) -> None:
+    remedy = str(older_remedy(CORPUS_MANIFEST.kind, major))
+
+    assert "names this one in supersedes" in remedy
+    assert ("not_compared" in remedy) is (major == 1)
 
 
 @pytest.mark.parametrize(
@@ -252,11 +257,8 @@ def test_a_rebuild_over_an_older_corpus_is_refused_for_its_schema(
     _older(caught.value.details, CORPUS_MANIFEST, 2)
 
 
-def test_a_predecessor_manifest_of_another_major_stays_refused_at_build(
-    imported: ImportResult, media: Path, data_root: Path
-) -> None:
-    place_record(_OLDER_CORPORA[1], _corpus_path(data_root))
-    group = group_of("site-a", "development", encounter_of("enc", stream_of(imported)))
+def _successor(media: Path, imported: ImportResult, split: str = "development") -> Path:
+    group = group_of("site-a", split, encounter_of("enc", stream_of(imported)))
     declared = media / "next.yaml"
     declared.write_text(
         yaml.safe_dump(
@@ -270,9 +272,36 @@ def test_a_predecessor_manifest_of_another_major_stays_refused_at_build(
         ),
         encoding="utf-8",
     )
+    return declared
 
-    with pytest.raises(CorpusRefusal) as caught:
-        build_corpus(declared, data_root)
 
-    assert caught.value.code is RefusalCode.RECORD_SCHEMA_UNSUPPORTED
-    _older(caught.value.details, CORPUS_MANIFEST, 2)
+def test_a_predecessor_of_major_2_is_compared_through_its_projection(
+    imported: ImportResult, media: Path, data_root: Path
+) -> None:
+    kept = place_record(_OLDER_CORPORA[1], _corpus_path(data_root))
+
+    built = build_corpus(_successor(media, imported), data_root)
+
+    lineage = built.to_record()["lineage"]
+    assert isinstance(lineage, dict)
+    assert lineage["compared_versions"] == [_CORPUS]
+    assert "not_compared" not in lineage
+    assert lineage["supersedes_manifest_sha256"] == read_comparable(kept, CORPUS_MANIFEST).seal
+    assert lineage["removed"] == [
+        {"source_sha256": ANY, "group_id": "site-a", "split": "development"}
+    ]
+
+
+def test_a_predecessor_of_major_1_holds_no_split_and_is_not_compared(
+    imported: ImportResult, media: Path, data_root: Path
+) -> None:
+    place_record(_OLDER_CORPORA[0], _corpus_path(data_root))
+
+    lineage = build_corpus(_successor(media, imported, "locked"), data_root).to_record()["lineage"]
+
+    assert lineage == lineage | {
+        "status": "linked",
+        "compared_versions": [],
+        "not_compared": [{"corpus_id": _CORPUS, "reason": "other_schema", "stream_ids": []}],
+        "added": [],
+    }

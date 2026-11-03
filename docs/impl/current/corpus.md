@@ -234,6 +234,22 @@ everything the rules read, nearest first:
  "removed": [], "kept": [{"source_sha256": "...", "group_id": "site-a", "split": "development"}]}}
 ```
 
+A predecessor is read through its major's [comparison projection](#reading-sealed-records), so a
+version may name one of any major, whatever its disposition: a `facts` or `retired` version still
+guards its splits, and a move out of it is `SPLIT_LEAKAGE`, not a schema refusal. One whose major has
+no projection, such as corpus major 1 or a newer major, still has its seal pinned in `supersedes`,
+ends the chain, and is listed rather than failing the build. `compared_versions` may then be empty,
+and `added`, `removed` and `kept` are empty when it is the named version:
+
+```json
+{"status": "built", "lineage": {"status": "linked", "supersedes": "pilot-v1",
+ "supersedes_manifest_sha256": "...", "compared_versions": [], "added": [], "removed": [],
+ "kept": [], "not_compared": [{"corpus_id": "pilot-v1", "reason": "other_schema", "stream_ids": []}]}}
+```
+
+`not_compared` appears only when a version in the chain was not compared, so a fully compared
+chain reports what it did before.
+
 A version that names nothing reports `{"status": "no_lineage"}`, and nothing compared it with anything:
 the same source can sit in `locked` there, and so can it in a sibling that branches from one
 predecessor. `unlinked-version-report` in the [plan](../plan.md) schedules a listing of those.
@@ -306,11 +322,13 @@ Both commands report what they compared, because a version not compared is unkno
 | `bundles_removed` | These streams have no bundle. The version's other streams were compared |
 | `manifest_removed` | The manifest is gone, and every version behind it is unknown too |
 | `other_decode_policy` | The version was staged under another decoder. A match still refuses, but finding none proves nothing, because its frames may hash differently |
-| `other_schema` | These streams' bundles are of a major this code cannot read, so their frames are unknown. The version's other streams were compared |
+| `other_schema` | These streams' bundles, or for a lineage the whole version, are of a major that keeps no [comparison projection](#reading-sealed-records), so their facts are unknown. The version's other streams were compared |
 
-A rebuilt predecessor is `CORPUS_CONFLICT`, a damaged record `RECORD_TAMPERED`, a bundle of another
-stream `BUNDLE_CONFLICT`, and a predecessor manifest of another major `RECORD_SCHEMA_UNSUPPORTED`:
-those are refused rather than compared. `corpus verify` repeats the
+A rebuilt predecessor is `CORPUS_CONFLICT`, a damaged record `RECORD_TAMPERED`, and a bundle of
+another stream or version `BUNDLE_CONFLICT`: those are refused rather than compared. A predecessor
+and its bundles are read through their majors' projections, so one of another major is compared
+when its major holds the facts, and named under `other_schema` when it does not; a predecessor
+manifest with no projection ends the chain there. `corpus verify` repeats the
 check because a predecessor staged after its successor was not there to compare with, and that
 successor's frame set stays as it was. The result is never sealed: it depends on what a data root
 holds, and a frame set must not.
@@ -366,7 +384,8 @@ execution or corpus publication. Both new fields are required. Quoted and unquot
 normalize to the same ISO string. Numbers, timestamps, invalid dates and string booleans are refused.
 
 Source manifests now use schema 2. Old source manifests and corpus records missing the new terms
-are refused with `RECORD_SCHEMA_UNSUPPORTED`; their terms are never guessed. A
+are refused with `RECORD_SCHEMA_UNSUPPORTED` and the `facts` disposition; their terms are never
+guessed. A
 [re-import over an old source](#reading-sealed-records) is refused the same way. An old source record
 gains its terms through an [amendment](#withdrawing-rights), and a new corpus version then uses it. No
 automatic migration runs.
@@ -431,7 +450,7 @@ until it is decoded again.
 | Changed `capture` or capture-clock evidence | `IMPORT_CONFLICT`, naming `changed_facts` |
 | File that contradicts its declared hash | `SOURCE_HASH_MISMATCH` |
 | File gone and no declared hash | `SOURCE_NOT_FOUND` |
-| Schema 1 record holding every current decoded fact | Gains the terms and schema 2 |
+| Schema 1 record holding every current decoded fact | Gains the terms and schema 2. Schema 1 is a `facts` major, read as written through `read_stated` |
 | Schema 1 record short of a decoded fact | `RECORD_SCHEMA_UNSUPPORTED`, naming `missing_facts`, with the only remedy today: remove the import directory and import again |
 | Any newer record | `RECORD_SCHEMA_UNSUPPORTED` |
 
@@ -805,57 +824,97 @@ MPEG program streams import as `missing`, because they do not store a presentati
 
 ## Reading sealed records
 
-`read_sealed` in `src/ss_track/corpus/sealed.py` is the one way to read a sealed record, and
-`tests/corpus/test_sealed_reads.py` scans the package so that no module reads around it. It verifies
-the seal, then the kind, then the major, and interprets nothing before the seal has held. Each format
-is one `RecordFormat` beside its writer, holding its kind and the one major this code reads and
-writes. Acceptance is exact: an older major is not read as evidence, and a record is never rewritten
-to fit.
+`src/ss_track/corpus/sealed.py` is the one way to read a sealed record, and
+`tests/corpus/test_sealed_reads.py` scans the package so that no module reads around it, calls
+`read_stated` outside the amendment, or compares a record's `schema_version` outside the read path.
+Each read verifies the seal, then the kind, and interprets nothing before the seal has held. Each
+format is one `RecordFormat` beside its writer, holding its kind and the one major this code
+writes. A record is never rewritten to fit. The read path has three entries:
 
-A record is validated once, in full, by `seal`, before anything is written: a writer defect is
-`RECORD_INVALID` with nothing sealed, and its details name the contract version and violations. A read
-walks no field, so opening a million-frame bundle record costs what it did before contracts were
-enforced; `tests/corpus/test_read_cost.py` holds that fixture. Validating such a record at staging
-costs about 32 seconds, measured on the kept bundle grown to a million frames, which decoding and
-writing those frames far exceeds.
+| Entry | Returns | Used by |
+| --- | --- | --- |
+| `read_sealed` | Evidence: a record of the current major as written, or of a `view` major as the current major, in memory | Every command that uses a record |
+| `read_stated` | A record of the current major, or a `facts` or `view` major, as written, with its disposition | `ss-track import --amend-terms` only |
+| `read_comparable` | The seal, the major and the major's comparison projection, or none, for a record of any major | Lineage and shared-frame checks on predecessors |
 
-A record of another major is refused with what an operator needs to act on it:
+A record of an earlier major takes the strictest disposition of each major it steps through, from the
+contract's change log (see [contracts](contracts.md#runtime-enforcement)). `read_sealed` serves only
+`view` and refuses `facts` and `retired`, and `read_stated` refuses only `retired`. A record of a
+newer major, of a major no change log states, or whose version is not a true integer is refused by
+both.
+
+| Format | Writes | Older majors and their disposition | Remedy for an older record |
+| --- | --- | --- | --- |
+| Source manifest | 2 | 1: `facts` | `ss-track import --amend-terms` |
+| Corpus manifest | 3 | 1, 2: `retired`; schema 3 without source terms: `facts` | Build a new corpus version that names it in `supersedes` |
+| Frame bundle | 3 | 1, 2: `retired` | Build and stage a new corpus version |
+| Frame set, staged hashes | 1 | None | No older major exists |
+
+A refusal says what an operator needs to act on it:
 
 ```json
 {"status": "refused", "code": "RECORD_SCHEMA_UNSUPPORTED",
- "message": "manifest.json (ss-track.source-manifest) has older schema 1; ...",
+ "message": "manifest.json (ss-track.source-manifest) has older schema 1 (facts); ...",
  "details": {"record": "manifest.json", "path": ".../import/<sha256>/manifest.json",
   "kind": "ss-track.source-manifest", "found_schema_version": 1, "accepted_schema_versions": [2],
-  "age": "older", "remedy": "Record its terms with ss-track import --amend-terms."}}
+  "age": "older", "disposition": "facts",
+  "remedy": "Record its terms with ss-track import --amend-terms."}}
 ```
 
-The remedy for an older record is the `migration` text of the contract's change log, its one
-statement: a retired major's own entry in `retired_majors`, or else the first major transition after
-it. A major with neither, which no ss-track version wrote, is told to restore the record from a
-trusted copy.
+`age` is `older`, `newer` or `unstated`, and only an older record names a `disposition`. A newer
+record is refused because this code cannot know what a newer field means, and its remedy is to
+install the version that wrote it. A version that is not a true integer is `unstated`, as `True` and
+`1.0` would otherwise compare equal to 1. `accepted_schema_versions` lists the current major and each
+one a chain of views reaches. The remedy for an older record is the `migration` text of the
+contract's change log, its one statement: a historic major's own entry in `retired_majors`, or else
+the first major transition after it. A major with neither, which no ss-track version wrote, is told
+to restore the record from a trusted copy.
 
-| Format | Reads | Remedy for an older record |
-| --- | --- | --- |
-| Source manifest | 2 | `ss-track import --amend-terms` |
-| Corpus manifest | 3 | Build a new corpus version under a new `corpus_id` |
-| Frame bundle | 3 | Build and stage a new corpus version |
-| Frame set, staged hashes | 1 | No older major exists |
+**Views.** `src/ss_track/corpus/read_window.py` holds one `View` per `view` major: the kind, the major
+it reads, a pure `upcast` to the next major, and `derived`, the JSON pointers of every value it
+derives, with `*` for any list position. Views compose one major at a time, the read path stamps the
+new major and keeps the original seal, so every pin, frame set and cohort key stays as it was, and
+each step is logged with what it derived. A view naming a protected property (see
+[contracts](contracts.md#evolution)), the seal, `kind` or `schema_version` is refused as
+`CONTRACT_SET_INVALID` at read, and so is a `view` disposition with no function installed.
+`check_view` applies a view to a real record and names every value it changed without declaring it,
+or a change to the record it read; tests run it, because it walks every value. No installed major is
+a view today, so the table is empty: `tests/corpus/test_read_window.py` freezes a synthetic next
+corpus major with the real `freeze` and proves both dispositions on records today's code writes.
 
-`age` is `older`, `newer` or `unstated`. A newer record is refused because this code cannot know what
-a newer field means, and its remedy is to install the version that wrote it. A version that is not a
-true integer is `unstated`, as `True` and `1.0` would otherwise compare equal to 1.
+**Stated shapes.** A corpus manifest sealed at schema 3 before source terms existed has no major of
+its own. `stated_shape` tells it apart by one test, whether every stream's `rights` holds
+`retain_until` and `derived_frames`, which reads streams and no frame. It is the
+`corpus-3-without-source-terms` shape, with the `facts` disposition: `read_sealed` refuses it, naming
+`shape` and the streams `lacking` terms, with the remedy to record terms and build a new version,
+and `read_stated` returns it. A shape is read no more freely than its major, so a view never serves
+it. This replaced the key check `corpus/terms.py` held.
 
-A new corpus version cannot name an older one in `supersedes` yet, so nothing checks its splits
-against that version, and the refusal says so: keep every source in the split it held.
-`record-read-window` in the [plan](../plan.md#record-read-window) removes that exception.
+**Comparison projections.** `src/ss_track/corpus/projections.py` holds, per kind and major, the facts
+a leak guard reads from a record as written: a corpus version's `corpus_id`, seal, decode policy
+hash, `supersedes` and each stream's `stream_id`, `source_sha256`, `group_id` and `split`, and a
+bundle's pins and `(frame_index, sha256)` pairs. Corpus majors 2 and 3 and bundle majors 2 and 3 have
+one, whatever their disposition. Corpus major 1 states no group or split, so it has none, and nor
+does bundle major 1, which only a major-1 version staged. A record lacking a fact its projection
+reads is `RECORD_TAMPERED`. A predecessor with no projection is reported as `not_compared` with
+reason `other_schema` and never fails its successor; [version lineage](#version-lineage) and
+[shared frames](#shared-frames) show the results.
 
-`ss-track import --amend-terms` is the one reader of an older major, because it exists to replace
-that record. A plain import refuses an older record before decoding anything, so the remedy costs no
-decode. A record that fails its seal or does not parse is `RECORD_TAMPERED`, including one holding a
-`NaN` or a number too long to read, which no writer can produce.
+A record is validated once, in full, by `seal`, before anything is written: a writer defect is
+`RECORD_INVALID` with nothing sealed, and its details name the contract version and violations. A
+read walks no field beyond a stated shape's test, so opening a million-frame bundle record costs what
+it did before contracts were enforced; `tests/corpus/test_read_cost.py` holds that fixture. Validating
+such a record at staging costs about 32 seconds, measured on the kept bundle grown to a million
+frames, which decoding and writing those frames far exceeds.
+
+A plain import refuses an older record before decoding anything, so the remedy costs no decode. A
+record that fails its seal or does not parse is `RECORD_TAMPERED`, including one holding a `NaN` or a
+number too long to read, which no writer can produce.
 
 `tests/corpus/records/` keeps one real record of every major of every format, each written by the code
 of the commit in its name and listed in its `README.md`, and a test fails when a new major has none.
+The [read window record](../records/0021-data-contracts-record-read-window.md) holds the accepted
+task, its decisions and its evidence.
 
 ## Refusal codes
 
@@ -884,7 +943,7 @@ of the commit in its name and listed in its `README.md`, and a test fails when a
 | `TRANSFORM_REVISION_MISMATCH` | A stored case needs a transform revision this code does not provide |
 | `RECORD_TAMPERED` | A sealed record is missing, malformed, of another kind or fails its seal, or a re-import finds changed stored bytes |
 | `RECORD_INVALID` | A writer produced a record its contract refuses; nothing is sealed or written. This is a defect of ss-track, not of the input |
-| `RECORD_SCHEMA_UNSUPPORTED` | [Any sealed record](#reading-sealed-records) is of a major this code does not read, including at a re-import or rebuild over it, corpus source terms are absent, or an amendment finds a record it cannot write forward |
+| `RECORD_SCHEMA_UNSUPPORTED` | [Any sealed record](#reading-sealed-records) is of a major or stated shape this code does not serve as evidence, including at a re-import or rebuild over it and a corpus without source terms, or an amendment finds a record it cannot write forward |
 | `DECODE_POLICY_MISMATCH` | A source or pin uses a decode policy other than the installed one |
 | `IMPORT_CONFLICT` | The same source was imported at the current major with another declaration or decoder, or an amendment names bytes with no record or changes more than terms |
 | `CORPUS_CONFLICT` | The `corpus_id` already exists with different content, or a superseded version differs from the seal its successor pinned, at build, stage or verify |
@@ -981,7 +1040,9 @@ amendment from the command to the kept records, including a subprocess killed at
 schema 1 records from `tests/corpus/records/`, each written by the code of the commit in its name.
 `tests/corpus/test_sealed.py` covers the read path itself and `test_sealed_reads.py` scans for reads
 around it. `test_historic_records.py` runs every kept record through the commands that can reach it,
-and `test_duplicate_frames_major.py` covers a predecessor's bundle of another major.
+`test_duplicate_frames_major.py` covers a predecessor's bundles of another major, real and
+unprojected, and `test_read_window.py` covers a synthetic next major read as a view and as `facts`, a
+view deriving a rights field, a decode policy mismatch through a view and the stated shape.
 `tests/corpus/test_transforms.py`, `test_transform_recipes.py` and `test_transform_golden.py` cover
 each transform on hand-checkable frames and pin its bytes, and `test_recipes.py`,
 `test_generated_cases.py`, `test_case_membership.py` and `test_case_frames.py` cover recipes and

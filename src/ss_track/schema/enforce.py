@@ -17,9 +17,11 @@ from referencing import Registry
 from ss_track.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.schema._documents import _read_document
 from ss_track.schema.store import (
+    DISPOSITIONS,
     RECORD_FAMILY,
     SHARED_FAMILY,
     VERSION_FIELD,
+    VIEW,
     Contract,
     ContractSet,
     FrozenVersion,
@@ -142,6 +144,29 @@ def older_remedy(kind: str, major: int) -> str | None:
     """Return the migration the change log states for a record of an earlier major, if any."""
     contract = _installed().records.get(kind)
     return None if contract is None else contract.migration_from(major)
+
+
+def older_disposition(kind: str, found: int, current: int) -> str | None:
+    """Return how a record of an earlier major is read: the strictest step it takes to `current`.
+
+    Views compose one major at a time, so a record is a view only when every step is one. A step no
+    change log states, which no version wrote, leaves the record with no disposition.
+    """
+    contract = _installed().records.get(kind)
+    if contract is None or not 0 <= found < current:
+        return None
+    steps = [contract.disposition_of(major) for major in range(found, current)]
+    if any(step not in DISPOSITIONS for step in steps):
+        return None
+    return max((str(step) for step in steps), key=DISPOSITIONS.index)
+
+
+def readable_majors(kind: str, current: int) -> list[int]:
+    """Return every major a tool reads as evidence: its own and each one a view reaches."""
+    return [
+        *(major for major in range(current) if older_disposition(kind, major, current) == VIEW),
+        current,
+    ]
 
 
 def is_shared_type(type_name: str, value: object) -> bool:

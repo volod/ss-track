@@ -50,7 +50,7 @@
         },
         "retired_majors": {
           "type": "array",
-          "description": "Historic majors with no frozen contract or retained runtime evidence. Test fixtures may remain.",
+          "description": "Historic majors with no frozen contract, each with its disposition: facts while a retained record of it has a route, retired once none needs one.",
           "items": {"$ref": "#/$defs/retired-major"}
         },
         "versions": {
@@ -129,7 +129,7 @@
       "required": ["major", "status", "reason", "migration"],
       "properties": {
         "major": {"type": "integer", "minimum": 1},
-        "status": {"const": "retired"},
+        "status": {"enum": ["facts", "retired"]},
         "reason": {"type": "string", "minLength": 1},
         "migration": {"type": "string", "minLength": 1}
       }
