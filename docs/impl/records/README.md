@@ -28,4 +28,6 @@ Copy the [template](template.md) using the
 | 0021 | `record-read-window` | [0021-data-contracts-record-read-window](0021-data-contracts-record-read-window.md) |
 | 0022 | `contract-oracle-coverage` | [0022-data-contracts-contract-oracle-coverage](0022-data-contracts-contract-oracle-coverage.md) |
 
-Next unused sequence: `0023`.
+| 0023 | `contract-reference-docs` | [0023-data-contracts-contract-reference-docs](0023-data-contracts-contract-reference-docs.md) |
+
+Next unused sequence: `0024`.

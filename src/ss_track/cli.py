@@ -26,6 +26,7 @@ from ss_track.corpus import import_source as run_import
 from ss_track.metadata import project_info
 from ss_track.paths import resolve_data_root
 from ss_track.schema import ContractList, ValidationResult, list_contracts, validate_file
+from ss_track.schema.docs import DocsResult, render_docs
 from ss_track.schema.freeze import EvolutionResult, diff_contract, freeze_contract
 
 EXIT_OK = 0
@@ -59,7 +60,9 @@ def _report(action: Callable[[Path], CorpusResult]) -> int:
 
 
 def _reported(
-    action: Callable[[], CorpusResult | ContractList | ValidationResult | EvolutionResult],
+    action: Callable[
+        [], CorpusResult | ContractList | ValidationResult | EvolutionResult | DocsResult
+    ],
 ) -> int:
     """Run one action and report one JSON record for its result or its refusal."""
     try:
@@ -157,6 +160,9 @@ def _add_contract_commands(
     """Add the commands that read only the contract set, so they need no data root."""
     contracts = subcommands.add_parser("contracts", help="read the published data contracts")
     commands = contracts.add_subparsers(dest="contracts_command", required=True)
+    docs = commands.add_parser("docs", help="write contract reference Markdown")
+    docs.add_argument("--out", type=Path, required=True)
+    docs.set_defaults(handler=lambda args: _reported(lambda: render_docs(args.out)))
     listing = commands.add_parser("list", help="list every contract and its frozen versions")
     listing.set_defaults(handler=_run_contracts_list)
     validate = commands.add_parser("validate", help="check one file under a frozen contract")

@@ -370,25 +370,6 @@ import, build, stage and verify as one path.
 
 ### Data contracts -- `data-contracts`
 
-#### contract-reference-docs (optional)
-
-A reader of a contract should not need to read JSON Schema to learn what a field means, or how
-records link.
-
-- Serves: `data-contracts` -- [Identity and versions](../design/spec.md#172-identity-and-versions)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: `ss-track contracts docs --out <dir>` writes a data dictionary per contract,
-  the first version of each field, and a lineage graph from `x-references`.
-- Scope boundary: Generated Markdown only. No site or hosting. The change log stays the authored
-  text.
-- Data and artifact paths: `src/ss_track/schema/`, `tests/schema/`.
-- Execution path: Render from frozen contracts and add dangling-reference detection to the check.
-- Acceptance gates: Output is deterministic and lists every property and enum value. A dangling
-  `x-references` target fails `make lint-contracts`.
-- Documentation target: [Current implementation](current.md#areas), page `current/contracts.md`.
-
 #### dataset-descriptor (optional)
 
 A future consumer cannot find, judge or load a corpus version without this repository.

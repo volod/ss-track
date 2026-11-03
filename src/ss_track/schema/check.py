@@ -8,6 +8,7 @@ import argparse
 import logging
 from collections.abc import Sequence
 from pathlib import Path
+from typing import Any
 
 from referencing.exceptions import Unresolvable
 
@@ -138,6 +139,34 @@ def _reference_findings(contracts: ContractSet) -> list[str]:
                     resolver.lookup(reference)
                 except Unresolvable:
                     findings.append(f"{urn}: $ref {reference} resolves to nothing")
+    return findings + _annotation_findings(contracts)
+
+
+def _annotation_resolves(contracts: ContractSet, reference: str) -> bool:
+    try:
+        name, pointer = reference.split("#", 1)
+        contract = contracts.named(name)
+        target: Any = contracts.frozen_schema(contract, contract.versions[-1])
+        for token in pointer.removeprefix("/").split("/") if pointer else ():
+            key = token.replace("~1", "/").replace("~0", "~")
+            target = target[int(key)] if isinstance(target, list) else target[key]
+        return True
+    except (CorpusRefusal, ValueError, IndexError, KeyError, TypeError):
+        return False
+
+
+def _annotation_findings(contracts: ContractSet) -> list[str]:
+    findings = []
+    for contract in contracts.contracts:
+        for frozen in contract.versions:
+            for node in walk(contracts.frozen_schema(contract, frozen)):
+                reference = node.get("x-references")
+                if reference is None:
+                    continue
+                if not _annotation_resolves(contracts, reference):
+                    findings.append(
+                        f"{contract.urn(frozen)}: x-references {reference} resolves to nothing"
+                    )
     return findings
 
 

@@ -354,3 +354,12 @@ frame-set producer, validate existing command output against the previous minor 
 null/default fields, unannounced keys and changed existing values. The
 [evolution task record](../records/0019-data-contracts-contract-evolution-gate.md) holds the gate's
 acceptance.
+
+### Generated reference
+
+`ss-track contracts docs --out <dir>` writes a Markdown dictionary for each frozen contract
+under `<dir>/<family>/<id>.md` and a lineage table in `<dir>/lineage.md`. Dictionaries list
+schema property pointers, descriptions, enum values and their first frozen version. The lineage
+lists `x-references` targets. `make lint-contracts` checks that annotated targets resolve against
+the latest frozen version of the named contract. The [task record](../records/0023-data-contracts-contract-reference-docs.md)
+contains the implementation and acceptance evidence.

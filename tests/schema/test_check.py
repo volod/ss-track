@@ -381,3 +381,17 @@ def test_the_gate_defaults_to_the_set_that_ships(caplog: pytest.LogCaptureFixtur
     caplog.set_level(logging.INFO)
 
     assert main([]) == 0
+
+
+def test_dangling_annotation_fails_contract_gate(contract_root: Path, register: Register) -> None:
+    schema = versioned_schema("declaration", "dangling", "1.0.0")
+    schema["properties"]["name"] = {
+        "type": "string",
+        "description": "A.",
+        "x-references": "record/frame-bundle#/properties/missing",
+    }
+    register(schema)
+    assert any(
+        "x-references" in item and "resolves to nothing" in item
+        for item in check_contract_set(contract_root)
+    )
