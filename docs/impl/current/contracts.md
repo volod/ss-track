@@ -14,6 +14,7 @@ baseline scope and evidence. The installed set contains these document contracts
 | Contract | Frozen version |
 | --- | --- |
 | `declaration/corpus` | `3.0.0` |
+| `declaration/dataset` | `1.0.0` |
 | `declaration/recording` | `2.0.0` |
 | `record/corpus-manifest` | `3.0.0` |
 | `record/frame-bundle` | `3.0.0` |
@@ -22,6 +23,10 @@ baseline scope and evidence. The installed set contains these document contracts
 | `record/hash-comparison` | `1.0.0` |
 | `record/source-manifest` | `2.0.0` |
 | `result/command` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0` |
+
+`declaration/dataset` states the operator-supplied title, description, license, citation, address
+and publication date. It can be checked with `ss-track contracts validate` and is consumed by the
+[dataset descriptor](corpus.md#dataset-descriptors).
 
 `shared/types` supplies hashes and identifiers. Every shipped document format has a frozen contract,
 and every frame-set reference resolves at its annotated schema pointer. Capture fields preserve

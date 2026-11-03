@@ -31,6 +31,20 @@ contracts:
     migration: Set schema_version 3 and state scenario_rights; groups, encounters
       and streams keep their form.
 - family: declaration
+  id: dataset
+  owner: data-contracts
+  status: active
+  description: Operator declaration of dataset discovery metadata.
+  versions:
+  - version: 1.0.0
+    file_sha256: 54f4048f8af2c9039577fa20a013d809b31b54d19012428f622b63367eb1d4af
+    fingerprints:
+      structure: f25a9e8d6eea74b60aa245c2831f5754da4c1e54f4a516b82c0039025767b161
+      meaning: 17399633e88c6599dd083a288203b416ea5ced3352cfbf9690dc2769958b6740
+    change:
+      class: initial
+      summary: Initial operator dataset declaration.
+- family: declaration
   id: recording
   owner: corpus-provenance
   status: active

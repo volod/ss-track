@@ -35,3 +35,23 @@ jobs:
         env:
           CONTRACT_BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: make ci-github PYTHON_VERSION=${{ matrix.python-version }}
+
+  croissant:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - name: Install separate validator extra
+        run: |
+          source scripts/shared/common.sh
+          sst_load_env
+          uv sync --locked --extra dev --extra croissant --python 3.12
+      - name: Validate and load descriptor record sets
+        run: |
+          .venv/bin/python -c 'import mlcroissant'
+          .venv/bin/python -m pytest tests/corpus/test_descriptor.py

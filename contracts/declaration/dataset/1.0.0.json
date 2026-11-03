@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ss-track:contract:declaration:dataset:1.0.0",
+  "title": "Dataset",
+  "type": "object",
+  "description": "Operator declaration of dataset discovery metadata.",
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1,
+      "minimum": 0,
+      "x-unit": "1",
+      "description": "Declaration major."
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Dataset title."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Dataset description."
+    },
+    "license": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Dataset license."
+    },
+    "citation": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Dataset citation."
+    },
+    "address": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Dataset address."
+    },
+    "publication_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Dataset publication date."
+    }
+  },
+  "required": [
+    "schema_version",
+    "title",
+    "description",
+    "license",
+    "citation",
+    "address",
+    "publication_date"
+  ],
+  "additionalProperties": false
+}

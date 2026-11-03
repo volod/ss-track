@@ -698,7 +698,40 @@ frame hash, plus `content_frame_index`, the parent frame whose pixels it shows. 
 the transform name for a generated case. An absent PTS stays `null`. An index the bundle does not
 hold is `FRAME_NOT_IN_BUNDLE`.
 
-### Verification
+### Dataset descriptors
+
+`ss-track corpus describe --corpus <id> --declaration <dataset.yaml>` verifies the staged corpus and
+writes a Croissant 1.1 document under `$DATA_DIR/corpus/<id>/descriptions/restricted/`. The operator
+provides `declaration/dataset` 1.0.0: `schema_version`, `title`, `description`, `license`, `citation`,
+`address` and `publication_date`. All fields are required. The declaration is outside the corpus
+seal and does not change a cohort key.
+
+The directory contains `croissant.json`, `dataset-card.md`, `contracts.json`, the frozen contract set,
+and three CSV record sets: `streams`, `bundles` and `frames`. Each CSV record has one `record` column
+containing JSON. Streams include the sealed source record and its terms, bundles include their sealed
+frame index, and frames include paths, timestamps, hashes and raw pixel layout. Paths are relative to
+the descriptor directory; retain the corpus directory structure when moving the files. Headerless
+`rgb24` pixels are read through the frame-bundle contract, not directly through Croissant. Generated
+cases are marked as such and are never counted as encounters. The card states that selection and
+completeness remain unverified.
+
+`--visibility public` requires public scenario sharing and a license. It never exports unmarked
+record fields: current corpus, source and bundle contracts mark none public, and the frame-set bundle
+list is restricted, so its record tables are empty and its card gives split counts only. In particular,
+locked data contributes counts without paths, hashes or per-sequence facts. The
+[public fields task](../plan.md#public-descriptor-fields-optional) owns the review of possible future
+public annotations. A restricted corpus is refused with no identifying values in the refusal.
+
+Outputs are immutable: a repeat with identical inputs succeeds with identical bytes, while different
+content at the same destination is refused. The [refresh task](../plan.md#descriptor-refresh-optional)
+owns regeneration after an operator changes a declaration. The command checks source terms, the frame
+set and every frame before writing. The
+[task record](../records/0024-data-contracts-dataset-descriptor.md) records acceptance evidence.
+`tests/corpus/test_descriptor.py` tests both views and uses the separately locked
+`croissant` extra to validate and load the records; the Croissant CI job runs that extra independently
+of the runtime dependency closure.
+
+## Verification
 
 `corpus verify` first checks the [source terms](#withdrawing-rights), then compares the bundles with
 the [frame set](#frame-set), then repeats the [shared-frame check](#shared-frames), then re-hashes

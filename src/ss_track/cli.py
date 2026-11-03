@@ -23,6 +23,7 @@ from ss_track.corpus import (
 )
 from ss_track.corpus import build_corpus as run_corpus_build
 from ss_track.corpus import import_source as run_import
+from ss_track.corpus.descriptor import DescriptorResult, describe_corpus
 from ss_track.metadata import project_info
 from ss_track.paths import resolve_data_root
 from ss_track.schema import ContractList, ValidationResult, list_contracts, validate_file
@@ -51,6 +52,7 @@ type CorpusResult = (
     | FramesResult
     | StagedHashesResult
     | ComparisonResult
+    | DescriptorResult
 )
 
 
@@ -88,6 +90,12 @@ def _run_import(args: argparse.Namespace) -> int:
 
 def _run_corpus_build(args: argparse.Namespace) -> int:
     return _report(lambda data_root: run_corpus_build(args.manifest, data_root))
+
+
+def _run_corpus_describe(args: argparse.Namespace) -> int:
+    return _report(
+        lambda data_root: describe_corpus(args.corpus, args.declaration, data_root, args.visibility)
+    )
 
 
 def _run_corpus_stage(args: argparse.Namespace) -> int:
@@ -204,6 +212,11 @@ def build_parser() -> argparse.ArgumentParser:
     build = corpus_commands.add_parser("build", help="build one corpus version")
     build.add_argument("--manifest", type=Path, required=True, help="corpus declaration (YAML)")
     build.set_defaults(handler=_run_corpus_build)
+    describe = corpus_commands.add_parser("describe", help="describe a staged corpus")
+    describe.add_argument("--corpus", required=True)
+    describe.add_argument("--declaration", type=Path, required=True)
+    describe.add_argument("--visibility", choices=("restricted", "public"), default="restricted")
+    describe.set_defaults(handler=_run_corpus_describe)
     stage = corpus_commands.add_parser("stage", help="stage decoded frames for a corpus version")
     stage.add_argument("--corpus", required=True, help="built corpus_id")
     stage.set_defaults(handler=_run_corpus_stage)

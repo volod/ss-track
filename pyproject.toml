@@ -40,6 +40,9 @@ dev = [
   "types-jsonschema>=4.25,<5",
   "types-pyyaml>=6.0.12,<7",
 ]
+croissant = [
+    "mlcroissant==1.1.1",
+]
 
 [project.scripts]
 ss-track = "ss_track.cli:main"

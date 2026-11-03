@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "title": "Example dataset",
+  "description": "Example corpus metadata.",
+  "license": "https://example.org/license",
+  "citation": "Example citation",
+  "address": "https://example.org/dataset",
+  "publication_date": "2024-01-01"
+}

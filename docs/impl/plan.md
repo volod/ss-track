@@ -370,31 +370,6 @@ import, build, stage and verify as one path.
 
 ### Data contracts -- `data-contracts`
 
-#### dataset-descriptor (optional)
-
-A future consumer cannot find, judge or load a corpus version without this repository.
-
-- Serves: `data-contracts` -- [Dataset
-  descriptors](../design/spec.md#175-dataset-descriptors-and-self-service)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: `ss-track corpus describe` writes a Croissant 1.1 document, a dataset card and
-  the contract versions used.
-- Scope boundary: Inputs are sealed records, frozen contracts and one `declaration/dataset` supplying
-  title, description, license, citation, address and publication date, which no sealed record holds.
-  Default visibility is restricted. Raw frames are indexed with their layout. No upload, hosting or
-  publication decision.
-- Data and artifact paths: `src/ss_track/corpus/`, `contracts/declaration/`, `tests/corpus/`.
-- Execution path: Generate from the corpus manifest, frame set and source manifests. Validate with
-  `mlcroissant` in a separate locked extra and CI job, outside the runtime closure.
-- Acceptance gates: A descriptor validates with zero errors and its streams, bundles and per-frame
-  index load as records. Two runs give identical bytes. A public request on a restricted corpus
-  refuses without printing a value, and so does one with no license. A public descriptor holds no
-  value marked `restricted` or `sensitive` and gives `locked` as counts. Generated cases stay a
-  labelled slice.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
 #### odcs-contract-export (optional)
 
 A data catalog may expect ODCS, and a generated view costs little once contracts exist.
@@ -414,6 +389,49 @@ A data catalog may expect ODCS, and a generated view costs little once contracts
 - Acceptance gates: Every document validates, with id and version matching its contract. Every
   property appears, and each construct lost in projection is listed.
 - Documentation target: [Current implementation](current.md#areas), page `current/contracts.md`.
+
+#### public-descriptor-fields (optional)
+
+A public corpus description currently has empty record tables: the frozen corpus, source and bundle
+contracts have no fields marked public, and the frame-set bundle list is restricted. A consumer can
+see counts but cannot discover non-locked streams or their permitted terms from the descriptor.
+
+- Serves: `data-contracts` -- [Dataset descriptors](../design/spec.md#175-dataset-descriptors-and-self-service)
+- Agent status: CLEAR
+- Milestone: M1
+- Dependencies: none.
+- User-visible outcome: Public descriptors contain only reviewed public facts that help a consumer
+  judge and load non-locked data, while locked data remains counts only.
+- Scope boundary: Review the existing frozen contracts and make new compatible versions or major
+  transitions as warranted; never relax a frozen restriction in place or infer publication rights.
+- Data and artifact paths: `contracts/record/`, `src/ss_track/corpus/`, `tests/corpus/`.
+- Execution path: Review each candidate field and its nested sensitivity, freeze justified annotations,
+  and project the resulting explicitly public fields into the exporter; retain fail-closed handling for
+  everything else. The restricted frame-set bundle list itself must not be disclosed.
+- Acceptance gates: A public fixture with non-locked and locked streams exposes only values explicitly
+  marked public, includes no restricted or sensitive value, and keeps locked data to counts. An
+  unmarked added field stays absent. The separate Croissant validator loads the resulting records.
+- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
+
+#### descriptor-refresh (optional)
+
+A descriptor directory is immutable. After an operator corrects the title or license, describing the
+same corpus and visibility refuses with `CORPUS_CONFLICT` until the old output is removed manually.
+
+- Serves: `data-contracts` -- [Dataset descriptors](../design/spec.md#175-dataset-descriptors-and-self-service)
+- Agent status: CLEAR
+- Milestone: M1
+- Dependencies: none.
+- User-visible outcome: An operator can safely regenerate discovery metadata for the same corpus
+  without removing the previous descriptor by hand.
+- Scope boundary: Local generated descriptions only; sealed evidence and publication stay untouched.
+- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/corpus/<id>/descriptions/`.
+- Execution path: Provide a deterministic destination per declaration or an atomic replacement with a
+  recovery path. Keep public and restricted outputs separate and verify terms before writing.
+- Acceptance gates: A corrected declaration produces a usable descriptor, repeats give identical
+  bytes, interruption never exposes a mixed descriptor, and a public refresh exposes no restricted
+  value or locked per-sequence fact.
+- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
 
 #### pattern-reshaped-inclusion (optional)
 
