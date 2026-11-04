@@ -118,7 +118,8 @@ every hash on every additive release, which splits cohorts and breaks "two stagi
 So the record keeps today's integer, which is the contract major, and the minor lives in the registry.
 
 This has two useful results. Every record the current code writes already conforms with no byte
-changed, so adoption needs no migration. And `schema_version: 3` maps directly onto contract `3.0.0`.
+changed, so adoption needs no migration. And `schema_version: 3` maps onto major 3. The first frozen
+contract of that major is `3.0.0`; a later minor can add annotations without changing record bytes.
 
 The cost is that a reader cannot tell which minor wrote a record. It does not need to. Objects are
 closed, so an older tool that meets a newer field refuses, and a newer tool reads every older minor by

@@ -73,7 +73,7 @@ subsequently restored, and the pinned extra was installed before validation.
 Reviewed sealed reads, source and frame-set pins, public disclosure, locked counts, output replacement,
 contract copies and generated-case labels. Source seals and bundle hashes are checked again during
 collection; tests exercise those checks. Public record tables are empty until the
-[public fields task](../plan.md#public-descriptor-fields-optional) reviews and freezes justified
+[public fields record](0026-data-contracts-public-descriptor-fields.md) reviews and freezes justified
 annotations. This limitation is routed there; no restriction is relaxed. The immutable destination
 refuses a changed declaration, so `descriptor-refresh` owns a safe regeneration path.
 

@@ -81,6 +81,15 @@ contracts:
     change:
       class: initial
       summary: The shipped format at major 3, with no record bytes changed.
+  - version: 3.1.0
+    file_sha256: 4ec30a85ff8f6fafa52840901093f245cf7733abde0e64300a6de565685dd6d9
+    fingerprints:
+      structure: 85b964e257f5507d3ceba487103bd77516d3c3c3abecbb324578f03e73454e49
+      meaning: 1e772aed7dcf0be78fdfbd72adebc2523af13690a69e66cbdfc41957b2ee9c24
+    change:
+      class: minor
+      summary: State which fields a public descriptor may carry. Existing record bytes
+        stay valid.
   retired_majors:
   - major: 1
     status: retired
@@ -111,6 +120,15 @@ contracts:
     change:
       class: initial
       summary: The shipped format at major 3, with no record bytes changed.
+  - version: 3.1.0
+    file_sha256: 0c77ae11c95f78f9b73e0d425d78643e8b8a770822261f883e4693ae84b2816a
+    fingerprints:
+      structure: 414384d8b3fcc2e97e18d66692ed30416251f9599d4f35620beebc4f3ecc9c25
+      meaning: a8e644e7e9a1f264042a0a2774195fd3da02c83d21a4454a8a163b5ae97028e2
+    change:
+      class: minor
+      summary: State which fields a public descriptor may carry. Existing record bytes
+        stay valid.
   retired_majors:
   - major: 1
     status: retired
@@ -167,6 +185,15 @@ contracts:
       class: initial
       summary: The shipped format at major 2, including descriptive capture scalars,
         with no record bytes changed.
+  - version: 2.1.0
+    file_sha256: 2e6ccd48123840a2dc7fda3255ec88f6bdde8eee3a3aae24a269495d274e2daf
+    fingerprints:
+      structure: 50ce4b08a57346130dd2d14c172d4db8665c177e13247e7e8147d518f1a03402
+      meaning: 983cd672af739edb2c958a922e73b83ae457366497fcde42ebd848e87aad8789
+    change:
+      class: minor
+      summary: State which fields a public descriptor may carry. Existing record bytes
+        stay valid.
   retired_majors:
   - major: 1
     status: facts

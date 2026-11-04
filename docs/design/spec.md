@@ -2111,8 +2111,11 @@ are a labelled slice and never count as encounters.
 Visibility follows section 11 and defaults to `restricted`. A `public` descriptor needs a corpus whose
 `scenario_rights.sharing` is `public` and a declared license, drops every value not marked `public` by
 `x-sensitivity`, and
-reduces a `locked` split to counts, with no path, hash or per-sequence fact. A descriptor is a file on
-the data root: this product uploads nothing.
+reduces a `locked` split to counts, with no path, hash or per-sequence fact. An unmarked field stays
+absent. A `restricted` or `sensitive` value hides everything nested under it, so a later public mark
+on a child does not publish that child. Image regions and label geometry are not public facts. The
+frame-set bundle list stays restricted and is not part of a public descriptor. A descriptor is a
+file on the data root: this product uploads nothing.
 
 Raw frames are indexed with their layout and read through the frame-bundle contract, because a
 general dataset loader cannot read headerless `.rgb24`. A generated ODCS document may serve a data

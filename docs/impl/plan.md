@@ -370,29 +370,6 @@ import, build, stage and verify as one path.
 
 ### Data contracts -- `data-contracts`
 
-#### public-descriptor-fields (optional)
-
-A public corpus description currently has empty record tables: the frozen corpus, source and bundle
-contracts have no fields marked public, and the frame-set bundle list is restricted. A consumer can
-see counts but cannot discover non-locked streams or their permitted terms from the descriptor.
-
-- Serves: `data-contracts` -- [Dataset descriptors](../design/spec.md#175-dataset-descriptors-and-self-service)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: Public descriptors contain only reviewed public facts that help a consumer
-  judge and load non-locked data, while locked data remains counts only.
-- Scope boundary: Review the existing frozen contracts and make new compatible versions or major
-  transitions as warranted; never relax a frozen restriction in place or infer publication rights.
-- Data and artifact paths: `contracts/record/`, `src/ss_track/corpus/`, `tests/corpus/`.
-- Execution path: Review each candidate field and its nested sensitivity, freeze justified annotations,
-  and project the resulting explicitly public fields into the exporter; retain fail-closed handling for
-  everything else. The restricted frame-set bundle list itself must not be disclosed.
-- Acceptance gates: A public fixture with non-locked and locked streams exposes only values explicitly
-  marked public, includes no restricted or sensitive value, and keeps locked data to counts. An
-  unmarked added field stays absent. The separate Croissant validator loads the resulting records.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
 #### descriptor-refresh (optional)
 
 A descriptor directory is immutable. After an operator corrects the title or license, describing the

@@ -11,6 +11,7 @@ from typing import Any
 
 from ss_track.corpus.builder import load_corpus_manifest
 from ss_track.corpus.descriptor_metadata import TABLES, metadata
+from ss_track.corpus.descriptor_public import public_tables
 from ss_track.corpus.fields import Fields, invalid
 from ss_track.corpus.frame_set import require_frame_set
 from ss_track.corpus.frames import (
@@ -158,7 +159,8 @@ def _contracts() -> list[dict[str, str]]:
 def _artifacts(
     corpus: dict[str, Any], declaration: dict[str, str], root: Path, public: bool
 ) -> dict[str, bytes]:
-    records = {name: [] for name in TABLES} if public else _records(corpus, root)
+    collected = _records(corpus, root)
+    records = public_tables(corpus, collected) if public else collected
     tables = {name: _csv(records[name]) for name in TABLES}
     card = (
         f"# {declaration['title']}\n\n{declaration['description']}\n\n"
@@ -171,10 +173,15 @@ def _artifacts(
     )
     if public:
         card += (
-            "\nRecord tables are empty because the frozen record fields are not marked public.\n"
+            "\nPublic tables include only fields frozen as public, for streams outside the locked "
+            "split. They carry permitted terms, layout and the frame index. Locked data is counts "
+            "only. Identifying text, source hashes and the frame-set bundle list are omitted.\n"
         )
     else:
-        card += "\nStreams carry source rights, sensitivity, retention, capture facts and selection limits.\n"
+        card += (
+            "\nStreams carry source rights, sensitivity, retention, capture facts and "
+            "selection limits.\n"
+        )
     output = {f"{name}.csv": payload for name, payload in tables.items()}
     output["croissant.json"] = (
         json.dumps(metadata(declaration, tables), sort_keys=True, indent=2) + "\n"

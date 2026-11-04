@@ -11,7 +11,7 @@ from ss_track.schema.dispositions import disposition_floor
 from ss_track.schema.enforce import older_disposition, readable_majors
 from ss_track.schema.evolution import diff_schemas, required_bump
 from ss_track.schema.freeze import freeze_contract
-from ss_track.schema.store import FACTS, RETIRED, VIEW, load_contract_set
+from ss_track.schema.store import FACTS, RETIRED, VIEW, load_contract_set, version_key
 
 _CORPUS = "ss-track.corpus-manifest"
 _SOURCE = "ss-track.source-manifest"
@@ -79,8 +79,10 @@ def test_a_const_widened_to_an_enum_holding_it_is_one_minor_change() -> None:
 
 
 def _next_corpus_major(contract_root: Path, tmp_path: Path) -> Path:
-    current = json.loads((contract_root / "record/corpus-manifest/3.0.0.json").read_bytes())
-    current["$id"] = current["$id"].replace(":3.0.0", ":4.0.0")
+    folder = contract_root / "record/corpus-manifest"
+    chosen = max(folder.glob("3.*.json"), key=lambda path: version_key(path.stem))
+    current = json.loads(chosen.read_bytes())
+    current["$id"] = current["$id"].replace(f":{chosen.stem}", ":4.0.0")
     current["properties"]["schema_version"]["const"] = 4
     stream = current["properties"]["streams"]["items"]
     rights = stream["properties"]["rights"]

@@ -30,5 +30,6 @@ Copy the [template](template.md) using the
 | 0023 | `contract-reference-docs` | [0023-data-contracts-contract-reference-docs](0023-data-contracts-contract-reference-docs.md) |
 | 0024 | `dataset-descriptor` | [0024-data-contracts-dataset-descriptor](0024-data-contracts-dataset-descriptor.md) |
 | 0025 | `odcs-contract-export` | [0025-data-contracts-odcs-contract-export](0025-data-contracts-odcs-contract-export.md) |
+| 0026 | `public-descriptor-fields` | [0026-data-contracts-public-descriptor-fields](0026-data-contracts-public-descriptor-fields.md) |
 
-Next unused sequence: `0026`.
+Next unused sequence: `0027`.

@@ -16,17 +16,22 @@ baseline scope and evidence. The installed set contains these document contracts
 | `declaration/corpus` | `3.0.0` |
 | `declaration/dataset` | `1.0.0` |
 | `declaration/recording` | `2.0.0` |
-| `record/corpus-manifest` | `3.0.0` |
-| `record/frame-bundle` | `3.0.0` |
+| `record/corpus-manifest` | `3.0.0`, `3.1.0` |
+| `record/frame-bundle` | `3.0.0`, `3.1.0` |
 | `record/frame-set` | `1.0.0` |
 | `record/staged-hashes` | `1.0.0` |
 | `record/hash-comparison` | `1.0.0` |
-| `record/source-manifest` | `2.0.0` |
+| `record/source-manifest` | `2.0.0`, `2.1.0` |
 | `result/command` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0`, `1.4.0` |
 
 `declaration/dataset` states the operator-supplied title, description, license, citation, address
 and publication date. It can be checked with `ss-track contracts validate` and is consumed by the
 [dataset descriptor](corpus.md#dataset-descriptors).
+
+`record/corpus-manifest` 3.1.0, `record/source-manifest` 2.1.0 and `record/frame-bundle` 3.1.0 add
+`x-sensitivity` marks and do not change the values a record stores. `schema_version` remains the
+major, so a record sealed at 3.0.0 or 2.0.0 still validates under the newest minor. The descriptor
+uses that newest minor when it chooses public fields.
 
 `shared/types` supplies hashes and identifiers. Every shipped document format has a frozen contract,
 and every frame-set reference resolves at its annotated schema pointer. Capture fields preserve

@@ -715,12 +715,19 @@ the descriptor directory; retain the corpus directory structure when moving the 
 cases are marked as such and are never counted as encounters. The card states that selection and
 completeness remain unverified.
 
-`--visibility public` requires public scenario sharing and a license. It never exports unmarked
-record fields: current corpus, source and bundle contracts mark none public, and the frame-set bundle
-list is restricted, so its record tables are empty and its card gives split counts only. In particular,
-locked data contributes counts without paths, hashes or per-sequence facts. The
-[public fields task](../plan.md#public-descriptor-fields-optional) owns the review of possible future
-public annotations. A restricted corpus is refused with no identifying values in the refusal.
+`--visibility public` requires public scenario sharing and a license. `schema/disclosure.py` keeps a
+value only when the newest contract marks that field `x-sensitivity: public`. An unmarked field is
+absent, and a `restricted` or `sensitive` field hides its children. `corpus/descriptor_public.py`
+applies that projection to streams outside the locked split. A consumer can see stream identity,
+split, group and encounter, permitted terms (`basis`, `sharing`, `derived_frames`, `retain_until`
+and the sensitivity level), layout, the frame index and non-locating generated-case parameters such
+as a blur radius. Rights-holder names, retention text, notes, capture descriptions,
+source file names and source hashes stay out, as do image regions and label geometry. A declared
+hash and the installed decoder version are unmarked, so they stay out too. Locked streams and cases
+derived from them contribute counts only, with no path, hash or per-sequence fact. The frame-set
+bundle list remains restricted and is not copied. A restricted corpus is refused with no identifying
+values in the refusal. The
+[public fields record](../records/0026-data-contracts-public-descriptor-fields.md) holds the review.
 
 Outputs are immutable: a repeat with identical inputs succeeds with identical bytes, while different
 content at the same destination is refused. The [refresh task](../plan.md#descriptor-refresh-optional)

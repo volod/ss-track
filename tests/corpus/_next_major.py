@@ -1,7 +1,8 @@
 """A synthetic next major of a real contract, frozen by the real freeze and installed for one test.
 
-No real format has a successor major yet, so these tests give one: the shipped contract plus one
-required property, frozen with a disposition, while the records stay the ones today's code writes.
+No real format has a successor major yet, so these tests give one: the newest minor of the shipped
+major plus one required property, frozen with a disposition, while the records stay the ones today's
+code writes.
 Readers then read today's major as the older one, which is the case every later major will meet.
 """
 
@@ -32,15 +33,21 @@ type Upcast = Callable[[Mapping[str, JsonValue]], dict[str, JsonValue]]
 
 
 def candidate(root: Path, added: str, schema: Mapping[str, Any]) -> Path:
-    """Write the shipped corpus contract at the next major, requiring one more property."""
-    current = json.loads((root / "record" / "corpus-manifest" / f"{CURRENT}.0.0.json").read_bytes())
-    current["$id"] = current["$id"].replace(f":{CURRENT}.0.0", f":{NEXT}.0.0")
+    """Write the newest corpus contract of this major at the next major, plus one property."""
+    version, current = _current_contract(root)
+    current["$id"] = current["$id"].replace(f":{version}", f":{NEXT}.0.0")
     current["properties"]["schema_version"]["const"] = NEXT
     current["properties"][added] = dict(schema)
     current["required"] = [*current["required"], added]
     path = root.parent / f"corpus-manifest-{NEXT}.0.0.json"
     path.write_text(json.dumps(current, indent=2), encoding="ascii")
     return path
+
+
+def _current_contract(root: Path) -> tuple[str, dict[str, Any]]:
+    folder = root / "record" / "corpus-manifest"
+    chosen = max(folder.glob(f"{CURRENT}.*.json"), key=lambda path: store.version_key(path.stem))
+    return chosen.stem, json.loads(chosen.read_bytes())
 
 
 def freeze_next(root: Path, disposition: str, added: str, schema: Mapping[str, Any]) -> None:
