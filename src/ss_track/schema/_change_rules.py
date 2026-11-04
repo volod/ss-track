@@ -4,6 +4,7 @@ import json
 import re
 from typing import Any
 
+from ss_track.schema._derivatives import decide
 from ss_track.schema._patterns import covers, parse
 
 PATCH = "patch"
@@ -26,9 +27,13 @@ def _types(value: Any) -> set[str]:
 
 
 def pattern_relaxed(old: str, new: str) -> bool:
-    """Return true only for proven inclusion; unsupported rewrites conservatively need a major."""
+    """Return true only for proven inclusion; an unproven rewrite conservatively needs a major."""
     before, after = parse(old), parse(new)
-    if before is not None and after is not None and covers(after, before):
+    if (
+        before is not None
+        and after is not None
+        and (covers(after, before) or decide(after, before).holds)
+    ):
         return True
     if re.fullmatch(r"\^[a-zA-Z0-9 _/-]+\$", old):
         return re.fullmatch(new.removeprefix("^").removesuffix("$"), old[1:-1]) is not None

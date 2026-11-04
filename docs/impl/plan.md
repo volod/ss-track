@@ -371,33 +371,6 @@ import, build, stage and verify as one path.
 
 ### Data contracts -- `data-contracts`
 
-#### pattern-reshaped-inclusion (optional)
-
-The classifier requires a major for a true pattern inclusion whose shape changed, so that relaxation
-cannot ship as a minor, and the independent oracle reports the pair as a disagreement.
-
-- Serves: `data-contracts` -- [Compatibility rules](../design/spec.md#173-compatibility-rules)
-- Agent status: CLEAR
-- Milestone: M1
-- Research: yes
-- Dependencies: none.
-- User-visible outcome: `contracts diff` gives `minor` for a proven relaxation of another shape,
-  such as `^(ab)*$` to `^a*(ba)*b*$`, and the oracle agrees.
-- Scope boundary: Proofs over the dialect's pattern syntax in `schema/_patterns.py`. The classifier
-  shares no code with `tests/schema/_automaton.py`, gains no runtime dependency, and keeps an
-  unproven relationship major.
-- Data and artifact paths: `src/ss_track/schema/`, `tests/schema/`.
-- Execution path: Today that pair fails `require_oracle_agreement` with `classifier backward=False,
-  oracle=True`, held by `test_unproven_pattern_relationship_requires_a_major_and_the_oracle_says_so`.
-  Evaluate a decision procedure for the classifier, such as Brzozowski derivatives, written apart
-  from the test automaton so the oracle still checks it with different code. Measure its cost on the
-  contract patterns and on a generated table of reshaped pairs.
-- Acceptance gates: The reshaped pairs are minor and agree with the oracle, every pair the
-  structural proof decides keeps its verdict, and the gate's run time on the installed set does not
-  grow measurably. A valid negative result keeps the conservative major and names the shapes left
-  unproven. `make ci` passes.
-- Documentation target: [Current implementation](current.md#areas), page `current/contracts.md`.
-
 #### oracle-coordinated-witnesses (optional)
 
 The oracle's own witness search changes one position of the smallest seeds, so a break that needs two

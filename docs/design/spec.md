@@ -1997,10 +1997,12 @@ a format cannot change unannounced.
 
 A constraint added inside the open command-result `details` object is major when it rejects a
 previously allowed value, even if the property is optional. Reference targets are compared at their
-use sites. A pattern rewrite is minor only when inclusion is proven by structure, over the ASCII
-syntax every regular-expression engine reads alike; an unproven relationship is conservatively
-major. Removing a pattern is a relaxation. This policy does not attempt general regular-expression
-equivalence or infer semantic intent from prose.
+use sites. A pattern rewrite is minor only when inclusion is proven, over the ASCII syntax every
+regular-expression engine reads alike. Structure proves a rewrite that keeps the old sequence of
+parts. A derivative walk proves a rewrite whose shape changed, and it shares no rule with the test
+automaton. A relationship the walk does not decide, including one past its state bound, is
+conservatively major. Removing a pattern is a relaxation. This policy does not infer semantic
+intent from prose.
 
 The independent development oracle checks structural compatibility, not annotations. It shares no
 rule with the classifier, decides pattern inclusion with automata, and counts a counterexample only

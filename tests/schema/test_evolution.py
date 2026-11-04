@@ -138,11 +138,17 @@ def test_structural_pattern_proofs_cover_groups_and_optional_parts() -> None:
         assert require_oracle_agreement(before, after).proofs == (f"{old} within {new}",)
 
 
-def test_unproven_pattern_relationship_requires_a_major_and_the_oracle_says_so() -> None:
+def test_reshaped_pattern_inclusion_is_a_minor_and_the_oracle_agrees() -> None:
     old, new = TEXT | {"pattern": "^(ab)*$"}, TEXT | {"pattern": "^a*(ba)*b*$"}
+    assert required_bump(diff_schemas(old, new)) == "minor"
+    assert require_oracle_agreement(old, new).proofs == ("^(ab)*$ within ^a*(ba)*b*$",)
+
+
+def test_reshaped_pattern_break_stays_major_and_the_oracle_agrees() -> None:
+    old, new = TEXT | {"pattern": "^(ab)*$"}, TEXT | {"pattern": "^(ba)*$"}
     assert required_bump(diff_schemas(old, new)) == "major"
-    with pytest.raises(AssertionError, match="classifier backward=False, oracle=True"):
-        require_oracle_agreement(old, new)
+    witness = require_oracle_agreement(old, new).witness
+    assert isinstance(witness, str) and witness.replace("ab", "") == "" and len(witness) >= 2
 
 
 def test_const_boolean_is_not_the_integer_one() -> None:

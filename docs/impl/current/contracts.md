@@ -158,6 +158,7 @@ checkout and a wheel.
 | `schema/check.py` | Registry, file, dialect, identity and reference checks without Git |
 | `schema/evolution.py`, `schema/_change_rules.py` | JSON-pointer comparison and keyword compatibility rules |
 | `schema/_patterns.py` | The structural pattern-inclusion proof |
+| `schema/_derivatives.py`, `schema/_derivative_expr.py` | Inclusion of a pattern whose shape changed |
 | `schema/versioning.py` | Minimum bump, change-log, disposition-floor and backward-transitive policy |
 | `schema/dispositions.py` | The disposition floor and the properties no view may derive |
 | `schema/freeze.py`, `schema/_publishing.py` | Candidate validation, generated pins and locked publication |
@@ -305,11 +306,20 @@ what its counterpart does, plus parts that may occur zero times. A class covers 
 repetition a narrower count, and a group covers each old alternative with some new one. An old
 repetition may give up one occurrence to a new single part, so `^[0-9a-f]{64}$` fits
 `^[a-z0-9][a-z0-9._-]{0,63}$`. Removing a pattern and a literal the new pattern matches are also
-relaxations. The syntax read is ASCII literals, escapes, positive classes, groups, alternation and
-quantifiers, where `re` and ECMA-262 agree, and the dialect refuses every other pattern. A true
-inclusion of a different shape, such as `^(ab)*$` within `^a*(ba)*b*$`, conservatively requires a
-major. On the patterns the frozen contracts use, the proof decides
-exactly what an automaton decides.
+relaxations.
+
+When that reading does not apply, `schema/_derivatives.py` decides the same question by Brzozowski
+derivatives. `schema/_derivative_expr.py` stores the expression so that union ignores order and
+duplicates, and so that a star of a star stays one star. Each character takes a derivative of both
+patterns; inclusion fails where the old language can end and the new one cannot. The walk stops at
+8192 pairs and then the relationship stays major, as does any pattern outside the syntax below.
+`^(ab)*$` within `^a*(ba)*b*$` is therefore a minor. The syntax read by both proofs is ASCII
+literals, escapes, positive classes, groups, alternation and quantifiers, where `re` and ECMA-262
+agree, and the dialect refuses every other pattern. On the patterns the frozen contracts use, the
+two proofs together decide exactly what an automaton decides. The derivative walk shares no code
+with that automaton. The
+[reshaped-inclusion record](../records/0028-data-contracts-pattern-reshaped-inclusion.md) holds the
+measured cost.
 
 ### Independent oracle
 
@@ -351,7 +361,8 @@ outside the dialect.
 
 `tests/schema/test_evolution.py` repeats the compatibility table at nested and tagged paths.
 Reference tests cover external targets and recursion, each also under the oracle.
-`tests/schema/test_patterns.py` checks every structural proof against the automaton. Freeze and
+`tests/schema/test_patterns.py` checks every structural verdict and every derivative verdict against
+the automaton. Freeze and
 history tests exercise insufficient bumps, missing metadata, rollback, repinning, deletion and
 missing history in isolated Git repositories.
 Historic replay tests project observed keys and types from the five real bumps; they do not invent

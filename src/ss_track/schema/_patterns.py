@@ -5,7 +5,8 @@ any parts that may occur zero times, and each new part must admit every string i
 does; an old repetition may first give up one occurrence. A class covers a smaller class, a repetition
 covers a narrower count, and a group covers every old alternative with some new one. The supported
 syntax is the ASCII core every engine reads alike: literals, escapes, positive classes, groups,
-alternation and greedy or lazy quantifiers. Anything else is unproven, and so needs a major.
+alternation and greedy or lazy quantifiers. Anything else is unproven. A true inclusion whose shape
+changed is decided apart from this reading, in `_derivatives`.
 """
 
 import re

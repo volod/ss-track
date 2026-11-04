@@ -96,11 +96,13 @@ changed values. New-feature tests use the new schema explicitly. Existing `null`
 
 A pattern relaxation is minor only when its inclusion is proven. Removing a pattern, widening a
 class or a count, adding an alternative or a part that may occur zero times, and a literal the new
-pattern matches are proven; the [current page](../impl/current/contracts.md#pattern-proofs) states
-the syntax read. Any other rewrite requires a major. The test oracle checks every frozen transition
-independently, and a disagreement in either direction fails CI. When it says the classifier misses a
-proven relaxation, strengthen the proof in `schema/_patterns.py`; do not weaken a schema to obtain
-agreement.
+pattern matches are proven by structure. A rewrite whose shape changed, such as `^(ab)*$` to
+`^a*(ba)*b*$`, is minor when the derivative walk proves it. The
+[current page](../impl/current/contracts.md#pattern-proofs) states the syntax and the state bound.
+A relationship the walk does not finish requires a major. The test oracle checks every frozen
+transition independently, and a disagreement in either direction fails CI. When it says the
+classifier misses a proven relaxation, strengthen the proof in `schema/_patterns.py` or
+`schema/_derivatives.py`; do not weaken a schema to obtain agreement.
 
 ## Historic formats
 
