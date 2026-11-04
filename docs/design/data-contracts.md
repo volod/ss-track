@@ -273,9 +273,9 @@ It is a small project at version 0.5.0, MIT licensed, and being an oracle rather
 makes it replaceable. In the spike its answers on a closed object matched the rule table on all ten
 structural change kinds tried. On an open object it called an added optional constraint
 compatible, and it cannot decide pattern widening or a raised bound. The tests therefore wrap it:
-equivalent rewrites, an automaton for patterns, and a deterministic witness search, with every
-counterexample confirmed by the local validator. It cannot see an annotation, so a unit change
-stays with the meaning fingerprint.
+equivalent rewrites, an automaton for patterns, and a bounded search of one and two positions,
+with every counterexample confirmed by the local validator. It cannot see an annotation, so a
+unit change stays with the meaning fingerprint.
 
 ## Risks
 

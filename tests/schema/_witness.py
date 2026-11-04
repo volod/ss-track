@@ -1,38 +1,53 @@
 """Find and shrink counterexamples deterministically; only the strict validator confirms one.
 
 A seed is the smallest instance the old schema states: required properties only, the first enum
-value, a bound's own edge. Every position of every seed then takes each boundary value either
-schema names: its constants, its numeric bounds and their neighbors, strings at its length bounds,
-and the strings `_automaton` found inside one pattern and outside another. Each object position
-also takes every property name either schema states, with each of those values.
+value, a bound's own edge. `search` builds one seed for each combination of `oneOf` branches it
+walks, then tries one position and then pairs of positions. A position takes an edge of its own
+node, or a value the new schema introduced, or a property the object allows. The search stops
+after a fixed number of validator calls. `search_one_position` is the older diagonal search, kept
+so a table can show the breaks that need two coordinated values.
+
+`_witness_build` writes the seeds. `_witness_node` decides which values a node can accept.
 """
 
 import copy
 import json
-import math
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterable, Iterator
+from itertools import combinations
 from typing import Any
 
 from ss_track.schema.fingerprints import walk
-from tests.schema import _automaton
+from tests.schema._witness_build import _combined_seeds, _diagonal_seeds, _try_build
+from tests.schema._witness_node import (
+    DATE,
+    SCALARS,
+    SIMPLEST,
+    Path,
+    Schema,
+    _bind,
+    _edges,
+    _json_equal,
+    _key,
+    _kind,
+    _local_edges,
+    _locally_rejected,
+    _missing_names,
+    _novel,
+    _prop_schema,
+    _replacement_values,
+)
 
-type Schema = dict[str, Any]
 type Holds = Callable[[Any], bool]
 
 NONE = object()
-SIMPLEST: tuple[Any, ...] = (0, "", False, None, [], {})
-DATE = "2000-01-01"
-MAX_DEPTH = 32
-_BOUNDS = ("minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum")
-_LENGTHS = ("minLength", "maxLength")
-_STEPS = (-1, -0.5, 0, 0.5, 1)
+MAX_TRIALS = 4096
+# Real transitions spend this whole budget on documents that stay valid. The coordinated
+# table is found within the first few calls, so the cap stays small.
+PAIR_BUDGET = 32
+PAIR_VALUES = 6
 
 
-class _NoExample(Exception):
-    """The schema states no finite instance this builder can write."""
-
-
-def paths(value: Any, path: tuple[Any, ...] = ()) -> Iterator[tuple[Any, ...]]:
+def paths(value: Any, path: Path = ()) -> Iterator[Path]:
     """Yield every position in a JSON value, outermost first."""
     yield path
     if isinstance(value, dict):
@@ -43,13 +58,13 @@ def paths(value: Any, path: tuple[Any, ...] = ()) -> Iterator[tuple[Any, ...]]:
         yield from paths(item, (*path, key))
 
 
-def at(document: Any, path: tuple[Any, ...]) -> Any:
+def at(document: Any, path: Path) -> Any:
     for key in path:
         document = document[key]
     return document
 
 
-def replaced(document: Any, path: tuple[Any, ...], value: Any) -> Any:
+def replaced(document: Any, path: Path, value: Any) -> Any:
     """Return a copy of `document` with `value` at `path`."""
     if not path:
         return value
@@ -58,97 +73,13 @@ def replaced(document: Any, path: tuple[Any, ...], value: Any) -> Any:
     return result
 
 
-class _Builder:
-    def __init__(self, root: Schema, choice: int) -> None:
-        self.root, self.choice = root, choice
-
-    def build(self, node: Schema, depth: int = 0) -> Any:
-        if depth > MAX_DEPTH:
-            raise _NoExample("recursion")
-        if "$ref" in node:
-            return self.build(self.root["$defs"][node["$ref"].rsplit("/", 1)[-1]], depth + 1)
-        if "const" in node:
-            return copy.deepcopy(node["const"])
-        if "enum" in node:
-            return copy.deepcopy(node["enum"][0])
-        if "oneOf" in node:
-            branches = node["oneOf"]
-            return self.build(branches[self.choice % len(branches)], depth + 1)
-        kind = _first_type(node.get("type", "null"))
-        if kind == "object":
-            required = sorted(node.get("required", []))
-            return {name: self.build(node["properties"][name], depth + 1) for name in required}
-        if kind == "array":
-            return self.array(node, depth)
-        return _scalar(kind, node)
-
-    def array(self, node: Schema, depth: int) -> list[Any]:
-        result = [self.build(item, depth + 1) for item in node.get("prefixItems", [])]
-        missing = node.get("minItems", 0) - len(result)
-        if missing > 0:
-            if not isinstance(node.get("items"), dict):
-                raise _NoExample("array needs items")
-            result += [self.build(node["items"], depth + 1) for _ in range(missing)]
-        return result
-
-
-def _first_type(kinds: str | list[str]) -> str:
-    if isinstance(kinds, str):
-        return kinds
-    return next((name for name in kinds if name != "null"), "null")
-
-
-def _scalar(kind: str, node: Schema) -> Any:
-    if kind == "string":
-        if node.get("format") == "date":
-            return DATE
-        if "pattern" in node:
-            return _automaton.shortest(node["pattern"], node.get("minLength", 0))
-        return "a" * node.get("minLength", 0)
-    if kind in ("number", "integer"):
-        if "minimum" in node:
-            low = node["minimum"]
-        elif "exclusiveMinimum" in node:
-            low = node["exclusiveMinimum"] + 1
-        else:
-            low = min(0, node.get("maximum", 0), node.get("exclusiveMaximum", 1) - 1)
-        return math.ceil(low) if kind == "integer" else low
-    return False if kind == "boolean" else None
-
-
-def _edges(node: Schema) -> Iterator[Any]:
-    if "const" in node:
-        yield node["const"]
-    yield from node.get("enum", [])
-    for key in _BOUNDS:
-        if key in node:
-            yield from (node[key] + step for step in _STEPS)
-    for key in _LENGTHS:
-        if key in node:
-            yield from ("a" * max(node[key] + step, 0) for step in (-1, 0, 1))
-    if "pattern" in node:
-        try:
-            yield _automaton.shortest(node["pattern"])
-        except _automaton.Undecided:
-            return
-
-
 def boundary_values(schemas: list[Schema], strings: list[str]) -> list[Any]:
     """Return every edge value the schemas name, simplest first and without repeats."""
     unique: dict[str, Any] = {}
     edges = (edge for schema in schemas for node in walk(schema) for edge in _edges(node))
     for value in (*SIMPLEST, DATE, *strings, *edges):
-        unique.setdefault(json.dumps(value, sort_keys=True), value)
+        unique.setdefault(_key(value), value)
     return list(unique.values())
-
-
-def _seeds(old: Schema) -> Iterator[Any]:
-    widths = [len(node["oneOf"]) for node in walk(old) if "oneOf" in node]
-    for choice in range(max(widths, default=1)):
-        try:
-            yield _Builder(old, choice).build(old)
-        except (_NoExample, _automaton.Undecided):
-            continue
 
 
 def property_names(schemas: list[Schema]) -> list[str]:
@@ -158,7 +89,21 @@ def property_names(schemas: list[Schema]) -> list[str]:
     )
 
 
-def _variants(seed: Any, names: list[str], values: list[Any]) -> Iterator[Any]:
+def _candidates(root: Schema, prop: Schema, values: list[Any], novel: list[Any]) -> list[Any]:
+    if not prop:
+        sequence: Iterable[Any] = values
+    else:
+        built = _try_build(root, prop, NONE)
+        sequence = _local_edges(prop) if built is NONE else (built, *_local_edges(prop))
+        sequence = (*sequence, *novel)
+    unique: dict[str, Any] = {}
+    for value in sequence:
+        if not _locally_rejected(prop, value):
+            unique.setdefault(_key(value), value)
+    return list(unique.values())
+
+
+def _one_change(seed: Any, names: list[str], values: list[Any]) -> Iterator[Any]:
     for path in paths(seed):
         current = at(seed, path)
         for value in values:
@@ -169,13 +114,158 @@ def _variants(seed: Any, names: list[str], values: list[Any]) -> Iterator[Any]:
                     yield from (replaced(seed, path, current | {name: value}) for value in values)
 
 
-def search(old: Schema, names: list[str], values: list[Any], holds: Holds) -> Any:
-    """Return a confirmed witness varied from the old schema's seeds, or `NONE`."""
-    for seed in _seeds(old):
-        for trial in _variants(seed, names, values):
+def _singles(
+    root: Schema, seed: Any, names: list[str], values: list[Any], novel: list[Any]
+) -> Iterator[Any]:
+    indexed = _bind(root, seed)
+    for path in paths(seed):
+        current = at(seed, path)
+        node = indexed.get(path, {})
+        for value in _replacement_values(node, values, novel):
+            if not _json_equal(value, current):
+                yield replaced(seed, path, value)
+        if isinstance(current, dict):
+            yield from _insertions(root, seed, path, current, node, names, values, novel)
+
+
+def _insertions(
+    root: Schema,
+    seed: Any,
+    path: Path,
+    current: dict[str, Any],
+    node: Schema,
+    names: list[str],
+    values: list[Any],
+    novel: list[Any],
+) -> Iterator[Any]:
+    for name in _missing_names(node, current, names):
+        for value in _candidates(root, _prop_schema(node, name), values, novel):
+            yield replaced(seed, path, current | {name: value})
+
+
+def _pair_trials(
+    root: Schema, seed: Any, names: list[str], values: list[Any], novel: list[Any]
+) -> Iterator[Any]:
+    yield from _insertion_pairs(root, seed, names, values, novel)
+    indexed = _bind(root, seed)
+    scalars = [path for path in paths(seed) if _kind(at(seed, path)) in SCALARS]
+    yield from _replacement_pairs(seed, indexed, scalars, values, novel, cross=False)
+    yield from _replacement_pairs(seed, indexed, scalars, values, novel, cross=True)
+
+
+def _insertion_pairs(
+    root: Schema, seed: Any, names: list[str], values: list[Any], novel: list[Any]
+) -> Iterator[Any]:
+    indexed = _bind(root, seed)
+    for path in paths(seed):
+        current = at(seed, path)
+        if not isinstance(current, dict):
+            continue
+        node = indexed.get(path, {})
+        missing = _missing_names(node, current, names)
+        options = {
+            name: _candidates(root, _prop_schema(node, name), values, novel)[:PAIR_VALUES]
+            for name in missing
+        }
+        for left, right in combinations(missing, 2):
+            for first in options[left]:
+                for second in options[right]:
+                    yield replaced(seed, path, current | {left: first, right: second})
+
+
+def _replacement_pairs(
+    seed: Any,
+    indexed: dict[Path, Schema],
+    scalars: list[Path],
+    values: list[Any],
+    novel: list[Any],
+    *,
+    cross: bool,
+) -> Iterator[Any]:
+    for left, right in _scalar_pairs(scalars, cross=cross):
+        left_values = _changing(indexed.get(left, {}), at(seed, left), values, novel)
+        right_values = _changing(indexed.get(right, {}), at(seed, right), values, novel)
+        for first in left_values:
+            for second in right_values:
+                yield replaced(replaced(seed, left, first), right, second)
+
+
+def _scalar_pairs(scalars: list[Path], *, cross: bool) -> Iterator[tuple[Path, Path]]:
+    if cross:
+        yield from (
+            (left, right) for left, right in combinations(scalars, 2) if left[:-1] != right[:-1]
+        )
+        return
+    grouped: dict[Path, list[Path]] = {}
+    for path in scalars:
+        grouped.setdefault(path[:-1], []).append(path)
+    for group in grouped.values():
+        yield from combinations(group, 2)
+
+
+def _changing(node: Schema, current: Any, values: list[Any], novel: list[Any]) -> list[Any]:
+    found = [
+        value
+        for value in _replacement_values(node, values, novel)
+        if not _json_equal(value, current)
+    ]
+    return found[:PAIR_VALUES]
+
+
+class _Budget:
+    def __init__(self, holds: Holds, limit: int) -> None:
+        self._holds = holds
+        self.limit = limit
+        self.used = 0
+        self.seen: set[str] = set()
+
+    def exhausted(self) -> bool:
+        return self.used >= self.limit
+
+    def accepts(self, value: Any) -> bool:
+        if self.exhausted():
+            return False
+        key = _key(value)
+        if key in self.seen:
+            return False
+        self.seen.add(key)
+        self.used += 1
+        return self._holds(value)
+
+
+def _first(budget: _Budget, groups: Iterable[Iterable[Any]]) -> Any:
+    for group in groups:
+        for trial in group:
+            if budget.exhausted():
+                return NONE
+            if budget.accepts(trial):
+                return trial
+    return NONE
+
+
+def search_one_position(old: Schema, names: list[str], values: list[Any], holds: Holds) -> Any:
+    """Try one position of each diagonal seed. A two-value break stays unfound."""
+    for seed in _diagonal_seeds(old):
+        for trial in _one_change(seed, names, values):
             if holds(trial):
                 return trial
     return NONE
+
+
+def search(old: Schema, names: list[str], values: list[Any], holds: Holds) -> Any:
+    """Return a confirmed witness, or `NONE` once the trial bounds are spent."""
+    budget = _Budget(holds, MAX_TRIALS)
+    seeds = _combined_seeds(old)
+    novel = _novel(old, values)
+    found = _first(budget, [seeds])
+    if found is not NONE:
+        return found
+    found = _first(budget, (_singles(old, seed, names, values, novel) for seed in seeds))
+    if found is not NONE or budget.exhausted():
+        return found if found is not NONE else NONE
+    pairs = _Budget(holds, PAIR_BUDGET)
+    pairs.seen = budget.seen
+    return _first(pairs, (_pair_trials(old, seed, names, values, novel) for seed in seeds))
 
 
 def _simpler(value: Any) -> Iterator[Any]:

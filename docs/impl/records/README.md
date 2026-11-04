@@ -33,5 +33,6 @@ Copy the [template](template.md) using the
 | 0026 | `public-descriptor-fields` | [0026-data-contracts-public-descriptor-fields](0026-data-contracts-public-descriptor-fields.md) |
 | 0027 | `descriptor-refresh` | [0027-data-contracts-descriptor-refresh](0027-data-contracts-descriptor-refresh.md) |
 | 0028 | `pattern-reshaped-inclusion` | [0028-data-contracts-pattern-reshaped-inclusion](0028-data-contracts-pattern-reshaped-inclusion.md) |
+| 0029 | `oracle-coordinated-witnesses` | [0029-data-contracts-oracle-coordinated-witnesses](0029-data-contracts-oracle-coordinated-witnesses.md) |
 
-Next unused sequence: `0029`.
+Next unused sequence: `0030`.

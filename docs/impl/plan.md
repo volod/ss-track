@@ -371,29 +371,6 @@ import, build, stage and verify as one path.
 
 ### Data contracts -- `data-contracts`
 
-#### oracle-coordinated-witnesses (optional)
-
-The oracle's own witness search changes one position of the smallest seeds, so a break that needs two
-values changed together goes unfound whenever jsoncompat wrongly calls it compatible.
-
-- Serves: `data-contracts` -- [Compatibility rules](../design/spec.md#173-compatibility-rules)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: A wrong compatible verdict from jsoncompat is refuted for breaks that need
-  two coordinated values, such as a value that is only reachable once an optional sibling is set.
-- Scope boundary: `tests/schema/_witness.py` only. The search stays deterministic and bounded, and
-  every witness is still confirmed by `StrictValidator`.
-- Data and artifact paths: `tests/schema/`.
-- Execution path: Build a table of breaks that need two coordinated values and show which ones the
-  single-position search misses with `analyze_compat` forced to `compatible`. Then extend the
-  search to pairs of positions and to seeds for each combination of `oneOf` branches, with a bound
-  on trials.
-- Acceptance gates: Every break in the table is refuted with a confirmed, shrunk witness under a
-  forced compatible verdict. `test_every_real_transition_agrees_with_the_oracle` stays under two
-  seconds. `make ci` passes.
-- Documentation target: [Current implementation](current.md#areas), page `current/contracts.md`.
-
 #### data-contracts-audit (optional)
 
 Contracts, readers and disposition rules arrive in separate tasks, so a format can still be stated

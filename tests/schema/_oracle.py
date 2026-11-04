@@ -10,10 +10,10 @@ with a recursive target kept once under `$defs`. Then two sound rewrites run, al
 
 jsoncompat then decides. A counterexample counts only after the local strict validator accepts it
 under the original old schema and refuses it under the new; it is shrunk to its simplest values.
-When jsoncompat finds none, `_witness` searches the old schema's smallest instances with every
-boundary value both schemas name, so a compatible verdict is also checked and an unknown one may
-still be refuted. An unknown verdict with no witness, an unconfirmed counterexample or an undecided
-pattern raises `Undecided`.
+When jsoncompat finds none, `_witness` searches. It builds one seed per `oneOf` combination and
+tries one position, then pairs of positions, using each node's own edges and values the new schema
+introduced. A bound on validator calls keeps a compatible transition cheap. An unknown verdict with
+no witness, an unconfirmed counterexample or an undecided pattern raises `Undecided`.
 """
 
 import copy

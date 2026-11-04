@@ -342,10 +342,15 @@ run at aligned positions, and `jsoncompat==0.5.0` `analyze_compat` decides the r
 
 A counterexample counts only once `StrictValidator` accepts it under the original old schema and
 refuses it under the new; it is then shrunk to its simplest values. When jsoncompat returns none,
-`tests/schema/_witness.py` builds the old schema's smallest instances and tries each position with
-every boundary value the two schemas name and each object with every property name they state. So
-a compatible verdict is checked, and an unknown verdict such as a raised `minimum` is still refuted,
-by `1`.
+`tests/schema/_witness.py` searches. `_witness_build.py` writes one seed for each combination of
+`oneOf` branches on the smallest instance, at most 32, instead of one shared branch index.
+`_witness_node.py` drops a value the old node itself rejects. The search tries one position, then
+pairs of positions, and stops after 4096 validator calls, at most 32 of them on pairs. A compatible
+verdict is checked. An unknown verdict such as a raised `minimum` is still refuted by `1`, and so
+is a break that needs two coordinated values, such as a number that is legal only once an optional
+sibling is present. Combinations and pairs past those caps stay unsearched. The
+[coordinated-witness record](../records/0029-data-contracts-oracle-coordinated-witnesses.md) holds
+the table and the measured cost.
 
 `require_oracle_agreement` compares the classifier's verdict on the stripped pair with the oracle's,
 on the rule table, on reference and recursion cases and on every consecutive pair of frozen

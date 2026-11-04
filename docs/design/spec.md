@@ -2006,7 +2006,8 @@ intent from prose.
 
 The independent development oracle checks structural compatibility, not annotations. It shares no
 rule with the classifier, decides pattern inclusion with automata, and counts a counterexample only
-when the repository's own validator confirms it. A disagreement in either direction on a frozen
+when the repository's own validator confirms it. When it finds none, a bounded search tries each
+`oneOf` combination and up to two positions. A disagreement in either direction on a frozen
 transition fails CI, and so does a pair the oracle cannot decide; the oracle never overrides the
 repository's rules and never relaxes them. A relationship neither the classifier nor the oracle
 can decide stays major and fails closed. Known oracle limitations need explicit regression evidence
