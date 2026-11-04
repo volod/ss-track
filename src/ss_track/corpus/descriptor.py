@@ -186,7 +186,9 @@ def _artifacts(
     contract_set = load_contract_set()
     contract_root = contract_set.root
     paths = [contract_root / "registry.yaml", contract_root / "README.md"]
-    paths.extend(sorted((contract_root / "meta").glob("*.json")))
+    paths.extend(sorted((contract_root / "meta").rglob("*.json")))
+    paths.extend(sorted((contract_root / "meta").rglob("*.md")))
+    paths.extend(sorted((contract_root / "meta").rglob("*.txt")))
     for contract in contract_set.contracts:
         for version in contract.versions:
             paths.append(

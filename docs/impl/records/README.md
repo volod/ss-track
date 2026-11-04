@@ -29,5 +29,6 @@ Copy the [template](template.md) using the
 | 0022 | `contract-oracle-coverage` | [0022-data-contracts-contract-oracle-coverage](0022-data-contracts-contract-oracle-coverage.md) |
 | 0023 | `contract-reference-docs` | [0023-data-contracts-contract-reference-docs](0023-data-contracts-contract-reference-docs.md) |
 | 0024 | `dataset-descriptor` | [0024-data-contracts-dataset-descriptor](0024-data-contracts-dataset-descriptor.md) |
+| 0025 | `odcs-contract-export` | [0025-data-contracts-odcs-contract-export](0025-data-contracts-odcs-contract-export.md) |
 
-Next unused sequence: `0025`.
+Next unused sequence: `0026`.

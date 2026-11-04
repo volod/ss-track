@@ -22,7 +22,7 @@ baseline scope and evidence. The installed set contains these document contracts
 | `record/staged-hashes` | `1.0.0` |
 | `record/hash-comparison` | `1.0.0` |
 | `record/source-manifest` | `2.0.0` |
-| `result/command` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0` |
+| `result/command` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0`, `1.4.0` |
 
 `declaration/dataset` states the operator-supplied title, description, license, citation, address
 and publication date. It can be checked with `ss-track contracts validate` and is consumed by the
@@ -359,6 +359,37 @@ frame-set producer, validate existing command output against the previous minor 
 null/default fields, unannounced keys and changed existing values. The
 [evolution task record](../records/0019-data-contracts-contract-evolution-gate.md) holds the gate's
 acceptance.
+
+### ODCS catalog export
+
+```bash
+ss-track contracts export --format odcs --out "$DATA_DIR/odcs/catalog"
+```
+
+The exporter writes one ODCS 3.2 JSON document per registered contract, under
+`<out>/<family>/<id>.json`, using the newest frozen version. The ODCS `id` is the registry's
+`family/id` and `version` is that frozen version. This is a generated catalog view; the frozen JSON
+Schema remains the authority for instance validation and compatibility. The command validates every
+document before writing any of them with the bundled official schema, pinned by SHA-256 and upstream
+commit in [ODCS schema provenance](../../../contracts/meta/standards/README.md). Validation needs no
+network and no new runtime dependency. The `result/command` 1.4.0 contract covers `exported` and
+`written` results and their file lists, including the existing reference-docs command.
+
+A schema object lists flattened schema-like property paths. Nested arrays use `/items`, tuple
+positions use `/prefixItems/<n>`, and `/$defs/<name>` names a separately listed source definition.
+Tagged-union branches merge by logical path, omitting their `oneOf` positions. A property gets
+`logicalType` only where its encountered types agree;
+`ssTrackSources` gives each original schema URN and JSON pointer. This view does not claim that ODCS
+checks object membership, closed objects, conditional branches, tuple positions or other source rules.
+Top-level `customProperties` include the original JSON Schema and a conservative inventory of every
+source keyword and pointer, including the constructs that ODCS does not state or states differently.
+The [ODCS task record](../records/0025-data-contracts-odcs-contract-export.md) records the evidence.
+
+`schema/odcs_projection.py` follows local and registered external references with cycle protection,
+merges branch fields and records source positions. `schema/odcs.py` checks the upstream schema hash,
+validates and writes the views. `tests/schema/test_odcs.py` checks every registered contract, source
+property and keyword, the tagged union, recursive references, CLI results, and the pinned schema.
+The wheel test runs the exporter outside the checkout.
 
 ### Generated reference
 

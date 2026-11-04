@@ -159,3 +159,13 @@ def test_the_contract_package_stays_below_the_corpus() -> None:
 
     assert "check" in modules
     assert completed.stdout.split("\n")[:2] == ["[]", "False"]
+
+
+def test_wheel_exports_odcs_without_the_checkout(installed: Path, tmp_path: Path) -> None:
+    output = tmp_path / "odcs"
+    completed = _run(installed, ["contracts", "export", "--format", "odcs", "--out", str(output)])
+    assert completed.returncode == 0, completed.stderr
+    record = json.loads(completed.stderr.strip().splitlines()[-1])
+    assert record["status"] == "exported"
+    assert (output / "record" / "frame-bundle.json").is_file()
+    assert (installed / "ss_track/contract_files/meta/standards/ODCS-LICENSE.txt").is_file()

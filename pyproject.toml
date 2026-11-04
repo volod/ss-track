@@ -69,7 +69,7 @@ packages = [
 "ss_track.contract_files" = "contracts"
 
 [tool.setuptools.package-data]
-"ss_track.contract_files" = ["*.md", "*.yaml", "**/*.json"]
+"ss_track.contract_files" = ["*.md", "*.yaml", "**/*.json", "**/*.md", "**/*.txt"]
 
 [tool.ruff]
 line-length = 100

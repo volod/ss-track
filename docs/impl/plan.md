@@ -370,26 +370,6 @@ import, build, stage and verify as one path.
 
 ### Data contracts -- `data-contracts`
 
-#### odcs-contract-export (optional)
-
-A data catalog may expect ODCS, and a generated view costs little once contracts exist.
-
-- Serves: `data-contracts` -- [Dataset
-  descriptors](../design/spec.md#175-dataset-descriptors-and-self-service)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: `ss-track contracts export --format odcs` writes one ODCS document per
-  contract.
-- Scope boundary: A generated view, never authored or read back. A tagged union is listed as the
-  union of its branches, and what ODCS cannot state is named in `customProperties`.
-- Data and artifact paths: `src/ss_track/schema/`, `tests/schema/`.
-- Execution path: Project each contract and validate against the official ODCS JSON Schema, pinned by
-  hash.
-- Acceptance gates: Every document validates, with id and version matching its contract. Every
-  property appears, and each construct lost in projection is listed.
-- Documentation target: [Current implementation](current.md#areas), page `current/contracts.md`.
-
 #### public-descriptor-fields (optional)
 
 A public corpus description currently has empty record tables: the frozen corpus, source and bundle

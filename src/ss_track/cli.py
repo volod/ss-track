@@ -29,6 +29,7 @@ from ss_track.paths import resolve_data_root
 from ss_track.schema import ContractList, ValidationResult, list_contracts, validate_file
 from ss_track.schema.docs import DocsResult, render_docs
 from ss_track.schema.freeze import EvolutionResult, diff_contract, freeze_contract
+from ss_track.schema.odcs import ExportResult, export_odcs
 
 EXIT_OK = 0
 EXIT_REFUSED = 1
@@ -63,7 +64,13 @@ def _report(action: Callable[[Path], CorpusResult]) -> int:
 
 def _reported(
     action: Callable[
-        [], CorpusResult | ContractList | ValidationResult | EvolutionResult | DocsResult
+        [],
+        CorpusResult
+        | ContractList
+        | ValidationResult
+        | EvolutionResult
+        | DocsResult
+        | ExportResult,
     ],
 ) -> int:
     """Run one action and report one JSON record for its result or its refusal."""
@@ -168,6 +175,10 @@ def _add_contract_commands(
     """Add the commands that read only the contract set, so they need no data root."""
     contracts = subcommands.add_parser("contracts", help="read the published data contracts")
     commands = contracts.add_subparsers(dest="contracts_command", required=True)
+    export = commands.add_parser("export", help="export contract catalog views")
+    export.add_argument("--format", choices=("odcs",), required=True)
+    export.add_argument("--out", type=Path, required=True)
+    export.set_defaults(handler=lambda args: _reported(lambda: export_odcs(args.out)))
     docs = commands.add_parser("docs", help="write contract reference Markdown")
     docs.add_argument("--out", type=Path, required=True)
     docs.set_defaults(handler=lambda args: _reported(lambda: render_docs(args.out)))

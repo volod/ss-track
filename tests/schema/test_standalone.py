@@ -99,6 +99,9 @@ def test_the_contracts_name_only_each_other(only_contracts: Path) -> None:
     references = set()
     for path in only_contracts.rglob("*.json"):
         text = json.loads(path.read_text(encoding="utf-8"))
+        if path.relative_to(only_contracts) == Path("meta/standards/odcs-3.2.0.json"):
+            assert all(reference.startswith("#") for reference in _references(text))
+            continue
         identities.add(text["$id"])
         references.update(_references(text))
 

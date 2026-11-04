@@ -70,6 +70,8 @@ def test_descriptor_contains_sealed_facts_and_is_deterministic(
 
     copied = load_contract_set(directory / "contracts")
     assert copied.named("record/frame-bundle").versions[-1].version == "3.0.0"
+    assert (copied.root / "meta/standards/odcs-3.2.0.json").is_file()
+    assert (copied.root / "meta/standards/ODCS-LICENSE.txt").is_file()
     streams = _rows(directory / "streams.csv")
     bundles = _rows(directory / "bundles.csv")
     frames = _rows(directory / "frames.csv")

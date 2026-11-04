@@ -229,6 +229,14 @@ contracts:
       class: minor
       summary: List a historic major's facts disposition, and name the predecessors
         a lineage could not compare.
+  - version: 1.4.0
+    file_sha256: f4ebb09fc5a0f75238da5e4a4c715f252c56375d763503175f98590ae7932a09
+    fingerprints:
+      structure: 6a44cd87ee2b3cce5262693565758b2d9f180c9a3a2dbccf9be13c9c9ffabdcb
+      meaning: 608a97dc2c8d972fa2308d439bf93e5fabff75975354ec72a4e14a11875b8f12
+    change:
+      class: minor
+      summary: List paths written by reference and ODCS export commands.
 - family: shared
   id: types
   owner: data-contracts
