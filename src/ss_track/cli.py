@@ -223,7 +223,7 @@ def build_parser() -> argparse.ArgumentParser:
     build = corpus_commands.add_parser("build", help="build one corpus version")
     build.add_argument("--manifest", type=Path, required=True, help="corpus declaration (YAML)")
     build.set_defaults(handler=_run_corpus_build)
-    describe = corpus_commands.add_parser("describe", help="describe a staged corpus")
+    describe = corpus_commands.add_parser("describe", help="write or replace a corpus descriptor")
     describe.add_argument("--corpus", required=True)
     describe.add_argument("--declaration", type=Path, required=True)
     describe.add_argument("--visibility", choices=("restricted", "public"), default="restricted")

@@ -198,18 +198,6 @@ def test_damaged_frame_refuses_without_creating_descriptor(staged: Path, declara
     assert not (staged / "corpus/pilot-v1/descriptions").exists()
 
 
-def test_changed_declaration_does_not_replace_descriptor(staged: Path, declaration: Path) -> None:
-    result = describe_corpus("pilot-v1", declaration, staged)
-    before = result.manifest_path.read_bytes()
-    data = yaml.safe_load(declaration.read_text())
-    data["title"] = "Changed"
-    declaration.write_text(yaml.safe_dump(data))
-    with pytest.raises(CorpusRefusal) as caught:
-        describe_corpus("pilot-v1", declaration, staged)
-    assert caught.value.code == RefusalCode.CORPUS_CONFLICT
-    assert result.manifest_path.read_bytes() == before
-
-
 def test_source_replaced_after_verification_is_not_exported(
     staged: Path, declaration: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

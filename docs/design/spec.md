@@ -1391,7 +1391,7 @@ ss-track corpus build --manifest corpus.yaml
 ss-track corpus stage --corpus <id>
 ss-track corpus verify --corpus <id>
 ss-track corpus preview --corpus <id> --stream <id> --frame <index> --out sheet.png
-ss-track corpus describe --corpus <id> --visibility restricted --out descriptor/
+ss-track corpus describe --corpus <id> --declaration dataset.yaml --visibility restricted
 ss-track contracts list
 ss-track contracts validate <file>
 ss-track contracts diff <contract>
@@ -2115,7 +2115,12 @@ reduces a `locked` split to counts, with no path, hash or per-sequence fact. An 
 absent. A `restricted` or `sensitive` value hides everything nested under it, so a later public mark
 on a child does not publish that child. Image regions and label geometry are not public facts. The
 frame-set bundle list stays restricted and is not part of a public descriptor. A descriptor is a
-file on the data root: this product uploads nothing.
+file on the data root: this product uploads nothing. Describing the same corpus and visibility
+again replaces that directory and no other. The new tree is written completely before the published
+directory moves aside and the new tree takes its place, so a reader sees one complete generation
+or, during that swap, no directory. The next description restores a generation left aside before it
+writes. The same inputs leave the published directory unchanged. A refusal leaves it unchanged as
+well. Sealed records stay as they were.
 
 Raw frames are indexed with their layout and read through the frame-bundle contract, because a
 general dataset loader cannot read headerless `.rgb24`. A generated ODCS document may serve a data

@@ -358,10 +358,11 @@ import, build, stage and verify as one path.
 - Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`,
   `$DATA_DIR/import/<source-sha256>/`, `$DATA_DIR/corpus/`, `$DATA_DIR/corpus/<corpus-id>/`.
 - Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from what
-  is already known to repeat: the two `flock` routines and their scratch clearing in `staging.py`
-  and `amendment.py`, the `.incoming-` literal in `importer.py` beside `SCRATCH_PREFIX`, the two
-  `PermissionError` handlers for one source read, and the `_rights` test helpers beside `_record` in
-  `tests/test_cli.py`. Then compare the refusal table with the codes raised.
+  is already known to repeat: the `flock` routines and their scratch clearing in `staging.py`,
+  `amendment.py` and `descriptor_publish.py`, the `.incoming-` literal in `importer.py` beside
+  `SCRATCH_PREFIX`, the two `PermissionError` handlers for one source read, and the `_rights` test
+  helpers beside `_record` in `tests/test_cli.py`. Then compare the refusal table with the codes
+  raised.
 - Acceptance gates: Each named repetition is merged or kept for a stated reason. The fixed corpus
   keeps its `bundle_sha256` and `frame_set_sha256`, and every refusal code keeps its meaning. Every
   finding is fixed, routed to a task or dropped with its reason, and `make quality` passes. Finding
@@ -369,26 +370,6 @@ import, build, stage and verify as one path.
 - Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
 
 ### Data contracts -- `data-contracts`
-
-#### descriptor-refresh (optional)
-
-A descriptor directory is immutable. After an operator corrects the title or license, describing the
-same corpus and visibility refuses with `CORPUS_CONFLICT` until the old output is removed manually.
-
-- Serves: `data-contracts` -- [Dataset descriptors](../design/spec.md#175-dataset-descriptors-and-self-service)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: An operator can safely regenerate discovery metadata for the same corpus
-  without removing the previous descriptor by hand.
-- Scope boundary: Local generated descriptions only; sealed evidence and publication stay untouched.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/corpus/<id>/descriptions/`.
-- Execution path: Provide a deterministic destination per declaration or an atomic replacement with a
-  recovery path. Keep public and restricted outputs separate and verify terms before writing.
-- Acceptance gates: A corrected declaration produces a usable descriptor, repeats give identical
-  bytes, interruption never exposes a mixed descriptor, and a public refresh exposes no restricted
-  value or locked per-sequence fact.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
 
 #### pattern-reshaped-inclusion (optional)
 

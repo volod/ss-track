@@ -95,6 +95,30 @@ def test_public_descriptor_projects_non_locked_fields(
     result = describe_corpus("pilot-v1", declaration, data_root, "public")
     assert describe_corpus("pilot-v1", declaration, data_root, "public") == result
     _assert_public(result, opened, locked, data_root)
+    _refresh_public(declaration, data_root, opened, locked)
+
+
+def _refresh_public(
+    declaration: Path, data_root: Path, opened: ImportResult, locked: ImportResult
+) -> None:
+    """A corrected public declaration replaces the descriptor and still withholds locked facts."""
+    descriptions = data_root / "corpus" / "pilot-v1" / "descriptions"
+    assert not (descriptions / "restricted").exists()
+    document = yaml.safe_load(declaration.read_text())
+    document["title"] = "Corrected public title"
+    document["license"] = "https://example.org/new-license"
+    declaration.write_text(yaml.safe_dump(document))
+    refreshed = describe_corpus("pilot-v1", declaration, data_root, "public")
+    metadata = json.loads(refreshed.manifest_path.read_text())
+    assert metadata["name"] == "Corrected public title"
+    assert metadata["license"] == "https://example.org/new-license"
+    _assert_public(refreshed, opened, locked, data_root)
+    assert not (descriptions / ".replaced-public").exists()
+    assert list(descriptions.glob(".incoming-*")) == []
+    inode = refreshed.manifest_path.stat().st_ino
+    assert describe_corpus("pilot-v1", declaration, data_root, "public") == refreshed
+    assert refreshed.manifest_path.stat().st_ino == inode
+    assert not (descriptions / "restricted").exists()
 
 
 def _groups(opened: ImportResult, locked: ImportResult) -> list[dict[str, Any]]:
