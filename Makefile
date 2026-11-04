@@ -91,7 +91,7 @@ lint-spec-plan: ## Check capability registry, task structure, status, and orderi
 	@"$(PY)" -m ss_track.quality.plan_integrity --root "$(PROJECT_ROOT)"
 
 lint-contracts: ## Check frozen contracts, compatibility and merge-base history
-	@"$(PY)" -m ss_track.schema.history --project "$(PROJECT_ROOT)" --base-ref "$(CONTRACT_BASE_REF)"
+	@"$(PY)" -m ss_track.schema.compatibility.history --project "$(PROJECT_ROOT)" --base-ref "$(CONTRACT_BASE_REF)"
 
 plan-status: ## Count tasks by lane/status and show the next eligible work
 	@"$(VENV)/bin/ss-track-plan" --root "$(PROJECT_ROOT)"
@@ -104,10 +104,10 @@ ci: ci-checks test ## Run the required local and GitHub CI gate
 ci-github: ci ## Explicit GitHub Actions entrypoint
 
 fixed-corpus-sources: ## Write the fixed corpus sources once, for every host to stage
-	@"$(PY)" -m tests.corpus._fixed_corpus write --output "$(FIXED_SOURCES)"
+	@"$(PY)" -m tests.corpus.hosts._fixed_corpus write --output "$(FIXED_SOURCES)"
 
 fixed-corpus-stage: ## Stage stored fixed corpus sources and record this host's hashes
-	@"$(PY)" -m tests.corpus._fixed_corpus stage --sources "$(FIXED_SOURCES)" --run-id "$(RUN_ID)"
+	@"$(PY)" -m tests.corpus.hosts._fixed_corpus stage --sources "$(FIXED_SOURCES)" --run-id "$(RUN_ID)"
 
 fixed-corpus-compare: ## Compare two hosts' records: LEFT=<staged-hashes.json> RIGHT=<...>
 	@"$(VENV)/bin/ss-track" corpus compare --left "$(LEFT)" --right "$(RIGHT)" --run-id "$(RUN_ID)"

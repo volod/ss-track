@@ -1966,7 +1966,7 @@ and the fingerprints say which kind of edit it was.
 | `x-vocabulary` | The external vocabulary of a coded value, such as an FFmpeg enum |
 | `x-references` | The contract and JSON pointer a value refers to, so lineage can be walked |
 | `x-sensitivity` | `public`, `restricted` or `sensitive`, deciding whether a descriptor may carry the value |
-| `x-rules` | Cross-field rules JSON Schema cannot state, as named text |
+| `x-rules` | Rules the dialect cannot state, such as a rule across fields or files, as named text |
 
 Three kinds of version are separate and must not be confused. A **contract version** covers the
 shape and meaning of a format. A **data version** covers content: a corpus version, label revision or
@@ -2034,9 +2034,12 @@ Refusal codes do not change: a declaration that breaks its contract is `MANIFEST
 
 The local validator is stricter than the standard on points that a third-party validator may
 accept: `1.0` is not an integer, `$` in a pattern means the end of the value and not the end of a
-line, and YAML must carry no repeated key or non-finite number. YAML dates are normalized before
-validation, and nothing fills in a default. A reader still refuses a value YAML read as a date where
-text belongs, and text that is only whitespace, until a declaration major states both.
+line, and YAML must carry no repeated key or non-finite number. YAML dates are normalized to their
+ISO text before validation, and such a value validates only where its contract states the `date`
+format: an unquoted `2024-01-05` is a date to a YAML 1.1 reader and text to a YAML 1.2 one, so text
+written that way is refused by `contracts validate` and every reader alike. Nothing fills in a
+default. Free text must hold a character other than whitespace, which the dialect cannot state over
+any script: each such property states it under `x-rules` as `text`, and its reader enforces it.
 
 A record is validated once, in full, before it is sealed, and a writer defect is `RECORD_INVALID` with
 nothing sealed. A seal proves a record has not changed since, so a read checks the seal, kind and major
@@ -2318,7 +2321,7 @@ Group order alone never establishes readiness.
 | 1 | `reproducible-environment` | shipped | A fresh locked environment reaches the complete CI gate without manual repair | [Developer tooling](../impl/current/developer-tooling.md) |
 | 2 | `project-identity` | shipped | Import, CLI, and distribution-build tests agree on the project identity | [Product core](../impl/current/product-core.md) |
 | 3 | `corpus-provenance` | planned | Import/hash/canonical-decode, staged frame bundles, synchronized multi-stream grouping, generated cases, version lineage, duplicate-frame and source-term refusals and scenario-rights/split fixtures; malformed source yields structured failure | - |
-| 4 | `data-contracts` | planned | Every shipped record and declaration conforms unchanged to its frozen contract; every section 17.3 change classifies as declared, with an independent checker agreeing on structure; real records of every historic major read under their disposition with no byte or hash moved; a consumer with only the contracts validates a record; optional descriptors validate and leak nothing | - |
+| 4 | `data-contracts` | shipped | Every shipped record and declaration conforms unchanged to its frozen contract; every section 17.3 change classifies as declared, with an independent checker agreeing on structure; real records of every historic major read under their disposition with no byte or hash moved; a consumer with only the contracts validates a record; optional descriptors validate and leak nothing | [Contracts](../impl/current/contracts.md) |
 | 5 | `annotation-selection` | planned | Two-reviewer G0 labels, stable class/instance IDs, frozen mask and identical seed replay | - |
 | 6 | `module-contract-runner` | planned | Oracle, null, dropper, crash, schema and class-identity fixtures pass with exact frame accounting | - |
 | 7 | `motion-sot-evaluation` | planned | Hand-computed fixture metrics, denominators and time weights match evaluator output | - |

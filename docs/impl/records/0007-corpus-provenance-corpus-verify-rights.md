@@ -51,8 +51,7 @@ Beyond the task, `SOURCE_RECORD_CHANGED` details gain `source_sha256` and `chang
 new pure `changed_terms` in `terms.py`, because a bare hash mismatch cannot tell withdrawn rights
 from a corrected capture note. Existing keys are unchanged, so the refusal stays compatible. The
 `corpus verify` help text now states what it checks. There is no change to environment variables,
-`pyproject.toml` or `uv.lock`. `builder.py` is 270 lines and `test_verify_rights.py` 340, both above
-the approximate target; each stays one cohesive unit.
+`pyproject.toml` or `uv.lock`.
 
 Existing tests called this path a re-import but used `reseal`, because `import` refuses changed terms
 with `IMPORT_CONFLICT`. The fixtures in `tests/corpus/test_verify_rights.py` remove the source

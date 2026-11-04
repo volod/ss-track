@@ -1,0 +1,100 @@
+"""A synthetic next major of a real contract, frozen by the real freeze and installed for one test.
+
+No real format has a successor major yet, so these tests give one: the newest minor of the shipped
+major plus one required property, frozen with a disposition, while the records stay the ones today's
+code writes.
+Readers then read today's major as the older one, which is the case every later major will meet.
+"""
+
+import json
+import shutil
+from collections.abc import Callable, Iterator, Mapping
+from contextlib import contextmanager
+from pathlib import Path
+from typing import Any
+
+import pytest
+
+from ss_track.core.refusal import JsonValue
+from ss_track.corpus.records import projections as projection_table
+from ss_track.corpus.records import read_window
+from ss_track.corpus.records.kinds import RecordFormat
+from ss_track.corpus.records.read_window import View
+from ss_track.corpus.versions import builder
+from ss_track.corpus.versions.builder import CORPUS_MANIFEST
+from ss_track.quality.project_root import discover_project_root
+from ss_track.schema.compatibility.freeze import freeze_contract
+from ss_track.schema.registry import contract, store
+from ss_track.schema.validation import enforce
+
+CORPUS_CONTRACT = "record/corpus-manifest"
+CURRENT = CORPUS_MANIFEST.major
+NEXT = CURRENT + 1
+_CONTRACTS = discover_project_root(Path(__file__).parent) / "contracts"
+
+type Upcast = Callable[[Mapping[str, JsonValue]], dict[str, JsonValue]]
+
+
+def candidate(root: Path, added: str, schema: Mapping[str, Any]) -> Path:
+    """Write the newest corpus contract of this major at the next major, plus one property."""
+    version, current = _current_contract(root)
+    current["$id"] = current["$id"].replace(f":{version}", f":{NEXT}.0.0")
+    current["properties"]["schema_version"]["const"] = NEXT
+    current["properties"][added] = dict(schema)
+    current["required"] = [*current["required"], added]
+    path = root.parent / f"corpus-manifest-{NEXT}.0.0.json"
+    path.write_text(json.dumps(current, indent=2), encoding="ascii")
+    return path
+
+
+def _current_contract(root: Path) -> tuple[str, dict[str, Any]]:
+    folder = root / "record" / "corpus-manifest"
+    chosen = max(folder.glob(f"{CURRENT}.*.json"), key=lambda path: contract.version_key(path.stem))
+    return chosen.stem, json.loads(chosen.read_bytes())
+
+
+def freeze_next(root: Path, disposition: str, added: str, schema: Mapping[str, Any]) -> None:
+    """Freeze the next corpus major in a private copy of the set, as an author would."""
+    freeze_contract(
+        CORPUS_CONTRACT,
+        candidate(root, added, schema),
+        root=root,
+        summary="A synthetic next major.",
+        migration="Read it through its disposition.",
+        disposition=disposition,
+    )
+
+
+def private_contracts(directory: Path) -> Path:
+    root = directory / "contracts"
+    shutil.copytree(_CONTRACTS, root, ignore=shutil.ignore_patterns("__pycache__"))
+    root.joinpath("__init__.py").unlink()
+    return root
+
+
+@contextmanager
+def installed(root: Path) -> Iterator[None]:
+    """Make a contract set the installed one, and the shipped one again afterwards."""
+    shipped = store.default_root
+    store.default_root = lambda: root
+    enforce.installed_contracts.cache_clear()
+    try:
+        yield
+    finally:
+        store.default_root = shipped
+        enforce.installed_contracts.cache_clear()
+
+
+def read_as_next(
+    monkeypatch: pytest.MonkeyPatch, upcast: Upcast | None = None, **view: Any
+) -> None:
+    """Have the corpus readers read the next major, with a view of today's one when given."""
+    kind = CORPUS_MANIFEST.kind
+    monkeypatch.setattr(builder, "CORPUS_MANIFEST", RecordFormat(kind, NEXT))
+    projected = projection_table.installed_projections()[(kind, CURRENT)]
+    monkeypatch.setitem(projection_table.INSTALLED_PROJECTIONS, (kind, NEXT), projected)
+    if upcast is not None:
+        derived = tuple(view.get("derived", ()))
+        monkeypatch.setitem(
+            read_window.INSTALLED_VIEWS, (kind, CURRENT), View(kind, CURRENT, derived, upcast)
+        )

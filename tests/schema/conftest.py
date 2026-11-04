@@ -9,13 +9,16 @@ from typing import Any
 import pytest
 import yaml
 
-from ss_track.canonical import sha256_bytes
-from ss_track.schema.fingerprints import meaning_fingerprint, structure_fingerprint
-from ss_track.schema.store import contract_urn
+from ss_track.core.canonical import sha256_bytes
+from ss_track.schema.registry.contract import contract_urn
+from ss_track.schema.registry.fingerprints import meaning_fingerprint, structure_fingerprint
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CONTRACTS = PROJECT_ROOT / "contracts"
-KEPT_FRAME_SET = PROJECT_ROOT / "tests" / "corpus" / "records" / "frame-set-schema-1-fd982a1.json"
+KEPT_FRAME_SET = (
+    PROJECT_ROOT / "tests" / "corpus" / "kept_records" / "frame-set-schema-1-fd982a1.json"
+)
+EXAMPLES = Path(__file__).parent / "examples"  # one example document of every contract
 STANDARD = "https://json-schema.org/draft/2020-12/schema"
 SHA256_REF = "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256"
 
@@ -29,6 +32,13 @@ def read_registry(root: Path) -> dict[str, Any]:
 
 def write_registry(root: Path, registry: dict[str, Any]) -> None:
     (root / "registry.yaml").write_text(yaml.safe_dump(registry, sort_keys=False), encoding="utf-8")
+
+
+def frame_set_entry(registry: dict[str, Any]) -> dict[str, Any]:
+    """Return the frame set's first version entry in a registry document, to break one part."""
+    contract = next(item for item in registry["contracts"] if item["id"] == "frame-set")
+    entry: dict[str, Any] = contract["versions"][0]
+    return entry
 
 
 def version_entry(path: Path, **overrides: object) -> dict[str, object]:

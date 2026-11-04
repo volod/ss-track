@@ -69,12 +69,10 @@ at the starting commit rebuilds as `unchanged` under this code. `supersedes: nul
 is `MANIFEST_INVALID`, because absence is how a version says it names nothing.
 
 The comparison lives in the new `src/ss_track/corpus/lineage.py`, not in `grouping.py` as the
-execution path said. `grouping.py` rules read one version, and adding this would have taken it past
-the size target with `duplicate-frame-detection` still to come. The module touches no disk: the
-chain walk takes its loader as an argument, so `builder.py` keeps the one read path. `builder.py` is
-286 lines and `tests/corpus/test_lineage_build.py` about 460, both above the approximate target; each
-stays one cohesive unit. There is no change to environment variables, `pyproject.toml` or `uv.lock`.
-The public result gains one key, and `BuildResult` gains a required `lineage` field.
+execution path said. `grouping.py` rules read one version, and this comparison is a separate
+responsibility. The module touches no disk: the chain walk takes its loader as an argument, so
+`builder.py` keeps the one read path.  There is no change to environment variables, `pyproject.toml`
+or `uv.lock`. The public result gains one key, and `BuildResult` gains a required `lineage` field.
 
 ## Acceptance evidence
 

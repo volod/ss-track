@@ -54,8 +54,8 @@ contract](../current/corpus.md#shared-frames) states the behavior.
 
 Decisions beyond the task's wording:
 
-- The pure search is in `shared_runs.py`, not `grouping.py` as the execution path said. It took
-  `grouping.py` to 296 lines, and it has its own data and its own seam. `grouping.py` is unchanged.
+- The pure search is in `shared_runs.py`, not `grouping.py` as the execution path said. It has its
+  own data and its own seam, so `grouping.py` is unchanged.
 - "A run not all alike" is stricter than two different frames: eight different frames in a row. A
   capture card showing `no signal`, then black, would otherwise refuse two independent clips, with
   no override. Eight frames with two states, or a blinking screen, are not evidence of one
@@ -86,8 +86,8 @@ Compatibility: `FramesResult` gains a required `shared_frames`, and `to_record` 
 Stage and verify now read the declared chain, so a rebuilt predecessor or a damaged predecessor
 record they used to ignore is now refused. A corpus already staged with a run across groups stays on
 disk and is refused. No manifest, hash or schema changes, no new refusal code, and no change to the
-environment, `pyproject.toml` or `uv.lock`. `frames.py` grew to 292 lines, past the 250 target: the
-move took `staging.py` from 250 to 233, and the function belongs with bundle opening.
+environment, `pyproject.toml` or `uv.lock`. The moved function belongs with bundle opening, so it
+now sits in `frames.py`.
 
 ## Acceptance evidence
 

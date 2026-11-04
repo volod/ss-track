@@ -461,7 +461,12 @@ thin adapters that point to it. Keeping substantive rules in one file prevents t
 ### Layout
 
 ```text
-src/ss_track/              production package
+src/ss_track/              production package; cli.py is its entry point
+  core/                    shared primitives: canonical bytes, refusals, strict parsing, paths
+  commands/                command groups and the one JSON record each command reports
+  corpus/                  import, decode, versions, staged bundles, cases and descriptors
+  schema/                  the contract registry, validation, compatibility gate and views
+  quality/                 documentation and plan checks
 tests/                     unit and governance tests
 docs/design/               product specification
 docs/impl/plan.md          forward-only work

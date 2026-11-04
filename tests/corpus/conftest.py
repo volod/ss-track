@@ -9,14 +9,17 @@ import pytest
 import yaml
 
 from ss_track.corpus import import_source
-from ss_track.corpus.importer import ImportResult
-from ss_track.corpus.sealed import sha256_file
+from ss_track.corpus.records.sealing import sha256_file
+from ss_track.corpus.sources.importer import ImportResult
 from tests._sealing import self_sealed
 from tests.corpus._media import WIDTH, X264_WITH_B_FRAMES, remux, write_clip
 
 type Recording = dict[str, object]
 type WriteRecording = Callable[..., Path]
 type WriteCorpus = Callable[..., Path]
+type Group = dict[str, object]  # one declared encounter group
+HEAD = {"start_frame": 0, "end_frame": 4}  # a source's first four frames
+TAIL = {"start_frame": 4, "end_frame": 8}  # and the four after them
 
 
 def recording_declaration(source: str = "clip.mkv") -> Recording:
@@ -46,11 +49,14 @@ def encounter_of(encounter_id: str, *streams: dict[str, object]) -> dict[str, ob
     return {"encounter_id": encounter_id, "streams": list(streams)}
 
 
-def group_of(
-    group_id: str, split: str, *encounters: dict[str, object], **fields: object
-) -> dict[str, object]:
+def group_of(group_id: str, split: str, *encounters: dict[str, object], **fields: object) -> Group:
     """Return one encounter group in one split."""
     return {"group_id": group_id, "split": split, "encounters": list(encounters)} | fields
+
+
+def single_group(group_id: str, split: str, stream: dict[str, object]) -> Group:
+    """Return a group of one encounter that holds one stream, named after the stream."""
+    return group_of(group_id, split, encounter_of(f"enc-{stream['stream_id']}", stream))
 
 
 def case_of(

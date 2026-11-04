@@ -2,8 +2,8 @@
 
 from collections.abc import Mapping
 
-from ss_track.canonical import SEAL_FIELD, seal_of
-from ss_track.refusal import JsonValue
+from ss_track.core.canonical import SEAL_FIELD, seal_of
+from ss_track.core.refusal import JsonValue
 
 
 def self_sealed(body: Mapping[str, JsonValue]) -> dict[str, JsonValue]:

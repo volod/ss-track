@@ -4,7 +4,7 @@ Events and scenarios belong to `ss_track.contract`, which is another package. Th
 nothing from `ss_track.corpus`, because the corpus writers validate through it.
 """
 
-from ss_track.schema.commands import (
+from ss_track.schema.validation.commands import (
     ContractList,
     ValidationResult,
     list_contracts,

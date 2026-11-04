@@ -70,10 +70,7 @@ would add a recipe comparison for a case and protect nothing a pin does not.
 Compatibility: bundle and corpus manifests, their hashes and every schema are unchanged. `FramesResult`
 gains a required `frame_set_sha256`, and `FramesResult.to_record` gains that key. A corpus staged
 before this change is refused by `corpus verify` until one `corpus stage` adds the record without
-touching a bundle. No environment variable, `pyproject.toml` or `uv.lock` change. `staging.py` is 250
-lines, at the target, so `duplicate-frame-detection` should not add its search there; its execution
-path already places it in `grouping.py`. `tests/corpus/test_frame_set.py` is about 490 lines and stays
-one cohesive unit over one record.
+touching a bundle. No environment variable, `pyproject.toml` or `uv.lock` change.
 
 ## Acceptance evidence
 

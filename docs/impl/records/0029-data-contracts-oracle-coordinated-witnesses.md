@@ -36,7 +36,7 @@ values changed together goes unfound whenever jsoncompat wrongly calls it compat
 
 - Amendments: the search stays in the test oracle and is still entered only through
   `tests/schema/_witness.py`. The builder and the node walk moved to `_witness_build.py` and
-  `_witness_node.py` because one module was about 700 lines, past the line guide. The oracle's
+  `_witness_node.py` so each module holds one step of the search. The oracle's
   call is unchanged. The `_oracle.py` docstring was updated so it no longer describes a
   one-position search.
 
@@ -82,10 +82,8 @@ transitions at the pair cap that meets the time gate.
   past 32 validator calls stay unsearched, so a later coordinated break can still hide behind a
   wrong compatible verdict. This is the bound the task required. The table is inside it. A pair
   cap of 256 made the frozen-transition test take 2.52s.
-- `AUD-oracle-coordinated-witnesses-2`, nonblocking, dropped: `_witness.py` is 303 lines and
-  `_witness_node.py` is 281, over the soft 250-line aim. Each file is one step of this search.
-  Another split would separate `search` from the phases it runs in order. `make quality-report`
-  already lists longer test modules.
+- `AUD-oracle-coordinated-witnesses-2`, nonblocking, dropped: module size, a chore. The code was
+  later reorganized into smaller logical modules.
 
 ## Close or resume
 

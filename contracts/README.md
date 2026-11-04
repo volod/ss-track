@@ -19,7 +19,12 @@ points only at those URNs, so nothing needs a network.
 
 A record stamps `kind` and the contract's major. It does not stamp a minor, because its seal covers
 that field. `x-rules` in a contract states in words what JSON Schema cannot state, including how a
-record's seal is computed.
+record's seal is computed. A `text` rule on a declaration property means the value holds a character
+other than whitespace.
+
+Declarations are YAML. A value such as `2024-01-05` is a date to a YAML 1.1 reader and text to a
+YAML 1.2 one, so ss-track accepts it unquoted only where the contract states `format: date`; quote it
+anywhere else.
 
 The baseline freezes recording and corpus declarations, source and corpus manifests, frame bundles,
 frame sets, staged hashes, hash comparisons and command results. Every frame-set reference annotation

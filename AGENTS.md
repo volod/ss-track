@@ -21,8 +21,11 @@ specific files must link here and keep only integration-specific routing.
 ## Code organization
 
 - Production Python lives under `src/ss_track/`; tests mirror it under `tests/`.
-- `src/ss_track/cli.py` owns command parsing. Domain behavior belongs in focused modules, not in
-  CLI handlers or top-level shell scripts.
+- `src/ss_track/cli.py` is the only module in the package root: the entry point and root parser.
+  Each command group lives in `src/ss_track/commands/`, with `commands/report.py` for the one JSON
+  record every command reports. Shared primitives live in `src/ss_track/core/`, and each area
+  package groups its modules into subpackages by responsibility. Domain behavior belongs in focused
+  modules, not in CLI handlers or top-level shell scripts.
 - Prefer cohesive modules and functions with small interfaces. Reuse existing code and avoid
   parallel implementations of one rule.
 - Aim to keep tracked Python and shell files at or below about 250 lines. Split only at a clear

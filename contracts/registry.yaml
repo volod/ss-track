@@ -44,6 +44,15 @@ contracts:
     change:
       class: initial
       summary: Initial operator dataset declaration.
+  - version: 1.1.0
+    file_sha256: d85209e38dab244219b6032642f8d8493d61fff53a7821c6d3c890226c1270ae
+    fingerprints:
+      structure: f25a9e8d6eea74b60aa245c2831f5754da4c1e54f4a516b82c0039025767b161
+      meaning: f3fc616839afaebb2d345cb34cb49f3ab85a1d0c5c9acd869d191bf7641840a4
+    change:
+      class: minor
+      summary: State the not-blank rule of each free-text field under x-rules. Accepted
+        values do not change.
 - family: declaration
   id: recording
   owner: corpus-provenance
@@ -59,6 +68,15 @@ contracts:
       class: initial
       summary: The shipped format at major 2, including descriptive capture scalars,
         with no record bytes changed.
+  - version: 2.1.0
+    file_sha256: 42777cc4ca6d957600fef6808b1df9387a87b836eb3e6eda96062221aeabcb32
+    fingerprints:
+      structure: bca41728867b6cef0a49888785287a0be9e3ceea3327430292ba1175261f776d
+      meaning: ec6f4686adf5964ff6a3a30e108a3f3ed1ffd4adfdd5e064aadd6a282439f8a6
+    change:
+      class: minor
+      summary: State the not-blank rule of each free-text field under x-rules. Accepted
+        values do not change.
   retired_majors:
   - major: 1
     status: retired

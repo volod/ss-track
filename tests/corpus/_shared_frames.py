@@ -6,16 +6,9 @@ from pathlib import Path
 import pytest
 
 from ss_track.corpus import CorpusRefusal, RefusalCode, open_frame_bundle, stage_corpus
-from ss_track.corpus.staging import FramesResult
-from tests.corpus.conftest import encounter_of, group_of
+from ss_track.corpus.bundles.staging import FramesResult
 
 V0, V1, V2 = "pilot-v0", "pilot-v1", "pilot-v2"
-
-type Group = dict[str, object]
-
-
-def single(group: str, split: str, stream: dict[str, object]) -> Group:
-    return group_of(group, split, encounter_of(f"enc-{stream['stream_id']}", stream))
 
 
 def stage_refused(corpus_id: str, data_root: Path, code: RefusalCode) -> CorpusRefusal:

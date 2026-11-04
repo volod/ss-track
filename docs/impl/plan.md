@@ -58,8 +58,8 @@ the stored source.
   byte-identical, and `corpus build` of a new version accepts it. A corpus version pinning the old
   record refuses with `SOURCE_RECORD_CHANGED`. A stored source that no longer matches its hash is
   refused, a repeat reports `unchanged`, and an interrupted run leaves one whole record. The real
-  `tests/corpus/records/` schema 1 record of `d6b704d`, amended and then re-decoded, builds, and the
-  one of `0238d55` builds through both flags together with no term invented.
+  `tests/corpus/kept_records/` schema 1 record of `d6b704d`, amended and then re-decoded, builds,
+  and the one of `0238d55` builds through both flags together with no term invented.
 - Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
 
 #### group-repeated-frames (optional)
@@ -124,10 +124,11 @@ After `--amend-terms` an operator learns which corpus versions hold the affected
 - Scope boundary: A report on one data root that refuses nothing and removes nothing, and never fails
   an amendment that is already recorded. Other hosts stay out of reach.
 - Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/corpus/`.
-- Execution path: Scan `$DATA_DIR/corpus/*/manifest.json` for streams pinning the replaced seal, sharing
-  the scan with `unlinked-version-report` when that exists. A corpus projection holds no pin, so add
-  `source_manifest_sha256` to each major's projection in `corpus/projections.py`, read every major
-  through `read_comparable`, and name a manifest it cannot read rather than skipping it.
+- Execution path: Scan `$DATA_DIR/corpus/*/manifest.json` for streams pinning the replaced seal,
+  sharing the scan with `unlinked-version-report` when that exists. A corpus projection holds no
+  pin, so add `source_manifest_sha256` to each major's projection in
+  `corpus/records/projections.py`, read every major through `read_comparable`, and name a manifest
+  it cannot read rather than skipping it.
 - Acceptance gates: A source pinned by two versions lists both, a version pinning another record is
   not listed, an unreadable manifest is named and the amendment still records, and a repeat reporting
   `unchanged` lists nothing. One state gives one listing in one order.
@@ -368,47 +369,6 @@ import, build, stage and verify as one path.
   finding is fixed, routed to a task or dropped with its reason, and `make quality` passes. Finding
   nothing is a valid result when the record states what was reviewed.
 - Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
-### Data contracts -- `data-contracts`
-
-#### data-contracts-audit (optional)
-
-Contracts, readers and disposition rules arrive in separate tasks, so a format can still be stated
-twice and an older-major rule can sit in code the registry should own.
-
-- Serves: `data-contracts` -- [Reading older records](../design/spec.md#reading-older-records)
-- Agent status: CLEAR
-- Milestone: M1
-- Effort: high
-- Dependencies: every other agent task in this group.
-- User-visible outcome: Each format has one statement, its contract, and each older major has one
-  stated route, with no record byte moved.
-- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
-  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
-  score or refusal code.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `tests/corpus/records/`,
-  `contracts/`, `src/ss_track/schema/`, `tests/schema/`, `docs/guide/authoring-contracts.md`,
-  `contracts/declaration/`, `contracts/record/`, `contracts/result/`.
-- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from the
-  code that still knows a version: `SEQUENCE_KEYS`, the projection table in `corpus/projections.py`,
-  the stated-shape table in `corpus/read_window.py`, and any structural rule left in a hand-written
-  reader. `PROTECTED_PROPERTIES` in `schema/dispositions.py` names operator judgments and algorithm
-  revisions by property name, a rule the contracts could state as an annotation: state it there in
-  each next major or keep it as a named code rule. A view's purity and undeclared derivations are
-  checked by `check_view` in tests only, because walking every value of a million-frame bundle on
-  each read costs seconds: decide whether a view's first read should check it. `Fields.text` in
-  `corpus/fields.py` refuses whitespace-only text and a value YAML read as a date, which
-  `declaration/recording` 2.0.0 and `declaration/corpus` 3.0.0 do not state, so `contracts validate`
-  accepts what a reader refuses: state both in each next declaration major or keep them as named
-  reader rules. Then replay every
-  record in `tests/corpus/records/` and compare the change log with the real bumps.
-- Acceptance gates: Every historic record reads under its disposition with its bytes and seal
-  unchanged, a static search finds no version check outside the read path, and `corpus verify` on a
-  million-frame index is no slower than before, as `tests/corpus/test_read_cost.py` shows. Every
-  finding is fixed, routed to a task or dropped with its reason, and `make quality` passes. Finding
-  nothing is a valid result when the record states what was reviewed.
-- Documentation target: [Current implementation](current.md#areas), pages `current/corpus.md` and
-  `current/contracts.md`.
 
 ### Annotation and selection -- `annotation-selection`
 
@@ -1958,8 +1918,9 @@ Telemetry has nowhere to live as evidence, because import takes only video.
   store, and a declared CSV reader as the first format. No profiles, analysis or live capture.
 - Data and artifact paths: `src/ss_track/telemetry/`, `tests/telemetry/`, `contracts/`,
   `$DATA_DIR/import/<source-sha256>/`, `$DATA_DIR/telemetry/<bundle-sha256>/`.
-- Execution path: Reuse `sealed.py`, publish-by-rename and the source-terms checks by generalizing
-  them, with no parallel copy. Store one little-endian file per field under a sealed index.
+- Execution path: Reuse `sealing.py` and `sealed.py`, publish-by-rename and the source-terms checks
+  by generalizing them, with no parallel copy. Store one little-endian file per field under a sealed
+  index.
 - Acceptance gates: Two stagings across data roots, and on x86-64 and arm64, give one hash. A float
   column round-trips bit-exact, including NaN payloads. A flipped column byte fails `verify` by name.
   Rights and retention refuse as they do for a recording.

@@ -3,7 +3,7 @@
 ## Task and scope
 
 - Id / capability: `contract-evolution-gate` / `data-contracts`
-- State: active.
+- State: accepted.
 - Source: plan task; start commit `18e711777a56c98d172501dcb71f60546bd92dcc`;
   working tree clean.
 - Plan counts at start: 131 open tasks (109 agent, 22 human); next agent by priority:
@@ -83,7 +83,7 @@ changed unit.
 | Hash stability | `tests/schema/test_hash_stability.py` | Pass: real frame-set producer replay, existing CLI output under previous minor, null/default additions, unannounced keys and changed values |
 | History immutability | `tests/schema/test_history.py` | Pass: working and committed file-plus-pin edits, deletion, manual wrong bump, missing refs, shallow checkout and CI wiring |
 | CLI smoke run | `$DATA_DIR/run/contract-evolution-gate/cli-smoke.log` | Pass: actual `diff`, `freeze`, and Git-free set validation against a disposable copy; scratch copy removed |
-| Required gate | `make ci` | Final run pending; preceding full run passed |
+| Required gate | `make ci` | Final run pending at the change; passed in full at `data-contracts-audit`, which closed this record (see its record, 0030) |
 | Coverage and extended checks | `UV_CACHE_DIR="$DATA_DIR/cache/uv" UV_OFFLINE=true make quality` after `sst_load_env` | Pass: 1,360 tests, 98.02% branch-aware coverage, all CI checks, Markdown, source and wheel build; `$DATA_DIR/run/contract-evolution-gate/quality.log` |
 | Package build recovery | `UV_CACHE_DIR="$PWD/.data/cache/uv" UV_OFFLINE=true make build` | Initial online build failed on sandbox DNS; offline build and final full quality run passed using cached backend. Packaging tests also inspect an isolated wheel |
 | Documentation | `make lint-md`, `make lint-doc-links`, `make lint-spec-plan` | Pass; links, task structure, registry order and Markdown checked |
@@ -117,8 +117,10 @@ There is no skip, expected failure or exemption for an actual frozen transition.
 
 ## Close or resume
 
-Final required and documentation checks are pending. The delivered task is removed from the plan,
-its three explicit downstream dependencies are cleared, and the oracle refinement has an owner.
+Final required and documentation checks were pending at the change, and `data-contracts-audit`
+(record 0030) ran them over a tree containing every test this record names. The delivered task is
+removed from the plan, its three explicit downstream dependencies are cleared, and the oracle
+refinement has an owner.
 Plan counts after routing remain 131 open tasks (109 agent, 22 human): one task removed and one
 optional task added. The next tasks by lane priority remain `decode-policy-reimport (optional)`
 and `select-development-workload`; `contract-enforced-readers` is the next required data-contracts

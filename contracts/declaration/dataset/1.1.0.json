@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ss-track:contract:declaration:dataset:1.1.0",
+  "title": "Dataset",
+  "type": "object",
+  "description": "Operator declaration of dataset discovery metadata.",
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1,
+      "minimum": 0,
+      "x-unit": "1",
+      "description": "Declaration major."
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Dataset title.",
+      "x-rules": {
+        "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+      }
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Dataset description.",
+      "x-rules": {
+        "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+      }
+    },
+    "license": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Dataset license.",
+      "x-rules": {
+        "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+      }
+    },
+    "citation": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Dataset citation.",
+      "x-rules": {
+        "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+      }
+    },
+    "address": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Dataset address.",
+      "x-rules": {
+        "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+      }
+    },
+    "publication_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Dataset publication date."
+    }
+  },
+  "required": [
+    "schema_version",
+    "title",
+    "description",
+    "license",
+    "citation",
+    "address",
+    "publication_date"
+  ],
+  "additionalProperties": false
+}

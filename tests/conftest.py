@@ -13,11 +13,12 @@ from typing import Any
 
 import pytest
 
-from ss_track import cli
-from ss_track.canonical import SEAL_FIELD, seal_of
-from ss_track.corpus import sealed
-from ss_track.schema.store import Contract, load_contract_set
-from ss_track.schema.strict import violations
+from ss_track.commands import report
+from ss_track.core.canonical import SEAL_FIELD, seal_of
+from ss_track.corpus.records import sealing
+from ss_track.schema.registry.contract import Contract
+from ss_track.schema.registry.store import load_contract_set
+from ss_track.schema.validation.strict import violations
 
 
 def _require_retired_archive(path: Path, record: Mapping[str, Any], contract: Contract) -> None:
@@ -46,8 +47,8 @@ def validate_written_contracts() -> Iterator[Counter[str]]:
         if name.startswith("record/")
     }
     seen: Counter[str] = Counter()
-    write = sealed.write_sealed
-    log = cli._log_json
+    write = sealing.write_sealed
+    log = report.log_json
 
     def check(name: str, record: Mapping[str, Any]) -> None:
         # Serialization makes Python tuples and StrEnums agree with the written JSON.
@@ -77,5 +78,5 @@ def validate_written_contracts() -> Iterator[Counter[str]]:
                 and getattr(module, "write_sealed", None) is write
             ):
                 patch.setattr(module, "write_sealed", checked_write)
-        patch.setattr(cli, "_log_json", checked_log)
+        patch.setattr(report, "log_json", checked_log)
         yield seen

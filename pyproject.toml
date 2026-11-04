@@ -58,10 +58,25 @@ Repository = "https://github.com/volod/ss-track"
 include-package-data = false
 packages = [
   "ss_track",
+  "ss_track.commands",
   "ss_track.contract_files",
+  "ss_track.core",
   "ss_track.corpus",
+  "ss_track.corpus.bundles",
+  "ss_track.corpus.cases",
+  "ss_track.corpus.declarations",
+  "ss_track.corpus.decoding",
+  "ss_track.corpus.descriptors",
+  "ss_track.corpus.hosts",
+  "ss_track.corpus.records",
+  "ss_track.corpus.sources",
+  "ss_track.corpus.versions",
   "ss_track.quality",
   "ss_track.schema",
+  "ss_track.schema.compatibility",
+  "ss_track.schema.registry",
+  "ss_track.schema.validation",
+  "ss_track.schema.views",
 ]
 
 [tool.setuptools.package-dir]

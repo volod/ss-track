@@ -14,8 +14,8 @@ baseline scope and evidence. The installed set contains these document contracts
 | Contract | Frozen version |
 | --- | --- |
 | `declaration/corpus` | `3.0.0` |
-| `declaration/dataset` | `1.0.0` |
-| `declaration/recording` | `2.0.0` |
+| `declaration/dataset` | `1.0.0`, `1.1.0` |
+| `declaration/recording` | `2.0.0`, `2.1.0` |
 | `record/corpus-manifest` | `3.0.0`, `3.1.0` |
 | `record/frame-bundle` | `3.0.0`, `3.1.0` |
 | `record/frame-set` | `1.0.0` |
@@ -28,6 +28,11 @@ baseline scope and evidence. The installed set contains these document contracts
 and publication date. It can be checked with `ss-track contracts validate` and is consumed by the
 [dataset descriptor](corpus.md#dataset-descriptors).
 
+`declaration/recording` 2.1.0 and `declaration/dataset` 1.1.0 state, under `x-rules` as `text` on
+each free-text property, that the value holds a character other than whitespace. The dialect cannot
+state that over any script, and `Fields.text` enforces it; the accepted values do not change.
+`tests/schema/registry/test_agreement.py` fails when a free-text declaration property lacks the rule.
+
 `record/corpus-manifest` 3.1.0, `record/source-manifest` 2.1.0 and `record/frame-bundle` 3.1.0 add
 `x-sensitivity` marks and do not change the values a record stores. `schema_version` remains the
 major, so a record sealed at 3.0.0 or 2.0.0 still validates under the newest minor. The descriptor
@@ -39,11 +44,15 @@ operator descriptions and numbers: the dialect allows exactly `["string", "numbe
 form. Numeric descriptive metadata has no physical-unit claim; declared range retains metres.
 The extension does not allow arbitrary scalar unions or change a recording's accepted values.
 
-Declaration and sealed-record majors are independent constants in `corpus/declaration.py`,
-`corpus/builder.py` and `corpus/importer.py`; their existing integer values and written bytes remain
-unchanged. The corpus contract requires source terms even at major 3: an earlier schema-3 manifest
-without them fails explicit validation, and at runtime the read path tells it apart as a stated
-shape with the `facts` disposition, as no major does.
+Each sealed format's kind and major have one statement, its `RecordFormat` beside its writer
+(`corpus/sources/importer.py`, `builder.py`, `frames.py`, `frame_set.py`, `host_hashes.py`,
+`hash_comparison.py`), with every kind and the `RecordFormat` class in `corpus/records/kinds.py`.
+The writer stamps a record with `RecordFormat.stamp()` and the read path reads with the same value.
+Declaration majors are constants in `corpus/declarations/declaration.py` and
+`corpus/descriptors/descriptor.py`. Declaration and record majors stay independent, and their
+written bytes are unchanged. The corpus contract requires source terms even at major 3: an earlier
+schema-3 manifest without them fails explicit validation, and at runtime the read path tells it
+apart as a stated shape with the `facts` disposition, as no major does.
 
 Earlier recording/source major 1 and corpus/bundle majors 1 and 2 are listed in `retired_majors`
 without frozen schemas. Each entry's `status` is its disposition, `facts` or `retired`, and the read
@@ -59,17 +68,22 @@ status; it was frozen for this and for lineage `not_compared`.
 The [enforcement record](../records/0020-data-contracts-contract-enforced-readers.md) holds the
 accepted task, its decisions and its evidence.
 
-Contracts state structure at runtime, in `schema/enforce.py`, with the refusal codes the readers had:
+Contracts state structure at runtime, in `schema/validation/enforce.py`, with the refusal codes the
+readers had:
 
 - `read_declaration` parses operator YAML with the strict parser and validates the whole document
   under the newest frozen version of the major its reader reads. A violation is `MANIFEST_INVALID`
   and names the URN and the first violation, a wrong `schema_version` first; details list up to 20.
   An unreadable file is `MANIFEST_INVALID` too. The corpus readers then take typed values through
-  `corpus/fields.py` and apply only the rules a contract states as `x-rules` or does not state.
+  `corpus/declarations/fields.py` and apply only the rules a contract states as `x-rules` or does
+  not state.
 - `require_record` validates a record, already holding its seal, under the newest frozen version of
-  the major it stamps, and `corpus/sealed.py` `seal` calls it before returning. A writer defect,
+  the major it stamps, and `corpus/records/sealing.py` `seal` calls it before returning. A writer defect,
   including an unregistered kind, a major with no frozen version or a `NaN`, is `RECORD_INVALID`
-  with nothing written.
+  with nothing written. `record_violations` returns the same check's findings without refusing, and
+  `sealing.seal_violations` asks it for a body before sealing: an amendment that carries an older
+  record forward refuses one the current contract would refuse as `RECORD_SCHEMA_UNSUPPORTED`,
+  listing the `violations`, so no list of required keys is kept in code.
 - `older_remedy` returns the change log's migration for an older major of a record kind.
 - `older_disposition` returns how a record of an earlier major is read: the strictest disposition
   of each major it steps through to the current one, from `Contract.disposition_of`, which reads a
@@ -89,11 +103,14 @@ The validator reports a tagged `oneOf` through the branch its tag selects, so a 
 any of the given schemas". A tag no branch states is named with the tags that exist, and a missing tag
 as a required property. An untagged union keeps the standard report.
 
-YAML dates are normalized to their ISO text as `strict_yaml.YamlDate`, a `str` that validates as one.
-A reader's text field refuses it, so an unquoted `holder: 2024-01-05` keeps the refusal it had; a date
-field takes it. Text that is only whitespace is also refused by the readers. Neither rule is in a
-declaration contract yet, so `contracts validate` accepts both; `data-contracts-audit` in the
-[plan](../plan.md#data-contracts-audit-optional) owns that disagreement.
+YAML dates are normalized to their ISO text as `strict_yaml.YamlDate`, a `str` subclass.
+`YamlValidator` in `schema/validation/strict.py`, which validates every YAML document, accepts one
+only where its node states the `date` format: an unquoted `2024-01-05` is a date to a YAML 1.1
+reader and text to a YAML 1.2 one. So `holder: 2024-01-05`, or a capture fact written that way, is
+`MANIFEST_INVALID` from a reader and from `contracts validate` alike, while `retain_until` takes it.
+Quoted, it is text. A JSON record cannot hold one, so its validation skips the check, which would
+cost 5% of validating a large bundle before sealing. Text that is only whitespace is refused by
+`Fields.text`, under the `text` rule each free-text property states.
 
 ## Commands
 
@@ -144,50 +161,51 @@ The input file is never rewritten. Name a `declaration` contract to select the Y
 | `contracts/README.md` | What a consumer holding only this directory needs |
 
 `pyproject.toml` maps the directory to the package `ss_track.contract_files`. That mapping rules out
-package discovery, so `packages` is an explicit list, and `tests/schema/test_packaging.py` fails
+package discovery, so `packages` is an explicit list, and `tests/test_packaging.py` fails
 when a package is missing from it. `contracts/__init__.py` exists because an editable install finds
-a mapped package only through one. `ss_track.schema.store.default_root` gives one lookup for a
-checkout and a wheel.
+a mapped package only through one. `ss_track.schema.registry.store.default_root` gives one lookup
+for a checkout and a wheel.
 
 | Module | Owns |
 | --- | --- |
-| `schema/strict.py` | The local validator, violation reports and tagged-union reporting |
-| `schema/store.py` | The registry, frozen files, identity and `$ref` resolution by URN |
-| `schema/fingerprints.py` | The schema walk and both fingerprints |
-| `schema/dialect.py` | The meta-schema check and the shared-tag rule |
-| `schema/check.py` | Registry, file, dialect, identity and reference checks without Git |
-| `schema/evolution.py`, `schema/_change_rules.py` | JSON-pointer comparison and keyword compatibility rules |
-| `schema/_patterns.py` | The structural pattern-inclusion proof |
-| `schema/_derivatives.py`, `schema/_derivative_expr.py` | Inclusion of a pattern whose shape changed |
-| `schema/versioning.py` | Minimum bump, change-log, disposition-floor and backward-transitive policy |
-| `schema/dispositions.py` | The disposition floor and the properties no view may derive |
-| `schema/freeze.py`, `schema/_publishing.py` | Candidate validation, generated pins and locked publication |
-| `schema/history.py` | `make lint-contracts`: merge-base immutability and transition checks |
-| `schema/commands.py` | `contracts list` and `contracts validate` |
-| `schema/enforce.py` | Runtime validation of declarations and records, change-log remedies and dispositions, and shared types |
-| `schema/_documents.py`, `strict_json.py` | Private document parsing and shared strict JSON decoder hooks |
+| `schema/validation/strict.py` | The local validator and its YAML variant, violation reports and tagged-union reporting |
+| `schema/registry/contract.py` | A contract, its frozen versions, their identity and the registry's vocabulary |
+| `schema/registry/store.py` | Loading the registry and frozen files against their pins, and `$ref` resolution by URN |
+| `schema/registry/fingerprints.py` | The schema walk and both fingerprints |
+| `schema/registry/dialect.py` | The meta-schema check and the shared-tag rule |
+| `schema/registry/check.py` | Registry, file, dialect, identity and reference checks without Git |
+| `schema/compatibility/evolution.py`, `schema/compatibility/change_rules.py` | JSON-pointer comparison and keyword compatibility rules |
+| `schema/compatibility/patterns.py` | The structural pattern-inclusion proof |
+| `schema/compatibility/derivatives.py`, `schema/compatibility/derivative_expr.py` | Inclusion of a pattern whose shape changed |
+| `schema/compatibility/versioning.py` | Minimum bump, change-log, disposition-floor and backward-transitive policy |
+| `schema/compatibility/dispositions.py` | The disposition floor and the properties no view may derive, named in code |
+| `schema/compatibility/freeze.py`, `schema/compatibility/publishing.py` | Candidate validation, generated pins and locked publication |
+| `schema/compatibility/history.py` | `make lint-contracts`: merge-base immutability and transition checks |
+| `schema/validation/commands.py` | `contracts list` and `contracts validate` |
+| `schema/validation/enforce.py` | Runtime validation of declarations and records, change-log remedies and dispositions, and shared types |
+| `schema/validation/_documents.py`, `strict_json.py` | Private document parsing and shared strict JSON decoder hooks |
 
-`ss_track.schema` imports nothing from `ss_track.corpus`, because the corpus writers will validate
-through it. `ss_track.refusal`, `ss_track.canonical` and `ss_track.strict_yaml` sit below both, and
-a test holds that import direction.
+`ss_track.schema` imports nothing from `ss_track.corpus`, because the corpus writers validate
+through it. `ss_track.core.refusal`, `ss_track.core.canonical` and `ss_track.core.strict_yaml` sit
+below both, and a test holds that import direction.
 
 ## Validation
 
-`schema/strict.py` extends the standard validator at two points where it is loose. `1.0` and `True`
-are not integers. `$` in a `pattern` means the end of the value, as it does in ECMA-262: Python's
-`re` would also match before a final newline, so a hash with one would pass here and fail elsewhere.
-`date` is the only `format` the dialect allows, because no other is enforced with the installed
-dependencies, and an unenforced format would read as a rule.
+`schema/validation/strict.py` extends the standard validator at two points where it is loose. `1.0`
+and `True` are not integers. `$` in a `pattern` means the end of the value, as it does in ECMA-262:
+Python's `re` would also match before a final newline, so a hash with one would pass here and fail
+elsewhere. `date` is the only `format` the dialect allows, because no other is enforced with the
+installed dependencies, and an unenforced format would read as a rule.
 
 The dialect closes what it can for a third-party validator. It refuses `\d`, `\w`, `\s` and `\b`,
 whose meaning differs between regular expression engines, and bounds every pattern at both ends.
-`pattern_findings` in `schema/dialect.py` then refuses any pattern outside the syntax
-`schema/_patterns.py` reads: ASCII literals, escapes, positive classes, groups, alternation and
-quantifiers, with no top-level alternation. `.` and a negated class match line terminators and
-astral characters differently in Python's `re` and ECMA-262, and no change to lookaround or a
-backreference could be classified. A literal `.` stays available escaped or inside a class.
-What stays looser elsewhere is `1.0` for an integer, which JSON Schema itself accepts, and a final
-newline under an engine with Python's `$`.
+`pattern_findings` in `schema/registry/dialect.py` then refuses any pattern outside the syntax
+`schema/compatibility/patterns.py` reads: ASCII literals, escapes, positive classes, groups,
+alternation and quantifiers, with no top-level alternation. `.` and a negated class match line
+terminators and astral characters differently in Python's `re` and ECMA-262, and no change to
+lookaround or a backreference could be classified. A literal `.` stays available escaped or inside a
+class. What stays looser elsewhere is `1.0` for an integer, which JSON Schema itself accepts, and a
+final newline under an engine with Python's `$`.
 
 ## The gate
 
@@ -214,13 +232,13 @@ meaning. `structure` drops annotations and `$id`, so two
 versions of one shape compare equal. `meaning` keeps annotations and `const` and `enum` values, and
 drops whatever is left empty, so a definition with no annotation does not move it.
 
-The history gate also compares every frozen file and its complete version entry with the merge
-base of `HEAD` and `CONTRACT_BASE_REF` (default `origin/main`). It compares with `HEAD` too, so local
-edits to a version already committed on the feature branch are caught. Deleting a version or
-editing it together with its registry pins fails. Missing refs and shallow history fail closed.
-A baseline predating `contracts/registry.yaml` permits the initial set; all subsequent transitions
-still undergo compatibility checks. `python -m ss_track.schema.check --root <contracts>` remains the
-Git-free check for an installed or copied set.
+The history gate also compares every frozen file and its complete version entry with the merge base
+of `HEAD` and `CONTRACT_BASE_REF` (default `origin/main`). It compares with `HEAD` too, so local
+edits to a version already committed on the feature branch are caught. Deleting a version or editing
+it together with its registry pins fails. Missing refs and shallow history fail closed. A baseline
+predating `contracts/registry.yaml` permits the initial set; all subsequent transitions still
+undergo compatibility checks. `python -m ss_track.schema.registry.check --root <contracts>` remains
+the Git-free check for an installed or copied set.
 
 CI checks out full history. A pull request uses its base SHA, and a push uses its before SHA, so a
 push to main cannot compare only with itself. The gate recalculates every transition's required
@@ -228,10 +246,12 @@ bump and verifies every earlier minor of the same major, including transitions e
 
 `tests/schema/` proves each construct the dialect refuses at the root and at each nested position,
 each way of breaking the set, the wheel built from a source distribution as `uv build` builds it,
-and a consumer in `tests/schema/_standalone.py` that imports no project code. `test_agreement.py`
-keeps the few statements a contract and code still share, such as a writer's `kind` and major, from
-drifting. `tests/_sealing.py` seals a fixture without its contract, because production `seal` refuses
-the damaged records that read tests need.
+and a consumer in `tests/schema/registry/_standalone.py` that imports no project code. `test_agreement.py`
+keeps the few statements a contract and code still share from drifting: each writer's `RecordFormat`
+against its contract's newest major, a writer for every record contract, the descriptor's split
+vocabulary against the corpus contract, and the `text` rule on every free-text declaration field.
+`tests/_sealing.py` seals a fixture without its contract, because production `seal` refuses the
+damaged records that read tests need.
 
 ## Baseline coverage and boundaries
 
@@ -285,49 +305,51 @@ did for a historic major's status.
 
 Freeze stages the whole set, verifies identities, strict JSON, dialect, references and pins, then
 checks the bump and backward compatibility with every earlier minor in the same major. Major
-transitions require nonblank migration text and a `change.disposition` of `view`, `facts` or `retired`
-for the predecessor major. `view` is refused below the disposition floor: a major that adds or
-changes a property in `PROTECTED_PROPERTIES` (`schema/dispositions.py`: rights, sensitivity,
-scenario rights, retention, split, group, encounter, decode policy, transform, recipe and revision)
-floors at `facts`. The floor reads property names on each major change's pointer, and inside an added
-node except what an added list holds, since a view may derive an empty list. A removal never raises
-it. A freeze installs no view: a view is code in `corpus/read_window.py`, and a declared view with no
-function there is `CONTRACT_SET_INVALID` when a record of that major is read.
-`CONTRACT_SET_INVALID` also reports a bad candidate or forbidden publication.
-Directory locking and an atomic registry replacement prevent concurrent freezes from losing entries.
-A crash between schema creation and registry replacement leaves an unregistered file, which fails
-the gate and can be registered by retrying. All preexisting frozen bytes remain intact.
+transitions require nonblank migration text and a `change.disposition` of `view`, `facts` or
+`retired` for the predecessor major. `view` is refused below the disposition floor: a major that
+adds or changes a property in `PROTECTED_PROPERTIES` (`schema/compatibility/dispositions.py`:
+rights, sensitivity, scenario rights, retention, split, group, encounter, decode policy, transform,
+transform revision, recipe and revision) floors at `facts`. The list stays a named code rule rather
+than an annotation: the read path checks a view's derived pointers by name without walking a
+contract, and a test holds every name to a property some installed contract states. The floor reads
+property names on each major change's pointer, and inside an added node except what an added list
+holds, since a view may derive an empty list. A removal never raises it. A freeze installs no view:
+a view is code in `corpus/records/read_window.py`, and a declared view with no function there is
+`CONTRACT_SET_INVALID` when a record of that major is read. `CONTRACT_SET_INVALID` also reports a
+bad candidate or forbidden publication. Directory locking and an atomic registry replacement prevent
+concurrent freezes from losing entries. A crash between schema creation and registry replacement
+leaves an unregistered file, which fails the gate and can be registered by retrying. All preexisting
+frozen bytes remain intact.
 
 ### Pattern proofs
 
-`schema/_patterns.py` proves pattern inclusion by structure. The old and new pattern are read as
-sequences of parts, and the new one must hold the old one's parts in order, each admitting at least
-what its counterpart does, plus parts that may occur zero times. A class covers a smaller class, a
-repetition a narrower count, and a group covers each old alternative with some new one. An old
-repetition may give up one occurrence to a new single part, so `^[0-9a-f]{64}$` fits
+`schema/compatibility/patterns.py` proves pattern inclusion by structure. The old and new pattern
+are read as sequences of parts, and the new one must hold the old one's parts in order, each
+admitting at least what its counterpart does, plus parts that may occur zero times. A class covers a
+smaller class, a repetition a narrower count, and a group covers each old alternative with some new
+one. An old repetition may give up one occurrence to a new single part, so `^[0-9a-f]{64}$` fits
 `^[a-z0-9][a-z0-9._-]{0,63}$`. Removing a pattern and a literal the new pattern matches are also
 relaxations.
 
-When that reading does not apply, `schema/_derivatives.py` decides the same question by Brzozowski
-derivatives. `schema/_derivative_expr.py` stores the expression so that union ignores order and
-duplicates, and so that a star of a star stays one star. Each character takes a derivative of both
-patterns; inclusion fails where the old language can end and the new one cannot. The walk stops at
-8192 pairs and then the relationship stays major, as does any pattern outside the syntax below.
-`^(ab)*$` within `^a*(ba)*b*$` is therefore a minor. The syntax read by both proofs is ASCII
-literals, escapes, positive classes, groups, alternation and quantifiers, where `re` and ECMA-262
-agree, and the dialect refuses every other pattern. On the patterns the frozen contracts use, the
-two proofs together decide exactly what an automaton decides. The derivative walk shares no code
-with that automaton. The
-[reshaped-inclusion record](../records/0028-data-contracts-pattern-reshaped-inclusion.md) holds the
-measured cost.
+When that reading does not apply, `schema/compatibility/derivatives.py` decides the same question
+by Brzozowski derivatives. `schema/compatibility/derivative_expr.py` stores the expression so that
+union ignores order and duplicates, and so that a star of a star stays one star. Each character
+takes a derivative of both patterns; inclusion fails where the old language can end and the new one
+cannot. The walk stops at 8192 pairs and then the relationship stays major, as does any pattern
+outside the syntax below. `^(ab)*$` within `^a*(ba)*b*$` is therefore a minor. The syntax read by
+both proofs is ASCII literals, escapes, positive classes, groups, alternation and quantifiers, where
+`re` and ECMA-262 agree, and the dialect refuses every other pattern. On the patterns the frozen
+contracts use, the two proofs together decide exactly what an automaton decides. The derivative walk
+shares no code with that automaton. The [reshaped-inclusion
+record](../records/0028-data-contracts-pattern-reshaped-inclusion.md) holds the measured cost.
 
 ### Independent oracle
 
 The [oracle record](../records/0022-data-contracts-contract-oracle-coverage.md) holds the accepted
-task, its decisions and its evidence. The oracle lives in the tests and shares no compatibility
-rule with the classifier. `tests/schema/_oracle.py` strips meaning keywords, inlines references and
-keeps a recursive target once under `$defs`, so recursive shapes terminate. Two sound rewrites then
-run at aligned positions, and `jsoncompat==0.5.0` `analyze_compat` decides the result:
+task, its decisions and its evidence. The oracle lives in the tests and shares no compatibility rule
+with the classifier. `tests/schema/compatibility/_oracle.py` strips meaning keywords, inlines
+references and keeps a recursive target once under `$defs`, so recursive shapes terminate. Two sound
+rewrites then run at aligned positions, and `jsoncompat==0.5.0` `analyze_compat` decides the result:
 
 - an explicitly open object in the old schema states each property the new one adds as any JSON
   value, which accepts exactly what it did. Without it, jsoncompat calls an optional string
@@ -335,22 +357,24 @@ run at aligned positions, and `jsoncompat==0.5.0` `analyze_compat` decides the r
   not patch third-party packages, so this rewrite is the fix.
   `test_open_object_workaround_is_still_needed` fails once a pinned release sees the break itself,
   which is the signal to remove the rewrite;
-- a new pattern that `tests/schema/_automaton.py` proves admits the old one is replaced by the old
-  one, which only narrows the new schema. jsoncompat alone returns unknown for `^[ab]+$` to
-  `^[abc]+$`. The automaton builds both patterns as automata and walks them together, so it proves
-  inclusion or returns the shortest string that breaks it.
+- a new pattern that `tests/schema/compatibility/_automaton.py` proves admits the old one is
+  replaced by the old one, which only narrows the new schema. jsoncompat alone returns unknown for
+  `^[ab]+$` to `^[abc]+$`. The automaton builds both patterns as automata and walks them together,
+  so it proves inclusion or returns the shortest string that breaks it.
 
 A counterexample counts only once `StrictValidator` accepts it under the original old schema and
-refuses it under the new; it is then shrunk to its simplest values. When jsoncompat returns none,
-`tests/schema/_witness.py` searches. `_witness_build.py` writes one seed for each combination of
-`oneOf` branches on the smallest instance, at most 32, instead of one shared branch index.
-`_witness_node.py` drops a value the old node itself rejects. The search tries one position, then
-pairs of positions, and stops after 4096 validator calls, at most 32 of them on pairs. A compatible
-verdict is checked. An unknown verdict such as a raised `minimum` is still refuted by `1`, and so
-is a break that needs two coordinated values, such as a number that is legal only once an optional
-sibling is present. Combinations and pairs past those caps stay unsearched. The
-[coordinated-witness record](../records/0029-data-contracts-oracle-coordinated-witnesses.md) holds
-the table and the measured cost.
+refuses it under the new; `tests/schema/compatibility/_witness_shrink.py` then shrinks it to its
+simplest values. When jsoncompat returns none, `tests/schema/compatibility/_witness.py` searches.
+`_witness_build.py` writes one seed for each combination of `oneOf` branches on the smallest
+instance, at most 32, instead of one shared branch index. `_witness_node.py` drops a value the old
+node itself rejects, `_witness_bind.py` finds the node a value sits under, and
+`_witness_document.py` names each position of a candidate. The search tries one position, then pairs
+of positions, and stops after 4096 validator calls, at most 32 of them on pairs. A compatible
+verdict is checked. An unknown verdict such as a raised `minimum` is still refuted by `1`, and so is
+a break that needs two coordinated values, such as a number that is legal only once an optional
+sibling is present. Combinations and pairs past those caps stay unsearched. The [coordinated-witness
+record](../records/0029-data-contracts-oracle-coordinated-witnesses.md) holds the table and the
+measured cost.
 
 `require_oracle_agreement` compares the classifier's verdict on the stripped pair with the oracle's,
 on the rule table, on reference and recursion cases and on every consecutive pair of frozen
@@ -364,22 +388,20 @@ outside the dialect.
 
 ### Evolution tests
 
-`tests/schema/test_evolution.py` repeats the compatibility table at nested and tagged paths.
-Reference tests cover external targets and recursion, each also under the oracle.
-`tests/schema/test_patterns.py` checks every structural verdict and every derivative verdict against
-the automaton. Freeze and
-history tests exercise insufficient bumps, missing metadata, rollback, repinning, deletion and
-missing history in isolated Git repositories.
-Historic replay tests project observed keys and types from the five real bumps; they do not invent
-complete historic schemas or count a changed stamp as proof. The same replay gives each bump its
-warranted disposition: the floor and a candidate view applied to the real older record give `view`
-for bundle 1 to 2, bundle 2 to 3 and corpus 2 to 3, and `facts` for corpus 1 to 2 and source 1 to 2.
-`tests/schema/test_dispositions.py` covers the installed dispositions, the floor and its freeze
-refusal. Hash-stability tests replay the real
-frame-set producer, validate existing command output against the previous minor and reject new
-null/default fields, unannounced keys and changed existing values. The
-[evolution task record](../records/0019-data-contracts-contract-evolution-gate.md) holds the gate's
-acceptance.
+`tests/schema/compatibility/test_evolution.py` repeats the compatibility table at nested and tagged
+paths. Reference tests cover external targets and recursion, each also under the oracle.
+`tests/schema/compatibility/test_patterns.py` checks every structural verdict and every derivative
+verdict against the automaton. Freeze and history tests exercise insufficient bumps, missing
+metadata, rollback, repinning, deletion and missing history in isolated Git repositories. Historic
+replay tests project observed keys and types from the five real bumps; they do not invent complete
+historic schemas or count a changed stamp as proof. The same replay gives each bump its warranted
+disposition: the floor and a candidate view applied to the real older record give `view` for bundle
+1 to 2, bundle 2 to 3 and corpus 2 to 3, and `facts` for corpus 1 to 2 and source 1 to 2.
+`tests/schema/compatibility/test_dispositions.py` covers the installed dispositions, the floor and
+its freeze refusal. Hash-stability tests replay the real frame-set producer, validate existing
+command output against the previous minor and reject new null/default fields, unannounced keys and
+changed existing values. The [evolution task
+record](../records/0019-data-contracts-contract-evolution-gate.md) holds the gate's acceptance.
 
 ### ODCS catalog export
 
@@ -406,11 +428,11 @@ Top-level `customProperties` include the original JSON Schema and a conservative
 source keyword and pointer, including the constructs that ODCS does not state or states differently.
 The [ODCS task record](../records/0025-data-contracts-odcs-contract-export.md) records the evidence.
 
-`schema/odcs_projection.py` follows local and registered external references with cycle protection,
-merges branch fields and records source positions. `schema/odcs.py` checks the upstream schema hash,
-validates and writes the views. `tests/schema/test_odcs.py` checks every registered contract, source
-property and keyword, the tagged union, recursive references, CLI results, and the pinned schema.
-The wheel test runs the exporter outside the checkout.
+`schema/views/odcs_projection.py` follows local and registered external references with cycle
+protection, merges branch fields and records source positions. `schema/views/odcs.py` checks the
+upstream schema hash, validates and writes the views. `tests/schema/views/test_odcs.py` checks every
+registered contract, source property and keyword, the tagged union, recursive references, CLI
+results, and the pinned schema. The wheel test runs the exporter outside the checkout.
 
 ### Generated reference
 

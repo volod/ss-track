@@ -50,13 +50,13 @@ already lives in a declaration or a pinned scenario.
 
 These are the reasons this work comes before labels and events.
 
-1. **One integer answers three questions.** `read_sealed` in `src/ss_track/corpus/sealed.py`
+1. **One integer answers three questions.** `read_sealed` in `src/ss_track/corpus/records/sealed.py`
    accepts one exact value, so a format change has only one possible outcome. The refusal is deliberate
    and safe, and what it costs is in [reading older records](#reading-older-records).
 2. **Version constants are shared across formats.** `CORPUS_SCHEMA_VERSION` versions both a
    declaration and a sealed record, and `importer.SCHEMA_VERSION` is `RECORDING_SCHEMA_VERSION`. A
    declaration change therefore forces a new record version with no change to the record.
-3. **A format can only be read by reading the Python.** `Fields` in `corpus/fields.py`,
+3. **A format can only be read by reading the Python.** `Fields` in `corpus/declarations/fields.py`,
    `read_recipe` and the record writers are the definition of each format. A consumer without this
    repository has nothing to validate against.
 4. **Two null conventions.** `capture` stores an unknown fact as explicit `null`, while `supersedes`

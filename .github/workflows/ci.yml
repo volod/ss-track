@@ -54,4 +54,4 @@ jobs:
       - name: Validate and load descriptor record sets
         run: |
           .venv/bin/python -c 'import mlcroissant'
-          .venv/bin/python -m pytest tests/corpus/test_descriptor.py
+          .venv/bin/python -m pytest tests/corpus/descriptors/test_descriptor.py

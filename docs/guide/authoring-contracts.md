@@ -19,10 +19,11 @@ in the change that introduces it. The
    complete proposed set. Use `--root contracts` to select a writable set explicitly.
 6. Run `make lint-contracts`. Its history comparison needs a full Git checkout and the base ref
    (default `origin/main`; override with `CONTRACT_BASE_REF=<ref>`).
-7. Add a test that a real output of the writer validates, and that the contract stamps what the
-   writer stamps, as `tests/schema/test_agreement.py` does for the frame set. `seal` validates every
-   record against the contract of its `kind`, so a writer of an unfrozen format cannot seal at all.
-   A declaration reader takes its document from `schema.enforce.read_declaration`.
+7. Give the writer a `RecordFormat` that it stamps with `stamp()`, add it to the formats
+   `tests/schema/registry/test_agreement.py` holds against their contracts, and add a test that a
+   real output of the writer validates. `seal` validates every record against the contract of its
+   `kind`, so a writer of an unfrozen format cannot seal at all. A declaration reader takes its
+   document from `schema.validation.enforce.read_declaration`.
 
 A format the dialect cannot state stays listed as `draft`, with its `reason` and no `versions`, and
 its hand-written reader stays in force.
@@ -47,13 +48,16 @@ change classifiable.
 
 A nullable value cannot use a `$ref`, because a union of a reference and `null` is untagged. Repeat
 the pattern inline, as `parent_stream_id` does in `record/frame-set`, and add a line to
-`tests/schema/test_agreement.py`.
+`tests/schema/registry/test_agreement.py`.
 
 Annotate what a number or code means with the [annotations of section
-17.2](../design/spec.md#172-identity-and-versions). State rules JSON Schema cannot state under
-`x-rules`, as named sentences. `x-references` is `<family>/<id>#<pointer>`, a JSON pointer into that
-contract's schema. Mark a property `public` in `x-sensitivity` only when a public descriptor may
-carry it, because loosening it later takes a major.
+17.2](../design/spec.md#172-identity-and-versions). State rules the dialect cannot state under
+`x-rules`, as named sentences. A free-text declaration property, a string no pattern, vocabulary or
+format bounds, states `text`, the not-blank rule its reader enforces; `test_agreement.py` checks it.
+A YAML date is accepted only where a node states `format: date`, so no contract needs to say so.
+`x-references` is `<family>/<id>#<pointer>`, a JSON pointer into that contract's schema. Mark a
+property `public` in `x-sensitivity` only when a public descriptor may carry it, because loosening
+it later takes a major.
 
 ## Freeze with care
 
@@ -71,18 +75,20 @@ make ci
 ```
 
 `diff` names each change by schema JSON pointer, its minimum bump and its reason. `freeze` refuses
-an insufficient or non-increasing bump and validates every earlier minor in the candidate's major.
-A major starts at `<major>.0.0`; a minor starts at `<major>.<minor>.0`. A larger bump is allowed but
+an insufficient or non-increasing bump and validates every earlier minor in the candidate's major. A
+major starts at `<major>.0.0`; a minor starts at `<major>.<minor>.0`. A larger bump is allowed but
 still needs its metadata. A major also requires both `--migration "What the holder must do"` and
 `--disposition view|facts|retired`, describing the previous major, and readers consume it. Choose
 `view` only when every new field follows from an old record and the records it pins by a pure
 function; freeze refuses `view` when the major adds or changes an operator judgment or an algorithm
-revision, listed as `PROTECTED_PROPERTIES` in `src/ss_track/schema/dispositions.py`. A `view` also
-needs its function: add a `View` to `src/ss_track/corpus/read_window.py` in the same change, naming
-every value it derives, and test it with `check_view` on the kept real record of the older major.
-Without it, reading such a record is `CONTRACT_SET_INVALID`. Freezing never rewrites a record. A
-format whose facts a leak guard reads also adds the new major's entry to
-`src/ss_track/corpus/projections.py`, and keeps the older one.
+revision, listed as `PROTECTED_PROPERTIES` in `src/ss_track/schema/compatibility/dispositions.py`. A
+property that holds a new operator judgment or algorithm revision joins that list in the change that
+adds it, because the floor and the read path match it by name. A `view` also needs its function: add
+a `View` to `src/ss_track/corpus/records/read_window.py` in the same change, naming every value it
+derives; `tests/corpus/records/test_historic_records.py` then runs `check_view` on each kept
+real record of the older major. Without it, reading such a record is `CONTRACT_SET_INVALID`.
+Freezing never rewrites a record. A format whose facts a leak guard reads also adds the new major's
+entry to `src/ss_track/corpus/records/projections.py`, and keeps the older one.
 
 Freeze validates a scratch copy before publishing. Directory locking serializes publication, the
 schema is created without overwriting different bytes, and the registry is replaced atomically.
@@ -101,8 +107,8 @@ pattern matches are proven by structure. A rewrite whose shape changed, such as 
 [current page](../impl/current/contracts.md#pattern-proofs) states the syntax and the state bound.
 A relationship the walk does not finish requires a major. The test oracle checks every frozen
 transition independently, and a disagreement in either direction fails CI. When it says the
-classifier misses a proven relaxation, strengthen the proof in `schema/_patterns.py` or
-`schema/_derivatives.py`; do not weaken a schema to obtain agreement.
+classifier misses a proven relaxation, strengthen the proof in `schema/compatibility/patterns.py` or
+`schema/compatibility/derivatives.py`; do not weaken a schema to obtain agreement.
 
 ## Historic formats
 
