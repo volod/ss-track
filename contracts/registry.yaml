@@ -307,6 +307,14 @@ contracts:
       class: minor
       summary: List corpus versions that pin a replaced source record, and name a
         corpus directory that could not be listed.
+  - version: 1.8.0
+    file_sha256: 90d28287173fcd44502267fce15317246f36eb1e911d7276b728817c1cd64828
+    fingerprints:
+      structure: 3a97f03d1fff78c7b375e876c7510ea81fb5d4180c42eeb054444dc3ec122032
+      meaning: 952a30e759bb3006ec4a2eab6bee0d1491ff3fb13e4944a7f7e64d8f48cfbf77
+    change:
+      class: minor
+      summary: Describe the contact sheet written by corpus preview.
 - family: shared
   id: types
   owner: data-contracts

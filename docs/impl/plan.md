@@ -30,24 +30,6 @@ extensions; none blocks M3. Fixture implementation proceeds without physical har
 
 ### Corpus provenance -- `corpus-provenance`
 
-#### case-preview (optional)
-
-A declared region is a claim that an operator can only check by eye, and no tool shows it.
-
-- Serves: `corpus-provenance` -- [Deterministic
-  cases](../design/spec.md#43-deterministic-cases-and-negative-evidence)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: `ss-track corpus preview` writes a sheet of a parent frame beside its
-  generated cases, with each region outlined.
-- Scope boundary: One frame of staged bundles, read-only, as a PNG. No labelling interface.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`.
-- Execution path: Add the command with the pinned encoder and a hand-checked outline position.
-- Acceptance gates: One input gives identical PNG bytes. The outline lies on the declared pixels,
-  and a frame a case removed is marked, not skipped.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
 #### staging-single-pass (optional)
 
 A long recording cut into many streams is decoded in full once per stream.

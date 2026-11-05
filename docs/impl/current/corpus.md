@@ -38,10 +38,10 @@ ss-track corpus stage --corpus pilot-v1
 ss-track corpus verify --corpus pilot-v1
 ss-track corpus hashes --corpus pilot-v1 --run-id host-a
 ss-track corpus compare --left a/staged-hashes.json --right b/staged-hashes.json --run-id compare-1
+ss-track corpus preview --corpus pilot-v1 --stream enc01-cam0 --frame 0 --out sheet.png
 ```
 
-Each command logs one JSON record. A result has a `status`, its hashes and its manifest path, and
-exits 0. A refusal exits 1 and has this form:
+Each command logs one JSON record and exits 0. A refusal exits 1 and has this form:
 
 ```json
 {"status": "refused", "code": "PTS_NON_INCREASING", "message": "...", "details": {"frame_index": 3}}
@@ -923,6 +923,7 @@ per axis. `camera_shake` repeats the nearest pixel at an exposed edge.
 Nothing here knows where a target is. A `region` must cover the target for the whole window, and for
 `target_absence` the plate frame must not show it there. Both are the operator's claims, and a wrong
 one makes a false negative interval. A moving target needs a rectangle covering its whole path.
+[Case preview](#case-preview) draws that rectangle on one staged frame.
 
 ### Membership
 
@@ -979,6 +980,49 @@ revision, and `tests/corpus/cases/test_transform_golden.py` fails until it does.
 revision is stored in each case, and a stored case of another revision, or of a transform that no
 longer exists, is `TRANSFORM_REVISION_MISMATCH` before anything is written. A case is never silently
 regenerated as different evidence.
+
+## Case preview
+
+`corpus preview` writes one PNG of a single staged frame so an operator can check a declared
+region by eye. The left panel is the parent frame. Each generated case of that stream follows, in
+`case_id` order, with no gap. The command reads the bundles and writes only `--out`, which must
+sit outside the corpus directory. It draws no label boxes and it does not change a bundle.
+
+A case whose label transform is `region_status`, and whose window contains the frame, has that
+rectangle's perimeter replaced with RGB (255, 0, 0). The outline uses the region's own pixels,
+including a rectangle that touches the frame edge. Pixels inside and outside that perimeter stay
+as the case stored them. The parent panel is not outlined. A case with no region on that frame,
+such as blur or a frame outside the window, is shown unchanged.
+
+A frame the case does not hold, which is how `dropped_frames` leaves a gap, is a panel of RGB
+(255, 0, 255) in that case's place. The case is not dropped from the sheet. This is not
+`FRAME_NOT_IN_BUNDLE`: that refusal is for a frame the parent itself does not hold. The result
+names each panel `parent`, `case` or `removed`. A `case` panel includes `region` only when an
+outline was drawn.
+
+The encoder is `stored-deflate-rgb24-v1`: RGB rows, a none filter, and uncompressed deflate
+blocks. The same frame therefore has the same bytes on every zlib build. The file holds the raw
+rows plus one filter byte per row and a short header, because the pixels are not compressed.
+`png_sha256` covers those bytes. A repeated command writes the same bytes. A refusal leaves an
+existing `--out` untouched.
+
+Passing a case id is `CASE_INVALID` and names the parent. An unknown stream, or a case that was
+not staged, is `BUNDLE_NOT_STAGED`. A missing output directory, or an `--out` inside the corpus
+directory, is `STORAGE_FAILED`.
+
+```json
+{"status": "written", "corpus_id": "pilot-v1", "files": ["sheet.png"],
+ "preview": {"encoder": "stored-deflate-rgb24-v1", "stream_id": "enc01-cam0",
+  "frame_index": 0, "width": 1280, "height": 720, "frame_width": 640,
+  "frame_height": 720, "png_sha256": "...",
+  "panels": [{"role": "parent", "stream_id": "enc01-cam0"}]}}
+```
+
+`src/ss_track/corpus/cases/preview.py` builds the sheet and
+`src/ss_track/corpus/cases/preview_png.py` paints and encodes it.
+`tests/corpus/cases/test_preview_png.py` checks a hand-listed perimeter.
+`tests/corpus/cases/test_preview.py` and `test_preview_limits.py` check a staged stream. The
+[task record](../records/0035-corpus-provenance-case-preview.md) holds the acceptance.
 
 ## Timestamp quality
 
@@ -1122,7 +1166,7 @@ accepted task, its decisions and its evidence.
 | `STREAM_OVERLAP` | Two streams use the same frames of one source, or two streams of one group share a run of identical frames |
 | `RIGHTS_CONFLICT` | Scenario sharing/sensitivity conflicts or a generated case lacks derivation permission |
 | `RETENTION_EXPIRED` | The evaluation day is after a source's inclusive retention deadline |
-| `CASE_INVALID` | A generated case does not fit its parent, or changes no frame of it |
+| `CASE_INVALID` | A generated case does not fit its parent, changes no frame of it, does not match its parent's frame shape, or is named where preview expects the parent stream |
 | `TRANSFORM_REVISION_MISMATCH` | A stored case needs a transform revision this code does not provide |
 | `RECORD_TAMPERED` | A sealed record is missing, malformed, of another kind or fails its seal, or a re-import finds changed stored bytes |
 | `RECORD_INVALID` | A writer produced a record its contract refuses; nothing is sealed or written. This is a defect of ss-track, not of the input |
@@ -1141,7 +1185,7 @@ accepted task, its decisions and its evidence.
 | `STAGING_IN_PROGRESS` | Another run is staging this corpus version |
 | `FRAME_CORRUPTED` | A staged file differs from the sealed index, is gone, or is not in it |
 | `FRAME_NOT_IN_BUNDLE` | A bundle does not hold a frame index, including a frame a case dropped |
-| `STORAGE_FAILED` | The data root cannot be written, or lacks the space for raw frames |
+| `STORAGE_FAILED` | The data root cannot be written, lacks the space for raw frames, or a preview PNG cannot be written outside the corpus directory |
 
 ## Integrity limits
 

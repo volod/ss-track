@@ -15,9 +15,9 @@ status (`EXIT_OK` or `EXIT_REFUSED`). `src/ss_track/core/` holds what every pack
 canonical bytes and seals (`canonical.py`), refusals (`refusal.py`), strict JSON and YAML parsing,
 the data root (`paths.py`) and the project identity (`metadata.py`). The installed `ss-track info`
 command logs the same identity, providing a packaging and executable-path smoke test. `ss-track
-import` and `ss-track corpus build`, `corpus stage`, `corpus verify` and `corpus describe` are
-described under [Corpus](corpus.md), and `ss-track contracts list`, `contracts validate`, `contracts
-diff` and `contracts freeze` under [Contracts](contracts.md). No run, evaluation or report behavior
+import` and `ss-track corpus build`, `stage`, `verify`, `describe`, `hashes`, `compare` and
+`preview` are described under [Corpus](corpus.md), and `ss-track contracts list`, `validate`,
+`diff` and `freeze` under [Contracts](contracts.md). No run, evaluation or report behavior
 exists yet; the [implementation plan](../plan.md) describes the scheduled work.
 
 Run it with:

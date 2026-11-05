@@ -389,6 +389,10 @@ A repeated frame keeps its own presentation time, which stops being a measured c
 a case is at best `derived`. Absence, occlusion and moving-background cases act on a declared
 rectangle. That rectangle is the operator's claim: a label inside it takes the case's status, and a
 label that only overlaps it loses its geometry rather than keeping a box that may be wrong.
+`corpus preview` shows one staged frame of a parent stream beside each generated case of that
+stream, so the rectangle can be checked before labels exist. The rectangle is outlined on the case
+frame when that frame lies in the case window. A frame the case removed stays in the sheet and is
+marked, rather than left out.
 
 A case does not claim realism and does not chain from another case. A section 4.1 source term decides
 whether derived frames may exist at all.

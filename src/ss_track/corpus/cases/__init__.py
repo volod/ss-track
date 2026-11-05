@@ -1,1 +1,1 @@
-"""Generated cases: their recipes and records, the transforms and their seeded randomness."""
+"""Generated cases: recipes, transforms, seeded randomness, and the contact sheet of one frame."""
