@@ -13,7 +13,7 @@ from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.bundles.bundle_reader import open_corpus_bundle
 from ss_track.corpus.bundles.bundle_writer import write_bundle
 from ss_track.corpus.bundles.duplicate_frames import SharedFramesCheck, require_unshared_frames
-from ss_track.corpus.bundles.frame_set import commit_frame_set, require_frame_set
+from ss_track.corpus.bundles.frame_set import commit_frame_set, frame_set_path, require_frame_set
 from ss_track.corpus.bundles.frames import FrameBundle, FrameDamage, frames_corrupted, frames_root
 from ss_track.corpus.cases.generated import write_case_bundle
 from ss_track.corpus.cases.transforms import require_transform_revision
@@ -107,8 +107,7 @@ def _require_sources_hold(corpus: dict[str, Any], data_root: Path, today: date) 
 def stage_corpus(corpus_id: str, data_root: Path, *, today: date | None = None) -> FramesResult:
     """Stage every stream and case, then seal the frame set. A failure leaves it unwritten.
 
-    Frame hashes exist only once streams are staged, so shared frames are checked here, before a
-    refused version spends anything on its generated cases.
+    A first stage refuses a repeated run before its cases. An existing frame set is matched first.
     """
     checked_on = evaluation_date(today)
     corpus = load_corpus_manifest(corpus_id, data_root)
@@ -121,15 +120,32 @@ def stage_corpus(corpus_id: str, data_root: Path, *, today: date | None = None) 
     root = frames_root(data_root, corpus_id)
     root.mkdir(parents=True, exist_ok=True)
     with _exclusive_staging(root, corpus_id):
-        streams = [
+        streams = tuple(
             _stage_stream(stream, corpus, policy, root, data_root) for stream in _streams(corpus)
-        ]
-        shared_frames = require_unshared_frames(corpus, data_root)
-        bundles = (*streams, *(_stage_case(case, corpus, root) for case in _cases(corpus)))
-        frame_set_sha256, written = commit_frame_set(corpus, _hashes(bundles), data_root)
+        )
+        frame_set_sha256, written, bundles, shared_frames = _seal_stage(
+            corpus, streams, root, data_root
+        )
     changed = written or any(bundle.status == STAGED for bundle in bundles)
     status = STAGED if changed else UNCHANGED
     return FramesResult(status, corpus_id, frame_set_sha256, bundles, shared_frames)
+
+
+def _seal_stage(
+    corpus: dict[str, JsonValue],
+    streams: tuple[BundleSummary, ...],
+    root: Path,
+    data_root: Path,
+) -> tuple[str, bool, tuple[BundleSummary, ...], SharedFramesCheck]:
+    """Match an existing frame set before a repeated run, and a run before a new frame set."""
+    path = frame_set_path(data_root, str(corpus["corpus_id"]))
+    shared = None if path.is_file() else require_unshared_frames(corpus, data_root)
+    cases = tuple(_stage_case(case, corpus, root) for case in _cases(corpus))
+    bundles = (*streams, *cases)
+    sealed, written = commit_frame_set(corpus, _hashes(bundles), data_root)
+    if shared is None:
+        shared = require_unshared_frames(corpus, data_root)
+    return sealed, written, bundles, shared
 
 
 @contextmanager
@@ -171,8 +187,13 @@ def verify_corpus_frames(
     root = frames_root(data_root, corpus_id)
     bundles = [open_corpus_bundle(stream["stream_id"], corpus, root) for stream in _streams(corpus)]
     bundles += [_open_case(case, corpus, root) for case in _cases(corpus)]
-    frame_set_sha256 = require_frame_set(corpus, _hashes(bundles), data_root)
-    shared_frames = require_unshared_frames(corpus, data_root)
+    hashes = _hashes(bundles)
+    if frame_set_path(data_root, corpus_id).is_file():
+        frame_set_sha256 = require_frame_set(corpus, hashes, data_root)
+        shared_frames = require_unshared_frames(corpus, data_root)
+    else:
+        shared_frames = require_unshared_frames(corpus, data_root)
+        frame_set_sha256 = require_frame_set(corpus, hashes, data_root)
     damage: list[FrameDamage] = [item for bundle in bundles for item in bundle.damage()]
     if damage:
         raise frames_corrupted(damage)

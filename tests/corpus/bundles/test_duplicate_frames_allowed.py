@@ -1,4 +1,4 @@
-"""Frames one corpus version may share: one group, adjacent windows, plain frames and a parent."""
+"""Frames one corpus version may share: adjacent windows, plain frames and a parent."""
 
 from collections.abc import Callable
 from pathlib import Path
@@ -66,17 +66,27 @@ def _after_lead_in(lead_in: list[bytes], shift: int) -> Content:
     return content
 
 
-def test_a_remux_in_one_group_stages_normally(
+def test_adjacent_windows_of_one_recording_in_one_group_stage_normally(
     copy: ImportResult,
     original: ImportResult,
     write_grouped_corpus: WriteCorpus,
     data_root: Path,
 ) -> None:
-    streams = (stream_of(original, stream_id="a"), stream_of(copy, stream_id="b"))
-    groups = [group_of("site-a", "development", encounter_of("enc", *streams))]
+    """Windows that share no frame still share no run once a group is compared with itself."""
+    head = {"start_frame": 0, "end_frame": 12}
+    tail = {"start_frame": 12, "end_frame": FRAME_COUNT}
+    groups = [
+        group_of(
+            "site-a",
+            "development",
+            encounter_of("enc-head", stream_of(original, stream_id="head", selection=head)),
+            encounter_of("enc-tail", stream_of(copy, stream_id="tail", selection=tail)),
+        )
+    ]
     build_corpus(write_grouped_corpus(groups), data_root)
 
     assert stage_corpus(V1, data_root).status == "staged"
+    assert verify_corpus_frames(V1, data_root).status == "verified"
 
 
 def test_adjacent_windows_of_a_remux_share_no_frame_and_stage_normally(

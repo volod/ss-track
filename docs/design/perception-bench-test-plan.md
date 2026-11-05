@@ -77,7 +77,7 @@ makes it fail, and what it does not prove. A case with no task left is listed as
   compared. `tests/corpus/` covers them.
   Value: protects=split isolation for remuxed copies; fails_when=identical frames cross a group, a
   shared lead-in is refused, or a version not compared goes unnamed; no_claim=re-encoded copies, a
-  version whose bundles are gone, windows sharing no frame, or copies inside one group.
+  version whose bundles are gone, or windows sharing no frame.
 - `bundle-reuse-across-versions`: a kept source, a damaged candidate, another window, and a removed
   version. Value: protects=identical frames at no decode or storage cost; fails_when=a damaged
   bundle links or a reused bundle differs from a fresh stage; no_claim=a filesystem without hard
@@ -86,10 +86,12 @@ makes it fail, and what it does not prove. A case with no task left is listed as
   version pinning the old record, a damaged stored source, a repeat and an interrupted run.
   Value: protects=a decoder change without losing a stored source; fails_when=terms change, stored
   bytes change, or a pinned corpus keeps verifying; no_claim=that new pixels equal old ones.
-- `group-repeated-frames`: a remux in two encounters of one group, and in one encounter, and a copy
-  replacing its original across linked versions.
-  Value: protects=each frame counted once; fails_when=a frame counts twice in one version;
-  no_claim=re-encoded copies.
+- `group-repeated-frames`: a remux in two encounters of one group and in one encounter, a cut copy,
+  adjacent windows, a cross-group pair, and a copy replacing its original across linked versions.
+  `tests/corpus/` covers them.
+  Value: protects=each frame counted once in one version; fails_when=a frame counts twice, or a
+  cross-group pair is no longer leakage; no_claim=re-encoded copies, or a copy that replaces its
+  original in a linked version.
 - `generated-case-labels`: hand-built labels through each transform, and a plate showing a target.
   Value: protects=labels that follow pixels; fails_when=a covered target stays visible or a wrong
   region yields `absent`; no_claim=parent label quality.

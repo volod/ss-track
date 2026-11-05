@@ -99,6 +99,7 @@ def test_a_copy_in_its_originals_group_across_versions_stages_normally(
         "compared_versions": [V1],
         "not_compared": [],
     }
+    assert verify_corpus_frames(V2, data_root).status == "verified"
 
 
 def test_a_version_repaired_by_dropping_its_copy_stages_normally(

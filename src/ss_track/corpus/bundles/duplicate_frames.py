@@ -135,7 +135,7 @@ def _staged_streams(version: Manifest, policy: str, data_root: Path) -> _ChainSt
 
 
 def require_unshared_frames(corpus: Manifest, data_root: Path) -> SharedFramesCheck:
-    """Refuse a run of identical frames across groups, here or against the declared chain."""
+    """Refuse a repeated run across groups, or twice in one group of this version."""
     versions, broken = _linked_versions(corpus, data_root)
     steps = [
         (version["corpus_id"], _staged_streams(version, corpus["decode_policy_sha256"], data_root))

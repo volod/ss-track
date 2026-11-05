@@ -8,7 +8,7 @@ import pytest
 
 from ss_track.cli import main
 from ss_track.commands.report import EXIT_OK, EXIT_REFUSED
-from ss_track.corpus import ImportResult, RefusalCode, build_corpus, import_source, stage_corpus
+from ss_track.corpus import ImportResult, RefusalCode, build_corpus, import_source
 from tests.corpus._media import (
     FRAME_COUNT,
     remux,
@@ -27,7 +27,7 @@ def test_a_remux_keeps_every_decoded_frame_and_changes_every_source_hash(
     """The fixture is what the rule assumes, or nothing below tests it."""
     streams = [stream_of(original, stream_id="one"), stream_of(copy, stream_id="two")]
     build_corpus(write_corpus(streams), data_root)
-    stage_corpus(V1, data_root)
+    stage_refused(V1, data_root, RefusalCode.STREAM_OVERLAP)
 
     assert hashes_of(data_root, V1, "one") == hashes_of(data_root, V1, "two")
 

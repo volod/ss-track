@@ -36,5 +36,6 @@ Copy the [template](template.md) using the
 | 0029 | `oracle-coordinated-witnesses` | [0029-data-contracts-oracle-coordinated-witnesses](0029-data-contracts-oracle-coordinated-witnesses.md) |
 | 0030 | `data-contracts-audit` | [0030-data-contracts-data-contracts-audit](0030-data-contracts-data-contracts-audit.md) |
 | 0031 | `decode-policy-reimport` | [0031-corpus-provenance-decode-policy-reimport](0031-corpus-provenance-decode-policy-reimport.md) |
+| 0032 | `group-repeated-frames` | [0032-corpus-provenance-group-repeated-frames](0032-corpus-provenance-group-repeated-frames.md) |
 
-Next unused sequence: `0032`.
+Next unused sequence: `0033`.

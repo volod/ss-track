@@ -6,9 +6,10 @@ version. `ss-track corpus stage` decodes each stream into one immutable frame bu
 module reads, plus one derived bundle for each declared generated case, and seals them into one
 frame set whose hash a scenario can pin. `ss-track corpus verify` proves those frames are intact, are
 the ones the frame set names, and that the source records they rest on still hold. Both refuse one
-recording held by two groups under different source hashes. `ss-track corpus hashes` and
-`ss-track corpus compare` show whether two hosts staged the same bytes. Each command produces a
-complete record or a structured refusal, and none invents a value it could not establish.
+recording held by two groups, or twice in one group, under different source hashes.
+`ss-track corpus hashes` and `ss-track corpus compare` show whether two hosts staged the same
+bytes. Each command produces a complete record or a structured refusal, and none invents a value
+it could not establish.
 Annotation does not exist yet; the [plan](../plan.md) schedules it. The task records keep the accepted
 tasks, their decisions and their acceptance evidence:
 [import and corpus build](../records/0001-corpus-provenance-corpus-manifest-import.md),
@@ -20,6 +21,7 @@ tasks, their decisions and their acceptance evidence:
 [version lineage](../records/0008-corpus-provenance-corpus-version-lineage.md),
 [frame sets](../records/0009-corpus-provenance-staged-frame-set.md),
 [shared frames](../records/0010-corpus-provenance-duplicate-frame-detection.md),
+[repeated frames in one group](../records/0032-corpus-provenance-group-repeated-frames.md),
 [arm64 reproducibility](../records/0011-corpus-provenance-arm64-reproducibility.md),
 [source terms amendment](../records/0014-corpus-provenance-source-terms-amendment.md) and
 [record read gate](../records/0016-data-contracts-record-read-gate.md).
@@ -174,7 +176,8 @@ are in fact related. `src/ss_track/corpus/versions/grouping.py` owns the rules t
   recording are not independent.
 - One group may cut several encounters from one long recording, with adjacent windows. A source frame
   in two streams is `STREAM_OVERLAP`, because it would count twice in anything aggregated by
-  encounter.
+  encounter. A remux is a different source, so build cannot see it; stage and verify refuse that
+  run inside the group with the same code.
 
 Each entry of the manifest's `streams` list carries `stream_id`, `modality`, `encounter_id`,
 `group_id`, `split`, `width` and `height`, and a build result counts each split's groups, encounters
@@ -278,8 +281,9 @@ indexes, which needs no decode. `src/ss_track/corpus/bundles/shared_runs.py` own
 | Two streams | Result |
 | --- | --- |
 | In two groups, sharing a run, in any splits | `SPLIT_LEAKAGE` |
-| In one group, in one version or across linked versions | Not compared. A group may hold a copy |
-| In two groups, sharing a shorter or uniform stretch | Accepted |
+| In one group of one version, sharing a run, in one encounter or two | `STREAM_OVERLAP` |
+| In one group across linked versions, a copy replacing its original | Accepted. No version counts the frame twice |
+| Sharing a shorter or uniform stretch, in one group or two | Accepted |
 
 A run is `MIN_SHARED_FRAMES`, eight, different frames in a row and in the same order. A frame held in
 place counts once, so a clip that repeats each frame still matches, and a copy holding frames for
@@ -289,10 +293,13 @@ generated case stays in its parent's group and holds its parent's frames or new 
 compared with its parent.
 
 Every stream is compared with the rest of its version and with every stream of the versions linked
-behind it, by `group_id`, so a version that keeps only the copy of a recording, in another group, is
-refused by the version behind it. Predecessors are not compared with each other: a version answers
-for itself. A refusal names every pair at once, widened to all the two streams share from the first
-run found:
+behind it. The same group is reported only inside the version being checked, so a copy that replaces
+its original there is accepted. A different group is reported either way, so a version that keeps
+only the copy, in another group, is refused by the version behind it. Predecessors are not compared
+with each other: a version answers for itself. A version that both repeats a recording inside a
+group and shares it with another group is `SPLIT_LEAKAGE`, and that refusal names only the pairs in
+different groups. A refusal names every pair of one kind at once, widened to all the two streams
+share from the first run found:
 
 ```json
 {"status": "refused", "code": "SPLIT_LEAKAGE", "message": "...", "details": {"corpus_id": "pilot-v2",
@@ -303,12 +310,26 @@ run found:
    "first_shared_frame": 0}]}]}}
 ```
 
+The same details name a run held twice inside one group. Each stream carries the frame it shows
+first:
+
+```json
+{"status": "refused", "code": "STREAM_OVERLAP", "message": "...",
+ "details": {"corpus_id": "pilot-v2", "min_shared_frames": 8,
+ "shared_runs": [{"frame_sha256": "...", "frame_count": 100, "streams": [
+  {"corpus_id": "pilot-v2", "stream_id": "enc01-cam0", "group_id": "site-a", "split": "development",
+   "first_shared_frame": 0},
+  {"corpus_id": "pilot-v2", "stream_id": "enc02-cam0", "group_id": "site-a", "split": "development",
+   "first_shared_frame": 9}]}]}}
+```
+
 `frame_sha256` is the first shared frame, and `frame_count` counts a held frame once. Frame hashes
 exist only after staging, so a stage checks them once its streams are staged and before its cases.
-A refusal leaves those streams staged, with no case and no frame set, and that version needs replacing:
-keep one copy, or hold every copy in one group, in a new version. Independent clips that truly share
-eight frames, such as a camera's start-up animation, are refused the same way, and a `selection` that
-starts after them is the way past it. No flag overrides the rule.
+A refusal leaves those streams staged, with no case and no frame set, and that version needs
+replacing: keep one copy of the recording. A later version may put the other copy in that group in
+its place, and adjacent windows of one recording still share no frame. Independent clips that truly
+share eight frames, such as a camera's start-up animation, are refused the same way, and a
+`selection` that starts after them is the way past it. No flag overrides the rule.
 
 Both commands report what they compared, because a version not compared is unknown, not clear:
 
@@ -329,10 +350,13 @@ A rebuilt predecessor is `CORPUS_CONFLICT`, a damaged record `RECORD_TAMPERED`, 
 another stream or version `BUNDLE_CONFLICT`: those are refused rather than compared. A predecessor
 and its bundles are read through their majors' projections, so one of another major is compared
 when its major holds the facts, and named under `other_schema` when it does not; a predecessor
-manifest with no projection ends the chain there. `corpus verify` repeats the
-check because a predecessor staged after its successor was not there to compare with, and that
-successor's frame set stays as it was. The result is never sealed: it depends on what a data root
-holds, and a frame set must not.
+manifest with no projection ends the chain there. `corpus verify` repeats the check because a
+predecessor staged after its successor was not there to compare with, and that successor's frame set
+stays as it was. Stage and verify match a frame set that exists before the run, so a replaced
+bundle stays `FRAME_SET_MISMATCH`. A first stage refuses a repeated run before writing cases or a
+frame set. When verify finds no frame set, it names a repeated run before reporting that staging
+has not finished. A generated case is not written after a refusal, so verify then names the missing
+bundle. The result is never sealed: it depends on what a data root holds, and a frame set must not.
 
 What this cannot see:
 
@@ -340,14 +364,17 @@ What this cannot see:
   it.
 - Windows of a copy that share no frame, such as `[0, 12)` of one and `[12, 24)` of the other. A
   stream with fewer than eight different frames cannot hold a run at all.
-- Copies inside one group, which count a frame twice in anything aggregated by encounter.
-  `group-repeated-frames` in the [plan](../plan.md#group-repeated-frames-optional) schedules them.
+- A copy that replaces its original in the same group of a linked version. No version holds both,
+  so none counts a frame twice.
 - A version no chain links to, which `unlinked-version-report` in the [plan](../plan.md) lists only by
   source hash.
 
 On the development host, reading a sealed index of a million frames takes about 2 s, and searching
 ten million hashes across 100 streams took 11 s, so the check costs about 3 s and 600 MB per million
-frames compared. A million 1080p frames is 6 TB of bundles.
+frames compared. A million 1080p frames is 6 TB of bundles. The same-group check adds a membership
+test per candidate stream, not per frame. The
+[repeated-frames record](../records/0032-corpus-provenance-group-repeated-frames.md) holds the
+accepted task.
 
 ### Scenario rights
 
@@ -1038,7 +1065,7 @@ accepted task, its decisions and its evidence.
 | `SOURCE_NOT_IMPORTED` | A corpus names a source with no import record |
 | `SOURCE_RECORD_CHANGED` | A source's record differs from the one its corpus pinned, at stage or verify |
 | `SPLIT_LEAKAGE` | A group, encounter, stream or case name is declared in two splits, two groups share a source or a run of identical frames, or a source or group sits elsewhere than a declared predecessor placed it |
-| `STREAM_OVERLAP` | Two streams use the same frames of one source |
+| `STREAM_OVERLAP` | Two streams use the same frames of one source, or two streams of one group share a run of identical frames |
 | `RIGHTS_CONFLICT` | Scenario sharing/sensitivity conflicts or a generated case lacks derivation permission |
 | `RETENTION_EXPIRED` | The evaluation day is after a source's inclusive retention deadline |
 | `CASE_INVALID` | A generated case does not fit its parent, or changes no frame of it |
@@ -1137,9 +1164,11 @@ identity from build to `FrameRef`. `tests/corpus/versions/test_lineage.py` compa
 versions, and `test_lineage_build.py`, `test_lineage_leakage.py` and `test_lineage_chain.py` cover
 linked builds, leakage and broken chains from the declaration to the exit status.
 `tests/corpus/bundles/test_shared_runs.py` covers the run rule on hand-written indexes, and
-`test_duplicate_frames.py`, `test_duplicate_frames_allowed.py`, `test_duplicate_frames_chain.py` and
-`test_duplicate_frames_unread.py` cover remuxed media from staging to the exit status, in one
-version, across a chain and where a chain cannot be read.
+`test_shared_runs_group.py` a run inside one group. `test_duplicate_frames.py`,
+`test_duplicate_frames_allowed.py`, `test_duplicate_frames_chain.py`,
+`test_duplicate_frames_unread.py` and `test_group_repeated_frames.py` cover remuxed media from
+staging to the exit status, in one version, across a chain, inside one group and where a chain
+cannot be read.
 `tests/corpus/sources/test_source_terms.py` covers retention boundaries at every entrypoint,
 unchanged evidence across evaluation dates, explicit permission, strict declarations and legacy
 records. `tests/corpus/sources/test_verify_rights.py` changes source terms through the real

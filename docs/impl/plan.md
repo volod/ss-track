@@ -30,30 +30,6 @@ extensions; none blocks M3. Fixture implementation proceeds without physical har
 
 ### Corpus provenance -- `corpus-provenance`
 
-#### group-repeated-frames (optional)
-
-A remux of one recording held twice inside one group counts each frame twice, in anything aggregated
-by encounter, and only a frame in two streams of one source is refused today.
-
-- Serves: `corpus-provenance` -- [Corpus
-  identity](../design/spec.md#41-corpus-identity-and-input-handling)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: `corpus stage` and `corpus verify` refuse a run of identical frames in two
-  streams of one group of one version with `STREAM_OVERLAP`, naming both streams and the first shared
-  frame.
-- Scope boundary: The run definition that `shared_runs.py` already applies, in one version. A copy
-  replacing its original across linked versions stays accepted, because no version counts a frame
-  twice.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`.
-- Execution path: Report same-group pairs from `find_shared_runs` for streams of one version, and
-  raise them in `require_unshared_runs` beside the cross-group refusal.
-- Acceptance gates: A remux in two encounters of one group and in one encounter are each
-  `STREAM_OVERLAP`. A cross-group pair stays `SPLIT_LEAKAGE`, a copy replacing its original in a linked
-  version stages normally, and adjacent windows of one recording still share nothing.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
 #### unlinked-version-report (optional)
 
 A version that names no predecessor, or branches from one, can place an evaluated source in another
