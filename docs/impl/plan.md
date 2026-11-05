@@ -1328,6 +1328,28 @@ Recorded front ends alone cannot run the installed reference mesh or collect its
   inputs cannot yield a calibrated latency; interruption preserves raw evidence and releases devices.
 - Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
 
+#### extended-non-camera-front-ends (optional)
+
+Section 16.5's minimum mesh is one non-camera source; a second or third one is only worth its
+installed cost if it is measured to add evidence the first did not.
+
+- Serves: `sensor-adapter-frontends` -- [Reference sensor mesh](../design/spec.md#165-reference-sensor-mesh)
+- Agent status: CLEAR
+- Milestone: M3
+- Research: yes
+- Dependencies: non-camera-front-end, select-mesh-sensors.
+- User-visible outcome: Each additional selected non-camera source, beyond the Stand C minimum, emits
+  typed observations through its own adapter.
+- Scope boundary: One adapter per additionally selected, measured source. An unselected or unmeasured
+  candidate stays out of scope, and this task adds no new evidence role beyond spec section 7.6.
+- Data and artifact paths: `src/ss_track/frontends/`, `tests/frontends/`.
+- Execution path: Repeat the `non-camera-front-end` pattern per added source, with raw-format
+  provenance and recorded fixtures for each.
+- Acceptance gates: Conformance fixtures pass per source, and the section 16.5 valid-negative-result
+  rule applies: a source that adds no measured evidence over the installed set is documented and
+  removed from the active configuration, not hidden.
+- Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
+
 #### sensor-adapter-frontends-audit (optional)
 
 Front ends, capture and fake drivers each implement one observation contract, and a fault handled in
@@ -1452,6 +1474,53 @@ A fusion change must be judged on identical inputs.
 - Acceptance gates: A changed front end forces a new cohort, and raw data access fails conformance.
 - Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
 
+#### imm-motion-model-bank (optional)
+
+A constant-velocity-only prediction loses hovering, perching and banking small targets, the largest
+measured error source in the paper this design adapts.
+
+- Serves: `fusion-analysis` -- [Multi-sensor fusion](../design/spec.md#76-multi-sensor-fusion-and-uncertainty)
+- Agent status: CLEAR
+- Milestone: M3
+- Research: yes
+- Dependencies: late-fusion-baseline, fusion-calibration-suite.
+- User-visible outcome: A four-model IMM (near-stationary, constant-velocity, constant-acceleration,
+  coordinated-turn) is available as a declared alternative to the single-model prediction.
+- Scope boundary: The filter bank and its Markov mode matrix, tuned on development encounters only.
+  Association, track existence and classification stay in their own tasks.
+- Data and artifact paths: `src/ss_track/fusion/`, `tests/fusion/`.
+- Execution path: Add the four-model bank behind the existing motion-model interface, with a
+  dwell-time-derived Markov matrix. Add hand-audited fixtures for a hovering, a circling and a banking
+  target alongside the existing continuity fixtures.
+- Acceptance gates: Paired development comparison against the single-model baseline on identical
+  bundles reports `improved_on_development_corpus`, `regressed_on_development_corpus` or
+  `inconclusive` per [section 6.3](../design/spec.md#63-comparisons-and-decision-status); an
+  insufficient encounter count reports `insufficient_data` instead of a claim.
+- Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
+
+#### jipda-track-existence (optional)
+
+A fixed miss-count drop rule throws a track away on a run of weak returns that a probability would
+have survived.
+
+- Serves: `fusion-analysis` -- [Multi-sensor fusion](../design/spec.md#76-multi-sensor-fusion-and-uncertainty)
+- Agent status: CLEAR
+- Milestone: M3
+- Research: yes
+- Dependencies: late-fusion-baseline, imm-motion-model-bank.
+- User-visible outcome: Each track carries an existence probability, confirmed above and deleted below
+  declared thresholds, instead of a hit/miss counter.
+- Scope boundary: Joint integrated probabilistic data association (JIPDA) over the existing gated
+  association. A PMBM path for denser clutter stays the unscheduled alternative in spec section 7.6.
+- Data and artifact paths: `src/ss_track/fusion/`, `tests/fusion/`.
+- Execution path: Add existence-probability update and confirm/delete thresholds behind the
+  `late-fusion-baseline` association step, with hand-audited fixtures for a weak-return run that
+  should survive and a run that should not.
+- Acceptance gates: A rerun with one seed is byte-identical. Paired development comparison against the
+  fixed-drop-rule baseline on identical bundles reports its status per section 6.3; a correlated-source
+  or overlapping-gate fixture never inflates existence.
+- Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
+
 #### fusion-analysis-audit (optional)
 
 Fusion can look better by seeing what had not yet arrived, and each of its tasks can let that in
@@ -1540,6 +1609,30 @@ This is the project's reference implementation.
   update is marked as such, and uninstalled sensors supply no evidence.
 - Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
 
+#### imm-jipda-mesh-variant (optional)
+
+The single constant-velocity reference is deliberately simple; a maneuvering small target is where a
+richer model should earn its keep, if it does.
+
+- Serves: `multi-source-reference-tracker` -- [Reference sensor mesh](../design/spec.md#165-reference-sensor-mesh)
+- Agent status: CLEAR
+- Milestone: M3
+- Research: yes
+- Dependencies: mesh-reference-tracker, jipda-track-existence.
+- User-visible outcome: A declared IMM-JIPDA variant of the mesh tracker runs beside the simple
+  reference on identical frozen bundles.
+- Scope boundary: Wiring the spec section 7.6 IMM/JIPDA candidates into the existing track-maintenance
+  interface. It is a measured alternative, never a replacement default, and filters beyond the
+  four-model bank stay out of scope.
+- Data and artifact paths: `src/ss_track/reference/`, `tests/reference/`, `modules/reference-mesh/`.
+- Execution path: Add the variant behind the same contract as `mesh-reference-tracker`, and run the
+  spec section 7.8 TDD fixture list plus the hovering/circling/banking fixtures from
+  `imm-motion-model-bank`.
+- Acceptance gates: `FIXED_OBSERVATION_TRACKER` scores the variant and the reference on byte-identical
+  bundles; the comparison reports `improved_on_development_corpus`, `regressed_on_development_corpus`
+  or `inconclusive` per section 6.3, never an assumed win.
+- Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
+
 #### multi-source-reference-tracker-audit (optional)
 
 This is the project's reference implementation, and it will have grown from the single-camera
@@ -1563,6 +1656,135 @@ baseline.
   observation bundles. Every finding is fixed, routed to a task or dropped with its reason, and
   `make quality` passes. Finding nothing is a valid result when the record states what was reviewed.
 - Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
+
+### Track classification -- `track-classification`
+
+#### track-cue-fusion
+
+A confirmed track with no class says nothing about whether it is the target class this scenario
+cares about.
+
+- Serves: `track-classification` -- [Track-level classification](../design/spec.md#167-track-level-classification)
+- Agent status: CLEAR
+- Milestone: M3
+- Research: yes
+- Dependencies: mesh-reference-tracker, fusion-calibration-suite.
+- User-visible outcome: A confirmed mesh track carries a calibrated class posterior fused from
+  whichever of motion-mode history, radar micro-Doppler and camera-crop classification are installed.
+- Scope boundary: Fusing already-available per-cue evidence into one posterior. A new camera-crop
+  model, species/subtype recognition and any actuation stay out of scope.
+- Data and artifact paths: `src/ss_track/classification/`, `tests/classification/`.
+- Execution path: Add a Bayesian cue-fusion step reading `TrackState` mode history,
+  `SensorObservation` micro-Doppler features where radar is installed, and a camera-crop classifier
+  output; fit each cue and the fused posterior on the disjoint calibration split.
+- Acceptance gates: Known-class, unknown-subtype, too-small-object and confident-wrong-class fixtures
+  from the G2 recognition/state row of the
+  [acceptance matrix](../design/spec.md#13-acceptance-and-negative-result-matrix) pass. An uninstalled
+  or uncalibrated cue abstains rather than inventing a class, and a cue that adds no measured gain is
+  a valid, documented negative result.
+- Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
+
+#### track-classification-audit (optional)
+
+A class label fused from several cues can look confident while no single cue backs it, and only a
+review across the whole group catches that.
+
+- Serves: `track-classification` -- [Track-level classification](../design/spec.md#167-track-level-classification)
+- Agent status: CLEAR
+- Milestone: M3
+- Effort: high
+- Dependencies: every other agent task in this group.
+- User-visible outcome: Every class posterior traces to the specific installed, calibrated cues that
+  produced it.
+- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
+  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
+  score or refusal code.
+- Data and artifact paths: `src/ss_track/classification/`, `tests/classification/`.
+- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from each
+  cue's calibration population and from what happens when every cue is absent at once.
+- Acceptance gates: Known-class, unknown-subtype and confident-wrong-class fixtures pass, and
+  coverage/calibration are reported beside tracking quality, never as a hidden composite score. Every
+  finding is fixed, routed to a task or dropped with its reason, and `make quality` passes. Finding
+  nothing is a valid result when the record states what was reviewed.
+- Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
+
+### Pointing guidance and quality measurement -- `pointing-guidance-evaluation`
+
+#### sensor-pointing-guidance-law
+
+A tracker that only reports where a target was says nothing about how well a camera or beam could
+have stayed on it.
+
+- Serves: `pointing-guidance-evaluation` -- [Guidance pointing law](../design/spec.md#168-guidance-pointing-law-and-quality-measurement)
+- Agent status: CLEAR
+- Milestone: M3
+- Research: yes
+- Dependencies: reference-sot-tracker.
+- User-visible outcome: A declared pointing law computes a sensor-pointing angular command from the
+  current track prediction, with a fixed-stare null and a plain-PN variant as required comparators.
+- Scope boundary: The pointing command only, for a camera, gimbal or electronically-steered antenna.
+  No vehicle, effector, munition or interceptor output exists in this module, and an output of that
+  type fails conformance.
+- Data and artifact paths: `src/ss_track/guidance/`, `tests/guidance/`.
+- Execution path: Implement the feedforward-plus-pure-pursuit blend in angle domain, a plain-PN
+  variant and the fixed-stare null, behind one pointing-law interface. Add hand-audited fixtures for
+  a near-zero line-of-sight-rate case (where the feedforward term matters) and a lost-track case
+  producing a declared search/coast state instead of a stale command.
+- Acceptance gates: Deterministic fixtures reproduce hand-computed angles for each law variant. A lost
+  or unavailable track yields an explicit abstain/search state, never a stale command presented as
+  fresh. A conformance fixture asserts the output type is a sensor-pointing command and rejects any
+  attempt to emit a vehicle or effector command.
+- Documentation target: [Current implementation](current.md#areas), new page `current/guidance.md`.
+
+#### pointing-guidance-quality-suite
+
+A guidance law that was never scored on held frames is a demonstration, not evidence.
+
+- Serves: `pointing-guidance-evaluation` -- [Guidance pointing law](../design/spec.md#168-guidance-pointing-law-and-quality-measurement)
+- Agent status: CLEAR
+- Milestone: M3
+- Research: yes
+- Dependencies: sensor-pointing-guidance-law, plugin-evaluator-core.
+- User-visible outcome: A local report scores pointing coverage, angular lead error, reacquisition
+  delay and latency sensitivity for each law variant against the required comparators, on identical
+  bundles.
+- Scope boundary: The section 9/16.8 action-dependent image-plane simulator and its four reported
+  quantities. No physical gimbal, PTZ head or antenna is actuated or characterized; that stays future
+  hardware work under spec section 16.4.
+- Data and artifact paths: `src/ss_track/suites/`, `tests/suites/`.
+- Execution path: Extend the G0 reference-tracker fixtures with a declared high-resolution wide source
+  and an action-dependent IFoV hook; add hand-audited within-envelope cruise, sudden-turn,
+  near-stationary and induced-loss fixtures; compute the four quantities with their denominators and
+  exclusions.
+- Acceptance gates: Hand-audited fixtures reproduce expected coverage, angular-error and reacquisition
+  values. A target leaving the source recording's own field of view is a failure or `ABORT`, never an
+  exclusion. The paired comparison against the fixed-stare null and the plain-PN baseline reports its
+  status per section 6.3.
+- Documentation target: [Current implementation](current.md#areas), page `current/guidance.md`.
+
+#### pointing-guidance-evaluation-audit (optional)
+
+A guidance law judged only by its own report can hide a command type it should never emit.
+
+- Serves: `pointing-guidance-evaluation` -- [Guidance pointing law](../design/spec.md#168-guidance-pointing-law-and-quality-measurement)
+- Agent status: CLEAR
+- Milestone: M3
+- Effort: high
+- Dependencies: every other agent task in this group.
+- User-visible outcome: Every pointing command traces to a declared law variant and a scored fixture,
+  with no path to a vehicle or effector output.
+- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
+  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
+  score or refusal code.
+- Data and artifact paths: `src/ss_track/guidance/`, `tests/guidance/`, `src/ss_track/suites/`,
+  `tests/suites/`.
+- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from the
+  pointing-command output type on every path, and from what the suite repeats from the shared G3
+  simulator and `plugin-evaluator-core`.
+- Acceptance gates: No path emits a vehicle, munition or effector command. Coverage, angular-error and
+  reacquisition fixtures pass, and `make quality` passes. Finding nothing is a valid result when the
+  record states what was reviewed.
+- Documentation target: [Current implementation](current.md#areas), page `current/guidance.md`.
 
 ### Sensor-set evaluation -- `g2-sensor-set-evaluation`
 
@@ -2374,7 +2596,8 @@ Benchmark and reference-tracker measurements need a host chosen from evidence.
   Optional thermal-rig compatibility is recorded separately from core benchmark suitability.
 - Data and artifact paths: `$DATA_DIR/selection/<selection-id>/`, `$DATA_DIR/run/<run-id>/`,
   `scenarios/stands/`.
-- Execution path: A person obtains approved candidates; an agent runs probe, null-module and
+- Execution path: A person obtains approved candidates, starting from the compute-host options in the
+  [mesh hardware shortlist](../design/mesh-hardware-shortlist.md); an agent runs probe, null-module and
   reference-tracker trials on each under the same declared workload and limits, then stages the fixed
   corpus on each from sources carried from x86-64 and compares them with `ss-track corpus compare`.
 - Acceptance gates: Each measured candidate has traceable evidence, rejection reasons and a staged-hash
@@ -2398,8 +2621,10 @@ A characterization stand needs candidate interfaces before any final sensor choi
 - Scope boundary: Candidate availability, evidence roles, task coverage, geometry/clock tolerances, sustained
   modes and resource budgets. No candidate is yet selected as measured.
 - Data and artifact paths: `scenarios/stands/`, `$DATA_DIR/selection/<selection-id>/`.
-- Execution path: A person obtains approved candidates and documents raw formats, drivers, access conditions,
-  independent reference needs and a minimum test for each required quantity.
+- Execution path: A person obtains approved candidates, starting from the datasheet-sourced candidates
+  in the [mesh hardware shortlist](../design/mesh-hardware-shortlist.md), and documents raw formats,
+  drivers, access conditions, independent reference needs and a minimum test for each required
+  quantity.
 - Acceptance gates: Every candidate has an executable measurement plan and a supported software need.
   Missing references or unaffordable candidates remain unmeasured with the limitation recorded.
 - Documentation target: [Current implementation](current.md#areas), page `current/hardware-selection.md`.

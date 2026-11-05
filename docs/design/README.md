@@ -19,6 +19,8 @@ The specification stays authoritative when they differ.
 - [Engine design](perception-bench-engine.md): approach, milestones and rationale.
 - [Test plan](perception-bench-test-plan.md): required tests for approved behavior.
 - [Test-stand requirements](test-stands.md): hardware needs and the selection flow.
+- [Mesh hardware shortlist](mesh-hardware-shortlist.md): datasheet-sourced compute-host and sensor
+  candidates feeding the shortlist step; selects no hardware.
 
 ## Data contracts and telemetry design input
 

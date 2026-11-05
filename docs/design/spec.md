@@ -967,8 +967,8 @@ compact payload. The following roles determine which G2 suites may be opened:
 | Event camera (asynchronous brightness change) | Time-surface or event-cluster motion proposals with background/ego-motion compensation | Candidate for fast moving targets; moving background, texture, lighting and event rate can dominate. [EV-Flying](https://openaccess.thecvf.com/content/CVPR2025W/EventVision/html/Magrini_EV-Flying_an_Event-based_Dataset_for_In-The-Wild_Recognition_of_Flying_Objects_CVPRW_2025_paper.html) includes bird events but does not establish this system's range or energy |
 | NIR/SWIR, multispectral or polarimetric imaging (reflected light) | Registered per-band contrast/feature proposals, then a separately scored multimodal detector | Candidate when spectral contrast is validated. Active illumination, filters and extra optics add mass, power and alignment cost; NIR/SWIR are not passive thermal measurements. Cross-band matching needs measured timing/geometry. A [field comparison of spectral imagers](https://www.osti.gov/servlets/purl/1342469) illustrates modality-dependent visibility and false returns |
 | Thermal LWIR/MWIR imager or coarse thermopile array (emitted heat) | Contrast/background and temporal proposals, with temperature/scene quality flags | Candidate for low-light observation, but thermal pixels, optics, sky/ground contrast and weather govern small-target visibility. Coarse thermopiles are local occupancy triggers, not assumed 100 m trackers; thermal appearance alone does not establish species. A [field thermal study of small songbirds](https://pmc.ncbi.nlm.nih.gov/articles/PMC4705634/) used specialised narrow-FOV equipment, not a compact-payload validation |
-| Microphone or synchronized acoustic array (sound emission) | Band-limited event detection; with calibrated geometry, beamforming/GCC-PHAT or time-difference-of-arrival bearing/location | Only a **calling or otherwise audible** object supplies direct evidence; silence is not absence. A single microphone has no justified range or bearing. [Flight-call localization](https://pmc.ncbi.nlm.nih.gov/articles/PMC5513243/) used a distributed array; propeller/wind noise and acoustic association must be measured separately for an onboard array |
-| Radar, including CW/FMCW, scanning or passive radar (RF scatter) | Mode-specific detection/CFAR, range-Doppler and angle estimation; wingbeat micro-Doppler only if actually resolved | Candidate range/radial-velocity cue. Cross section, beamwidth, clutter, false returns, transmit/receive mode, antenna and full-system power dominate feasibility; W-band names a frequency region, not a performance guarantee. [24/94 GHz bird measurements](https://pmc.ncbi.nlm.nih.gov/articles/PMC6255807/) do not establish 100 m performance for a smaller bird or the proposed payload |
+| Microphone or synchronized acoustic array (sound emission) | Band-limited event detection; with calibrated geometry, beamforming/GCC-PHAT or time-difference-of-arrival bearing/location | Only a **calling or otherwise audible** object supplies direct evidence; silence is not absence. A single microphone has no justified range or bearing. [Flight-call localization](https://pmc.ncbi.nlm.nih.gov/articles/PMC5513243/) used a distributed array; propeller/wind noise and acoustic association must be measured separately for an onboard array. A [representative digital MEMS microphone](https://www.infineon.cn/content/dam/infineon/row/public/documents/24/49/infineon-im69d130-datasheet-en.pdf) datasheet acoustic-overload point and SNR describe the part, not a measured detection range or bearing accuracy for an installed array |
+| Radar, including CW/FMCW, scanning or passive radar (RF scatter) | Mode-specific detection/CFAR, range-Doppler and angle estimation; wingbeat micro-Doppler only if actually resolved | Candidate range/radial-velocity cue. Cross section, beamwidth, clutter, false returns, transmit/receive mode, antenna and full-system power dominate feasibility; W-band names a frequency region, not a performance guarantee. [24/94 GHz bird measurements](https://pmc.ncbi.nlm.nih.gov/articles/PMC6255807/) do not establish 100 m performance for a smaller bird or the proposed payload. A [representative 60 GHz FMCW radar module](https://infineon.com/cms/en/product/sensor/radar-sensors/radar-sensors-for-iot/60ghz-radar/bgt60utr11aip/) datasheet presence-detection range is a different task and antenna geometry from a 100 m small-target claim |
 | Lidar/scanning laser and ToF/depth camera (active optical range) | Return clustering, temporal background subtraction and geometric association | Potential 3D cue only where a sufficiently dense return hits the small target. Commodity compact ToF modules are predominantly near-field; [a representative ToF module](https://ai.benewake.com/en/resources/technical-documents/tfmini-s-datasheet/) cannot be treated as a 100 m bird sensor. Specialised long-range lidar is a different equipment class. Account for active-emitter operation and power |
 | PIR, passive thermal-motion, microwave Doppler presence or IR break-beam (zone crossing) | Debounced threshold/change event, with mapped coverage zone and refractory period | **Local trigger/flight corridor or perch**, not an identity, range or 100 m free-flight track. PIR requires usable thermal contrast and can miss small/fast animals; a [wild-bird camera-trap study](https://pmc.ncbi.nlm.nih.gov/articles/PMC6065333/) shows that size and distance matter. Microwave presence and break-beam signals likewise need a bounded observed zone |
 | Ultrasonic/sonar range (active acoustic echo) | Thresholded echo/range with multipath and temperature flags | Near-field obstacle or instrumented corridor cue, not an assumed 100 m bird detector. A [representative weather-resistant ultrasonic sensor](https://maxbotix.com/products/mb7566) is specified for metre-scale operation; flight noise and small-object echo strength need direct testing |
@@ -1004,9 +1004,12 @@ independent probabilities. A class posterior is updated only from calibrated cla
 kept separate from existence and geometry.
 
 Replaceable algorithms may include Kalman filtering for a linear common-state model; EKF/UKF for
-nonlinear bearing/range geometry; particle filtering for multimodal states; JPDA or multi-hypothesis
-tracking for ambiguous multi-object associations; and feature-level or learned fusion when a
-governed training split supports it. Covariance intersection is permitted only for **same-state
+nonlinear bearing/range geometry, optionally mixed by an interacting multiple model (IMM) across
+near-stationary, constant-velocity, constant-acceleration and coordinated-turn motion models when
+hovering, perching, cruising and banking targets share a scenario; particle filtering for multimodal
+states; JPDA with a track-existence probability in place of a fixed hit/miss-count drop rule, or
+multi-hypothesis tracking, for ambiguous multi-object associations; and feature-level or learned
+fusion when a governed training split supports it. Covariance intersection is permitted only for **same-state
 estimates with unknown cross-correlation and defensible input covariance**, not for arbitrary class
 scores or all mixed-sensor measurements. A random-finite-set/labeled multi-Bernoulli path is
 optional for uncertain object count. All candidates use the same event-time, availability,
@@ -1377,7 +1380,9 @@ response or other road-user reactions. It must reproduce the recorded path under
 actions within a stated tolerance, model delay and actuator constraints, and mark trajectories that
 leave supported source view as failures or `ABORT`, not exclusions. More complete simulators need
 versioned vehicle/camera/environment and energy models. Simulation scores do not establish
-real-world safety without independent field evidence.
+real-world safety without independent field evidence. The first scheduled instance of this simulator
+is the guidance pointing-quality measurement in
+[section 16.8](#168-guidance-pointing-law-and-quality-measurement).
 
 ## 10. Run artifacts and comparison dashboard
 
@@ -1519,7 +1524,12 @@ declared object pixel extent and does not reward closest approach.
 
 ss-track measures detection, tracking and energy for monitoring, warning and situational awareness.
 It does not evaluate or tune a system whose tracker output steers, cues or triggers a weapon,
-interceptor or other effector, and it publishes no engagement metrics. A **sensitive device** is any
+interceptor or other effector, and it publishes no engagement metrics. A tracking or pointing law
+adapted from interceptor or capture-guidance literature, such as a proportional-navigation-derived law
+for steering toward a target, stays in scope only as a camera- or sensor-pointing study under
+[section 9](#9-offline-advisory-actions-and-later-closed-loop); using it to steer an interceptor, net
+or other effector toward a target is out of scope regardless of the algorithm's published origin. A
+**sensitive device** is any
 system sold for defense, security, counter-drone or law-enforcement use, or subject to export
 control. Results on a sensitive device stay restricted unless the project owner releases them.
 
@@ -1534,7 +1544,6 @@ These candidates are design input, not implementation commitments. Scheduling on
 | `tensor-compute-backends` | Pinned CPU reference and optional accelerated graph pass support, partition/fallback, precision, task-quality and end-to-end cost fixtures |
 | `external-event-ingest` | Second-host contract tests, frame match and clock-validity cases |
 | `advisory-diagnostics` | Recorded-path and operator-agreement diagnostics remain separate; no G0/G1 actuation path |
-| `recognition-state` | Scenario-specific class/state labels, class probability and abstention coverage with negative-result tests |
 | `resource-aware-sensing` | Causal policy decisions, fixed-configuration and VOI/event-trigger comparators, task quality at energy/deadline budgets and measured sensor-plus-compute cost |
 | `stereo-range` | Independent distance reference, calibration/synchronization uncertainty, range error and unsupported-mode coverage |
 | `closed-loop-simulation` | Action changes the next supported observation; out-of-support action fails or aborts; energy model declared |
@@ -1892,6 +1901,85 @@ device does not block benchmark or reference-mesh development. No field-range or
 Evaluation: simulated device fixtures verify event adaptation, unsupported output paths and refusal
 of unmatched stimulus/reference/boundary. Live cases retain raw events, reference and energy traces.
 No accessible device, no usable output path or an unmeasurable quantity is a valid negative result.
+
+### 16.7 Track-level classification
+
+`track-classification` assigns each confirmed mesh track a class posterior over a scenario-declared
+set, for example drone, bird, person, vehicle, animal and clutter, fused from cues already available
+at the section 6.6 boundaries: motion-model mode-probability history and speed profile from the
+tracker stage, a micro-Doppler signature where an installed radar source resolves one, and a
+camera-crop classifier run only on confirmed-track regions of interest. Track existence and class
+probability stay distinct quantities under section 6.5; neither alone raises an alarm, and a confirmed
+track with low class confidence remains a confirmed track. Only an installed, available cue
+contributes: an uninstalled or infeasible source yields no class evidence from that cue, not a default
+class, and a camera crop with no usable pixels yields an explicit abstention rather than a confident
+guess. Calibration fits each cue and the fused posterior on a disjoint split against independent class
+labels; a species- or subtype-level claim needs expert-labelled, visually identifiable material, per
+[section 6.4](#64-later-metric-suites).
+
+Boundary: classification reads only the confirmed-track state and the typed observations already
+permitted at its declared evaluation boundary; it adds no new sensor access, raw-pixel reach or
+actuation. A class label is diagnostic context for an operator, never a safety or engagement
+determination, and the [measurement-only scope](#measurement-only-scope) applies to it unchanged.
+
+Evaluation: the G2 recognition/state row of the
+[acceptance matrix](#13-acceptance-and-negative-result-matrix), with class-probability calibration and
+coverage reported alongside tracking quality rather than as a separate unlabelled score. A valid
+negative result is a cue, such as micro-Doppler on an uninstalled radar or a mode-probability feature
+with no measured separation, that adds no measured gain over the cues already installed.
+
+### 16.8 Guidance pointing law and quality measurement
+
+`pointing-guidance-evaluation` scores a **sensor-pointing** guidance law the way
+[section 6.1](#61-operator-selected-tracking-sot-v2-dev) scores tracking: a declared law, a frozen
+input, and a reproducible quality number, not a demonstration. The law reads the tracker's current
+state and a lead-time prediction and emits an angular rate or set point for a camera, gimbal or
+electronically-steered antenna; a feedforward line-of-sight-rate term plus a bounded pure-pursuit
+correction, in the structure of the paper this design adapts, is the reference variant, with a plain
+proportional-navigation law and a fixed-stare null as required comparators. **The law's output type is
+a sensor-pointing command only.** It is never a vehicle, munition, net or other effector command, and
+an implementation that emits one fails conformance regardless of its internal mathematics; the
+[measurement-only scope](#measurement-only-scope) applies unchanged, and the adapted paper's
+net-capture application stays explicitly out of scope -- this capability exists to measure pointing
+quality instead of it.
+
+Quality is measured with the [section 9](#9-offline-advisory-actions-and-later-closed-loop)
+action-dependent image-plane simulator: a simulated instantaneous field of view (IFoV) is steered
+across a frozen high-resolution wide recording by the law's own prior commands, while the reviewed
+target position stays available outside that IFoV because the source frame is never cropped before
+scoring. Four quantities are reported per scorable encounter, each with its denominator and exclusions
+stated the way section 6.1 states them for lock coverage:
+
+- **Pointing coverage**, the fraction of scorable target time the IFoV contains the target, computed
+  with the same media-time weighting as `C_j`.
+- **Angular lead error**, the angle between the IFoV center and the target's true position at each
+  scored instant, reported as a distribution, not a mean alone.
+- **Reacquisition delay**, the time from an induced loss (a maneuver the declared slew-rate limit
+  cannot follow, or a coasted/lost track) to recovered coverage, scored the way section 6.1 scores
+  time to first sustained loss.
+- **Latency sensitivity**, the coverage and angular-error change between the feedforward law and a
+  pure-pursuit-only variant under a declared total system latency, isolating what the feedforward term
+  buys.
+
+Boundary: this is G3 by [section 3](#3-scope-and-delivery-gates)'s own definition, because the
+simulated IFoV is an action-dependent observation; it carries no field, safety or mechanical claim. No
+physical gimbal, PTZ head or antenna is actuated or characterized here; a later, separately-scheduled
+capability would add measured slew rate, settling time and mechanical latency from real hardware under
+[section 16.4](#164-hardware-selection), and only then would a software pointing-coverage result
+combine with a measured mechanical response. A target leaving the source recording's own field of view
+is a failure or `ABORT` per section 9, never an exclusion. The broader energy-aware closed-loop
+candidate in [section 12](#12-unscheduled-design-candidates) stays unscheduled; this capability is
+narrower and carries no energy claim.
+
+Evaluation: the G3 closed loop row of the
+[acceptance matrix](#13-acceptance-and-negative-result-matrix), with hand-audited fixtures for a
+within-envelope cruise, a sudden-turn maneuver that tests lead and overshoot, a near-stationary target,
+and an induced-loss case. A paired comparison of the reference law against the fixed-stare null and the
+plain-PN baseline, on identical bundles, reports `improved_on_development_corpus`,
+`regressed_on_development_corpus` or `inconclusive` per
+[section 6.3](#63-comparisons-and-decision-status). A valid negative result is a law variant that does
+not improve pointing coverage over the fixed-stare null, or a feedforward term that shows no measured
+benefit at the declared latency.
 
 ## 17. Data contracts and schema evolution
 
@@ -2336,14 +2424,16 @@ Group order alone never establishes readiness.
 | 16 | `fusion-analysis` | planned | Fixed hashed observation bundles isolate event-time association, deduplication, calibrated existence/class evidence, abstention and degraded-source behavior | - |
 | 17 | `fixed-input-tracker-evaluation` | planned | Fixed hashed observations and schedule isolate SOT/MOT identity, re-entry, prediction, confidence and tracker-stage cost | - |
 | 18 | `multi-source-reference-tracker` | planned | The staged reference tracker consumes frozen observation bundles and passes hand-audited provenance, identity and deadline fixtures | - |
-| 19 | `g2-sensor-set-evaluation` | planned | Feasible single, paired, all-installed and leave-one-out sets run through one frozen reference fusion rule; achieved quality and oracle observability ceiling remain distinct | - |
-| 20 | `installed-system-evaluation` | planned | Same-trial raw-to-output quality, timing and installed-boundary energy retain validity; four local report panels distinguish component from whole-system results | - |
-| 21 | `mot-trackeval` | planned | Byte-exact per-class export fixtures, pinned environment and hand-audited MOT results | - |
-| 22 | `paced-thermal-trial` | planned | Hand-audited cool, hot and capped fixtures on identical frames, then a live baseline run; a hot run with no throttling is `not_tested`, and a failed bet is published | - |
-| 23 | `benchmark-ranking` | planned | Optional matched-cohort fixtures yield rank, tier, inconclusive or refusal; scores recompute exactly; below the minimum every row stays unranked | - |
-| 24 | `device-bench-evaluation` | planned | Optional same-stimulus fixtures validate unranked cross-host cases; incompatible references are refused and missing device output is UNSUPPORTED | - |
-| 25 | `telemetry-ingest` | planned | Optional readers match an independent reader on generated logs; bundles hash identically across hosts; drift, loss and truncation are reported and never filled; a declared layout needs no new code; live fixtures account for all loss | - |
-| 26 | `documentation-integrity` | shipped | Link, registry-plan, task-lane, metadata, ordering, and forward-language checks pass over fixtures and the repository tree | [Governance](../impl/current/governance.md) |
+| 19 | `track-classification` | planned | Known-class, unknown-subtype, too-small-object and confident-wrong-class fixtures pass with coverage and class-probability calibration; an uninstalled or uncalibrated cue abstains rather than inventing a class | - |
+| 20 | `pointing-guidance-evaluation` | planned | Hand-audited cruise, sudden-turn, near-stationary and induced-loss fixtures reproduce expected pointing coverage, angular error and reacquisition delay; a law never emits a vehicle or effector command | - |
+| 21 | `g2-sensor-set-evaluation` | planned | Feasible single, paired, all-installed and leave-one-out sets run through one frozen reference fusion rule; achieved quality and oracle observability ceiling remain distinct | - |
+| 22 | `installed-system-evaluation` | planned | Same-trial raw-to-output quality, timing and installed-boundary energy retain validity; four local report panels distinguish component from whole-system results | - |
+| 23 | `mot-trackeval` | planned | Byte-exact per-class export fixtures, pinned environment and hand-audited MOT results | - |
+| 24 | `paced-thermal-trial` | planned | Hand-audited cool, hot and capped fixtures on identical frames, then a live baseline run; a hot run with no throttling is `not_tested`, and a failed bet is published | - |
+| 25 | `benchmark-ranking` | planned | Optional matched-cohort fixtures yield rank, tier, inconclusive or refusal; scores recompute exactly; below the minimum every row stays unranked | - |
+| 26 | `device-bench-evaluation` | planned | Optional same-stimulus fixtures validate unranked cross-host cases; incompatible references are refused and missing device output is UNSUPPORTED | - |
+| 27 | `telemetry-ingest` | planned | Optional readers match an independent reader on generated logs; bundles hash identically across hosts; drift, loss and truncation are reported and never filled; a declared layout needs no new code; live fixtures account for all loss | - |
+| 28 | `documentation-integrity` | shipped | Link, registry-plan, task-lane, metadata, ordering, and forward-language checks pass over fixtures and the repository tree | [Governance](../impl/current/governance.md) |
 
 Every task declares its outcome, scope, evidence, execution and acceptance. Only tested and
 documented implementation changes a capability to `shipped`. Optional branches cannot gate

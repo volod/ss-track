@@ -15,6 +15,8 @@ administration and organizational approvals stay outside the repository.
    remain unresolved; do not derive favorable thresholds from candidate results.
 2. **Shortlist provisionally.** Inventory available, borrowed or approved candidates, exact revisions,
    drivers and raw formats. Datasheets guide the shortlist; they do not establish measured support.
+   The [mesh hardware shortlist](mesh-hardware-shortlist.md) is design input for this step, not a
+   selection.
 3. **Bootstrap metrology.** Check the first meter, host and supply with known loads, clock markers
    and the reference/null workload. Record bootstrap exceptions and provisional choices explicitly.
 4. **Build the characterization stand.** Use candidate interfaces to build independent stimulus,
