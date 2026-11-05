@@ -7,7 +7,9 @@ hashes them again regardless. The installed decoder is not consulted either, bec
 narrower terms must not need a decode of the material they withdraw.
 
 The lock, the replaced-record keep and the current-major gate are shared with `--redecode`
-(`corpus.sources.redecode`), which writes a successor the same way but from a fresh decode.
+(`corpus.sources.redecode`), which writes a successor the same way but from a fresh decode. After
+the replacement is recorded, both commands list the corpus versions on this data root that pin the
+replaced record. The listing refuses nothing and removes nothing.
 """
 
 import fcntl
@@ -44,6 +46,7 @@ from ss_track.corpus.sources.importer import (
     source_directory,
 )
 from ss_track.corpus.sources.terms import changed_terms
+from ss_track.corpus.versions.impact import AmendmentImpact, report_amendment_impact
 from ss_track.schema.registry.contract import FACTS, VERSION_FIELD, VIEW
 
 AMENDED = "amended"
@@ -66,10 +69,11 @@ class AmendmentResult:
     replaced_path: Path | None
     changed_terms: list[str]
     decode_policy_current: bool
+    impact: AmendmentImpact | None = None
 
     def to_record(self) -> dict[str, JsonValue]:
         """Return the JSON-compatible result shown to the operator."""
-        return {
+        record: dict[str, JsonValue] = {
             "status": self.status,
             "source_sha256": self.source_sha256,
             "manifest_sha256": self.manifest_sha256,
@@ -79,6 +83,11 @@ class AmendmentResult:
             "changed_terms": list(self.changed_terms),
             "decode_policy_current": self.decode_policy_current,
         }
+        if self.impact is not None:
+            listed = self.impact.to_record()
+            if listed:
+                record["impact"] = listed
+        return record
 
 
 def replaced_record_path(directory: Path, manifest_sha256: str) -> Path:
@@ -98,7 +107,7 @@ def amend_source_terms(declaration_path: Path, data_root: Path) -> AmendmentResu
             {"source_sha256": sha256},
         )
     with exclusive_source_lock(data_root):
-        return _amend(declaration, sha256, directory)
+        return _amend(declaration, sha256, directory, data_root)
 
 
 def named_source(declaration: RecordingDeclaration) -> str:
@@ -129,7 +138,9 @@ def exclusive_source_lock(data_root: Path) -> Iterator[None]:
         yield
 
 
-def _amend(declaration: RecordingDeclaration, sha256: str, directory: Path) -> AmendmentResult:
+def _amend(
+    declaration: RecordingDeclaration, sha256: str, directory: Path, data_root: Path
+) -> AmendmentResult:
     path = directory / MANIFEST_NAME
     stated = read_stated(path, SOURCE_MANIFEST)
     # A view major reads as the current one; a `facts` major is what an amendment exists to replace.
@@ -144,6 +155,7 @@ def _amend(declaration: RecordingDeclaration, sha256: str, directory: Path) -> A
     if sealed == existing:
         seal_value = str(sealed[SEAL_FIELD])
         return AmendmentResult(UNCHANGED, sha256, seal_value, path, None, None, [], current)
+    replaced_sha = str(existing[SEAL_FIELD])
     replaced = keep_replaced(existing, directory)
     write_sealed(path, sealed)
     return AmendmentResult(
@@ -151,10 +163,11 @@ def _amend(declaration: RecordingDeclaration, sha256: str, directory: Path) -> A
         source_sha256=sha256,
         manifest_sha256=str(sealed[SEAL_FIELD]),
         manifest_path=path,
-        replaced_manifest_sha256=str(existing[SEAL_FIELD]),
+        replaced_manifest_sha256=replaced_sha,
         replaced_path=replaced,
         changed_terms=changed_terms(existing, sealed),
         decode_policy_current=current,
+        impact=report_amendment_impact(data_root, replaced_sha),
     )
 
 

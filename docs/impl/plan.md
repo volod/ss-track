@@ -30,30 +30,6 @@ extensions; none blocks M3. Fixture implementation proceeds without physical har
 
 ### Corpus provenance -- `corpus-provenance`
 
-#### amendment-impact-report (optional)
-
-After `--amend-terms` an operator learns which corpus versions hold the affected frames only by running
-`corpus verify` on each, and a version nobody verifies stays unnoticed with its frames on disk.
-
-- Serves: `corpus-provenance` -- [Corpus
-  identity](../design/spec.md#41-corpus-identity-and-input-handling)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: `ss-track import --amend-terms` lists every corpus version on its data root
-  that pins the replaced record, with its frames directory, for an operator's decision.
-- Scope boundary: A report on one data root that refuses nothing and removes nothing, and never fails
-  an amendment that is already recorded. Other hosts stay out of reach.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/corpus/`.
-- Execution path: Scan with `scan_corpus_manifests` in `src/ss_track/corpus/versions/unlinked.py`
-  for streams pinning the replaced seal. A corpus projection holds no pin, so add
-  `source_manifest_sha256` to each major's projection in `corpus/records/projections.py`. Name a
-  manifest the scan cannot read rather than skipping it.
-- Acceptance gates: A source pinned by two versions lists both, a version pinning another record is
-  not listed, an unreadable manifest is named and the amendment still records, and a repeat reporting
-  `unchanged` lists nothing. One state gives one listing in one order.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
 #### case-preview (optional)
 
 A declared region is a claim that an operator can only check by eye, and no tool shows it.

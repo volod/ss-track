@@ -57,6 +57,7 @@ makes it fail, and what it does not prove. A case with no task left is listed as
   Value: protects=a verified corpus means valid rights; fails_when=verify passes on withdrawn rights;
   no_claim=the truth of a declaration.
 - `amendment-impact-report`: a source pinned by two versions, and an unreadable manifest.
+  `tests/corpus/` covers them.
   Value: protects=a withdrawal that reaches every copy on a data root; fails_when=a pinning version
   goes unlisted or a listing fails a recorded amendment; no_claim=other hosts.
 - `corpus-version-lineage`: a source moved between splits or groups, a source dropped and brought back

@@ -24,7 +24,8 @@ tasks, their decisions and their acceptance evidence:
 [shared frames](../records/0010-corpus-provenance-duplicate-frame-detection.md),
 [repeated frames in one group](../records/0032-corpus-provenance-group-repeated-frames.md),
 [arm64 reproducibility](../records/0011-corpus-provenance-arm64-reproducibility.md),
-[source terms amendment](../records/0014-corpus-provenance-source-terms-amendment.md) and
+[source terms amendment](../records/0014-corpus-provenance-source-terms-amendment.md),
+[amendment impact](../records/0034-corpus-provenance-amendment-impact-report.md) and
 [record read gate](../records/0016-data-contracts-record-read-gate.md).
 
 ## Commands
@@ -269,7 +270,10 @@ other version and `to` is the one being built, the same shape as a move, and it 
 
 Placements are ordered by source hash, then by the other version's directory name. A manifest that
 cannot be read, or whose major keeps no projection, is named under `not_compared` with reason
-`unreadable` or `other_schema`, ordered by directory name. A version in the declared chain is never
+`unreadable` or `other_schema`, ordered by directory name. A version directory that cannot be read
+is `unreadable` as well, and a name with a leading dot is not a version. When the corpus directory
+itself cannot be listed, the result carries `{"scan": "unreadable"}` and the build still succeeds.
+A version in the declared chain is never
 listed: a move against that chain is still `SPLIT_LEAKAGE`, and an unprojected predecessor stays in
 `lineage.not_compared`. The same source in the same group and split is not listed. A group's split
 is not applied to an undeclared version, because this listing compares source hashes only.
@@ -509,10 +513,34 @@ until it is decoded again.
 | Any newer record | `RECORD_SCHEMA_UNSUPPORTED` |
 
 Every corpus version that pinned the old record then refuses at `corpus stage` and `corpus verify`.
+The amendment lists those versions on this data root. `impact` is absent when nothing needs
+reporting, including a repeat that reports `unchanged`. Versions are ordered by directory name, and
+each names the frames directory where that version's bundles are stored, whether or not it currently
+holds files. A version is listed once however many of its streams pin the record. A manifest that
+cannot be read, a version directory that cannot be read, and a major that keeps no projection are
+named under `not_compared`, ordered by directory name, and are not skipped. A name with a leading
+dot is not a version. When the corpus directory itself cannot be listed, `impact` is
+`{"scan": "unreadable"}` and the amendment is still recorded. The listing deletes nothing and is
+not part of the source record. Its frames stay on disk until an operator removes them.
+
+```json
+{"status": "amended", "impact": {"versions": [
+ {"corpus_id": "alpha", "frames_directory": ".../corpus/alpha/frames"}],
+ "not_compared": [
+ {"corpus_id": "broken", "reason": "unreadable"},
+ {"corpus_id": "legacy", "reason": "other_schema"}]}}
+```
+
+`src/ss_track/corpus/versions/impact.py` reads `$DATA_DIR/corpus/*/manifest.json` through
+`scan_corpus_manifests` and matches `source_manifest_sha256` on each major's comparison projection.
+Corpus majors 2 and 3 carry that pin. Corpus major 1 keeps no projection, so a version of that
+major is named `other_schema` rather than matched on its sequences. `--redecode` lists the same
+way when it replaces a record. The
+[amendment-impact record](../records/0034-corpus-provenance-amendment-impact-report.md) holds the
+accepted task.
+
 Rebuilding it is `RIGHTS_CONFLICT` if its scenario now asks too much, or `CORPUS_CONFLICT`, so
-continuing needs a new corpus version, which may supersede the refused one. Its frames stay on disk
-until an operator removes them, and `amendment-impact-report` in the
-[plan](../plan.md#amendment-impact-report-optional) schedules a listing of the versions that hold them.
+continuing needs a new corpus version, which may supersede the refused one.
 An amendment reaches one data root: another host keeps its record until it is amended there, and
 `corpus compare` reports the difference.
 
@@ -595,9 +623,10 @@ decode and the declared term arrive together. `require_current_facts`, shared wi
 raises this refusal from either path.
 
 Every corpus version that pinned the old record then refuses at `corpus stage` and `corpus verify`
-with `SOURCE_RECORD_CHANGED`, exactly as after an amendment, and a new corpus version built after the
-redecode accepts the source. `capture` and capture-clock evidence cannot change through a redecode
-either, so a declaration that disagrees with the carried record is `IMPORT_CONFLICT`.
+with `SOURCE_RECORD_CHANGED`, exactly as after an amendment, and the result lists them in `impact`
+the same way. A new corpus version built after the redecode accepts the source. `capture` and
+capture-clock evidence cannot change through a redecode either, so a declaration that disagrees
+with the carried record is `IMPORT_CONFLICT`.
 
 ## Frame bundles
 
@@ -1041,9 +1070,10 @@ and `read_stated` returns it. A shape is read no more freely than its major, so 
 it. This replaced the key check `corpus/sources/terms.py` held.
 
 **Comparison projections.** `src/ss_track/corpus/records/projections.py` holds, per kind and major,
-the facts a leak guard reads from a record as written: a corpus version's `corpus_id`, seal, decode
+the facts a comparison reads from a record as written: a corpus version's `corpus_id`, seal, decode
 policy hash, `supersedes` and each stream's `stream_id`, `source_sha256`, `group_id` and `split`,
-and a bundle's pins and `(frame_index, sha256)` pairs. Corpus majors 2 and 3 and bundle majors 2 and
+plus `source_manifest_sha256`, which the amendment listing matches, and a bundle's pins and
+`(frame_index, sha256)` pairs. Corpus majors 2 and 3 and bundle majors 2 and
 3 have one, whatever their disposition. Corpus major 1 states no group or split, so it has none, and
 nor does bundle major 1, which only a major-1 version staged. A record lacking a fact its projection
 reads is `RECORD_TAMPERED`, as is any sealed record a reader walks and finds short of a fact:
@@ -1201,10 +1231,11 @@ records. `tests/corpus/sources/test_verify_rights.py` changes source terms throu
 amendment and `test_verify_records.py` changes source records through the real importer, and both
 cover verification from the command's exit status to what each refusal names.
 `tests/corpus/declarations/test_declaration.py` and `test_declaration_values.py` cover the
-declaration readers. `tests/corpus/sources/test_amend_terms.py`, `test_amend_refusals.py` and
-`test_amend_records.py` cover the amendment from the command to the kept records, including a
-subprocess killed at each write and real schema 1 records from `tests/corpus/kept_records/`, each
-written by the code of the commit in its name. `tests/corpus/sources/test_redecode.py` covers
+declaration readers. `tests/corpus/sources/test_amend_terms.py`, `test_amend_refusals.py`,
+`test_amend_records.py` and `test_amend_impact.py` cover the amendment from the command to the
+kept records and the versions that pin a replaced record, including a subprocess killed at each
+write and real schema 1 records from `tests/corpus/kept_records/`, each written by the code of
+the commit in its name. `tests/corpus/sources/test_redecode.py` covers
 `--redecode` and `--redecode --amend-terms` the same way: a simulated policy upgrade, a tampered
 stored source, a repeat, a subprocess killed at each write, and both kept schema 1 records, one
 through the sequential route and one that needs both flags together.

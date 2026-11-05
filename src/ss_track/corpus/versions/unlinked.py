@@ -1,11 +1,13 @@
 """Other built versions on one data root that place a source elsewhere.
 
-Independent work may reuse a recording, so this listing refuses nothing. It reads every
-`manifest.json` directly under the corpus directory through `read_comparable` and names one it
-cannot read, or one whose major keeps no projection. Declared predecessors stay with the split
-refusal and are not listed again. An amendment report walks the same manifests.
+Independent work may reuse a recording, so this listing refuses nothing. It reads every version
+directory directly under the corpus directory through `read_comparable` and names one it cannot
+read, or one whose major keeps no projection. A version directory that cannot be read is named the
+same way. Declared predecessors stay with the split refusal and are not listed again. An amendment
+report walks the same manifests.
 """
 
+import stat
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -49,6 +51,7 @@ class UnlinkedVersions:
 
     placements: tuple[Mapping[str, JsonValue], ...]
     not_compared: tuple[UnreadCorpus, ...]
+    scan: str | None = None
 
     def to_record(self) -> dict[str, JsonValue]:
         """Return the JSON-compatible form. Each list is absent when it is empty."""
@@ -57,6 +60,8 @@ class UnlinkedVersions:
             record["placements"] = [dict(item) for item in self.placements]
         if self.not_compared:
             record["not_compared"] = [gap.to_record() for gap in self.not_compared]
+        if self.scan is not None:
+            record["scan"] = self.scan
         return record
 
     def when_present(self) -> dict[str, JsonValue]:
@@ -71,24 +76,68 @@ class UnlinkedVersions:
         return {"unlinked": listed}
 
 
-def scan_corpus_manifests(root: Path, record_format: RecordFormat) -> tuple[ScannedManifest, ...]:
-    """Read `root/*/manifest.json` in directory order.
+def compared_record(scanned: ScannedManifest) -> dict[str, JsonValue] | UnreadCorpus:
+    """Return this manifest's projection, or why it cannot be compared."""
+    comparable = scanned.comparable
+    if comparable is None or comparable.projected is None:
+        reason = UNREADABLE if comparable is None else OTHER_SCHEMA
+        return UnreadCorpus(scanned.corpus_id, reason)
+    return comparable.projected
 
-    A manifest that cannot be read is returned with no comparable record, so a caller can name it
-    instead of treating that version as absent. The walk stops at one directory level: bundle
-    manifests live further down and are not corpus versions.
+
+def scan_corpus_manifests(root: Path, record_format: RecordFormat) -> tuple[ScannedManifest, ...]:
+    """Read one manifest per version directory, in directory-name order.
+
+    A manifest or version directory that cannot be read is returned with no comparable record, so
+    a caller can name it instead of treating that version as absent. The walk stops at one
+    directory level: bundle manifests live further down and are not corpus versions. A name with a
+    leading dot is not a version. Raises OSError when `root` itself cannot be listed.
     """
     if not root.is_dir():
         return ()
     found: list[ScannedManifest] = []
-    for path in sorted(root.glob(f"*/{MANIFEST_NAME}")):
-        corpus_id = path.parent.name
+    for path in _version_directories(root):
+        manifest = path / MANIFEST_NAME
         try:
-            comparable: Comparable | None = read_comparable(path, record_format)
-        except (CorpusRefusal, OSError):
+            comparable = _read_manifest(manifest, record_format)
+        except FileNotFoundError:
+            continue
+        except OSError:
             comparable = None
-        found.append(ScannedManifest(corpus_id, path, comparable))
+        found.append(ScannedManifest(path.name, manifest, comparable))
     return tuple(found)
+
+
+def _version_directories(root: Path) -> tuple[Path, ...]:
+    """Return child directories in name order.
+
+    A child that cannot be stat'd is included, so the caller names it instead of skipping a
+    version whose manifest it cannot see. Raises OSError when `root` cannot be listed.
+    """
+    chosen: list[Path] = []
+    for path in root.iterdir():
+        if path.name.startswith("."):
+            continue
+        try:
+            is_directory = stat.S_ISDIR(path.stat().st_mode)
+        except OSError:
+            is_directory = True
+        if is_directory:
+            chosen.append(path)
+    return tuple(sorted(chosen, key=lambda item: item.name))
+
+
+def _read_manifest(manifest: Path, record_format: RecordFormat) -> Comparable | None:
+    """Return the comparable record, or None when the manifest cannot be read.
+
+    Raises FileNotFoundError when the directory holds no manifest, and OSError when the manifest
+    cannot be stat'd.
+    """
+    manifest.stat()
+    try:
+        return read_comparable(manifest, record_format)
+    except (CorpusRefusal, OSError):
+        return None
 
 
 def report_unlinked(
@@ -102,23 +151,24 @@ def report_unlinked(
 
     `corpus_id` is the version being built. It and every declared predecessor are left out.
     Placements are ordered by source hash, then by the other version's directory name. Manifests
-    that were not compared are ordered by that name.
+    that were not compared are ordered by that name. A corpus directory that cannot be listed is
+    reported as `scan` instead of raising from the walk.
     """
+    try:
+        manifests = scan_corpus_manifests(corpus_root, record_format)
+    except OSError:
+        return UnlinkedVersions((), (), UNREADABLE)
     excluded = {corpus_id, *(predecessor_identity(item)[0] for item in predecessors)}
     placements: list[Mapping[str, JsonValue]] = []
     unread: list[UnreadCorpus] = []
-    for scanned in scan_corpus_manifests(corpus_root, record_format):
+    for scanned in manifests:
         if scanned.corpus_id in excluded:
             continue
-        comparable = scanned.comparable
-        if comparable is None:
-            unread.append(UnreadCorpus(scanned.corpus_id, UNREADABLE))
+        ready = compared_record(scanned)
+        if isinstance(ready, UnreadCorpus):
+            unread.append(ready)
             continue
-        projected = comparable.projected
-        if projected is None:
-            unread.append(UnreadCorpus(scanned.corpus_id, OTHER_SCHEMA))
-            continue
-        named = dict(projected)
+        named = dict(ready)
         named["corpus_id"] = scanned.corpus_id
         placements.extend(sources_placed_elsewhere(corpus_id, streams, named))
     ordered = tuple(sorted(placements, key=_placement_order))

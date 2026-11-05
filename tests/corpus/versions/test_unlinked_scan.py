@@ -119,3 +119,55 @@ def test_an_unreadable_manifest_is_named_and_the_build_succeeds(
 
     assert built.status == "built"
     assert built.unlinked.to_record() == {"not_compared": expected}
+
+
+def test_an_unreadable_version_directory_is_named_and_the_build_succeeds(
+    first: ImportResult, write_grouped_corpus: WriteCorpus, data_root: Path
+) -> None:
+    stream = stream_of(first)
+    earlier = build_version(
+        write_grouped_corpus,
+        data_root,
+        "pilot-v1",
+        [single_group("site-a", "development", stream)],
+    )
+    version = earlier.manifest_path.parent
+    version.chmod(0)
+    try:
+        built = build_version(
+            write_grouped_corpus,
+            data_root,
+            "pilot-v2",
+            [single_group("held-out", "locked", stream)],
+        )
+    finally:
+        version.chmod(0o755)
+
+    assert built.status == "built"
+    assert built.unlinked.to_record() == {
+        "not_compared": [{"corpus_id": "pilot-v1", "reason": UNREADABLE}]
+    }
+
+
+def test_an_unreadable_corpus_directory_is_named_and_the_build_succeeds(
+    first: ImportResult, write_grouped_corpus: WriteCorpus, data_root: Path
+) -> None:
+    stream = stream_of(first)
+    build_version(
+        write_grouped_corpus, data_root, "pilot-v1", [single_group("site-a", "development", stream)]
+    )
+    corpus = data_root / "corpus"
+    # Write and search remain, so the new version can be stored, but the directory cannot be listed.
+    corpus.chmod(0o300)
+    try:
+        built = build_version(
+            write_grouped_corpus,
+            data_root,
+            "pilot-v2",
+            [single_group("held-out", "locked", stream)],
+        )
+    finally:
+        corpus.chmod(0o755)
+
+    assert built.status == "built"
+    assert built.unlinked.to_record() == {"scan": UNREADABLE}

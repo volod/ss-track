@@ -298,6 +298,15 @@ contracts:
     change:
       class: minor
       summary: List corpus versions on this data root that place a source elsewhere.
+  - version: 1.7.0
+    file_sha256: 35ae09e26380a2135b78bab754a05bf8a0e3aa7d7f32c68d49c0a2c8e80cf97e
+    fingerprints:
+      structure: bfb68f24a236561df349b578a10f0cbf36e3c675597e797a7806e20863cef693
+      meaning: 97d6dff86f34609074374dd127591be90d9c1ec49bc56e021ab2b5160633b0b1
+    change:
+      class: minor
+      summary: List corpus versions that pin a replaced source record, and name a
+        corpus directory that could not be listed.
 - family: shared
   id: types
   owner: data-contracts

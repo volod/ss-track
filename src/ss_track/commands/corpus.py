@@ -25,12 +25,15 @@ def add_corpus_commands(subcommands: Subcommands) -> None:
     source.add_argument(
         "--amend-terms",
         action="store_true",
-        help="record new rights and sensitivity for an imported source",
+        help=("record new rights and sensitivity, listing versions that pin the replaced record"),
     )
     source.add_argument(
         "--redecode",
         action="store_true",
-        help="decode an imported source's stored bytes again, under the installed policy",
+        help=(
+            "decode stored bytes again under the installed policy, "
+            "listing versions that pin the old record"
+        ),
     )
     source.set_defaults(handler=_run_import)
 

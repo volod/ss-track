@@ -246,10 +246,11 @@ format version is no reason to lose this comparison, and
 sibling branch cannot be refused, since independent work may reuse a recording, but a build lists
 every other version on its data root that places one of its sources in
 another group or split, for the operator's decision. A manifest on that data root that cannot be
-read, or whose major keeps no comparison, is named rather than skipped. A version in the declared
-chain is not listed again. The listing compares source hashes only, so a group's split is not
-applied to an undeclared version, and it is not sealed: it describes one data root at the time of
-the build.
+read, or whose major keeps no comparison, is named rather than skipped, as is a version directory
+that cannot be read. When the corpus directory itself cannot be listed, the build names that and
+still succeeds. A version in the declared chain is not listed again. The listing compares source
+hashes only, so a group's split is not applied to an undeclared version, and it is not sealed: it
+describes one data root at the time of the build.
 
 Staging ends with one sealed frame-set record that names every stream and generated-case bundle hash
 of a corpus version and the source records they rest on. A scenario pins that one hash rather than a
@@ -292,8 +293,11 @@ An imported record is immutable, so an ordinary import that declares other terms
 the terms that differ and records nothing. Changed terms are recorded by an explicit amendment, which
 replaces only the rights and sensitivity of a record, keeps the stored bytes untouched and retains the
 replaced record. Every corpus version that pins the old record then refuses at staging and
-verification, and the amendment lists the versions on its data root that do. An amendment deletes no
-frames and reaches one data root.
+verification. The amendment lists every version on its data root that pins the replaced record, each
+with the directory that holds its frames. A manifest or version directory the listing cannot read,
+or whose major keeps no projection, is named. The listing refuses nothing, deletes nothing, and is
+not part of the source record. A repeat that replaces nothing lists no version. An amendment
+reaches one data root.
 
 A withdrawal must stay recordable after the material is removed and must never need a decode of the
 material it withdraws. An amendment therefore finds its source by the bytes or by a declared hash,
@@ -305,8 +309,9 @@ it needs both routes at once.
 
 A record states the decode policy that produced it, so a new policy needs the stored bytes decoded
 again under `ss-track import --redecode`, which carries the record's terms over, keeps the replaced
-record and has the same effect on corpus versions pinning it as an amendment. A record with no terms
-to carry is refused and names `--amend-terms`, and no term is invented; a record too old for
+record and has the same effect on corpus versions pinning it as an amendment, including that
+listing. A record with no terms to carry is refused and names `--amend-terms`, and no term is
+invented; a record too old for
 `--amend-terms` alone reaches the current major only through `--redecode --amend-terms` together,
 which takes its terms from the declaration instead of carrying them.
 

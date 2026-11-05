@@ -38,5 +38,6 @@ Copy the [template](template.md) using the
 | 0031 | `decode-policy-reimport` | [0031-corpus-provenance-decode-policy-reimport](0031-corpus-provenance-decode-policy-reimport.md) |
 | 0032 | `group-repeated-frames` | [0032-corpus-provenance-group-repeated-frames](0032-corpus-provenance-group-repeated-frames.md) |
 | 0033 | `unlinked-version-report` | [0033-corpus-provenance-unlinked-version-report](0033-corpus-provenance-unlinked-version-report.md) |
+| 0034 | `amendment-impact-report` | [0034-corpus-provenance-amendment-impact-report](0034-corpus-provenance-amendment-impact-report.md) |
 
-Next unused sequence: `0034`.
+Next unused sequence: `0035`.
