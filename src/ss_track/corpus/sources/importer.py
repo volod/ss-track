@@ -15,6 +15,7 @@ from ss_track.corpus.declarations.declaration import (
 )
 from ss_track.corpus.decoding.decode import MediaInspection, inspect_media
 from ss_track.corpus.decoding.decode_policy import DecodePolicy, current_decode_policy
+from ss_track.corpus.decoding.streams import VIDEO_STREAM_INDEX
 from ss_track.corpus.records.kinds import SOURCE_MANIFEST_KIND, RecordFormat
 from ss_track.corpus.records.sealed import read_sealed
 from ss_track.corpus.records.sealing import (
@@ -65,10 +66,16 @@ def decode_policy_sha256(policy_record: dict[str, JsonValue]) -> str:
 
 
 def decoded_facts(inspection: MediaInspection) -> dict[str, JsonValue]:
-    """Return what a decode established, in the form a source manifest stores it."""
+    """Return what a decode established, in the form a source manifest stores it.
+
+    The first video stream is the historical default, so its index stays absent and an unchanged
+    source keeps the bytes it had before a recording could name a stream.
+    """
     facts: dict[str, JsonValue] = asdict(inspection)
     facts["pts"] = list(inspection.pts)
     facts["completeness_checks"] = list(inspection.completeness_checks)
+    if facts[VIDEO_STREAM_INDEX] == 0:
+        del facts[VIDEO_STREAM_INDEX]
     return facts
 
 
@@ -88,6 +95,9 @@ def changed_facts(record: Mapping[str, Any], declaration: RecordingDeclaration) 
         changed.append("capture")
     if sequence.get("capture_clock_evidence") != declaration.capture_clock_evidence:
         changed.append("sequence.capture_clock_evidence")
+    declared_index = declaration.video_stream_index
+    if declared_index is not None and sequence.get(VIDEO_STREAM_INDEX, 0) != declared_index:
+        changed.append(f"sequence.{VIDEO_STREAM_INDEX}")
     return changed
 
 
@@ -137,7 +147,7 @@ def _import_into(
     target = source_directory(data_root, sha256)
     if target.exists():  # a record no import can replace must not cost a whole decode first
         read_sealed(target / MANIFEST_NAME, SOURCE_MANIFEST)
-    inspection = inspect_media(stored, policy)
+    inspection = inspect_media(stored, policy, video_stream_index=declaration.video_stream_index)
     quality = assess_timestamps(inspection.pts, declaration.capture_clock_evidence)
     if not inspection.completeness_checks:
         _LOG.warning("source %s has no container-level completeness evidence", sha256)
@@ -211,18 +221,18 @@ def _import_conflict(
 ) -> CorpusRefusal:
     """Name the terms that differ, and the command only when it can record the change."""
     terms = changed_terms(existing, sealed)
-    amendable = terms and not changed_facts(existing, declaration)
+    facts = changed_facts(existing, declaration)
+    amendable = terms and not facts
     message = (
         f"this source was already imported under other terms; record them with {AMEND_COMMAND}"
         if amendable
         else "this source was already imported with a different declaration or decoder"
     )
-    return CorpusRefusal(
-        RefusalCode.IMPORT_CONFLICT,
-        message,
-        {
-            "existing_manifest_sha256": existing[SEAL_FIELD],
-            "new_manifest_sha256": sealed[SEAL_FIELD],
-            "changed_terms": list(terms),
-        },
-    )
+    details: dict[str, JsonValue] = {
+        "existing_manifest_sha256": existing[SEAL_FIELD],
+        "new_manifest_sha256": sealed[SEAL_FIELD],
+        "changed_terms": list(terms),
+    }
+    if facts:
+        details["changed_facts"] = list(facts)
+    return CorpusRefusal(RefusalCode.IMPORT_CONFLICT, message, details)

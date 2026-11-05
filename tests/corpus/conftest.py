@@ -132,10 +132,24 @@ def clip(media: Path) -> Path:
 
 @pytest.fixture
 def write_recording(media: Path) -> WriteRecording:
-    def write(source: str = "clip.mkv", sha256: str | None = None, **overrides: object) -> Path:
+    def write(
+        source: str = "clip.mkv",
+        sha256: str | None = None,
+        video_stream_index: int | None = None,
+        **overrides: object,
+    ) -> Path:
         declaration = recording_declaration(source) | overrides
-        if sha256 is not None:
-            declaration["source"] = {"path": source, "sha256": sha256}
+        if sha256 is not None or video_stream_index is not None:
+            raw = declaration["source"]
+            if not isinstance(raw, dict):
+                raise TypeError("recording source must be a mapping")
+            fields = dict(raw)
+            if sha256 is not None:
+                fields["path"] = source
+                fields["sha256"] = sha256
+            if video_stream_index is not None:
+                fields["video_stream_index"] = video_stream_index
+            declaration["source"] = fields
         path = media / "recording.yaml"
         path.write_text(yaml.safe_dump(declaration), encoding="utf-8")
         return path

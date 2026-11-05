@@ -57,6 +57,7 @@ class RecordingDeclaration:
 
     source_path: Path
     expected_sha256: str | None
+    video_stream_index: int | None
     rights: Rights
     sensitivity: Sensitivity
     capture_clock_evidence: str | None
@@ -133,6 +134,9 @@ def load_recording_declaration(path: Path) -> RecordingDeclaration:
     return RecordingDeclaration(
         source_path=path.resolve().parent / source.text("path"),
         expected_sha256=expected_sha256,
+        video_stream_index=(
+            source.index("video_stream_index") if source.has("video_stream_index") else None
+        ),
         rights=_read_rights(fields.child("rights")),
         sensitivity=_read_sensitivity(fields.child("sensitivity")),
         capture_clock_evidence=timestamps.optional_text("capture_clock_evidence"),

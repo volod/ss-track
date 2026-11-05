@@ -176,6 +176,16 @@ packet/frame identity and PTS, and validates a declared sample of decoded pixels
 tolerance. If exact input correspondence cannot be established, `EXTERNAL_EVENTS` reports contract
 conformance only.
 
+A recording names one video stream of its file. `source.video_stream_index` is that stream's
+zero-based position among video streams, not among every stream in the container. A file with one
+video stream may omit the index, and that stream is decoded. A file with more than one is refused
+until the declaration names one, and the refusal lists every video stream; an index that names none
+of them is refused the same way. Audio and other non-video streams are not imported. The named
+stream is the sequence later decodes read, including staging and redecode. The index is a fact of
+the source and is absent from the record when it is the first video stream. It is not part of the
+shared decode policy, because a corpus pins one policy for every source. One source record holds
+one video stream of one file, so the same bytes under another index conflict with the first import.
+
 A canonical decode names everything that can choose a pixel, including the inverse transform of codecs
 whose standards leave it open, so one pinned decoder gives one set of bytes on x86-64 and arm64 Linux
 for the formats a fixed corpus covers. That is a measured claim, not a property of a decoder: it

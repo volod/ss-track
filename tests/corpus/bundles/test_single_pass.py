@@ -30,12 +30,17 @@ class _Decodes:
         self.paths: list[Path] = []
 
     def __call__(
-        self, path: Path, policy: DecodePolicy, on_frame: FrameConsumer | None = None
+        self,
+        path: Path,
+        policy: DecodePolicy,
+        on_frame: FrameConsumer | None = None,
+        *,
+        video_stream_index: int | None = None,
     ) -> MediaInspection:
         self.paths.append(Path(path))
         if on_frame is None:
-            return inspect_media(path, policy)
-        return inspect_media(path, policy, on_frame)
+            return inspect_media(path, policy, video_stream_index=video_stream_index)
+        return inspect_media(path, policy, on_frame, video_stream_index=video_stream_index)
 
 
 class _FailAfter:
@@ -46,14 +51,19 @@ class _FailAfter:
         self.calls = 0
 
     def __call__(
-        self, path: Path, policy: DecodePolicy, on_frame: FrameConsumer | None = None
+        self,
+        path: Path,
+        policy: DecodePolicy,
+        on_frame: FrameConsumer | None = None,
+        *,
+        video_stream_index: int | None = None,
     ) -> MediaInspection:
         self.calls += 1
         if self.limit is not None and self.calls > self.limit:
             raise OSError(28, "No space left on device")
         if on_frame is None:
-            return inspect_media(path, policy)
-        return inspect_media(path, policy, on_frame)
+            return inspect_media(path, policy, video_stream_index=video_stream_index)
+        return inspect_media(path, policy, on_frame, video_stream_index=video_stream_index)
 
 
 def _watch(monkeypatch: pytest.MonkeyPatch, decoder: _Decodes | _FailAfter) -> None:

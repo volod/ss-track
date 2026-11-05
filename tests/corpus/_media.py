@@ -10,6 +10,8 @@ WIDTH = 64
 HEIGHT = 48
 FRAME_COUNT = 24
 FRAME_RATE = 25
+DUAL_FIRST_FRAMES = 4
+DUAL_SECOND_FRAMES = 6
 _MILLISECOND = Fraction(1, 1000)
 _AUDIO_RATE = 48000
 _AUDIO_PACKET_SAMPLES = 4800
@@ -178,6 +180,52 @@ def flip_bytes(path: Path, fraction: float, length: int = 32) -> Path:
     data[start : start + length] = bytes(value ^ 0xFF for value in data[start : start + length])
     path.write_bytes(data)
     return path
+
+
+def write_dual_video(path: Path, *, leading_audio: bool = False) -> Path:
+    """Write two video streams a recording must choose between.
+
+    The first is a short copy of the synthetic clip. The second is smaller, longer and flat, so
+    each index has frames the other does not. `leading_audio` puts a silent track first, which
+    makes container indexes differ from video indexes.
+    """
+    with av.open(path, "w") as container:
+        sound = (
+            container.add_stream("pcm_s16le", rate=_AUDIO_RATE, layout="mono")
+            if leading_audio
+            else None
+        )
+        first = _add_mjpeg(container, WIDTH, HEIGHT)
+        second = _add_mjpeg(container, WIDTH // 2, HEIGHT // 2)
+        _mux_video(container, first, DUAL_FIRST_FRAMES, WIDTH, HEIGHT, expected_rgb)
+        _mux_video(container, second, DUAL_SECOND_FRAMES, WIDTH // 2, HEIGHT // 2, flat_rgb)
+        if sound is not None:
+            _mux_silence(container, sound)
+    return path
+
+
+def _add_mjpeg(
+    container: av.container.OutputContainer, width: int, height: int
+) -> av.video.VideoStream:
+    stream = container.add_stream("mjpeg", rate=FRAME_RATE)
+    stream.width, stream.height, stream.pix_fmt = width, height, "yuvj420p"
+    stream.thread_count = 1
+    return stream
+
+
+def _mux_video(
+    container: av.container.OutputContainer,
+    stream: av.video.VideoStream,
+    frames: int,
+    width: int,
+    height: int,
+    content: Callable[[int, int, int], bytes],
+) -> None:
+    for index in range(frames):
+        frame = _frame(index, width, height, content).reformat(format="yuvj420p")
+        frame.pts, frame.time_base = index, Fraction(1, FRAME_RATE)
+        container.mux(stream.encode(frame))
+    container.mux(stream.encode(None))
 
 
 def skip_leading_samples(source: Path, target: Path, media_time_delta: int) -> Path:

@@ -30,25 +30,27 @@ extensions; none blocks M3. Fixture implementation proceeds without physical har
 
 ### Corpus provenance -- `corpus-provenance`
 
-#### import-stream-selection (optional)
+#### dual-camera-file-identity (optional)
 
-A container with two video streams imports only the first, and a dual-camera file loses a sensor
-unnoticed.
+A dual-camera file can name one video stream, and the other camera of those same bytes is
+`IMPORT_CONFLICT`, so one container still cannot feed two sensors of one encounter.
 
 - Serves: `corpus-provenance` -- [Corpus
   identity](../design/spec.md#41-corpus-identity-and-input-handling)
 - Agent status: CLEAR
 - Milestone: M1
 - Dependencies: none.
-- User-visible outcome: A recording names the video stream it means, and an ambiguous container is
-  refused.
-- Scope boundary: One video stream per recording, with a stream index that the decode policy honors.
-  Audio and sidecars belong to G2 bundles.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`.
-- Execution path: Add an index to the recording declaration, required when `video_stream_count`
-  exceeds one, with a two-stream fixture.
-- Acceptance gates: A two-stream file with no index is refused with both streams listed, and each
-  index imports its own frames.
+- User-visible outcome: Two recordings of one file, each naming a video stream, import beside each
+  other and can sit in one encounter.
+- Scope boundary: A one-stream import keeps its source hash and manifest bytes. Audio and sidecars
+  stay with G2 bundles. A second index is a second source record, not a second window of the first
+  decode.
+- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/import/`.
+- Execution path: Give a non-zero video stream its own source identity that a one-stream import does
+  not use, and let one encounter name both.
+- Acceptance gates: One two-stream fixture imports both indexes into one data root. Their frame
+  bundles differ, one encounter holds both, and a one-stream import keeps its source hash and
+  manifest bytes. Repeating either index reports unchanged.
 - Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
 
 #### declared-color-tags (optional)

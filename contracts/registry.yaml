@@ -77,6 +77,15 @@ contracts:
       class: minor
       summary: State the not-blank rule of each free-text field under x-rules. Accepted
         values do not change.
+  - version: 2.2.0
+    file_sha256: 231fc34f1bc35d93f3ca5b87143c63aa2c8c5fa887391c19daacf0af71de5e22
+    fingerprints:
+      structure: 98da681ca6d0256528d78f913612162d80bf0b28540b6477f39c7e0cb049c9c8
+      meaning: 0a518a8193cedb3a92d35058dcc4421c0231d076efa37b0694c85f5aa9c1ce25
+    change:
+      class: minor
+      summary: Add optional source.video_stream_index for the video stream a recording
+        names.
   retired_majors:
   - major: 1
     status: retired
@@ -212,6 +221,15 @@ contracts:
       class: minor
       summary: State which fields a public descriptor may carry. Existing record bytes
         stay valid.
+  - version: 2.2.0
+    file_sha256: a09af63f147339fce56970f56e617272352602f6226f7a4e3c427df4173a5d76
+    fingerprints:
+      structure: 91b5d0b919d2855ed6ad066cab5f33934299933e446bbf9437a575c2b3b23bd8
+      meaning: 4d07e1d4c5441c5581fb6d81c4550bc05f079ae25e944a8db69e5cd03fb38632
+    change:
+      class: minor
+      summary: Add optional sequence.video_stream_index, absent when the decoded stream
+        is the first.
   retired_majors:
   - major: 1
     status: facts
@@ -315,6 +333,15 @@ contracts:
     change:
       class: minor
       summary: Describe the contact sheet written by corpus preview.
+  - version: 1.9.0
+    file_sha256: a833c79e827f73b0ba5cc0b887660941fd05739205518daa943e1ac225e31207
+    fingerprints:
+      structure: ea431a638ed356a14db1135d6c023ba9da3cdbc0b9fa9a33f71e16e270bfb720
+      meaning: 3110b443831f4dc533dcf3d41f0b9252c14316d78fc9933a375f04de4b3de18a
+    change:
+      class: minor
+      summary: Add VIDEO_STREAM_UNSPECIFIED when a recording does not name a video
+        stream the container holds.
 - family: shared
   id: types
   owner: data-contracts

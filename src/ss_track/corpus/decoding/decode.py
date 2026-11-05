@@ -22,6 +22,7 @@ from ss_track.core.refusal import CorpusRefusal, RefusalCode
 from ss_track.corpus.decoding.decode_policy import DecodePolicy
 from ss_track.corpus.decoding.integrity import matroska_segment_end
 from ss_track.corpus.decoding.pixels import ColorTags, bits_per_component, color_tags
+from ss_track.corpus.decoding.streams import select_video_stream
 
 _MATROSKA_FORMAT = "matroska"
 FRAME_COUNT_CHECK = "frame_count"
@@ -50,6 +51,7 @@ class MediaInspection:
     pts: tuple[int | None, ...]
     discarded_frames: int
     video_stream_count: int
+    video_stream_index: int
     completeness_checks: tuple[str, ...]
 
 
@@ -105,13 +107,17 @@ def _ignore_frame(_: int, __: av.VideoFrame) -> None:
 
 
 def inspect_media(
-    path: Path, policy: DecodePolicy, on_frame: FrameConsumer = _ignore_frame
+    path: Path,
+    policy: DecodePolicy,
+    on_frame: FrameConsumer = _ignore_frame,
+    *,
+    video_stream_index: int | None = None,
 ) -> MediaInspection:
-    """Decode every frame strictly, or refuse with the evidence of why that failed.
+    """Decode one video stream strictly, or refuse with the evidence of why that failed.
 
-    `on_frame` receives each accepted frame with its zero-based index, so anything built from the
-    pixels passes the same checks. A refusal can come after earlier frames were delivered, so a
-    consumer must keep its output unpublished until this returns.
+    `video_stream_index` counts video streams from zero. Omit it only when the container has one.
+    `on_frame` receives each accepted frame with its zero-based index. A refusal can come after
+    earlier frames were delivered, so a consumer must keep its output unpublished until this returns.
     """
     with _ffmpeg_errors() as logs:
         try:
@@ -121,7 +127,7 @@ def inspect_media(
                 RefusalCode.SOURCE_UNREADABLE, f"cannot open media: {error.strerror}"
             ) from error
         with container:
-            return _inspect_container(path, container, policy, logs, on_frame)
+            return _inspect_container(path, container, policy, logs, on_frame, video_stream_index)
 
 
 def _configured_context(stream: av.video.VideoStream, policy: DecodePolicy) -> VideoCodecContext:
@@ -140,11 +146,10 @@ def _inspect_container(
     policy: DecodePolicy,
     logs: FfmpegLog,
     on_frame: FrameConsumer,
+    video_stream_index: int | None,
 ) -> MediaInspection:
     streams = container.streams.video
-    if not streams:
-        raise CorpusRefusal(RefusalCode.SOURCE_UNREADABLE, "media has no video stream")
-    stream = streams[0]
+    stream, selected = select_video_stream(streams, video_stream_index)
     context = _configured_context(stream, policy)
     decoded = _Decoded()
     try:
@@ -173,6 +178,7 @@ def _inspect_container(
         pts=tuple(decoded.pts),
         discarded_frames=decoded.discarded,
         video_stream_count=len(streams),
+        video_stream_index=selected,
         completeness_checks=checks,
     )
 

@@ -87,7 +87,7 @@ def _redecode(
     require_unchanged_facts(existing, declaration, sha256)
     stored = _verified_stored_path(existing, sha256, directory)
     policy = current_decode_policy()
-    inspection = inspect_media(stored, policy)
+    inspection = inspect_media(stored, policy, video_stream_index=declaration.video_stream_index)
     clock_evidence = existing["sequence"]["capture_clock_evidence"]
     quality = assess_timestamps(inspection.pts, clock_evidence)
     policy_record = policy.as_record()

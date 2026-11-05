@@ -44,5 +44,6 @@ Copy the [template](template.md) using the
 | 0037 | `select-development-workload` | [0037-corpus-provenance-select-development-workload](0037-corpus-provenance-select-development-workload.md) |
 | 0038 | `self-supervised-corpus-plan` | [0038-adhoc-self-supervised-corpus-plan](0038-adhoc-self-supervised-corpus-plan.md) |
 | 0039 | `bundle-frame-sharing` | [0039-corpus-provenance-bundle-frame-sharing](0039-corpus-provenance-bundle-frame-sharing.md) |
+| 0040 | `import-stream-selection` | [0040-corpus-provenance-import-stream-selection](0040-corpus-provenance-import-stream-selection.md) |
 
-Next unused sequence: `0040`.
+Next unused sequence: `0041`.

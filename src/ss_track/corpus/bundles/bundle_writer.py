@@ -23,6 +23,7 @@ from ss_track.corpus.decoding.pixels import (
     frame_size_bytes,
     uses_color_matrix,
 )
+from ss_track.corpus.decoding.streams import VIDEO_STREAM_INDEX, recorded_video_stream_index
 from ss_track.corpus.records.sealing import seal, write_sealed
 from ss_track.corpus.sources.importer import (
     MANIFEST_NAME,
@@ -58,7 +59,12 @@ def write_source_bundles(
     targets = tuple(root / str(stream["stream_id"]) for stream in streams)
     with publish_bundles(root, targets) as staged_dirs:
         writers = _writers(staged_dirs, streams, policy)
-        inspection = inspect_media(stored, policy, _fan_out(writers))
+        inspection = inspect_media(
+            stored,
+            policy,
+            _fan_out(writers),
+            video_stream_index=recorded_video_stream_index(media),
+        )
         _require_same_decode(decoded_facts(inspection), media, streams)
         _seal_bundles(streams, writers, staged_dirs, corpus, media, policy_sha256)
     _warn_about_conversion([str(stream["stream_id"]) for stream in streams], media)
@@ -140,13 +146,28 @@ def _seal_bundles(
         write_sealed(staged / MANIFEST_NAME, seal(body))
 
 
+def _compared_facts(decoded: Mapping[str, JsonValue], media: Mapping[str, Any]) -> set[str]:
+    """Return the decode facts to compare, treating an absent stream index as the first stream."""
+    keys = set(decoded)
+    if VIDEO_STREAM_INDEX in media:
+        keys.add(VIDEO_STREAM_INDEX)
+    return keys
+
+
+def _fact_differs(decoded: Mapping[str, JsonValue], media: Mapping[str, Any], key: str) -> bool:
+    if key == VIDEO_STREAM_INDEX:
+        return bool(decoded.get(key, 0) != media.get(key, 0))
+    return bool(media[key] != decoded[key])
+
+
 def _require_same_decode(
     decoded: Mapping[str, JsonValue],
     media: Mapping[str, Any],
     streams: Sequence[Mapping[str, Any]],
 ) -> None:
     """A decode that disagrees with the import record means the decoder is not reproducing it."""
-    differing = sorted(key for key, value in decoded.items() if media[key] != value)
+    compared = _compared_facts(decoded, media)
+    differing = sorted(key for key in compared if _fact_differs(decoded, media, key))
     if not differing:
         return
     raise CorpusRefusal(

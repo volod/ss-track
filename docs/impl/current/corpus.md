@@ -91,7 +91,7 @@ Each command logs one JSON record and exits 0. A refusal exits 1 and has this fo
 
 ## Declarations
 
-Each file is checked in full against its contract on read, `declaration/recording` 2.0.0 and
+Each file is checked in full against its contract on read, `declaration/recording` 2.2.0 and
 `declaration/corpus` 3.0.0, before any reader takes a value from it. Both reject unknown fields,
 repeated keys, non-finite numbers and any other schema version, so a misspelled key cannot silently
 drop a fact. A recording is schema 2 and a corpus is schema 3. There are no defaults for rights,
@@ -104,7 +104,8 @@ sensitivity, split or scenario rights: a declaration without them is refused, an
 `src/ss_track/corpus/declarations/fields.py` then gives the readers typed access. The readers keep
 only rules the contract states as `x-rules`: a range status needs its value and method, a corpus
 cannot supersede itself, a frame window must be non-empty, an absent range status means `unknown`,
-and free text that is only whitespace is refused (`text`). A value YAML read as a date is refused
+and free text that is only whitespace is refused (`text`). The video-stream rule is not one of
+these: it needs the file, so import enforces it. A value YAML read as a date is refused
 where text belongs, such as an unquoted `holder: 2024-01-05` or `lens: 2024-01-05`, by the validator
 itself, so `contracts validate` refuses it too. A date field such as `retain_until` takes an
 unquoted date as its ISO text.
@@ -115,6 +116,7 @@ schema_version: 2
 source:
   path: clip.mkv             # relative to this file
   sha256: "<64 hex>"         # optional; declare it at capture, see Integrity limits
+  # video_stream_index: 1    # video streams only; required when more than one
 rights:
   holder: Project Contributors
   basis: owned               # owned, licensed, consented or public_domain
@@ -162,6 +164,22 @@ groups:
             source_sha256: "<64 hex>"
 ```
 
+### Video stream selection
+
+`source.video_stream_index` is the zero-based position among video streams, not among every stream
+in the container. Omit it when the file has one video stream. A file with more than one is
+`VIDEO_STREAM_UNSPECIFIED` until the declaration names one, and the refusal lists each stream's
+index, container index, codec, width and height before any frame is decoded. An index that is not
+one of those streams is refused the same way. Naming index 0 selects the first video stream and
+leaves the field off the source record, so a one-stream import keeps its previous manifest bytes.
+A later stream stores `sequence.video_stream_index`. Staging and redecode read that stream. The
+index is not part of the shared decode policy, because a corpus pins one policy for every source.
+The same file under another index is `IMPORT_CONFLICT`, and the details name
+`sequence.video_stream_index`, because one source record holds one video stream. Audio is not
+imported. `src/ss_track/corpus/decoding/streams.py` chooses the stream, and
+`tests/corpus/sources/test_stream_selection.py` covers the refusal, each index and staging. The
+[task record](../records/0040-corpus-provenance-import-stream-selection.md) holds the acceptance.
+
 ## Stored evidence
 
 | Path | Content |
@@ -190,8 +208,8 @@ new corpus version. Changed terms alone are [recorded by an amendment](#withdraw
 A source manifest records the hash and size, whether the hash was declared, rights, sensitivity,
 capture facts, the decode policy and the sequence: container, codec, original and decoded dimensions,
 source pixel format and bit depth, stored color tags, display rotation, interlaced frame count, time
-base, one PTS per presented frame, discarded sample count, video stream count, timestamp quality and
-completeness checks.
+base, one PTS per presented frame, discarded sample count, video stream count, the video stream
+index when it is not the first, timestamp quality and completeness checks.
 
 `corpus build` trusts nothing from import time. It re-reads every source manifest, re-hashes every
 stored source, requires each source's decode policy to be the installed one, and checks each
@@ -602,6 +620,10 @@ is `rgb24`. The policy hash covers all of these options:
 | `idct=simple` | `bitexact` leaves the inverse DCT to the CPU, so without this MJPEG, MPEG-1, MPEG-2, MPEG-4, H.263, MSMPEG-4, DV and DNxHD decode differently on arm64 |
 | `ACCURATE_RND`, `BITEXACT` conversion | Without them FFmpeg's SIMD and C paths round differently, so pixels depend on the CPU |
 | `FULL_CHR_H_INT`, `FULL_CHR_H_INP` conversion | Without them chroma is repeated instead of interpolated and lands in the wrong place |
+
+That inspection reads the video stream named under
+[Video stream selection](#video-stream-selection).
+The shared policy hash does not include the index.
 
 Exit status alone is not enough evidence, so `inspect_media` also refuses on a demuxer corrupt-packet
 flag, a decoder corrupt-frame flag, and any FFmpeg ERROR log. The log is the only signal for an FFV1
@@ -1232,6 +1254,7 @@ accepted task, its decisions and its evidence.
 | `SOURCE_DAMAGED` | Decoding or a completeness check shows truncation or corruption |
 | `SOURCE_NO_FRAMES` | The media opened but decoded to no frames |
 | `SOURCE_FORMAT_CHANGED` | Resolution, pixel format or display rotation changes within the stream |
+| `VIDEO_STREAM_UNSPECIFIED` | The declaration does not name a video stream this container holds. Details list every video stream |
 | `PTS_NON_INCREASING` | Stored PTS repeats or goes backward |
 | `TIMESTAMP_CLAIM_UNSUPPORTED` | Capture-clock evidence was declared without complete PTS |
 | `SELECTION_OUT_OF_RANGE` | A selection runs past the end of its sequence |
