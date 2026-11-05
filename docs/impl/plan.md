@@ -30,25 +30,6 @@ extensions; none blocks M3. Fixture implementation proceeds without physical har
 
 ### Corpus provenance -- `corpus-provenance`
 
-#### bundle-frame-sharing (optional)
-
-A generated case stores a full raw copy of every frame, even frames identical to its parent.
-
-- Serves: `corpus-provenance` -- [Deterministic
-  cases](../design/spec.md#43-deterministic-cases-and-negative-evidence)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: Frames a case leaves untouched take no extra disk space.
-- Scope boundary: Hard links within one corpus version, falling back to a copy across filesystems.
-  Hashes, records and read paths are unchanged.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`.
-- Execution path: Link in `store_frame` when a frame hash equals its parent's, with a
-  scratch-to-bundle fixture.
-- Acceptance gates: Bundle hashes match unlinked staging. Disk use on a short-window case falls by
-  the untouched share, as measured, and `corpus verify` still names a damaged frame.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
 #### import-stream-selection (optional)
 
 A container with two video streams imports only the first, and a dual-camera file loses a sensor

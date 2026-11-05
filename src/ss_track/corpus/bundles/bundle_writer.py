@@ -1,17 +1,17 @@
 """Write the frame bundles of one source from a single strict decode."""
 
 import logging
-import shutil
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
 import av
 
-from ss_track.core.canonical import SEAL_FIELD, sha256_bytes
+from ss_track.core.canonical import SEAL_FIELD
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.bundles.bundle_reader import open_frame_bundle
-from ss_track.corpus.bundles.frames import FRAME_BUNDLE, FrameBundle, bundle_hash, frame_name
+from ss_track.corpus.bundles.frame_store import require_space, store_frame
+from ss_track.corpus.bundles.frames import FRAME_BUNDLE, FrameBundle, bundle_hash
 from ss_track.corpus.bundles.publish import publish_bundles
 from ss_track.corpus.decoding.decode import FrameConsumer, inspect_media
 from ss_track.corpus.decoding.decode_policy import DecodePolicy
@@ -23,7 +23,7 @@ from ss_track.corpus.decoding.pixels import (
     frame_size_bytes,
     uses_color_matrix,
 )
-from ss_track.corpus.records.sealing import READ_ONLY_FILE_MODE, seal, write_sealed
+from ss_track.corpus.records.sealing import seal, write_sealed
 from ss_track.corpus.sources.importer import (
     MANIFEST_NAME,
     decode_policy_sha256,
@@ -138,28 +138,6 @@ def _seal_bundles(
     for stream, writer, staged in zip(streams, writers, staged_dirs, strict=True):
         body = _bundle_body(stream, corpus, media, policy_sha256, writer)
         write_sealed(staged / MANIFEST_NAME, seal(body))
-
-
-def store_frame(
-    directory: Path, frame_index: int, pts: int | None, pixels: bytes
-) -> dict[str, JsonValue]:
-    """Write one read-only frame and return its line of the sealed index."""
-    path = directory / frame_name(frame_index, OUTPUT_PIXEL_FORMAT)
-    path.write_bytes(pixels)
-    path.chmod(READ_ONLY_FILE_MODE)
-    return {"frame_index": frame_index, "pts": pts, "sha256": sha256_bytes(pixels)}
-
-
-def require_space(root: Path, frames: int, width: int, height: int) -> None:
-    """Refuse before work that could not finish. Raw frames dwarf their source."""
-    required = frames * frame_size_bytes(width, height)
-    free = shutil.disk_usage(root).free
-    if free < required:
-        raise CorpusRefusal(
-            RefusalCode.STORAGE_FAILED,
-            "not enough free space to stage these frames",
-            {"required_bytes": required, "free_bytes": free},
-        )
 
 
 def _require_same_decode(

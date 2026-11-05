@@ -424,7 +424,12 @@ read a stream. Its hash covers the parent bundle, transform revision, seed, para
 transform and frames, and no corpus or case name, so one recipe over one parent gives identical
 bytes. A transform that would produce other bytes takes a new revision, and a stored case of another
 revision is refused rather than regenerated. A case that changes no frame of its parent is refused,
-because it would test nothing while claiming to.
+because it would test nothing while claiming to. A frame a case stores with the same bytes as one
+of its parent frames is a hard link to that parent frame when both are on one filesystem, so frames
+the case leaves untouched take no extra disk. A filesystem that cannot link stores a copy of those
+bytes. The bundle hash, the frame index and every read path are unchanged, because they name bytes.
+Verification of a changed inode names every bundle that links it, and removing one name leaves the
+others.
 
 Labels follow pixels. A case keeps each frame's source index, so a shifted frame translates its
 labels, a removed frame takes no label, and a repeated frame takes the labels of the frame it shows.

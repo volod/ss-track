@@ -2,7 +2,8 @@
 
 A case is an ordinary bundle, so a module reads it exactly as it reads a stream. Its identity covers
 the parent bundle and the recipe, and neither a corpus nor a case name, so one recipe over one parent
-gives one hash. Every parent frame is re-hashed on the way in by `read_frame`.
+gives one hash. Every parent frame is re-hashed on the way in by `read_frame`. A frame whose hash
+equals that parent frame becomes a hard link, so an untouched frame takes no extra disk.
 """
 
 from collections.abc import Mapping, Sequence
@@ -12,7 +13,7 @@ from typing import Any
 from ss_track.core.canonical import SEAL_FIELD
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.bundles.bundle_reader import open_frame_bundle
-from ss_track.corpus.bundles.bundle_writer import require_space, store_frame
+from ss_track.corpus.bundles.frame_store import require_space, store_frame
 from ss_track.corpus.bundles.frames import FRAME_BUNDLE, FrameBundle, bundle_hash
 from ss_track.corpus.bundles.publish import publish_bundle
 from ss_track.corpus.cases.case_model import Pixels, ReadFrame, Rendering, Slot, as_pixels
@@ -78,16 +79,38 @@ def _case_body(
     }
 
 
+def _same_device(parent: FrameBundle, root: Path) -> bool:
+    """Return whether a link from the parent bundle onto `root` stays on one filesystem."""
+    return parent.directory.stat().st_dev == root.stat().st_dev
+
+
+def _new_frame_count(rendering: Rendering, window: range, parent: FrameBundle, root: Path) -> int:
+    """Count frames that may be new bytes. A same-device link of an unchanged frame needs none."""
+    if not _same_device(parent, root):
+        return len(rendering.slots)
+    if rendering.paint is None:
+        return 0
+    return sum(1 for slot in rendering.slots if slot.frame_index in window)
+
+
 def _store_slot(
     directory: Path, slot: Slot, window: range, parent: FrameBundle, rendering: Rendering
 ) -> dict[str, JsonValue]:
-    """Store one case frame. A frame outside the window keeps its parent's exact bytes."""
+    """Store one case frame. Bytes equal to a parent frame share that frame's disk."""
+    content = parent.frame_ref(slot.content_frame_index)
     packed = parent.read_frame(slot.content_frame_index)
     if rendering.paint is not None and slot.frame_index in window:
         pixels = as_pixels(packed, parent.width, parent.height)
         packed = rendering.paint(pixels, slot.frame_index).tobytes()
     pts = parent.frame_ref(slot.frame_index).pts
-    entry = store_frame(directory, slot.frame_index, pts, packed)
+    entry = store_frame(
+        directory,
+        slot.frame_index,
+        pts,
+        packed,
+        link_from=parent.directory / content.frame_name,
+        link_sha256=content.sha256,
+    )
     if slot.content_frame_index != slot.frame_index:
         entry["content_frame_index"] = slot.content_frame_index
     return entry
@@ -112,9 +135,10 @@ def write_case_bundle(case: Mapping[str, Any], parent: FrameBundle, root: Path) 
     """Write one case into scratch and publish it with one rename."""
     read = _frame_reader(parent)
     rendering = prepare_case(case, parent.selection, parent.width, parent.height, read)
-    require_space(root, len(rendering.slots), parent.width, parent.height)
-    parent_record = read_sealed(parent.directory / MANIFEST_NAME, FRAME_BUNDLE)
     window = range(case["window"]["start_frame"], case["window"]["end_frame"])
+    reserve = _new_frame_count(rendering, window, parent, root)
+    require_space(root, reserve, parent.width, parent.height)
+    parent_record = read_sealed(parent.directory / MANIFEST_NAME, FRAME_BUNDLE)
     target = root / case["case_id"]
     with publish_bundle(root, target) as staged:
         frames = [_store_slot(staged, slot, window, parent, rendering) for slot in rendering.slots]

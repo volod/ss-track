@@ -42,7 +42,7 @@ Copy the [template](template.md) using the
 | 0035 | `case-preview` | [0035-corpus-provenance-case-preview](0035-corpus-provenance-case-preview.md) |
 | 0036 | `staging-single-pass` | [0036-corpus-provenance-staging-single-pass](0036-corpus-provenance-staging-single-pass.md) |
 | 0037 | `select-development-workload` | [0037-corpus-provenance-select-development-workload](0037-corpus-provenance-select-development-workload.md) |
-
 | 0038 | `self-supervised-corpus-plan` | [0038-adhoc-self-supervised-corpus-plan](0038-adhoc-self-supervised-corpus-plan.md) |
+| 0039 | `bundle-frame-sharing` | [0039-corpus-provenance-bundle-frame-sharing](0039-corpus-provenance-bundle-frame-sharing.md) |
 
-Next unused sequence: `0039`.
+Next unused sequence: `0040`.

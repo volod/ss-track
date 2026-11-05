@@ -721,7 +721,9 @@ once for the source, naming every stream of the pass. A bundle staged from
 another corpus version, or one sitting under another stream's path, is `BUNDLE_CONFLICT`, so moving a
 bundle cannot carry frames into another split. A bundle is immutable: frames are mode `0444`, the
 directory is `0555`, and a damaged one is never repaired in place. Remove it with
-`chmod -R u+w <bundle> && rm -rf <bundle>`, then stage again; the hash comes back the same.
+`chmod u+w <bundle> && rm -rf <bundle>`, then stage again; the hash comes back the same. `chmod`
+applies to the directory only. A generated case may hard-link a parent frame, and changing that
+file's mode would change the parent frame too.
 `tests/corpus/bundles/test_single_pass.py` checks one decode per source, hashes that match a
 per-stream stage, and a failure that publishes nothing from the pass. The
 [task record](../records/0036-corpus-provenance-staging-single-pass.md) holds the acceptance.
@@ -942,7 +944,9 @@ every frame of every stream and names each damaged file with its stream:
 
 The reason is `hash_mismatch`, `missing` or `unexpected_file`. `damaged_count` is always complete; the
 list names the first 32. A stage over a damaged bundle and a read of a damaged frame refuse the same
-way, so a changed frame cannot reach a module.
+way, so a changed frame cannot reach a module. A case frame that is a hard link of its parent is the
+same inode: damage is named once for every bundle that holds that file, and removing one name leaves
+the others. A frame the case copied is named alone.
 
 A `verified` result covers source records and frames, not stored source bytes. Only `corpus build`
 and staging a new bundle read those, so `corpus verify` and a repeated `corpus stage` do not notice a
@@ -975,7 +979,8 @@ parent stream and has no other home:
 
 `region` is `{x, y, width, height}` in stored orientation, and each `region_status` also carries
 `frames`, `region` and `overlap_geometry: unlocalizable`. Pixels outside a case's window keep their
-parent's exact bytes. `short_occlusion` needs parent frames on both sides of its window, so a window
+parent's exact bytes and, on one filesystem, that frame's disk space. `short_occlusion` needs parent
+frames on both sides of its window, so a window
 is required in practice. One `blur` draw is an edge-repeating box filter of `2 * radius + 1`, applied
 per axis. `camera_shake` repeats the nearest pixel at an exposed edge.
 
@@ -1024,9 +1029,20 @@ first frame of a selection is never repeated. Labels follow pixels, so a repeate
 labels of the frame it shows. Such a frame's PTS is no longer a capture time, so a `measured` parent
 gives a `derived` case with no capture-clock evidence. A `missing` parent stays `missing`.
 
+`src/ss_track/corpus/bundles/frame_store.py` writes each frame. When the bytes hash to the parent
+frame they were read from, the name in scratch is a hard link to that file, and publishing the
+scratch directory keeps the link. A filesystem that refuses the link, including a link across
+devices, stores a copy of the same bytes. The sealed index and `bundle_sha256` are the same either
+way. Free space is reserved for frames the case may change. A case that only drops or repeats frames
+reserves none for pixels, because every stored frame is one of the parent's. If a filesystem shares
+a device and then refuses the link, the copy can still run out of space: the command reports
+`STORAGE_FAILED` and leaves that case unstaged.
+
 On the development host, on tmpfs, four cases of 300 1080p frames took 37 s on top of staging their
 parent, about 33 frames per second, with a 227 MB peak. A blur of radius 9 costs about 65 ms per
-frame. Each case holds a full copy of its raw frames: 1.8 GB here, the same as its parent.
+frame. A case that changes every frame still stores about 1.8 GB of new pixels. Frames it leaves
+untouched add none. The [task record](../records/0039-corpus-provenance-bundle-frame-sharing.md)
+holds the acceptance.
 
 ### Reproducibility
 
@@ -1307,8 +1323,9 @@ repository. `tests/corpus/decoding/test_decode.py` covers the strict inspection,
 `test_decode_policy.py` the policy and its hash, and `test_decode_damage.py` the truncation sweep
 over small H.264 Matroska and MP4 clips and the damage default decoding hides and the policy
 refuses. `tests/corpus/bundles/test_bundle_writer.py`, `test_bundle_writer_refusals.py`,
-`test_staging.py`, `test_single_pass.py`, `test_frames.py`, `test_bundle_reader.py`,
-`test_frame_verification.py` and `test_pixels.py` cover staging, reading and verifying bundles, and
+`test_staging.py`, `test_single_pass.py`, `test_frame_store.py`, `test_frames.py`,
+`test_bundle_reader.py`, `test_frame_verification.py` and `test_pixels.py` cover staging, reading
+and verifying bundles, and
 `test_pixels.py` includes the
 comparison with FFmpeg's SIMD disabled. `tests/corpus/bundles/test_frame_set.py` covers the frame
 set across data roots, `test_frame_set_runs.py` an interrupted, failed or concurrent stage and the
@@ -1352,8 +1369,9 @@ real and unprojected, and `test_read_window.py` covers a synthetic next major re
 `facts`, a view deriving a rights field, a decode policy mismatch through a view and the stated
 shape. `tests/corpus/cases/test_transforms.py`, `test_transform_recipes.py` and
 `test_transform_golden.py` cover each transform on hand-checkable frames and pin its bytes, and
-`test_recipes.py`, `test_generated_cases.py`, `test_case_membership.py`, `test_case_frames.py` and
-`test_case_refusals.py` cover recipes and cases from declaration to staged frames.
+`test_recipes.py`, `test_generated_cases.py`, `test_case_membership.py`, `test_case_frames.py`,
+`test_frame_sharing.py` and `test_case_refusals.py` cover recipes and cases from declaration to
+staged frames.
 
 ```bash
 make test
