@@ -35,5 +35,6 @@ Copy the [template](template.md) using the
 | 0028 | `pattern-reshaped-inclusion` | [0028-data-contracts-pattern-reshaped-inclusion](0028-data-contracts-pattern-reshaped-inclusion.md) |
 | 0029 | `oracle-coordinated-witnesses` | [0029-data-contracts-oracle-coordinated-witnesses](0029-data-contracts-oracle-coordinated-witnesses.md) |
 | 0030 | `data-contracts-audit` | [0030-data-contracts-data-contracts-audit](0030-data-contracts-data-contracts-audit.md) |
+| 0031 | `decode-policy-reimport` | [0031-corpus-provenance-decode-policy-reimport](0031-corpus-provenance-decode-policy-reimport.md) |
 
-Next unused sequence: `0031`.
+Next unused sequence: `0032`.

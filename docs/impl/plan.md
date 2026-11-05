@@ -30,38 +30,6 @@ extensions; none blocks M3. Fixture implementation proceeds without physical har
 
 ### Corpus provenance -- `corpus-provenance`
 
-#### decode-policy-reimport (optional)
-
-A new decode policy strands every import: `corpus build` refuses the old record with
-`DECODE_POLICY_MISMATCH`, `import` refuses a new one with `IMPORT_CONFLICT`, and the only route deletes
-the stored source.
-
-- Serves: `corpus-provenance` -- [Corpus
-  identity](../design/spec.md#41-corpus-identity-and-input-handling)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: `ss-track import --redecode` records an imported source under the installed
-  decode policy from its stored bytes, and every corpus version pinning the old record then refuses.
-  A record with no terms to carry is refused and names `--amend-terms`.
-- Scope boundary: One imported source. Its stored bytes, rights, sensitivity and capture facts carry
-  over unchanged, and the replaced record is kept beside the new one. Corpus versions are not rebuilt,
-  and frames stay on disk. Terms are never invented: `--redecode` carries them, and only a record too
-  old for `--amend-terms` alone takes them from a declaration, through both flags together.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`,
-  `$DATA_DIR/import/<source-sha256>/`.
-- Execution path: Decode the stored copy under the installed policy and re-seal the record under one
-  atomic replace, reusing the lock and `replaced_record_path` in `amendment.py`. Replace
-  `_DECODE_AGAIN_REMEDY` in that file, which still tells an operator to delete the stored source, with
-  the two flags together.
-- Acceptance gates: A record of an older policy gains the installed one with its stored source
-  byte-identical, and `corpus build` of a new version accepts it. A corpus version pinning the old
-  record refuses with `SOURCE_RECORD_CHANGED`. A stored source that no longer matches its hash is
-  refused, a repeat reports `unchanged`, and an interrupted run leaves one whole record. The real
-  `tests/corpus/kept_records/` schema 1 record of `d6b704d`, amended and then re-decoded, builds,
-  and the one of `0238d55` builds through both flags together with no term invented.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
 #### group-repeated-frames (optional)
 
 A remux of one recording held twice inside one group counts each frame twice, in anything aggregated

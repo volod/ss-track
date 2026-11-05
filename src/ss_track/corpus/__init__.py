@@ -8,6 +8,7 @@ from ss_track.corpus.hosts.hash_comparison import ComparisonResult, compare_stag
 from ss_track.corpus.hosts.host_hashes import StagedHashesResult, record_staged_hashes
 from ss_track.corpus.sources.amendment import AmendmentResult, amend_source_terms
 from ss_track.corpus.sources.importer import ImportResult, import_source
+from ss_track.corpus.sources.redecode import redecode_source
 from ss_track.corpus.versions.builder import BuildResult, build_corpus
 
 __all__ = [
@@ -27,6 +28,7 @@ __all__ = [
     "import_source",
     "open_frame_bundle",
     "record_staged_hashes",
+    "redecode_source",
     "stage_corpus",
     "verify_corpus_frames",
 ]

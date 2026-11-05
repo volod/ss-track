@@ -180,6 +180,6 @@ def test_a_real_record_short_of_the_current_major_is_refused_by_name(
     assert refusal.details["age"] == "older"
     assert refusal.details["found_schema_version"] == 1
     assert refusal.details["kind"] == SOURCE_MANIFEST.kind
-    assert "import it again" in str(refusal.details["remedy"])
+    assert "--redecode --amend-terms" in str(refusal.details["remedy"])
     assert path.read_bytes() == before
     assert not (path.parent / "replaced").exists()

@@ -12,7 +12,10 @@ from ss_track.schema import ValidationResult
 
 _PACKAGE = Path(ss_track.__file__).parent
 _GATE = Path("corpus/records/sealed.py")
-_FACTS_READER = Path("corpus/sources/amendment.py")  # reads a `facts` record to write its successor
+_FACTS_READERS = {
+    Path("corpus/sources/amendment.py"),  # reads a `facts` record to write its successor
+    Path("corpus/sources/redecode.py"),  # reads a `facts` record to write its redecoded successor
+}
 _DECLARATION_LOADER = Path(
     "schema/validation/enforce.py"
 )  # validates a declaration; serializes records
@@ -55,7 +58,7 @@ def _call_findings(call: ast.Call, relative: Path) -> Iterator[str]:
         yield f"calls {called}"
     if is_yaml_load and relative not in _YAML_READERS:
         yield f"calls {called}"
-    if called == "read_stated" and relative != _FACTS_READER:
+    if called == "read_stated" and relative not in _FACTS_READERS:
         yield "reads stated facts outside the amendment"
     if called in _READS and (len(call.args) != 2 or call.keywords):
         yield f"calls {called} without exactly a path and a format"

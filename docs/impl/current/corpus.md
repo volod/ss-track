@@ -454,7 +454,7 @@ until it is decoded again.
 | File that contradicts its declared hash | `SOURCE_HASH_MISMATCH` |
 | File gone and no declared hash | `SOURCE_NOT_FOUND` |
 | Schema 1 record holding every current decoded fact | Gains the terms and schema 2. Schema 1 is a `facts` major, read as written through `read_stated` |
-| Schema 1 record short of a decoded fact | `RECORD_SCHEMA_UNSUPPORTED`, naming each `violations` entry of the current source contract the carried record breaks, with the only remedy today: remove the import directory and import again |
+| Schema 1 record short of a decoded fact | `RECORD_SCHEMA_UNSUPPORTED`, naming each `violations` entry of the current source contract the carried record breaks, with the remedy: [`--redecode --amend-terms`](#redecoding-under-a-new-policy) together |
 | Any newer record | `RECORD_SCHEMA_UNSUPPORTED` |
 
 Every corpus version that pinned the old record then refuses at `corpus stage` and `corpus verify`.
@@ -512,8 +512,41 @@ killed recording with no `moov` as `SOURCE_UNREADABLE`.
 A record states the policy that produced it. A new policy revision therefore refuses every earlier
 record: `corpus build` and `corpus stage` with `DECODE_POLICY_MISMATCH`, and `import` of the same
 source with `IMPORT_CONFLICT`. An [amendment](#withdrawing-rights) still records new terms, and the
-record keeps its policy. A new policy needs a fresh data root today, and `decode-policy-reimport` in
-the [plan](../plan.md#decode-policy-reimport-optional) schedules a route that keeps the stored source.
+record keeps its policy.
+
+### Redecoding under a new policy
+
+```bash
+ss-track import --source recording.yaml --redecode                   # carries its terms over
+ss-track import --source recording.yaml --redecode --amend-terms     # takes terms from this file too
+```
+
+```json
+{"status": "redecoded", "source_sha256": "...", "manifest_sha256": "...",
+ "replaced_manifest_sha256": "...", "replaced_path": "...", "changed_terms": [],
+ "decode_policy_current": true, "manifest_path": "..."}
+```
+
+`src/ss_track/corpus/sources/redecode.py` decodes the one stored copy again under the policy
+installed today, and writes the result the same way an amendment does: under the shared
+`exclusive_source_lock`, keeping the replaced record in `replaced/` first and then replacing the
+manifest by one rename, so a run killed at any point leaves one whole record and a rerun finishes
+it. A repeat reports `unchanged`. The stored source is read, decoded and left byte-identical; its
+hash is checked again first, and a source that no longer matches it is `SOURCE_HASH_MISMATCH`.
+
+A plain `--redecode` carries the existing `rights` and `sensitivity` forward unchanged, exactly as
+recorded, because terms are never invented. A record whose carried terms then fall short of the
+current major, such as a schema 1 record still missing `retain_until` and `derived_frames`, is
+`RECORD_SCHEMA_UNSUPPORTED` naming `--amend-terms`. Adding `--amend-terms` takes the terms from the
+declaration instead, exactly as a plain amendment does, so a record too old for `--amend-terms`
+alone -- one still short a decoded fact too -- reaches the current major only this way, because the
+decode and the declared term arrive together. `require_current_facts`, shared with `amendment.py`,
+raises this refusal from either path.
+
+Every corpus version that pinned the old record then refuses at `corpus stage` and `corpus verify`
+with `SOURCE_RECORD_CHANGED`, exactly as after an amendment, and a new corpus version built after the
+redecode accepts the source. `capture` and capture-clock evidence cannot change through a redecode
+either, so a declaration that disagrees with the carried record is `IMPORT_CONFLICT`.
 
 ## Frame bundles
 
@@ -896,7 +929,7 @@ read path has three entries:
 | Entry | Returns | Used by |
 | --- | --- | --- |
 | `read_sealed` | Evidence: a record of the current major as written, or of a `view` major as the current major, in memory | Every command that uses a record |
-| `read_stated` | A record of the current major, or a `facts` or `view` major, as written, with its disposition | `ss-track import --amend-terms` only |
+| `read_stated` | A record of the current major, or a `facts` or `view` major, as written, with its disposition | `ss-track import --amend-terms` and `--redecode` only |
 | `read_comparable` | The seal, the major and the major's comparison projection, or none, for a record of any major | Lineage and shared-frame checks on predecessors |
 
 A record of an earlier major takes the strictest disposition of each major it steps through, from the
@@ -1012,9 +1045,9 @@ accepted task, its decisions and its evidence.
 | `TRANSFORM_REVISION_MISMATCH` | A stored case needs a transform revision this code does not provide |
 | `RECORD_TAMPERED` | A sealed record is missing, malformed, of another kind or fails its seal, or a re-import finds changed stored bytes |
 | `RECORD_INVALID` | A writer produced a record its contract refuses; nothing is sealed or written. This is a defect of ss-track, not of the input |
-| `RECORD_SCHEMA_UNSUPPORTED` | [Any sealed record](#reading-sealed-records) is of a major or stated shape this code does not serve as evidence, including at a re-import or rebuild over it and a corpus without source terms, or an amendment finds a record it cannot write forward |
+| `RECORD_SCHEMA_UNSUPPORTED` | [Any sealed record](#reading-sealed-records) is of a major or stated shape this code does not serve as evidence, including at a re-import or rebuild over it and a corpus without source terms, or an amendment or a [redecode](#redecoding-under-a-new-policy) finds a record it cannot write forward |
 | `DECODE_POLICY_MISMATCH` | A source or pin uses a decode policy other than the installed one |
-| `IMPORT_CONFLICT` | The same source was imported at the current major with another declaration or decoder, or an amendment names bytes with no record or changes more than terms |
+| `IMPORT_CONFLICT` | The same source was imported at the current major with another declaration or decoder, or an amendment or a redecode names bytes with no record or changes more than terms |
 | `CORPUS_CONFLICT` | The `corpus_id` already exists with different content, or a superseded version differs from the seal its successor pinned, at build, stage or verify |
 | `CORPUS_NOT_BUILT` | The named corpus version or a version of its declared chain does not exist, or the identifier cannot name one |
 | `DECODE_DRIFT` | A staging decode disagrees with the import record of its source |
@@ -1116,10 +1149,14 @@ cover verification from the command's exit status to what each refusal names.
 declaration readers. `tests/corpus/sources/test_amend_terms.py`, `test_amend_refusals.py` and
 `test_amend_records.py` cover the amendment from the command to the kept records, including a
 subprocess killed at each write and real schema 1 records from `tests/corpus/kept_records/`, each
-written by the code of the commit in its name. `tests/corpus/records/test_sealed.py` covers the
-read path itself, `test_sealing.py` the seal, the write and hashed copies, and
-`test_sealed_reads.py` scans for reads around the read path. `test_historic_records.py` reads every
-kept record through the read path and `test_historic_commands.py` runs each through the commands
+written by the code of the commit in its name. `tests/corpus/sources/test_redecode.py` covers
+`--redecode` and `--redecode --amend-terms` the same way: a simulated policy upgrade, a tampered
+stored source, a repeat, a subprocess killed at each write, and both kept schema 1 records, one
+through the sequential route and one that needs both flags together.
+`tests/corpus/records/test_sealed.py` covers the read path itself, `test_sealing.py` the seal, the
+write and hashed copies, and `test_sealed_reads.py` scans for reads around the read path.
+`test_historic_records.py` reads every kept record through the read path and
+`test_historic_commands.py` runs each through the commands
 that can reach it, `test_duplicate_frames_major.py` covers a predecessor's bundles of another major,
 real and unprojected, and `test_read_window.py` covers a synthetic next major read as a view and as
 `facts`, a view deriving a rights field, a decode policy mismatch through a view and the stated

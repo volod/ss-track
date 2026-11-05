@@ -9,6 +9,7 @@ from ss_track.corpus import (
     amend_source_terms,
     compare_staged_hashes,
     record_staged_hashes,
+    redecode_source,
     stage_corpus,
     verify_corpus_frames,
 )
@@ -25,6 +26,11 @@ def add_corpus_commands(subcommands: Subcommands) -> None:
         "--amend-terms",
         action="store_true",
         help="record new rights and sensitivity for an imported source",
+    )
+    source.add_argument(
+        "--redecode",
+        action="store_true",
+        help="decode an imported source's stored bytes again, under the installed policy",
     )
     source.set_defaults(handler=_run_import)
 
@@ -62,6 +68,10 @@ def add_corpus_commands(subcommands: Subcommands) -> None:
 
 
 def _run_import(args: argparse.Namespace) -> int:
+    if args.redecode:
+        return reported_on_data_root(
+            lambda data_root: redecode_source(args.source, data_root, amend_terms=args.amend_terms)
+        )
     action = amend_source_terms if args.amend_terms else run_import
     return reported_on_data_root(lambda data_root: action(args.source, data_root))
 

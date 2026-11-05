@@ -282,6 +282,14 @@ contracts:
     change:
       class: minor
       summary: List paths written by reference and ODCS export commands.
+  - version: 1.5.0
+    file_sha256: 8809796a65d9e93aaeb1b4352f62039f186e2bb78cc224b4791bcbb63b7d69c4
+    fingerprints:
+      structure: 13f41805ec007023b5028ca5b2496bef5939b80566d24eda49d073b4e1a29f2d
+      meaning: 176eff142c4875c031e4f189387e8ed7992af8cd815619f08bb43a657b75673e
+    change:
+      class: minor
+      summary: Add the redecoded status for ss-track import --redecode.
 - family: shared
   id: types
   owner: data-contracts

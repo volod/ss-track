@@ -299,9 +299,11 @@ that also lacks decoded facts of the current major cannot, because no declaratio
 it needs both routes at once.
 
 A record states the decode policy that produced it, so a new policy needs the stored bytes decoded
-again under an explicit re-import, which carries the record's terms over, keeps the replaced record and
-has the same effect on corpus versions pinning it. A record with no terms to carry is refused and names
-the amendment, and no term is invented. Until that exists, a new policy needs a fresh data root.
+again under `ss-track import --redecode`, which carries the record's terms over, keeps the replaced
+record and has the same effect on corpus versions pinning it as an amendment. A record with no terms
+to carry is refused and names `--amend-terms`, and no term is invented; a record too old for
+`--amend-terms` alone reaches the current major only through `--redecode --amend-terms` together,
+which takes its terms from the declaration instead of carrying them.
 
 ### 4.2 Annotation contract
 

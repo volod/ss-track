@@ -5,6 +5,9 @@ restoring the old terms of a current record restores its seal. Stored bytes are 
 withdrawal must stay recordable after an operator has already removed them, and `corpus build`
 hashes them again regardless. The installed decoder is not consulted either, because recording
 narrower terms must not need a decode of the material they withdraw.
+
+The lock, the replaced-record keep and the current-major gate are shared with `--redecode`
+(`corpus.sources.redecode`), which writes a successor the same way but from a fresh decode.
 """
 
 import fcntl
@@ -48,7 +51,7 @@ UNCHANGED = "unchanged"
 REPLACED_DIRECTORY = "replaced"
 _LOCK_NAME = ".amendment.lock"
 _REPLACED_SUFFIX = ".json"
-_DECODE_AGAIN_REMEDY = "remove this source's import directory and import it again"
+REDECODE_REMEDY = "supply them together with ss-track import --redecode --amend-terms"
 
 
 @dataclass(frozen=True, slots=True)
@@ -86,7 +89,7 @@ def replaced_record_path(directory: Path, manifest_sha256: str) -> Path:
 def amend_source_terms(declaration_path: Path, data_root: Path) -> AmendmentResult:
     """Replace one source record's terms in one atomic step, keeping the record it replaces."""
     declaration = load_recording_declaration(declaration_path)
-    sha256 = _named_source(declaration)
+    sha256 = named_source(declaration)
     directory = source_directory(data_root, sha256)
     if not directory.is_dir():
         raise CorpusRefusal(
@@ -94,11 +97,11 @@ def amend_source_terms(declaration_path: Path, data_root: Path) -> AmendmentResu
             "no imported source has these bytes, and an amendment cannot import or change a file",
             {"source_sha256": sha256},
         )
-    with _exclusive_amendment(data_root):
+    with exclusive_source_lock(data_root):
         return _amend(declaration, sha256, directory)
 
 
-def _named_source(declaration: RecordingDeclaration) -> str:
+def named_source(declaration: RecordingDeclaration) -> str:
     """Find the source by its bytes, or by its declared hash once the original has gone."""
     declared = declaration.expected_sha256
     path = declaration.source_path
@@ -119,8 +122,8 @@ def _named_source(declaration: RecordingDeclaration) -> str:
 
 
 @contextmanager
-def _exclusive_amendment(data_root: Path) -> Iterator[None]:
-    """Serialize amendments, so two at once cannot lose a record neither of them kept."""
+def exclusive_source_lock(data_root: Path) -> Iterator[None]:
+    """Serialize amendments and redecodes, so two at once cannot lose a record neither kept."""
     with (data_root / IMPORT_DIRECTORY / _LOCK_NAME).open("w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         yield
@@ -134,14 +137,14 @@ def _amend(declaration: RecordingDeclaration, sha256: str, directory: Path) -> A
     carried = {key: value for key, value in existing.items() if key != SEAL_FIELD}
     successor = carried | {VERSION_FIELD: SOURCE_MANIFEST.major} | declared_terms(declaration)
     if stated.disposition == FACTS:
-        _require_current_facts(successor, existing, sha256, path)
-    _require_unchanged_facts(existing, declaration, sha256)
+        require_current_facts(successor, existing, sha256, path)
+    require_unchanged_facts(existing, declaration, sha256)
     sealed = seal(successor)
     current = _policy_is_installed(existing)
     if sealed == existing:
         seal_value = str(sealed[SEAL_FIELD])
         return AmendmentResult(UNCHANGED, sha256, seal_value, path, None, None, [], current)
-    replaced = _keep_replaced(existing, directory)
+    replaced = keep_replaced(existing, directory)
     write_sealed(path, sealed)
     return AmendmentResult(
         status=AMENDED,
@@ -155,34 +158,38 @@ def _amend(declaration: RecordingDeclaration, sha256: str, directory: Path) -> A
     )
 
 
-def _require_unchanged_facts(
+def require_unchanged_facts(
     record: Mapping[str, Any], declaration: RecordingDeclaration, sha256: str
 ) -> None:
+    """Refuse a declaration that disagrees with the carried capture facts, inventing nothing."""
     facts = changed_facts(record, declaration)
     if facts:
         raise CorpusRefusal(
             RefusalCode.IMPORT_CONFLICT,
-            "an amendment changes only rights and sensitivity",
+            "an amendment or a redecode changes no capture fact",
             {"source_sha256": sha256, "changed_facts": list(facts)},
         )
 
 
-def _require_current_facts(
+def require_current_facts(
     successor: Mapping[str, JsonValue], record: Mapping[str, Any], sha256: str, path: Path
 ) -> None:
-    """Refuse an older record that writing forward would leave short of the current major.
+    """Refuse a successor that still falls short of the current major, by name.
 
-    The current contract states every fact a record of this major holds, and an amendment adds only
-    terms: the earliest source records of major 1 lack four decoded facts that only a decode gives.
+    The current contract states every fact a record of this major holds. An amendment alone adds
+    only terms, and the earliest source records of major 1 also lack four decoded facts that only a
+    decode gives; a plain `--redecode` alone carries the existing terms forward unchanged, so a
+    record that predates required terms is short the same way. Only `--redecode --amend-terms`
+    together supply both at once.
     """
     found = seal_violations(successor)
     if found:
         listed: list[JsonValue] = [item.to_record() for item in found]
         raise CorpusRefusal(
             RefusalCode.RECORD_SCHEMA_UNSUPPORTED,
-            "this record lacks facts of the current major that an amendment cannot supply",
+            "this record lacks facts of the current major that this command cannot supply alone",
             schema_details(path, SOURCE_MANIFEST, record[VERSION_FIELD])
-            | {"source_sha256": sha256, "violations": listed, "remedy": _DECODE_AGAIN_REMEDY},
+            | {"source_sha256": sha256, "violations": listed, "remedy": REDECODE_REMEDY},
         )
 
 
@@ -191,10 +198,10 @@ def _policy_is_installed(record: Mapping[str, Any]) -> bool:
     return bool(record.get("decode_policy_sha256") == installed)
 
 
-def _keep_replaced(record: Mapping[str, JsonValue], directory: Path) -> Path:
+def keep_replaced(record: Mapping[str, JsonValue], directory: Path) -> Path:
     """Keep the old record first, so a run killed at any point loses neither version.
 
-    Holding the amendment lock proves that any scratch file here is a killed run's.
+    Holding the source lock proves that any scratch file here is a killed run's.
     """
     for folder in (directory, directory / REPLACED_DIRECTORY):
         for partial in folder.glob(f"{SCRATCH_PREFIX}*"):
