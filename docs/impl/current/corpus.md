@@ -20,8 +20,9 @@ tasks, their decisions and their acceptance evidence:
 [version lineage](../records/0008-corpus-provenance-corpus-version-lineage.md),
 [frame sets](../records/0009-corpus-provenance-staged-frame-set.md),
 [shared frames](../records/0010-corpus-provenance-duplicate-frame-detection.md),
-[arm64 reproducibility](../records/0011-corpus-provenance-arm64-reproducibility.md) and
-[source terms amendment](../records/0014-corpus-provenance-source-terms-amendment.md).
+[arm64 reproducibility](../records/0011-corpus-provenance-arm64-reproducibility.md),
+[source terms amendment](../records/0014-corpus-provenance-source-terms-amendment.md) and
+[record read gate](../records/0016-data-contracts-record-read-gate.md).
 
 ## Commands
 
@@ -42,15 +43,28 @@ exits 0. A refusal exits 1 and has this form:
 {"status": "refused", "code": "PTS_NON_INCREASING", "message": "...", "details": {"frame_index": 3}}
 ```
 
-`src/ss_track/paths.py` resolves the data root: `DATA_DIR` from the environment, then from `.env` at
-the project root, then `.data`. Relative values resolve against the project root.
+`src/ss_track/core/paths.py` resolves the data root: `DATA_DIR` from the environment, then from
+`.env` at the project root, then `.data`. Relative values resolve against the project root.
 
 ## Declarations
 
-Both files reject unknown fields, repeated keys and any other schema version, so a misspelled key
-cannot silently drop a fact. A recording is schema 2 and a corpus is schema 3. There are no defaults
-for rights, sensitivity, split or scenario rights: a declaration without them is refused, and `basis`
-has no `unknown` value.
+Each file is checked in full against its contract on read, `declaration/recording` 2.0.0 and
+`declaration/corpus` 3.0.0, before any reader takes a value from it. Both reject unknown fields,
+repeated keys, non-finite numbers and any other schema version, so a misspelled key cannot silently
+drop a fact. A recording is schema 2 and a corpus is schema 3. There are no defaults for rights,
+sensitivity, split or scenario rights: a declaration without them is refused, and `basis` has no
+`unknown` value. A refusal names the contract version and the first violation by JSON pointer, a wrong
+`schema_version` before anything else, and its details list up to 20 violations, as
+[`contracts validate`](contracts.md#commands) reports them.
+
+`src/ss_track/schema/validation/enforce.py` parses and validates;
+`src/ss_track/corpus/declarations/fields.py` then gives the readers typed access. The readers keep
+only rules the contract states as `x-rules`: a range status needs its value and method, a corpus
+cannot supersede itself, a frame window must be non-empty, an absent range status means `unknown`,
+and free text that is only whitespace is refused (`text`). A value YAML read as a date is refused
+where text belongs, such as an unquoted `holder: 2024-01-05` or `lens: 2024-01-05`, by the validator
+itself, so `contracts validate` refuses it too. A date field such as `retain_until` takes an
+unquoted date as its ISO text.
 
 ```yaml
 # recording.yaml
@@ -151,7 +165,7 @@ hash.
 | Stream | One sensor's frames of one encounter, from one source and frame window. `stream_id` identifies it across the corpus, in its bundle path and in every `FrameRef` |
 
 Grouping is the operator's judgment. Only [shared frames](#shared-frames) can show that two groups
-are in fact related. `src/ss_track/corpus/grouping.py` owns the rules that `corpus build` applies:
+are in fact related. `src/ss_track/corpus/versions/grouping.py` owns the rules that `corpus build` applies:
 
 - A split is stated once, on a group, so every encounter and stream inherits it.
 - An identifier declared in two splits is `SPLIT_LEAKAGE`. Repeated in one split it is
@@ -184,8 +198,8 @@ it held-out. Changing any membership needs a new corpus version, and
 
 A version may name the one it supersedes with `supersedes`. Material already evaluated has been seen,
 so `corpus build` compares the new version with that version and with every older version linked
-behind it. `src/ss_track/corpus/lineage.py` owns these rules, and reads only source hashes, groups and
-splits:
+behind it. `src/ss_track/corpus/versions/lineage.py` owns these rules, `predecessors.py` reads the declared
+chain link by pinned link, and both read only source hashes, groups and splits:
 
 | Across the declared chain | Result |
 | --- | --- |
@@ -221,6 +235,22 @@ everything the rules read, nearest first:
  "removed": [], "kept": [{"source_sha256": "...", "group_id": "site-a", "split": "development"}]}}
 ```
 
+A predecessor is read through its major's [comparison projection](#reading-sealed-records), so a
+version may name one of any major, whatever its disposition: a `facts` or `retired` version still
+guards its splits, and a move out of it is `SPLIT_LEAKAGE`, not a schema refusal. One whose major has
+no projection, such as corpus major 1 or a newer major, still has its seal pinned in `supersedes`,
+ends the chain, and is listed rather than failing the build. `compared_versions` may then be empty,
+and `added`, `removed` and `kept` are empty when it is the named version:
+
+```json
+{"status": "built", "lineage": {"status": "linked", "supersedes": "pilot-v1",
+ "supersedes_manifest_sha256": "...", "compared_versions": [], "added": [], "removed": [],
+ "kept": [], "not_compared": [{"corpus_id": "pilot-v1", "reason": "other_schema", "stream_ids": []}]}}
+```
+
+`not_compared` appears only when a version in the chain was not compared, so a fully compared
+chain reports what it did before.
+
 A version that names nothing reports `{"status": "no_lineage"}`, and nothing compared it with anything:
 the same source can sit in `locked` there, and so can it in a sibling that branches from one
 predecessor. `unlinked-version-report` in the [plan](../plan.md) schedules a listing of those.
@@ -242,8 +272,8 @@ The comparison here is by source hash, so it does not see a remux placed elsewhe
 An `ffmpeg -c copy` remux of one recording imports as a different source with every decoded frame
 identical. Bundle hashes do not find it either, because a bundle's identity includes its source hash
 and time base. `corpus stage` and `corpus verify` therefore compare the frame hashes in sealed
-indexes, which needs no decode. `src/ss_track/corpus/shared_runs.py` owns the rule, and
-`src/ss_track/corpus/duplicate_frames.py` reads the indexes.
+indexes, which needs no decode. `src/ss_track/corpus/bundles/shared_runs.py` owns the rule, and
+`src/ss_track/corpus/bundles/duplicate_frames.py` reads the indexes.
 
 | Two streams | Result |
 | --- | --- |
@@ -293,9 +323,13 @@ Both commands report what they compared, because a version not compared is unkno
 | `bundles_removed` | These streams have no bundle. The version's other streams were compared |
 | `manifest_removed` | The manifest is gone, and every version behind it is unknown too |
 | `other_decode_policy` | The version was staged under another decoder. A match still refuses, but finding none proves nothing, because its frames may hash differently |
+| `other_schema` | These streams' bundles, or for a lineage the whole version, are of a major that keeps no [comparison projection](#reading-sealed-records), so their facts are unknown. The version's other streams were compared |
 
 A rebuilt predecessor is `CORPUS_CONFLICT`, a damaged record `RECORD_TAMPERED`, and a bundle of
-another stream `BUNDLE_CONFLICT`: those are refused rather than compared. `corpus verify` repeats the
+another stream or version `BUNDLE_CONFLICT`: those are refused rather than compared. A predecessor
+and its bundles are read through their majors' projections, so one of another major is compared
+when its major holds the facts, and named under `other_schema` when it does not; a predecessor
+manifest with no projection ends the chain there. `corpus verify` repeats the
 check because a predecessor staged after its successor was not there to compare with, and that
 successor's frame set stays as it was. The result is never sealed: it depends on what a data root
 holds, and a frame set must not.
@@ -340,7 +374,7 @@ the descriptive retention text. A date is inclusive: build, stage and verify ref
 `RETENTION_EXPIRED` starting the next UTC day, including when bundles already exist. Explicit
 `null` means no end. Refusal deletes nothing; removing expired material is an operator action.
 
-`src/ss_track/corpus/terms.py` owns the shared check. The Python build, stage and verify functions
+`src/ss_track/corpus/sources/terms.py` owns the shared check. The Python build, stage and verify functions
 accept keyword-only `today: date | None` for deterministic evaluation; commands use the UTC day
 captured once at operation start. This evaluation day is never sealed, so valid reruns keep the same
 bytes and hashes. The declared deadline is retained in source and corpus records.
@@ -351,8 +385,10 @@ execution or corpus publication. Both new fields are required. Quoted and unquot
 normalize to the same ISO string. Numbers, timestamps, invalid dates and string booleans are refused.
 
 Source manifests now use schema 2. Old source manifests and corpus records missing the new terms
-are refused with `RECORD_SCHEMA_UNSUPPORTED`; their terms are never guessed. An old source record
-gains them through an [amendment](#withdrawing-rights), and a new corpus version then uses it. No
+are refused with `RECORD_SCHEMA_UNSUPPORTED` and the `facts` disposition; their terms are never
+guessed. A
+[re-import over an old source](#reading-sealed-records) is refused the same way. An old source record
+gains its terms through an [amendment](#withdrawing-rights), and a new corpus version then uses it. No
 automatic migration runs.
 
 The manifest pins each source record. `corpus stage` and `corpus verify` re-read every source record
@@ -370,11 +406,12 @@ terms match and something else in the record changed, such as a capture fact or 
 refuses all the same, because the pin covers the whole record, and so does a wider right. A
 re-import of the original declaration gives the original seal, so the corpus verifies again.
 
-`_require_sources_hold` in `src/ss_track/corpus/staging.py` is this one check for both commands, and
-each stream is checked, which covers every generated case because a case holds its parent's rights.
-Retention comes first and reads only the corpus, so an expired source stays `RETENTION_EXPIRED` after
-its directory is removed. Otherwise a missing record is `SOURCE_NOT_IMPORTED`, an unreadable one is
-`RECORD_TAMPERED`, and one of another schema is `RECORD_SCHEMA_UNSUPPORTED`.
+`_require_sources_hold` in `src/ss_track/corpus/bundles/staging.py` is this one check for both
+commands, and each stream is checked, which covers every generated case because a case holds its
+parent's rights. Retention comes first and reads only the corpus, so an expired source stays
+`RETENTION_EXPIRED` after its directory is removed. Otherwise a missing record is
+`SOURCE_NOT_IMPORTED`, an unreadable one is `RECORD_TAMPERED`, and one of another schema is
+`RECORD_SCHEMA_UNSUPPORTED`.
 
 ### Withdrawing rights
 
@@ -392,12 +429,13 @@ ss-track import --source recording.yaml --amend-terms      # now declaring the n
  "source_sha256": "...", "manifest_path": "..."}
 ```
 
-`src/ss_track/corpus/amendment.py` replaces `rights` and `sensitivity` and writes the current schema.
-Every other section is carried from the existing record, so an amended record equals a fresh import of
-the same declaration under the same decoder. It keeps the old record in `replaced/` first and then
-replaces the manifest by one rename, so a run killed at any point leaves one whole record and a rerun
-finishes it. A repeat reports `unchanged`. Restoring the old terms restores the old seal, so a version
-pinning it verifies again. Amendments carry no date, so the kept records have no recorded order.
+`src/ss_track/corpus/sources/amendment.py` replaces `rights` and `sensitivity` and writes the
+current schema. Every other section is carried from the existing record, so an amended record equals
+a fresh import of the same declaration under the same decoder. It keeps the old record in
+`replaced/` first and then replaces the manifest by one rename, so a run killed at any point leaves
+one whole record and a rerun finishes it. A repeat reports `unchanged`. Restoring the old terms
+restores the old seal, so a version pinning it verifies again. Amendments carry no date, so the kept
+records have no recorded order.
 
 An amendment finds its source by the bytes at `source.path`, or by a declared `source.sha256` once the
 original has gone. With the file present the two must agree, as in a plain import. It does not read
@@ -415,8 +453,8 @@ until it is decoded again.
 | Changed `capture` or capture-clock evidence | `IMPORT_CONFLICT`, naming `changed_facts` |
 | File that contradicts its declared hash | `SOURCE_HASH_MISMATCH` |
 | File gone and no declared hash | `SOURCE_NOT_FOUND` |
-| Schema 1 record holding every current decoded fact | Gains the terms and schema 2 |
-| Schema 1 record short of a decoded fact | `RECORD_SCHEMA_UNSUPPORTED`, naming `missing_facts` |
+| Schema 1 record holding every current decoded fact | Gains the terms and schema 2. Schema 1 is a `facts` major, read as written through `read_stated` |
+| Schema 1 record short of a decoded fact | `RECORD_SCHEMA_UNSUPPORTED`, naming each `violations` entry of the current source contract the carried record breaks, with the only remedy today: remove the import directory and import again |
 | Any newer record | `RECORD_SCHEMA_UNSUPPORTED` |
 
 Every corpus version that pinned the old record then refuses at `corpus stage` and `corpus verify`.
@@ -432,10 +470,11 @@ nobody recorded stays invisible to it.
 
 ## Canonical decode policy
 
-`src/ss_track/corpus/decode.py` owns `DecodePolicy`. The decoder is PyAV, pinned exactly in
-`pyproject.toml`, and its wheels bundle FFmpeg with no system dependency.
-`tests/corpus/test_decoder_pin.py` keeps the exact pin and the arm64 Linux and macOS wheels true of
-`uv.lock`. The output pixel format is `rgb24`. The policy hash covers all of these options:
+`src/ss_track/corpus/decoding/decode_policy.py` owns `DecodePolicy`, and `decode.py` applies it in
+the one strict inspection of a source. The decoder is PyAV, pinned exactly in `pyproject.toml`, and
+its wheels bundle FFmpeg with no system dependency. `tests/corpus/decoding/test_decoder_pin.py`
+keeps the exact pin and the arm64 Linux and macOS wheels true of `uv.lock`. The output pixel format
+is `rgb24`. The policy hash covers all of these options:
 
 | Option | Reason |
 | --- | --- |
@@ -455,7 +494,7 @@ Decoded dimensions are the stored dimensions: the policy does not apply display 
 `display_rotation_degrees` is a fact for label tools, not a transform that modules receive. A tool
 that honors rotation must map its coordinates back to the stored orientation.
 
-`src/ss_track/corpus/pixels.py` owns the conversion to `rgb24`. It honors the stored color matrix,
+`src/ss_track/corpus/decoding/pixels.py` owns the conversion to `rgb24`. It honors the stored color matrix,
 range and chroma location, and converts neither primaries nor transfer function, so an HDR source
 keeps its gamut and curve in 8-bit values. A source with no matrix tag is converted as BT.601, which
 misreads BT.709 content: a pure BT.709 red becomes `(233, 0, 2)`. Staging warns, and nothing guesses
@@ -479,7 +518,7 @@ the [plan](../plan.md#decode-policy-reimport-optional) schedules a route that ke
 ## Frame bundles
 
 `corpus stage` writes one bundle per stream of a built corpus, with the same strict decode as
-import. `src/ss_track/corpus/bundle_writer.py` writes a bundle and `src/ss_track/corpus/staging.py`
+import. `src/ss_track/corpus/bundles/bundle_writer.py` writes a bundle and `src/ss_track/corpus/bundles/staging.py`
 runs the command.
 
 | Path | Content |
@@ -518,9 +557,9 @@ directory is `0555`, and a damaged one is never repaired in place. Remove it wit
 ### Frame set
 
 A finished stage seals one record of what it staged, so a scenario pins a single hash rather than a
-list of bundles. `src/ss_track/corpus/frame_set.py` owns it. `corpus stage` writes it after the last
-bundle and under the staging lock, and both `corpus stage` and `corpus verify` report its seal as
-`frame_set_sha256`:
+list of bundles. `src/ss_track/corpus/bundles/frame_set.py` owns it. `corpus stage` writes it after
+the last bundle and under the staging lock, and both `corpus stage` and `corpus verify` report its
+seal as `frame_set_sha256`:
 
 ```json
 {"kind": "ss-track.frame-set", "schema_version": 1, "corpus_id": "pilot-v1",
@@ -580,14 +619,14 @@ checks that open it, and `open_frame_bundle` opens any bundle directory without 
 
 ### Across hosts
 
-A pin says only that two hosts differ. `ss-track corpus hashes` first runs everything `corpus verify`
-does, then writes what this host staged to `$DATA_DIR/run/<run-id>/staged-hashes.json`: each bundle and
-every frame's index, PTS and hash, each source's codec and pixel format, and the host's machine, system
-and Python. `src/ss_track/corpus/host_hashes.py` owns it. Host facts stay out of the frame set, which
-must be one hash on any host, and no frame moves between hosts.
+A pin says only that two hosts differ. `ss-track corpus hashes` first runs everything `corpus
+verify` does, then writes what this host staged to `$DATA_DIR/run/<run-id>/staged-hashes.json`: each
+bundle and every frame's index, PTS and hash, each source's codec and pixel format, and the host's
+machine, system and Python. `src/ss_track/corpus/hosts/host_hashes.py` owns it. Host facts stay out
+of the frame set, which must be one hash on any host, and no frame moves between hosts.
 
 `ss-track corpus compare` reads two such records and keeps its result in `hash-comparison.json`, under
-its own run. `src/ss_track/corpus/hash_comparison.py` owns it. It compares frame sets first, because
+its own run. `src/ss_track/corpus/hosts/hash_comparison.py` owns it. It compares frame sets first, because
 an equal hash proves every bundle equal:
 
 ```json
@@ -625,11 +664,12 @@ packets of 41 of 71, so a host that regenerates its media compares different sou
 claim also needs two different `machine` values.
 A record is sealed against accidents, not against a person, like every seal here.
 
-`tests/corpus/_fixed_corpus.py` holds the fixed corpus, `arch-fixed-v1`: 71 sources through 20 decoders
-and 28 pixel formats, with odd and short-row sizes, several color matrices and chroma sitings, plus all
-seven transforms. Each row states the format it must decode as. Its sources are written by one host and
-carried to the other, so no binary enters the repository, and the
-[developer tooling page](developer-tooling.md#quality-gates) describes the job that does this.
+`tests/corpus/hosts/_fixed_sources.py` holds the fixed corpus, `arch-fixed-v1`: 71 sources through 20
+decoders and 28 pixel formats, with odd and short-row sizes, several color matrices and chroma
+sitings, plus all seven transforms, and `tests/corpus/hosts/_fixed_corpus.py` holds the commands that
+write and stage it. Each row states the format it must decode as. Its sources are written by one
+host and carried to the other, so no binary enters the repository, and the [developer tooling
+page](developer-tooling.md#quality-gates) describes the job that does this.
 
 | Host pair | Result |
 | --- | --- |
@@ -655,15 +695,69 @@ ref = bundle.frame_ref(12)         # FrameRef for frame 12 of the source sequenc
 pixels = bundle.read_frame(12)     # packed RGB bytes, compared with the sealed hash on every read
 ```
 
-`src/ss_track/corpus/frames.py` owns this access. `frame_refs()` yields every reference in
+`src/ss_track/corpus/bundles/frames.py` owns this access, and `bundle_reader.py` opens a bundle from
+its sealed record and checks where it was staged from. `frame_refs()` yields every reference in
 presentation order. A `FrameRef` carries stream, source hash, frame index, PTS, time base, timestamp
 quality and capture-clock evidence, dimensions, pixel format, transform, bundle hash, frame name and
 frame hash, plus `content_frame_index`, the parent frame whose pixels it shows. `transform` is
-`identity` for a stream, whose pixels are as stored, with display rotation staying a record fact, and
-the transform name for a generated case. An absent PTS stays `null`. An index the bundle does not
-hold is `FRAME_NOT_IN_BUNDLE`.
+`identity` for a stream, whose pixels are as stored, with display rotation staying a record fact,
+and the transform name for a generated case. An absent PTS stays `null`. An index the bundle does
+not hold is `FRAME_NOT_IN_BUNDLE`.
 
-### Verification
+### Dataset descriptors
+
+`ss-track corpus describe --corpus <id> --declaration <dataset.yaml>` verifies the staged corpus and
+writes a Croissant 1.1 document under `$DATA_DIR/corpus/<id>/descriptions/restricted/`.
+`corpus/descriptors/descriptor.py` builds the document and
+`corpus/descriptors/descriptor_publish.py` publishes it. The operator provides `declaration/dataset`
+1.0.0: `schema_version`, `title`, `description`, `license`, `citation`, `address` and
+`publication_date`. All fields are required. The declaration is outside the corpus seal and does not
+change a cohort key.
+
+The directory contains `croissant.json`, `dataset-card.md`, `contracts.json`, the frozen contract set,
+and three CSV record sets: `streams`, `bundles` and `frames`. Each CSV record has one `record` column
+containing JSON. Streams include the sealed source record and its terms, bundles include their sealed
+frame index, and frames include paths, timestamps, hashes and raw pixel layout. Paths are relative to
+the descriptor directory; retain the corpus directory structure when moving the files. Headerless
+`rgb24` pixels are read through the frame-bundle contract, not directly through Croissant. Generated
+cases are marked as such and are never counted as encounters. The card states that selection and
+completeness remain unverified.
+
+`--visibility public` requires public scenario sharing and a license. `schema/views/disclosure.py`
+keeps a value only when the newest contract marks that field `x-sensitivity: public`. An unmarked
+field is absent, and a `restricted` or `sensitive` field hides its children.
+`corpus/descriptors/descriptor_public.py` applies that projection to streams outside the locked
+split. A consumer can see stream identity, split, group and encounter, permitted terms (`basis`,
+`sharing`, `derived_frames`, `retain_until` and the sensitivity level), layout, the frame index and
+non-locating generated-case parameters such as a blur radius. Rights-holder names, retention text,
+notes, capture descriptions, source file names and source hashes stay out, as do image regions and
+label geometry. A declared hash and the installed decoder version are unmarked, so they stay out
+too. Locked streams and cases derived from them contribute counts only, with no path, hash or
+per-sequence fact. The frame-set bundle list remains restricted and is not copied. A restricted
+corpus is refused with no identifying values in the refusal. The [public fields
+record](../records/0026-data-contracts-public-descriptor-fields.md) holds the review.
+
+The same inputs leave that directory in place, so a repeat yields identical bytes. A later
+description whose generated bytes differ, including a corrected title or license, replaces that
+visibility only. The new tree is written completely, the published directory moves to
+`.replaced-<visibility>`, and the new tree takes the published name. A reader sees one generation,
+or no directory during that swap. The previous tree is removed after the new one is in place. If a
+run is killed first, the next description restores that tree when the published directory is absent,
+and removes it when the published directory is already the new generation. Public and restricted
+directories stay separate, and a sibling `.describe.lock` serializes publication without becoming
+part of either descriptor. The command checks source terms, the frame set and every frame before it
+writes. A refusal leaves the published directory unchanged, and neither the other visibility nor any
+sealed record is modified. The [task record](../records/0024-data-contracts-dataset-descriptor.md)
+and the [refresh record](../records/0027-data-contracts-descriptor-refresh.md) record acceptance.
+`tests/corpus/descriptors/test_descriptor.py` and
+`tests/corpus/descriptors/test_public_descriptor.py` test both views and use the separately locked
+`croissant` extra to validate and load the records; the Croissant CI job runs that extra
+independently of the runtime dependency closure.
+`tests/corpus/descriptors/test_descriptor_refresh.py` and
+`tests/corpus/descriptors/test_descriptor_publish.py` test replacement, a refusal that keeps the
+published tree, and a swap interrupted before it finishes.
+
+## Verification
 
 `corpus verify` first checks the [source terms](#withdrawing-rights), then compares the bundles with
 the [frame set](#frame-set), then repeats the [shared-frame check](#shared-frames), then re-hashes
@@ -726,14 +820,14 @@ rules and every group, encounter and stream count read only `streams`, a case is
 encounter. A case holds its parent's rights by reference: `parent_stream_id` names them.
 
 Each record also stores `source_sha256`, `transform`, `transform_revision`, `seed`, the resolved
-`window`, `parameters` and `label_transform`. `src/ss_track/corpus/recipes.py` reads recipes and
+`window`, `parameters` and `label_transform`. `src/ss_track/corpus/cases/recipes.py` reads recipes and
 builds these records. A build runs every transform without pixels, so a recipe its parent cannot
 satisfy is refused before anything is staged, and `corpus build` needs no staged frames.
 
 ### Staging
 
 `corpus stage` stages the streams, then each case from its parent's verified frames, under the same
-lock, scratch and publish steps. `src/ss_track/corpus/generated.py` writes a case, and a repeated
+lock, scratch and publish steps. `src/ss_track/corpus/cases/generated.py` writes a case, and a repeated
 stage reports it `unchanged`. A case is an ordinary bundle, read through `open_frame_bundle`, and
 `corpus verify` covers it. Its record is the parent's with these differences:
 
@@ -763,19 +857,19 @@ frame. Each case holds a full copy of its raw frames: 1.8 GB here, the same as i
 
 ### Reproducibility
 
-`src/ss_track/corpus/transforms.py` and `region_transforms.py` hold the transforms. Each is a pure
+`src/ss_track/corpus/cases/transforms.py` and `region_transforms.py` hold the transforms. Each is a pure
 function of frames, parameters and seed, in integer arithmetic only, and `seeded.py` derives every
 random value with SHAKE-256 rather than a library generator whose stream may change.
 
-`TRANSFORM_REVISIONS` versions each transform. A change to what one produces must raise its revision,
-and `tests/corpus/test_transform_golden.py` fails until it does. The installed revision is stored in
-each case, and a stored case of another revision, or of a transform that no longer exists, is
-`TRANSFORM_REVISION_MISMATCH` before anything is written. A case is never silently regenerated as
-different evidence.
+`TRANSFORM_REVISIONS` versions each transform. A change to what one produces must raise its
+revision, and `tests/corpus/cases/test_transform_golden.py` fails until it does. The installed
+revision is stored in each case, and a stored case of another revision, or of a transform that no
+longer exists, is `TRANSFORM_REVISION_MISMATCH` before anything is written. A case is never silently
+regenerated as different evidence.
 
 ## Timestamp quality
 
-`src/ss_track/corpus/timestamps.py` grades stored PTS and never fills one in.
+`src/ss_track/corpus/sources/timestamps.py` grades stored PTS and never fills one in.
 
 | Quality | Meaning |
 | --- | --- |
@@ -787,11 +881,117 @@ Duplicate or decreasing PTS is `PTS_NON_INCREASING`, naming the first offending 
 evidence for a stream with missing PTS is `TIMESTAMP_CLAIM_UNSUPPORTED`. Under `nofillin`, AVI and
 MPEG program streams import as `missing`, because they do not store a presentation time per frame.
 
+## Reading sealed records
+
+`src/ss_track/corpus/records/sealed.py` is the one way to read a sealed record, and
+`tests/corpus/records/test_sealed_reads.py` scans the package so that no module reads around
+it, calls `read_stated` outside the amendment, or compares a record's `schema_version` outside the
+read path. Each read verifies the seal, then the kind, and interprets nothing before the seal has
+held. Each format is one `RecordFormat` (`corpus/records/kinds.py`) beside its writer, holding its
+kind and the one major this code writes. A record is never rewritten to fit. Three modules divide
+the work: `sealed.py` decides how a record is read, `read_refusals.py` states each refusal it
+raises, and `sealing.py` validates, seals and writes a record and hashes the files records pin. The
+read path has three entries:
+
+| Entry | Returns | Used by |
+| --- | --- | --- |
+| `read_sealed` | Evidence: a record of the current major as written, or of a `view` major as the current major, in memory | Every command that uses a record |
+| `read_stated` | A record of the current major, or a `facts` or `view` major, as written, with its disposition | `ss-track import --amend-terms` only |
+| `read_comparable` | The seal, the major and the major's comparison projection, or none, for a record of any major | Lineage and shared-frame checks on predecessors |
+
+A record of an earlier major takes the strictest disposition of each major it steps through, from the
+contract's change log (see [contracts](contracts.md#runtime-enforcement)). `read_sealed` serves only
+`view` and refuses `facts` and `retired`, and `read_stated` refuses only `retired`. A record of a
+newer major, of a major no change log states, or whose version is not a true integer is refused by
+both.
+
+| Format | Writes | Older majors and their disposition | Remedy for an older record |
+| --- | --- | --- | --- |
+| Source manifest | 2 | 1: `facts` | `ss-track import --amend-terms` |
+| Corpus manifest | 3 | 1, 2: `retired`; schema 3 without source terms: `facts` | Build a new corpus version that names it in `supersedes` |
+| Frame bundle | 3 | 1, 2: `retired` | Build and stage a new corpus version |
+| Frame set, staged hashes | 1 | None | No older major exists |
+
+A refusal says what an operator needs to act on it:
+
+```json
+{"status": "refused", "code": "RECORD_SCHEMA_UNSUPPORTED",
+ "message": "manifest.json (ss-track.source-manifest) has older schema 1 (facts); ...",
+ "details": {"record": "manifest.json", "path": ".../import/<sha256>/manifest.json",
+  "kind": "ss-track.source-manifest", "found_schema_version": 1, "accepted_schema_versions": [2],
+  "age": "older", "disposition": "facts",
+  "remedy": "Record its terms with ss-track import --amend-terms."}}
+```
+
+`age` is `older`, `newer` or `unstated`, and only an older record names a `disposition`. A newer
+record is refused because this code cannot know what a newer field means, and its remedy is to
+install the version that wrote it. A version that is not a true integer is `unstated`, as `True` and
+`1.0` would otherwise compare equal to 1. `accepted_schema_versions` lists the current major and each
+one a chain of views reaches. The remedy for an older record is the `migration` text of the
+contract's change log, its one statement: a historic major's own entry in `retired_majors`, or else
+the first major transition after it. A major with neither, which no ss-track version wrote, is told
+to restore the record from a trusted copy.
+
+**Views.** `src/ss_track/corpus/records/read_window.py` holds one `View` per `view` major: the kind,
+the major it reads, a pure `upcast` to the next major, and `derived`, the JSON pointers of every
+value it derives, with `*` for any list position. Views compose one major at a time, the read path
+stamps the new major and keeps the original seal, so every pin, frame set and cohort key stays as it
+was, and each step is logged with what it derived. A view naming a protected property (see
+[contracts](contracts.md#evolution)), the seal, `kind` or `schema_version` is refused as
+`CONTRACT_SET_INVALID` at read, and so is a `view` disposition with no function installed.
+`check_view` applies a view to a real record and names every value it changed without declaring it,
+or a change to the record it read. It walks every value, seconds on a million-frame bundle, so it
+runs in tests and never on a read: `tests/corpus/records/test_historic_records.py` applies
+every installed view to each kept record of its major and fails on any finding, or when no kept
+record exists. A first-read check would prove no more, because a view is fixed code and that one
+record is no better a witness than the kept one. No installed major is a view today, so the table is
+empty: `tests/corpus/records/test_read_window.py` freezes a synthetic next corpus major with
+the real `freeze` and proves both dispositions on records today's code writes.
+
+**Stated shapes.** A corpus manifest sealed at schema 3 before source terms existed has no major of
+its own. `stated_shape` tells it apart by one test, whether every stream's `rights` holds
+`retain_until` and `derived_frames`, which reads streams and no frame. It is the
+`corpus-3-without-source-terms` shape, with the `facts` disposition: `read_sealed` refuses it, naming
+`shape` and the streams `lacking` terms, with the remedy to record terms and build a new version,
+and `read_stated` returns it. A shape is read no more freely than its major, so a view never serves
+it. This replaced the key check `corpus/sources/terms.py` held.
+
+**Comparison projections.** `src/ss_track/corpus/records/projections.py` holds, per kind and major,
+the facts a leak guard reads from a record as written: a corpus version's `corpus_id`, seal, decode
+policy hash, `supersedes` and each stream's `stream_id`, `source_sha256`, `group_id` and `split`,
+and a bundle's pins and `(frame_index, sha256)` pairs. Corpus majors 2 and 3 and bundle majors 2 and
+3 have one, whatever their disposition. Corpus major 1 states no group or split, so it has none, and
+nor does bundle major 1, which only a major-1 version staged. A record lacking a fact its projection
+reads is `RECORD_TAMPERED`, as is any sealed record a reader walks and finds short of a fact:
+`read_refusals.incomplete_record` is the one guard for that, since only a reseal by hand can make
+one. Each projection is held to its era's kept record by
+`tests/corpus/records/test_historic_records.py`. A predecessor with no projection is reported
+as `not_compared` with reason `other_schema` and never fails its successor; [version
+lineage](#version-lineage) and [shared frames](#shared-frames) show the results.
+
+A record is validated once, in full, by `seal`, before anything is written: a writer defect is
+`RECORD_INVALID` with nothing sealed, and its details name the contract version and violations. A
+read walks no field beyond a stated shape's test, so opening a million-frame bundle record costs
+what it did before contracts were enforced; `tests/corpus/records/test_read_cost.py` holds that
+fixture. Validating such a record at staging costs about 32 seconds, measured on the kept bundle
+grown to a million frames, which decoding and writing those frames far exceeds.
+
+A plain import refuses an older record before decoding anything, so the remedy costs no decode. A
+record that fails its seal or does not parse is `RECORD_TAMPERED`, including one holding a `NaN` or a
+number too long to read, which no writer can produce.
+
+`tests/corpus/kept_records/` keeps one real record of every major of every format, each written by
+the code of the commit in its name and listed in its `README.md`, and a test fails when a new major
+has none. The [read window record](../records/0021-data-contracts-record-read-window.md) holds the
+accepted task, its decisions and its evidence.
+
 ## Refusal codes
+
+`ss-track contracts` has [codes of its own](contracts.md#commands).
 
 | Code | Raised when |
 | --- | --- |
-| `MANIFEST_INVALID` | A declaration is unreadable or does not match its schema |
+| `MANIFEST_INVALID` | A declaration is unreadable, breaks its contract, or breaks a reader rule above |
 | `SOURCE_NOT_FOUND` | The declared source does not exist |
 | `SOURCE_UNREADABLE` | The source is not a readable file, cannot be opened, or has no usable video stream |
 | `SOURCE_EMPTY` | The source has zero length |
@@ -810,10 +1010,11 @@ MPEG program streams import as `missing`, because they do not store a presentati
 | `RETENTION_EXPIRED` | The evaluation day is after a source's inclusive retention deadline |
 | `CASE_INVALID` | A generated case does not fit its parent, or changes no frame of it |
 | `TRANSFORM_REVISION_MISMATCH` | A stored case needs a transform revision this code does not provide |
-| `RECORD_TAMPERED` | A manifest is missing, malformed or fails its seal, or a re-import finds changed stored bytes |
-| `RECORD_SCHEMA_UNSUPPORTED` | A source, corpus or bundle uses an unsupported schema, corpus source terms are absent, or an amendment finds a record it cannot write forward |
+| `RECORD_TAMPERED` | A sealed record is missing, malformed, of another kind or fails its seal, or a re-import finds changed stored bytes |
+| `RECORD_INVALID` | A writer produced a record its contract refuses; nothing is sealed or written. This is a defect of ss-track, not of the input |
+| `RECORD_SCHEMA_UNSUPPORTED` | [Any sealed record](#reading-sealed-records) is of a major or stated shape this code does not serve as evidence, including at a re-import or rebuild over it and a corpus without source terms, or an amendment finds a record it cannot write forward |
 | `DECODE_POLICY_MISMATCH` | A source or pin uses a decode policy other than the installed one |
-| `IMPORT_CONFLICT` | The same source was imported with another declaration or decoder, or an amendment names bytes with no record or changes more than terms |
+| `IMPORT_CONFLICT` | The same source was imported at the current major with another declaration or decoder, or an amendment names bytes with no record or changes more than terms |
 | `CORPUS_CONFLICT` | The `corpus_id` already exists with different content, or a superseded version differs from the seal its successor pinned, at build, stage or verify |
 | `CORPUS_NOT_BUILT` | The named corpus version or a version of its declared chain does not exist, or the identifier cannot name one |
 | `DECODE_DRIFT` | A staging decode disagrees with the import record of its source |
@@ -840,9 +1041,9 @@ each file; an accepted prefix had to match the complete file's PTS and pixels.
 | Fragmented MP4, MPEG-TS, MPEG-PS, raw streams, live Matroska | A short file can be accepted | empty |
 
 A Matroska file cut just after a cluster header ends cleanly: FFmpeg logs nothing and returns fewer
-frames, so `src/ss_track/corpus/integrity.py` compares the file with the segment size in its header.
-An MP4 edit list can mark stored samples as never presented. They count toward the container total
-as `discarded_frames` and are not frames of the sequence.
+frames, so `src/ss_track/corpus/decoding/integrity.py` compares the file with the segment size in
+its header. An MP4 edit list can mark stored samples as never presented. They count toward the
+container total as `discarded_frames` and are not frames of the sequence.
 
 A bundle's per-frame hashes prove that frames have not changed since staging. They cannot show that
 a frame was right when staged, because that rests on the source hash and the limits above.
@@ -885,31 +1086,47 @@ carries their notices.
 ## Verification
 
 `tests/corpus/` generates its media at test time through the pinned library, so no binary enters the
-repository. `tests/corpus/test_decode.py` includes the truncation sweep over small H.264 Matroska and
-MP4 clips, and tests that default decoding hides damage the policy refuses.
-`tests/corpus/test_bundle_writer.py`, `test_staging.py`, `test_frames.py` and `test_pixels.py` cover
-staging, and `test_pixels.py` includes the comparison with FFmpeg's SIMD disabled.
-`tests/corpus/test_frame_set.py` covers the frame set across data roots and processes, each refusal
-by name, an interrupted stage, and that the record is written under the staging lock.
-`tests/corpus/test_host_hashes.py` covers each comparison result from the record to the exit status,
-and `test_fixed_corpus.py` stages the whole fixed corpus and pins each row's decoded format.
-`tests/corpus/test_grouping.py`, `test_scenario_rights.py` and `test_stream_identity.py` cover
-membership, rights and each stream's identity from build to `FrameRef`. `tests/corpus/test_lineage.py`
-compares hand-built versions, and `test_lineage_build.py` covers linked builds from the declaration
-to the exit status. `tests/corpus/test_shared_runs.py` covers the run rule on hand-written indexes, and
-`test_duplicate_frames.py` and `test_duplicate_frames_chain.py` cover remuxed media from staging to
-the exit status, in one version and across a chain.
-`tests/corpus/test_source_terms.py` covers retention boundaries at every entrypoint, unchanged
-evidence across evaluation dates, explicit permission, strict declarations and legacy records.
-`tests/corpus/test_verify_rights.py` changes source records through the real amendment and importer
-and covers verification from the command's exit status to the terms each refusal names.
-`tests/corpus/test_amend_terms.py`, `test_amend_refusals.py` and `test_amend_records.py` cover the
-amendment from the command to the kept records, including a subprocess killed at each write and real
-schema 1 records from `tests/corpus/records/`, each written by the code of the commit in its name.
-`tests/corpus/test_transforms.py`, `test_transform_recipes.py` and `test_transform_golden.py` cover
-each transform on hand-checkable frames and pin its bytes, and `test_recipes.py`,
-`test_generated_cases.py`, `test_case_membership.py` and `test_case_frames.py` cover recipes and
-cases from declaration to staged frames.
+repository. `tests/corpus/decoding/test_decode.py` covers the strict inspection,
+`test_decode_policy.py` the policy and its hash, and `test_decode_damage.py` the truncation sweep
+over small H.264 Matroska and MP4 clips and the damage default decoding hides and the policy
+refuses. `tests/corpus/bundles/test_bundle_writer.py`, `test_bundle_writer_refusals.py`,
+`test_staging.py`, `test_frames.py`, `test_bundle_reader.py`, `test_frame_verification.py` and
+`test_pixels.py` cover staging, reading and verifying bundles, and `test_pixels.py` includes the
+comparison with FFmpeg's SIMD disabled. `tests/corpus/bundles/test_frame_set.py` covers the frame
+set across data roots, `test_frame_set_runs.py` an interrupted, failed or concurrent stage and the
+staging lock, and `test_frame_set_refusals.py` each refusal by name.
+`tests/corpus/hosts/test_host_hashes.py` covers one host's record, `test_hash_comparison.py` and
+`test_hash_comparison_inputs.py` each comparison result and refused input from the record to the
+exit status, and `test_fixed_corpus.py` stages the whole fixed corpus and pins each row's decoded
+format. `tests/corpus/versions/test_grouping.py`, `test_grouping_manifest.py`,
+`test_scenario_rights.py` and `test_stream_identity.py` cover membership, rights and each stream's
+identity from build to `FrameRef`. `tests/corpus/versions/test_lineage.py` compares hand-built
+versions, and `test_lineage_build.py`, `test_lineage_leakage.py` and `test_lineage_chain.py` cover
+linked builds, leakage and broken chains from the declaration to the exit status.
+`tests/corpus/bundles/test_shared_runs.py` covers the run rule on hand-written indexes, and
+`test_duplicate_frames.py`, `test_duplicate_frames_allowed.py`, `test_duplicate_frames_chain.py` and
+`test_duplicate_frames_unread.py` cover remuxed media from staging to the exit status, in one
+version, across a chain and where a chain cannot be read.
+`tests/corpus/sources/test_source_terms.py` covers retention boundaries at every entrypoint,
+unchanged evidence across evaluation dates, explicit permission, strict declarations and legacy
+records. `tests/corpus/sources/test_verify_rights.py` changes source terms through the real
+amendment and `test_verify_records.py` changes source records through the real importer, and both
+cover verification from the command's exit status to what each refusal names.
+`tests/corpus/declarations/test_declaration.py` and `test_declaration_values.py` cover the
+declaration readers. `tests/corpus/sources/test_amend_terms.py`, `test_amend_refusals.py` and
+`test_amend_records.py` cover the amendment from the command to the kept records, including a
+subprocess killed at each write and real schema 1 records from `tests/corpus/kept_records/`, each
+written by the code of the commit in its name. `tests/corpus/records/test_sealed.py` covers the
+read path itself, `test_sealing.py` the seal, the write and hashed copies, and
+`test_sealed_reads.py` scans for reads around the read path. `test_historic_records.py` reads every
+kept record through the read path and `test_historic_commands.py` runs each through the commands
+that can reach it, `test_duplicate_frames_major.py` covers a predecessor's bundles of another major,
+real and unprojected, and `test_read_window.py` covers a synthetic next major read as a view and as
+`facts`, a view deriving a rights field, a decode policy mismatch through a view and the stated
+shape. `tests/corpus/cases/test_transforms.py`, `test_transform_recipes.py` and
+`test_transform_golden.py` cover each transform on hand-checkable frames and pin its bytes, and
+`test_recipes.py`, `test_generated_cases.py`, `test_case_membership.py`, `test_case_frames.py` and
+`test_case_refusals.py` cover recipes and cases from declaration to staged frames.
 
 ```bash
 make test

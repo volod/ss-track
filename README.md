@@ -430,6 +430,7 @@ and evaluation. The workflow is explained in
 | `make plan-status` | Count tasks and show the next agent and human work |
 | `make lint-spec-plan` | Check the capability registry against the plan |
 | `make lint-doc-links` | Check relative Markdown files and anchors |
+| `make lint-contracts` | Check frozen contracts against their registry, dialect and fingerprints |
 | `make quality-report` | Report files over the soft size limit |
 
 Use Make targets for repeatable workflows. Direct `uv` debugging should first source
@@ -460,7 +461,12 @@ thin adapters that point to it. Keeping substantive rules in one file prevents t
 ### Layout
 
 ```text
-src/ss_track/              production package
+src/ss_track/              production package; cli.py is its entry point
+  core/                    shared primitives: canonical bytes, refusals, strict parsing, paths
+  commands/                command groups and the one JSON record each command reports
+  corpus/                  import, decode, versions, staged bundles, cases and descriptors
+  schema/                  the contract registry, validation, compatibility gate and views
+  quality/                 documentation and plan checks
 tests/                     unit and governance tests
 docs/design/               product specification
 docs/impl/plan.md          forward-only work

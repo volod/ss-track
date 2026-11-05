@@ -1,0 +1,638 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ss-track:contract:record:source-manifest:2.1.0",
+  "title": "Source manifest",
+  "type": "object",
+  "description": "The shipped source-manifest format.",
+  "properties": {
+    "kind": {
+      "type": "string",
+      "description": "Names this record format.",
+      "const": "ss-track.source-manifest",
+      "x-sensitivity": "public"
+    },
+    "schema_version": {
+      "type": "integer",
+      "description": "The format major, independent of algorithm revisions.",
+      "x-unit": "1",
+      "const": 2,
+      "minimum": 0,
+      "x-sensitivity": "public"
+    },
+    "manifest_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Seal of this record, excluding this field.",
+      "x-sensitivity": "restricted"
+    },
+    "source": {
+      "type": "object",
+      "description": "Stored source identity.",
+      "properties": {
+        "sha256": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+          "description": "SHA-256 of exact stored source bytes.",
+          "x-sensitivity": "restricted"
+        },
+        "sha256_declared": {
+          "type": "boolean",
+          "description": "Whether the operator supplied the expected source hash."
+        },
+        "size_bytes": {
+          "type": "integer",
+          "description": "Stored source file size.",
+          "x-unit": "By",
+          "minimum": 1
+        },
+        "stored_name": {
+          "type": "string",
+          "description": "Stored source basename; not a machine-specific path.",
+          "minLength": 1,
+          "x-sensitivity": "restricted"
+        }
+      },
+      "required": [
+        "sha256",
+        "sha256_declared",
+        "size_bytes",
+        "stored_name"
+      ],
+      "additionalProperties": false
+    },
+    "rights": {
+      "type": "object",
+      "description": "Operator-declared source terms.",
+      "properties": {
+        "holder": {
+          "type": "string",
+          "description": "Rights holder.",
+          "minLength": 1,
+          "x-sensitivity": "sensitive"
+        },
+        "basis": {
+          "type": "string",
+          "description": "Authority for using the source.",
+          "enum": [
+            "owned",
+            "licensed",
+            "consented",
+            "public_domain"
+          ],
+          "x-sensitivity": "public"
+        },
+        "retention": {
+          "type": "string",
+          "description": "Human-readable retention rule.",
+          "minLength": 1,
+          "x-sensitivity": "sensitive"
+        },
+        "retain_until": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Last UTC calendar day on which retention is allowed; null means no dated end.",
+          "format": "date",
+          "x-sensitivity": "public"
+        },
+        "derived_frames": {
+          "type": "boolean",
+          "description": "Whether derived frames may be retained.",
+          "x-sensitivity": "public"
+        },
+        "sharing": {
+          "type": "string",
+          "description": "Permitted disclosure scope.",
+          "enum": [
+            "restricted",
+            "public"
+          ],
+          "x-sensitivity": "public"
+        }
+      },
+      "required": [
+        "holder",
+        "basis",
+        "retention",
+        "retain_until",
+        "derived_frames",
+        "sharing"
+      ],
+      "additionalProperties": false
+    },
+    "sensitivity": {
+      "type": "object",
+      "description": "Declared handling requirements.",
+      "properties": {
+        "level": {
+          "type": "string",
+          "description": "Declared sensitivity.",
+          "enum": [
+            "low",
+            "moderate",
+            "high"
+          ],
+          "x-sensitivity": "public"
+        },
+        "notes": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Operator notes; null means none supplied.",
+          "x-sensitivity": "sensitive"
+        }
+      },
+      "required": [
+        "level",
+        "notes"
+      ],
+      "additionalProperties": false
+    },
+    "capture": {
+      "type": "object",
+      "description": "Operator capture facts. Numeric metadata outside range carries no physical-unit claim.",
+      "properties": {
+        "camera": {
+          "type": [
+            "string",
+            "number",
+            "null"
+          ],
+          "description": "Operator descriptive camera. Numeric metadata has no declared physical unit; null means unreported.",
+          "x-unit": "1"
+        },
+        "lens": {
+          "type": [
+            "string",
+            "number",
+            "null"
+          ],
+          "description": "Operator descriptive lens. Numeric metadata has no declared physical unit; null means unreported.",
+          "x-unit": "1"
+        },
+        "exposure": {
+          "type": [
+            "string",
+            "number",
+            "null"
+          ],
+          "description": "Operator descriptive exposure. Numeric metadata has no declared physical unit; null means unreported.",
+          "x-unit": "1"
+        },
+        "focus": {
+          "type": [
+            "string",
+            "number",
+            "null"
+          ],
+          "description": "Operator descriptive focus. Numeric metadata has no declared physical unit; null means unreported.",
+          "x-unit": "1"
+        },
+        "fov": {
+          "type": [
+            "string",
+            "number",
+            "null"
+          ],
+          "description": "Operator descriptive fov. Numeric metadata has no declared physical unit; null means unreported.",
+          "x-unit": "1"
+        },
+        "camera_control_mode": {
+          "type": [
+            "string",
+            "number",
+            "null"
+          ],
+          "description": "Operator descriptive camera control mode. Numeric metadata has no declared physical unit; null means unreported.",
+          "x-unit": "1"
+        },
+        "lighting": {
+          "type": [
+            "string",
+            "number",
+            "null"
+          ],
+          "description": "Operator descriptive lighting. Numeric metadata has no declared physical unit; null means unreported.",
+          "x-unit": "1"
+        },
+        "background": {
+          "type": [
+            "string",
+            "number",
+            "null"
+          ],
+          "description": "Operator descriptive background. Numeric metadata has no declared physical unit; null means unreported.",
+          "x-unit": "1"
+        },
+        "motion": {
+          "type": [
+            "string",
+            "number",
+            "null"
+          ],
+          "description": "Operator descriptive motion. Numeric metadata has no declared physical unit; null means unreported.",
+          "x-unit": "1"
+        },
+        "object_pixel_extent": {
+          "type": [
+            "string",
+            "number",
+            "null"
+          ],
+          "description": "Operator descriptive object pixel extent. Numeric metadata has no declared physical unit; null means unreported.",
+          "x-unit": "1"
+        },
+        "range": {
+          "type": "object",
+          "description": "Range claim; descriptive capture fields alone establish no measured range.",
+          "properties": {
+            "status": {
+              "type": "string",
+              "description": "Evidence supporting range; absent declaration status defaults to unknown.",
+              "enum": [
+                "measured",
+                "estimated",
+                "unknown"
+              ]
+            },
+            "value_m": {
+              "type": [
+                "string",
+                "number",
+                "null"
+              ],
+              "description": "Declared range in metres; text can preserve an operator description.",
+              "x-unit": "m"
+            },
+            "method": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Range measurement or estimation method, or null when unknown."
+            }
+          },
+          "required": [
+            "status",
+            "value_m",
+            "method"
+          ],
+          "additionalProperties": false,
+          "x-rules": {
+            "evidence": "Measured and estimated range require value_m and method. Unknown range has neither value nor method (both null in records). Missing declaration status means unknown."
+          }
+        }
+      },
+      "required": [
+        "camera",
+        "lens",
+        "exposure",
+        "focus",
+        "fov",
+        "camera_control_mode",
+        "lighting",
+        "background",
+        "motion",
+        "object_pixel_extent",
+        "range"
+      ],
+      "additionalProperties": false,
+      "x-sensitivity": "sensitive"
+    },
+    "sequence": {
+      "type": "object",
+      "description": "Facts established by strict decoding, retaining missing timestamps.",
+      "properties": {
+        "container": {
+          "type": "string",
+          "description": "FFmpeg container format name.",
+          "x-sensitivity": "public"
+        },
+        "codec": {
+          "type": "string",
+          "description": "FFmpeg codec name.",
+          "x-sensitivity": "public"
+        },
+        "original_width": {
+          "type": "integer",
+          "description": "Encoded width.",
+          "x-unit": "{pixel}",
+          "minimum": 1,
+          "x-sensitivity": "public"
+        },
+        "original_height": {
+          "type": "integer",
+          "description": "Encoded height.",
+          "x-unit": "{pixel}",
+          "minimum": 1,
+          "x-sensitivity": "public"
+        },
+        "decoded_width": {
+          "type": "integer",
+          "description": "Decoded width.",
+          "x-unit": "{pixel}",
+          "minimum": 1,
+          "x-sensitivity": "public"
+        },
+        "decoded_height": {
+          "type": "integer",
+          "description": "Decoded height.",
+          "x-unit": "{pixel}",
+          "minimum": 1,
+          "x-sensitivity": "public"
+        },
+        "source_pixel_format": {
+          "type": "string",
+          "description": "FFmpeg source pixel format name.",
+          "x-sensitivity": "public"
+        },
+        "source_bits_per_component": {
+          "type": "integer",
+          "description": "Source precision per component.",
+          "x-unit": "bit",
+          "minimum": 1,
+          "x-sensitivity": "public"
+        },
+        "color": {
+          "type": "object",
+          "description": "Unmodified FFmpeg color metadata; unspecified codes remain unspecified.",
+          "properties": {
+            "range": {
+              "type": "integer",
+              "description": "Full or limited signal range.",
+              "x-unit": "1",
+              "x-vocabulary": "FFmpeg AVColorRange",
+              "x-sensitivity": "public"
+            },
+            "matrix": {
+              "type": "integer",
+              "description": "YUV to RGB coefficient matrix.",
+              "x-unit": "1",
+              "x-vocabulary": "FFmpeg AVColorSpace",
+              "x-sensitivity": "public"
+            },
+            "primaries": {
+              "type": "integer",
+              "description": "Color primaries.",
+              "x-unit": "1",
+              "x-vocabulary": "FFmpeg AVColorPrimaries",
+              "x-sensitivity": "public"
+            },
+            "transfer": {
+              "type": "integer",
+              "description": "Transfer characteristic.",
+              "x-unit": "1",
+              "x-vocabulary": "FFmpeg AVColorTransferCharacteristic",
+              "x-sensitivity": "public"
+            },
+            "chroma_location": {
+              "type": "integer",
+              "description": "Chroma sample siting.",
+              "x-unit": "1",
+              "x-vocabulary": "FFmpeg AVChromaLocation",
+              "x-sensitivity": "public"
+            }
+          },
+          "required": [
+            "range",
+            "matrix",
+            "primaries",
+            "transfer",
+            "chroma_location"
+          ],
+          "additionalProperties": false
+        },
+        "display_rotation_degrees": {
+          "type": "integer",
+          "description": "Source display rotation.",
+          "x-unit": "deg",
+          "x-sensitivity": "public"
+        },
+        "interlaced_frames": {
+          "type": "integer",
+          "description": "Decoded interlaced frame count.",
+          "x-unit": "1",
+          "minimum": 0,
+          "x-sensitivity": "public"
+        },
+        "time_base": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Seconds per presentation timestamp tick, as a rational numerator/denominator.",
+          "pattern": "^-?[0-9]+/[1-9][0-9]*$",
+          "x-unit": "s",
+          "x-clock": "source presentation timeline",
+          "x-sensitivity": "public"
+        },
+        "pts": {
+          "type": "array",
+          "description": "Presentation timestamps in decoded presentation order.",
+          "items": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Presentation timestamp in stream time_base ticks; null means absent.",
+            "x-unit": "{tick}",
+            "x-clock": "source presentation timeline"
+          },
+          "minItems": 1,
+          "x-sensitivity": "restricted"
+        },
+        "discarded_frames": {
+          "type": "integer",
+          "description": "Frames explicitly marked discard.",
+          "x-unit": "1",
+          "minimum": 0,
+          "x-sensitivity": "public"
+        },
+        "video_stream_count": {
+          "type": "integer",
+          "description": "Video streams in the container.",
+          "x-unit": "1",
+          "minimum": 1,
+          "x-sensitivity": "public"
+        },
+        "completeness_checks": {
+          "type": "array",
+          "description": "Container-level completeness checks actually performed.",
+          "items": {
+            "type": "string",
+            "description": "Completeness check name."
+          },
+          "minItems": 0,
+          "x-sensitivity": "public"
+        },
+        "frame_count": {
+          "type": "integer",
+          "description": "Decoded frame count.",
+          "x-unit": "1",
+          "minimum": 1,
+          "x-sensitivity": "public"
+        },
+        "timestamp_quality": {
+          "type": "string",
+          "description": "Timestamp evidence quality.",
+          "enum": [
+            "measured",
+            "derived",
+            "missing"
+          ],
+          "x-sensitivity": "public"
+        },
+        "capture_clock_evidence": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Capture-clock evidence supplied by the operator, or null.",
+          "x-sensitivity": "sensitive"
+        }
+      },
+      "required": [
+        "container",
+        "codec",
+        "original_width",
+        "original_height",
+        "decoded_width",
+        "decoded_height",
+        "source_pixel_format",
+        "source_bits_per_component",
+        "color",
+        "display_rotation_degrees",
+        "interlaced_frames",
+        "time_base",
+        "pts",
+        "discarded_frames",
+        "video_stream_count",
+        "completeness_checks",
+        "frame_count",
+        "timestamp_quality",
+        "capture_clock_evidence"
+      ],
+      "additionalProperties": false
+    },
+    "decode_policy": {
+      "type": "object",
+      "description": "Canonical decode algorithm and installed implementation.",
+      "properties": {
+        "decoder": {
+          "type": "string",
+          "description": "Decoder implementation name."
+        },
+        "decoder_version": {
+          "type": "string",
+          "description": "Installed decoder package version."
+        },
+        "ffmpeg_version": {
+          "type": "string",
+          "description": "Installed FFmpeg version."
+        },
+        "format_options": {
+          "type": "object",
+          "description": "FFmpeg demuxer options.",
+          "properties": {
+            "fflags": {
+              "type": "string",
+              "description": "Demuxer flags."
+            },
+            "err_detect": {
+              "type": "string",
+              "description": "Demuxer error handling."
+            }
+          },
+          "required": [
+            "fflags",
+            "err_detect"
+          ],
+          "additionalProperties": false
+        },
+        "codec_options": {
+          "type": "object",
+          "description": "FFmpeg decoder options.",
+          "properties": {
+            "err_detect": {
+              "type": "string",
+              "description": "Decoder error handling."
+            },
+            "flags": {
+              "type": "string",
+              "description": "Decoder flags."
+            },
+            "idct": {
+              "type": "string",
+              "description": "Inverse transform implementation."
+            }
+          },
+          "required": [
+            "err_detect",
+            "flags"
+          ],
+          "additionalProperties": false
+        },
+        "thread_count": {
+          "type": "integer",
+          "description": "Decode worker count.",
+          "x-unit": "1",
+          "minimum": 1
+        },
+        "output_pixel_format": {
+          "type": "string",
+          "description": "Packed RGB output, eight bits per channel.",
+          "const": "rgb24",
+          "x-sensitivity": "public"
+        },
+        "conversion_flags": {
+          "type": "string",
+          "description": "libswscale conversion flags."
+        },
+        "revision": {
+          "type": "integer",
+          "description": "Decode algorithm revision.",
+          "x-unit": "1",
+          "minimum": 1,
+          "x-sensitivity": "public"
+        }
+      },
+      "required": [
+        "decoder",
+        "decoder_version",
+        "ffmpeg_version",
+        "format_options",
+        "codec_options",
+        "thread_count",
+        "output_pixel_format",
+        "conversion_flags",
+        "revision"
+      ],
+      "additionalProperties": false
+    },
+    "decode_policy_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "SHA-256 of canonical decode_policy JSON.",
+      "x-sensitivity": "restricted"
+    }
+  },
+  "required": [
+    "kind",
+    "schema_version",
+    "manifest_sha256",
+    "source",
+    "rights",
+    "sensitivity",
+    "capture",
+    "sequence",
+    "decode_policy",
+    "decode_policy_sha256"
+  ],
+  "additionalProperties": false,
+  "x-rules": {
+    "seal": "manifest_sha256 is SHA-256 of the record excluding that key, serialized as sorted-key JSON with ASCII escapes and no whitespace.",
+    "source": "The stored file matches source.sha256 and source.size_bytes. stored_name names a file in the content-addressed import directory.",
+    "policy": "decode_policy_sha256 hashes canonical decode_policy JSON. Algorithm revisions and library versions are evidence, not format majors.",
+    "sequence": "frame_count equals the length of pts; present PTS values strictly increase. Missing timestamps are retained as null and quality missing. Measured timestamps require capture_clock_evidence. Derived timestamps have no capture-clock claim.",
+    "terms": "Amendments replace only rights and sensitivity, retaining every other fact and keeping the replaced record. A schema does not confer rights or override expiry."
+  }
+}

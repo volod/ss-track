@@ -19,21 +19,29 @@ classifiers = [
 ]
 dependencies = [
   "av==19.0.2",
+  "jsonschema>=4.25,<5",
   "numpy>=2.1,<3",
   "pyyaml>=6.0.3,<7",
+  "referencing>=0.36,<1",
 ]
 
 [project.optional-dependencies]
 dev = [
   "complexipy==6.0.0",
+  "jsoncompat==0.5.0",
   "mypy>=1.15,<2",
   "pymarkdownlnt>=0.9.32,<1",
   "pytest>=8,<10",
   "pytest-cov>=6,<8",
   "radon==6.0.1",
   "ruff>=0.11,<0.17",
+  "setuptools>=80",
   "shellcheck-py==0.11.0.1",
+  "types-jsonschema>=4.25,<5",
   "types-pyyaml>=6.0.12,<7",
+]
+croissant = [
+    "mlcroissant==1.1.1",
 ]
 
 [project.scripts]
@@ -44,8 +52,39 @@ ss-track-plan = "ss_track.quality.plan_summary:main"
 Documentation = "https://github.com/volod/ss-track/blob/main/docs/README.md"
 Repository = "https://github.com/volod/ss-track"
 
-[tool.setuptools.packages.find]
-where = ["src"]
+# Root `contracts/` ships as a package, which a mapping can only add to an explicit list.
+# tests/schema/test_packaging.py fails when a package is missing here.
+[tool.setuptools]
+include-package-data = false
+packages = [
+  "ss_track",
+  "ss_track.commands",
+  "ss_track.contract_files",
+  "ss_track.core",
+  "ss_track.corpus",
+  "ss_track.corpus.bundles",
+  "ss_track.corpus.cases",
+  "ss_track.corpus.declarations",
+  "ss_track.corpus.decoding",
+  "ss_track.corpus.descriptors",
+  "ss_track.corpus.hosts",
+  "ss_track.corpus.records",
+  "ss_track.corpus.sources",
+  "ss_track.corpus.versions",
+  "ss_track.quality",
+  "ss_track.schema",
+  "ss_track.schema.compatibility",
+  "ss_track.schema.registry",
+  "ss_track.schema.validation",
+  "ss_track.schema.views",
+]
+
+[tool.setuptools.package-dir]
+"" = "src"
+"ss_track.contract_files" = "contracts"
+
+[tool.setuptools.package-data]
+"ss_track.contract_files" = ["*.md", "*.yaml", "**/*.json", "**/*.md", "**/*.txt"]
 
 [tool.ruff]
 line-length = 100

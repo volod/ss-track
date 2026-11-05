@@ -7,6 +7,7 @@ PYTHON_VERSION ?= 3.12
 DATA_DIR ?= .data
 DATA_ROOT := $(if $(filter /%,$(DATA_DIR)),$(DATA_DIR),$(PROJECT_ROOT)/$(DATA_DIR))
 RUN_ID ?= local
+CONTRACT_BASE_REF ?= origin/main
 FIXED_SOURCES ?= $(DATA_ROOT)/run/$(RUN_ID)/sources
 PYTEST_CACHE := -o cache_dir=$(DATA_ROOT)/cache/pytest
 
@@ -16,7 +17,8 @@ export MYPY_CACHE_DIR := $(DATA_ROOT)/cache/mypy
 .DEFAULT_GOAL := help
 
 .PHONY: help bootstrap venv lock run doctor format format-check lint typecheck test coverage \
-	complexity-gate shell-lint-gate lint-md lint-doc-links lint-spec-plan plan-status \
+	complexity-gate shell-lint-gate lint-md lint-doc-links lint-spec-plan lint-contracts \
+	plan-status \
 	ci-checks ci ci-github build quality code-quality quality-report \
 	fixed-corpus-sources fixed-corpus-stage fixed-corpus-compare
 
@@ -79,7 +81,7 @@ shell-lint-gate: ## Check every tracked shell script with bash and ShellCheck
 		xargs -0 -r "$(VENV)/bin/shellcheck" -x -P SCRIPTDIR -S warning
 
 lint-md: ## Lint repository Markdown and then validate relative links
-	@"$(PY)" -m pymarkdown scan -r README.md AGENTS.md CLAUDE.md GEMINI.md docs
+	@"$(PY)" -m pymarkdown scan -r README.md AGENTS.md CLAUDE.md GEMINI.md docs contracts
 	@$(MAKE) --no-print-directory lint-doc-links
 
 lint-doc-links: ## Check that relative Markdown links and anchors resolve
@@ -88,20 +90,24 @@ lint-doc-links: ## Check that relative Markdown links and anchors resolve
 lint-spec-plan: ## Check capability registry, task structure, status, and ordering
 	@"$(PY)" -m ss_track.quality.plan_integrity --root "$(PROJECT_ROOT)"
 
+lint-contracts: ## Check frozen contracts, compatibility and merge-base history
+	@"$(PY)" -m ss_track.schema.compatibility.history --project "$(PROJECT_ROOT)" --base-ref "$(CONTRACT_BASE_REF)"
+
 plan-status: ## Count tasks by lane/status and show the next eligible work
 	@"$(VENV)/bin/ss-track-plan" --root "$(PROJECT_ROOT)"
 
-ci-checks: format-check lint typecheck complexity-gate shell-lint-gate lint-doc-links lint-spec-plan
+ci-checks: format-check lint typecheck complexity-gate shell-lint-gate lint-doc-links lint-spec-plan \
+	lint-contracts
 
 ci: ci-checks test ## Run the required local and GitHub CI gate
 
 ci-github: ci ## Explicit GitHub Actions entrypoint
 
 fixed-corpus-sources: ## Write the fixed corpus sources once, for every host to stage
-	@"$(PY)" -m tests.corpus._fixed_corpus write --output "$(FIXED_SOURCES)"
+	@"$(PY)" -m tests.corpus.hosts._fixed_corpus write --output "$(FIXED_SOURCES)"
 
 fixed-corpus-stage: ## Stage stored fixed corpus sources and record this host's hashes
-	@"$(PY)" -m tests.corpus._fixed_corpus stage --sources "$(FIXED_SOURCES)" --run-id "$(RUN_ID)"
+	@"$(PY)" -m tests.corpus.hosts._fixed_corpus stage --sources "$(FIXED_SOURCES)" --run-id "$(RUN_ID)"
 
 fixed-corpus-compare: ## Compare two hosts' records: LEFT=<staged-hashes.json> RIGHT=<...>
 	@"$(VENV)/bin/ss-track" corpus compare --left "$(LEFT)" --right "$(RIGHT)" --run-id "$(RUN_ID)"

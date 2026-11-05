@@ -1,0 +1,278 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ss-track:contract:declaration:recording:2.1.0",
+  "title": "Recording",
+  "type": "object",
+  "description": "The shipped recording format.",
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "description": "Recording declaration major.",
+      "x-unit": "1",
+      "const": 2,
+      "minimum": 0
+    },
+    "source": {
+      "type": "object",
+      "description": "The input recording.",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Local source path, relative to this declaration unless absolute.",
+          "minLength": 1,
+          "x-rules": {
+            "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+          }
+        },
+        "sha256": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+          "description": "Optional expected source bytes."
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "additionalProperties": false
+    },
+    "rights": {
+      "type": "object",
+      "description": "Operator-declared source terms.",
+      "properties": {
+        "holder": {
+          "type": "string",
+          "description": "Rights holder.",
+          "minLength": 1,
+          "x-rules": {
+            "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+          }
+        },
+        "basis": {
+          "type": "string",
+          "description": "Authority for using the source.",
+          "enum": [
+            "owned",
+            "licensed",
+            "consented",
+            "public_domain"
+          ]
+        },
+        "retention": {
+          "type": "string",
+          "description": "Human-readable retention rule.",
+          "minLength": 1,
+          "x-rules": {
+            "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+          }
+        },
+        "retain_until": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Last UTC calendar day on which retention is allowed; null means no dated end.",
+          "format": "date"
+        },
+        "derived_frames": {
+          "type": "boolean",
+          "description": "Whether derived frames may be retained."
+        },
+        "sharing": {
+          "type": "string",
+          "description": "Permitted disclosure scope.",
+          "enum": [
+            "restricted",
+            "public"
+          ]
+        }
+      },
+      "required": [
+        "holder",
+        "basis",
+        "retention",
+        "retain_until",
+        "derived_frames",
+        "sharing"
+      ],
+      "additionalProperties": false
+    },
+    "sensitivity": {
+      "type": "object",
+      "description": "Declared handling requirements.",
+      "properties": {
+        "level": {
+          "type": "string",
+          "description": "Declared sensitivity.",
+          "enum": [
+            "low",
+            "moderate",
+            "high"
+          ]
+        },
+        "notes": {
+          "type": "string",
+          "description": "Optional operator sensitivity notes.",
+          "minLength": 1,
+          "x-rules": {
+            "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+          }
+        }
+      },
+      "required": [
+        "level"
+      ],
+      "additionalProperties": false
+    },
+    "timestamps": {
+      "type": "object",
+      "description": "Optional capture-clock claim.",
+      "properties": {
+        "capture_clock_evidence": {
+          "type": "string",
+          "description": "Evidence that source timestamps measure capture time.",
+          "minLength": 1,
+          "x-rules": {
+            "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+          }
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "capture": {
+      "type": "object",
+      "description": "Operator capture facts. Numeric metadata outside range carries no physical-unit claim.",
+      "properties": {
+        "camera": {
+          "type": [
+            "string",
+            "number"
+          ],
+          "description": "Operator descriptive camera. Numeric metadata has no declared physical unit.",
+          "x-unit": "1"
+        },
+        "lens": {
+          "type": [
+            "string",
+            "number"
+          ],
+          "description": "Operator descriptive lens. Numeric metadata has no declared physical unit.",
+          "x-unit": "1"
+        },
+        "exposure": {
+          "type": [
+            "string",
+            "number"
+          ],
+          "description": "Operator descriptive exposure. Numeric metadata has no declared physical unit.",
+          "x-unit": "1"
+        },
+        "focus": {
+          "type": [
+            "string",
+            "number"
+          ],
+          "description": "Operator descriptive focus. Numeric metadata has no declared physical unit.",
+          "x-unit": "1"
+        },
+        "fov": {
+          "type": [
+            "string",
+            "number"
+          ],
+          "description": "Operator descriptive fov. Numeric metadata has no declared physical unit.",
+          "x-unit": "1"
+        },
+        "camera_control_mode": {
+          "type": [
+            "string",
+            "number"
+          ],
+          "description": "Operator descriptive camera control mode. Numeric metadata has no declared physical unit.",
+          "x-unit": "1"
+        },
+        "lighting": {
+          "type": [
+            "string",
+            "number"
+          ],
+          "description": "Operator descriptive lighting. Numeric metadata has no declared physical unit.",
+          "x-unit": "1"
+        },
+        "background": {
+          "type": [
+            "string",
+            "number"
+          ],
+          "description": "Operator descriptive background. Numeric metadata has no declared physical unit.",
+          "x-unit": "1"
+        },
+        "motion": {
+          "type": [
+            "string",
+            "number"
+          ],
+          "description": "Operator descriptive motion. Numeric metadata has no declared physical unit.",
+          "x-unit": "1"
+        },
+        "object_pixel_extent": {
+          "type": [
+            "string",
+            "number"
+          ],
+          "description": "Operator descriptive object pixel extent. Numeric metadata has no declared physical unit.",
+          "x-unit": "1"
+        },
+        "range": {
+          "type": "object",
+          "description": "Range claim; descriptive capture fields alone establish no measured range.",
+          "properties": {
+            "status": {
+              "type": "string",
+              "description": "Evidence supporting range; absent declaration status defaults to unknown.",
+              "enum": [
+                "measured",
+                "estimated",
+                "unknown"
+              ]
+            },
+            "value_m": {
+              "type": [
+                "string",
+                "number"
+              ],
+              "description": "Declared range in metres; text can preserve an operator description.",
+              "x-unit": "m"
+            },
+            "method": {
+              "type": "string",
+              "description": "Range measurement or estimation method.",
+              "minLength": 1,
+              "x-rules": {
+                "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+              }
+            }
+          },
+          "required": [],
+          "additionalProperties": false,
+          "x-rules": {
+            "evidence": "Measured and estimated range require value_m and method. Unknown range has neither value nor method (both null in records). Missing declaration status means unknown."
+          }
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "schema_version",
+    "source",
+    "rights",
+    "sensitivity"
+  ],
+  "additionalProperties": false,
+  "x-rules": {
+    "source": "The source path must resolve to a readable regular nonempty file. An expected hash must match its bytes.",
+    "clock": "Capture clock evidence requires complete, strictly increasing source timestamps.",
+    "retention": "retain_until is inclusive in UTC. Rights and sensitivity are explicit operator declarations; a schema does not confer authorization."
+  }
+}

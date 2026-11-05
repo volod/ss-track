@@ -1,0 +1,252 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ss-track:contract:record:hash-comparison:1.0.0",
+  "title": "Hash comparison",
+  "type": "object",
+  "description": "The shipped hash-comparison format.",
+  "properties": {
+    "kind": {
+      "type": "string",
+      "description": "Names this record format.",
+      "const": "ss-track.hash-comparison"
+    },
+    "schema_version": {
+      "type": "integer",
+      "description": "The format major, independent of algorithm revisions.",
+      "x-unit": "1",
+      "const": 1,
+      "minimum": 0
+    },
+    "manifest_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Seal of this record, excluding this field."
+    },
+    "status": {
+      "type": "string",
+      "description": "Equality of the frame-set seals.",
+      "enum": [
+        "identical",
+        "different"
+      ]
+    },
+    "corpus_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "Common corpus identifier."
+    },
+    "source_count": {
+      "type": "integer",
+      "description": "Comparable source count.",
+      "x-unit": "1",
+      "minimum": 1
+    },
+    "bundle_count": {
+      "type": "integer",
+      "description": "Comparable bundle count.",
+      "x-unit": "1",
+      "minimum": 1
+    },
+    "left": {
+      "type": "object",
+      "description": "One comparison side.",
+      "properties": {
+        "host": {
+          "type": "object",
+          "description": "Host facts, outside the frame-set identity.",
+          "properties": {
+            "machine": {
+              "type": "string",
+              "description": "Processor architecture."
+            },
+            "system": {
+              "type": "string",
+              "description": "Operating system."
+            },
+            "python": {
+              "type": "string",
+              "description": "Python interpreter version."
+            }
+          },
+          "required": [
+            "machine",
+            "system",
+            "python"
+          ],
+          "additionalProperties": false
+        },
+        "frame_set_sha256": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+          "description": "Frame-set seal."
+        },
+        "corpus_manifest_sha256": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+          "description": "Corpus seal."
+        }
+      },
+      "required": [
+        "host",
+        "frame_set_sha256",
+        "corpus_manifest_sha256"
+      ],
+      "additionalProperties": false
+    },
+    "right": {
+      "type": "object",
+      "description": "One comparison side.",
+      "properties": {
+        "host": {
+          "type": "object",
+          "description": "Host facts, outside the frame-set identity.",
+          "properties": {
+            "machine": {
+              "type": "string",
+              "description": "Processor architecture."
+            },
+            "system": {
+              "type": "string",
+              "description": "Operating system."
+            },
+            "python": {
+              "type": "string",
+              "description": "Python interpreter version."
+            }
+          },
+          "required": [
+            "machine",
+            "system",
+            "python"
+          ],
+          "additionalProperties": false
+        },
+        "frame_set_sha256": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+          "description": "Frame-set seal."
+        },
+        "corpus_manifest_sha256": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+          "description": "Corpus seal."
+        }
+      },
+      "required": [
+        "host",
+        "frame_set_sha256",
+        "corpus_manifest_sha256"
+      ],
+      "additionalProperties": false
+    },
+    "sources": {
+      "type": "array",
+      "description": "Sources differing in seal or bundle identity.",
+      "items": {
+        "type": "object",
+        "description": "One differing source.",
+        "properties": {
+          "source_sha256": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+            "description": "Source bytes."
+          },
+          "codec": {
+            "type": "string",
+            "description": "Left codec name."
+          },
+          "source_pixel_format": {
+            "type": "string",
+            "description": "Left pixel format name."
+          },
+          "source_record_differs": {
+            "type": "boolean",
+            "description": "Whether imported source seals differ."
+          },
+          "bundles": {
+            "type": "array",
+            "description": "Differing bundles of this source.",
+            "items": {
+              "type": "object",
+              "description": "One differing bundle.",
+              "properties": {
+                "stream_id": {
+                  "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                  "description": "Stream or case identifier."
+                },
+                "parent_stream_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Parent stream, or null for original stream.",
+                  "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+                },
+                "left_bundle_sha256": {
+                  "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+                  "description": "Left identity hash."
+                },
+                "right_bundle_sha256": {
+                  "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+                  "description": "Right identity hash."
+                },
+                "frame_count": {
+                  "type": "integer",
+                  "description": "Number of frames on the left.",
+                  "x-unit": "1",
+                  "minimum": 0
+                },
+                "differing_frames": {
+                  "type": "integer",
+                  "description": "Number of indexes with missing or differing hash or PTS.",
+                  "x-unit": "1",
+                  "minimum": 0
+                },
+                "first_differing_frame": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "description": "Smallest differing source frame index, or null.",
+                  "x-unit": "1",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "stream_id",
+                "parent_stream_id",
+                "left_bundle_sha256",
+                "right_bundle_sha256",
+                "frame_count",
+                "differing_frames",
+                "first_differing_frame"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 0
+          }
+        },
+        "required": [
+          "source_sha256",
+          "codec",
+          "source_pixel_format",
+          "source_record_differs",
+          "bundles"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 0
+    }
+  },
+  "required": [
+    "kind",
+    "schema_version",
+    "manifest_sha256",
+    "status",
+    "corpus_id",
+    "source_count",
+    "bundle_count",
+    "left",
+    "right",
+    "sources"
+  ],
+  "additionalProperties": false,
+  "x-rules": {
+    "seal": "manifest_sha256 is SHA-256 of the record excluding that key, serialized as sorted-key JSON with ASCII escapes and no whitespace.",
+    "comparison": "Inputs have equal corpus ids, decode policies, source sets and stream sets. Status is identical exactly when frame-set hashes match.",
+    "differences": "Identical reports no differing sources. Different reports source record and bundle differences; frame differences count missing or unequal PTS/hash tuples."
+  }
+}

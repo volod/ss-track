@@ -2,8 +2,9 @@
 
 ## Environment
 
-`pyproject.toml` declares Python 3.12+ package metadata and a `dev` extra. `uv.lock` fixes the full
-resolution. `make bootstrap` installs the locked environment; direct uv investigations use
+`pyproject.toml` declares Python 3.12+ package metadata and a `dev` extra. `setuptools` is in that
+extra so a test can build the wheel with no network. `uv.lock` fixes the full resolution.
+`make bootstrap` installs the locked environment; direct uv investigations use
 `scripts/shared/common.sh` so `DATA_DIR`, caches, and adaptive link mode have one implementation.
 
 ## Quality gates
@@ -11,11 +12,15 @@ resolution. `make bootstrap` installs the locked environment; direct uv investig
 The Makefile exposes individual checks and two composed workflows:
 
 - `make ci` runs formatting, linting, typing, Radon and cognitive complexity, shell parsing and
-  ShellCheck, documentation links, spec-plan integrity, and deterministic tests.
+  ShellCheck, documentation links, spec-plan integrity, [frozen contracts](contracts.md#the-gate), and
+  deterministic tests.
 - `make quality` adds branch coverage, Markdown lint, and source/wheel builds.
 
 GitHub Actions runs `make ci-github`, an explicit alias of the same required gate, on Python 3.12
-and 3.13 after `uv sync --locked --extra dev`.
+and 3.13 after `uv sync --locked --extra dev`. It fetches full history for the contract evolution
+gate and passes the pull-request base SHA or the push before SHA as `CONTRACT_BASE_REF`. Local
+`make lint-contracts` defaults to `origin/main`; set `CONTRACT_BASE_REF=<ref>` for another review base.
+A missing ref or shallow checkout fails instead of silently skipping immutability checks.
 
 `.github/workflows/arm64-reproducibility.yml` runs on the same events. Its `x86-64` job writes the
 fixed corpus sources once with `make fixed-corpus-sources`, stages them with

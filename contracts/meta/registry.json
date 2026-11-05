@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ss-track:meta:registry",
+  "title": "Contract registry",
+  "description": "The shape of registry.yaml, which lists every contract, its status and its frozen versions.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "contracts"],
+  "properties": {
+    "schema_version": {"type": "integer", "const": 1, "description": "Version of this registry format."},
+    "contracts": {
+      "type": "array",
+      "description": "Every contract, in family and id order.",
+      "items": {"$ref": "#/$defs/contract"}
+    }
+  },
+  "$defs": {
+    "contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["family", "id", "owner", "status", "description", "versions"],
+      "properties": {
+        "family": {
+          "enum": ["declaration", "record", "event", "result", "external", "shared"],
+          "description": "The family, which decides how the format is validated and may evolve."
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "description": "Identifier, unique within its family."
+        },
+        "owner": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "description": "The capability that owns the format."
+        },
+        "status": {
+          "enum": ["draft", "active", "deprecated", "retired"],
+          "description": "Where the contract is in its life."
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "description": "What the format holds, in one sentence."
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Why a draft has no frozen version: what the dialect cannot state."
+        },
+        "retired_majors": {
+          "type": "array",
+          "description": "Historic majors with no frozen contract, each with its disposition: facts while a retained record of it has a route, retired once none needs one.",
+          "items": {"$ref": "#/$defs/retired-major"}
+        },
+        "versions": {
+          "type": "array",
+          "description": "Frozen versions, oldest first.",
+          "items": {"$ref": "#/$defs/version"}
+        }
+      },
+      "if": {"properties": {"status": {"const": "draft"}}},
+      "then": {"required": ["reason"]},
+      "else": {"properties": {"versions": {"minItems": 1}}, "not": {"required": ["reason"]}}
+    },
+    "version": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "file_sha256", "fingerprints", "change"],
+      "properties": {
+        "version": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$",
+          "description": "Semantic version, and the name of the file."
+        },
+        "file_sha256": {
+          "$ref": "#/$defs/sha256",
+          "description": "SHA-256 of the frozen file's bytes, so any edit of it shows."
+        },
+        "fingerprints": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["structure", "meaning"],
+          "description": "Hashes of what the version states, independent of its formatting.",
+          "properties": {
+            "structure": {
+              "$ref": "#/$defs/sha256",
+              "description": "Canonical schema without its annotations or identity."
+            },
+            "meaning": {
+              "$ref": "#/$defs/sha256",
+              "description": "Canonical annotations with const and enum values."
+            }
+          }
+        },
+        "change": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["class", "summary"],
+          "description": "The change-log entry of this version.",
+          "properties": {
+            "class": {
+              "enum": ["initial", "patch", "minor", "major"],
+              "description": "The size of the change from the previous version."
+            },
+            "summary": {
+              "type": "string",
+              "minLength": 1,
+              "description": "What changed."
+            },
+            "disposition": {
+              "enum": ["view", "facts", "retired"],
+              "description": "Disposition of the predecessor major."
+            },
+            "migration": {
+              "type": "string",
+              "minLength": 1,
+              "description": "What a holder of an old record must do. Required for a major."
+            }
+          },
+          "if": {"properties": {"class": {"const": "major"}}},
+          "then": {"required": ["migration", "disposition"]}
+        }
+      }
+    },
+    "retired-major": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["major", "status", "reason", "migration"],
+      "properties": {
+        "major": {"type": "integer", "minimum": 1},
+        "status": {"enum": ["facts", "retired"]},
+        "reason": {"type": "string", "minLength": 1},
+        "migration": {"type": "string", "minLength": 1}
+      }
+    },
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}

@@ -1391,7 +1391,7 @@ ss-track corpus build --manifest corpus.yaml
 ss-track corpus stage --corpus <id>
 ss-track corpus verify --corpus <id>
 ss-track corpus preview --corpus <id> --stream <id> --frame <index> --out sheet.png
-ss-track corpus describe --corpus <id> --visibility restricted --out descriptor/
+ss-track corpus describe --corpus <id> --declaration dataset.yaml --visibility restricted
 ss-track contracts list
 ss-track contracts validate <file>
 ss-track contracts diff <contract>
@@ -1915,12 +1915,24 @@ change.
 | `event` | The section 5 records, as binary protobuf and protobuf-JSON JSON Lines | Protobuf | Each event, by the runner | Wire and JSON compatible in both directions |
 | `result` | The command result and refusal log line | JSON Schema, with `details` open | By tests | New fields and refusal codes are additive |
 | `external` | Formats this product does not own, such as MOTChallenge export, ULog and MAVLink dialects | The upstream definition, pinned by hash | By its adapter | A new upstream revision is a new pinned input, never accepted silently |
+| `shared` | Value types that other contracts reference, such as a SHA-256 digest | JSON Schema definitions, stating no document | Through the contract that references them | A change is a new version, and a referencing contract moves to it by its own change |
 
-Document contracts use a restricted dialect of
-[JSON Schema 2020-12](https://json-schema.org/draft/2020-12): closed objects, `const`, `enum`, `oneOf`
-tagged by a `const` property, bounds, `pattern`, `format`, and `$ref` to an exact version. Conditional
-keywords, `not` and untagged unions are refused. The restriction keeps every change classifiable and
-every contract projectable onto a descriptor. Widening it changes one meta-schema under review.
+Document contracts use a restricted dialect of [JSON Schema
+2020-12](https://json-schema.org/draft/2020-12): closed objects, `const`, `enum`, `oneOf` tagged by
+a `const` property, bounds, anchored `pattern`, the `date` format, and `$ref` to an exact version. A
+pattern uses only ASCII literals, escapes, positive classes, groups, alternation and quantifiers,
+the syntax every regular-expression engine reads alike; `.`, negated classes, lookaround and
+backreferences are refused. Conditional keywords, `not` and arbitrary untagged unions are refused. A
+property that may be `null` pairs one type with `null`. Descriptive capture scalars may instead use exactly
+`["string", "number"]` or `["string", "number", "null"]`, preserving the shipped operator values
+without converting descriptions into measurements. The restriction keeps every change classifiable,
+every contract projectable onto a descriptor, and each pattern the same in every validator.
+Widening it changes one meta-schema
+under review. A meta-schema states all of this except that a union's branches share one tag, which
+needs two branches at once, and the pattern syntax, which needs a parser; both belong to the build
+gate. Fixed positional arrays use
+`prefixItems`, `items: false`, and equal length bounds. Only the command result's root `details`
+object may be open. The build gate also enforces tuple-length equality and that open-object boundary.
 
 Binary layouts, such as `.rgb24` frames and telemetry columns, are stated by the record that indexes
 them: the record gives the pixel format, dimensions or data type, so the bytes need no schema of
@@ -1929,14 +1941,20 @@ their own.
 ### 17.2 Identity and versions
 
 Each contract has an id, a family, an owning capability, a status (`draft`, `active`, `deprecated` or
-`retired`) and a semantic version. `contracts/registry.yaml` lists them. Each version is one file,
+`retired`) and a semantic version. `contracts/registry.yaml` lists them, and a meta-schema beside the
+dialect states its shape. Each version is one file,
 named by its version, identified by `urn:ss-track:contract:<family>:<id>:<version>` and never edited
 after it is frozen. A frozen version also carries a change-log entry: its class, a summary and, for a
-major, the migration a holder of an old record must make.
+major, the migration a holder of an old record must make. Historic majors with no frozen contract
+are listed separately as `retired_majors`, each with a reason, that migration and a disposition,
+without inventing a contract: `facts` while a retained record of that major still has a route, as
+an amendment gives source major 1, and `retired` once none needs one. Such a major has no view.
+Compatibility test fixtures do not make those majors usable corpus evidence.
 
-The registry stores two fingerprints of each version. `structure` hashes the canonical schema without
-annotations. `meaning` hashes the annotations and enum values. An edit to either without a freeze
-fails the build.
+The registry stores the file hash and two fingerprints of each version. `structure` hashes the
+canonical schema without annotations or its own identity. `meaning` hashes the annotations and the
+`const` and `enum` values. An edit of the file, formatting included, without a freeze fails the build,
+and the fingerprints say which kind of edit it was.
 
 | Annotation | States |
 | --- | --- |
@@ -1948,7 +1966,7 @@ fails the build.
 | `x-vocabulary` | The external vocabulary of a coded value, such as an FFmpeg enum |
 | `x-references` | The contract and JSON pointer a value refers to, so lineage can be walked |
 | `x-sensitivity` | `public`, `restricted` or `sensitive`, deciding whether a descriptor may carry the value |
-| `x-rules` | Cross-field rules JSON Schema cannot state, as named text |
+| `x-rules` | Rules the dialect cannot state, such as a rule across fields or files, as named text |
 
 Three kinds of version are separate and must not be confused. A **contract version** covers the
 shape and meaning of a format. A **data version** covers content: a corpus version, label revision or
@@ -1977,10 +1995,29 @@ a format cannot change unannounced.
 | Any change that alters the bytes of a record not using the change | Major |
 | Changed `x-unit`, `x-clock`, `x-frame`, `x-quantity` or `x-vocabulary` of an existing property, or a changed meaning of an enum value | Forbidden: add a property, or take a major |
 
+A constraint added inside the open command-result `details` object is major when it rejects a
+previously allowed value, even if the property is optional. Reference targets are compared at their
+use sites. A pattern rewrite is minor only when inclusion is proven, over the ASCII syntax every
+regular-expression engine reads alike. Structure proves a rewrite that keeps the old sequence of
+parts. A derivative walk proves a rewrite whose shape changed, and it shares no rule with the test
+automaton. A relationship the walk does not decide, including one past its state bound, is
+conservatively major. Removing a pattern is a relaxation. This policy does not infer semantic
+intent from prose.
+
+The independent development oracle checks structural compatibility, not annotations. It shares no
+rule with the classifier, decides pattern inclusion with automata, and counts a counterexample only
+when the repository's own validator confirms it. When it finds none, a bounded search tries each
+`oneOf` combination and up to two positions. A disagreement in either direction on a frozen
+transition fails CI, and so does a pair the oracle cannot decide; the oracle never overrides the
+repository's rules and never relaxes them. A relationship neither the classifier nor the oracle
+can decide stays major and fails closed. Known oracle limitations need explicit regression evidence
+and an owner in the plan before broader coverage or a replacement can be accepted.
+
 **Hash stability.** A new record field is absent when unused, never written as `null` or a default.
 Because objects are closed, a writer's output for input using no new feature must still validate
-against the previous frozen minor, which proves its bytes and seal did not change. Existing fields
-that store an unknown as `null` keep doing so.
+against the previous frozen minor. That detects new fields, but does not prove existing values or
+hashes stayed equal: replay tests also compare canonical bytes and seals with retained output.
+Existing fields that store an unknown as `null` keep doing so.
 
 **Events** follow the same intent with protobuf rules: fields are additive, a field number or name is
 reserved rather than reused, and `json_name` never changes, because G0 events travel as JSON. The gate
@@ -1995,14 +2032,22 @@ A contract is the only statement of a format's structure. Structural rules leave
 once a contract covers them, and rules across fields or files stay in code, stated in `x-rules`.
 Refusal codes do not change: a declaration that breaks its contract is `MANIFEST_INVALID`.
 
-The local validator is stricter than the standard on two points that a third-party validator may
-accept: `1.0` is not an integer, and YAML must carry no repeated key or non-finite number. YAML dates
-are normalized before validation, and nothing fills in a default.
+The local validator is stricter than the standard on points that a third-party validator may
+accept: `1.0` is not an integer, `$` in a pattern means the end of the value and not the end of a
+line, and YAML must carry no repeated key or non-finite number. YAML dates are normalized to their
+ISO text before validation, and such a value validates only where its contract states the `date`
+format: an unquoted `2024-01-05` is a date to a YAML 1.1 reader and text to a YAML 1.2 one, so text
+written that way is refused by `contracts validate` and every reader alike. Nothing fills in a
+default. Free text must hold a character other than whitespace, which the dialect cannot state over
+any script: each such property states it under `x-rules` as `text`, and its reader enforces it.
 
 A record is validated once, in full, before it is sealed, and a writer defect is `RECORD_INVALID` with
 nothing sealed. A seal proves a record has not changed since, so a read checks the seal, kind and major
-and does not walk its fields. `ss-track contracts validate`
-gives a deep check of any file on demand, under any frozen version.
+and walks no field beyond a stated shape's one test. `ss-track contracts validate`
+gives a deep check of any file on demand, under any frozen version: its structure and, for a record,
+its seal, so a record whose content moved is not called valid. It does not run `x-rules`, which stay
+with the code that reads the record. `CONTRACT_UNKNOWN` means no frozen version applies, and
+`CONTRACT_SET_INVALID` means the installed set is not the one its registry pinned.
 
 `RunManifest` records the contract set in force, so a result names the formats it read. That list is
 descriptive: a contract's major enters a cohort key only through a format the key already covers.
@@ -2012,10 +2057,12 @@ descriptive: a contract's major enters a cohort key only through a format the ke
 A version must answer three separate questions: can this tool parse a record, may the record serve as
 evidence, and what changed. One read path answers them in order. It verifies the seal on the original
 bytes, then the kind, then applies the disposition of the record's major. No caller reads a sealed
-record any other way, so no caller can skip the check.
+record any other way, so no caller can skip the check. `ss-track contracts validate` inspects a file
+and gives a verdict: it hands no record to anything, so it serves no evidence and needs no disposition.
 
 Nothing rewrites a sealed record, and writers always write the current major. Freezing a new major
-declares the disposition of the one it replaces:
+declares the disposition of the one it replaces, and a record of an older major takes the strictest
+disposition of the majors it steps through:
 
 | Disposition | Applies when | A tool then |
 | --- | --- | --- |
@@ -2026,17 +2073,30 @@ declares the disposition of the one it replaces:
 A view steps one major at a time, and views compose. It names each value it derived. It never derives
 rights, sensitivity, retention, a split, a group, an encounter or any other operator judgment, and it
 fills no default. It changes no decode policy or transform revision, whose refusals stand: those are
-algorithm revisions, and new pixels need new evidence.
+algorithm revisions, and new pixels need new evidence. A freeze refuses `view` for a major that adds
+or changes such a property, whose predecessor's records then lack facts only an operator can state,
+and a view that names one is a damaged installation. A view is installed code beside the contract,
+because a freeze declares a disposition and cannot write the function.
+
+The read path has three entries and no caller reads around them. Evidence is the current major, or a
+`view` major as the current one in memory. Inspection returns a `facts` or `view` record as written,
+for the amendment that writes its successor. Comparison reads any major through its projection.
+
+A format that entered a major without a version of its own, as source terms entered corpus schema 3,
+has one stated test on the read path that tells it apart, and its own disposition. It is read no more
+freely than its major, and a view never serves it.
 
 A comparison rule reads every major. Lineage and shared-frame checks need only source hashes, groups,
-splits and frame hashes, so each major keeps a projection of those facts for as long as records of it
-may exist, and its disposition does not end that. A leak guard must not expire, and a format change
+splits and frame hashes, so each major that holds those facts keeps a projection of them for as long
+as records of it may exist, and its disposition does not end that: a retired major is refused as
+evidence and still compared. A leak guard must not expire, and a format change
 must not be a way around one. A predecessor that yields no projection is `not_compared` under its own
 reason, named in the result as section 4.1 requires, and it never fails a successor by format alone.
 
 `RECORD_SCHEMA_UNSUPPORTED` names the contract, the found and accepted majors, whether the record is
 older or newer, its disposition and the remedy from the change log. A newer record is refused, because
-a tool cannot know what a newer field means. A major stays in service with no time limit, while any
+a tool cannot know what a newer field means. A record whose version is not an integer is neither older
+nor newer, and is refused as unstated. A major stays in service with no time limit, while any
 record of it may be retained, and only a contract change retires it. Every major keeps at least one
 real record, written by the code of its era, that the tests read under every later version. A record
 with only its version number changed proves nothing about a format.
@@ -2057,8 +2117,16 @@ are a labelled slice and never count as encounters.
 Visibility follows section 11 and defaults to `restricted`. A `public` descriptor needs a corpus whose
 `scenario_rights.sharing` is `public` and a declared license, drops every value not marked `public` by
 `x-sensitivity`, and
-reduces a `locked` split to counts, with no path, hash or per-sequence fact. A descriptor is a file on
-the data root: this product uploads nothing.
+reduces a `locked` split to counts, with no path, hash or per-sequence fact. An unmarked field stays
+absent. A `restricted` or `sensitive` value hides everything nested under it, so a later public mark
+on a child does not publish that child. Image regions and label geometry are not public facts. The
+frame-set bundle list stays restricted and is not part of a public descriptor. A descriptor is a
+file on the data root: this product uploads nothing. Describing the same corpus and visibility
+again replaces that directory and no other. The new tree is written completely before the published
+directory moves aside and the new tree takes its place, so a reader sees one complete generation
+or, during that swap, no directory. The next description restores a generation left aside before it
+writes. The same inputs leave the published directory unchanged. A refusal leaves it unchanged as
+well. Sealed records stay as they were.
 
 Raw frames are indexed with their layout and read through the frame-bundle contract, because a
 general dataset loader cannot read headerless `.rgb24`. A generated ODCS document may serve a data
@@ -2253,7 +2321,7 @@ Group order alone never establishes readiness.
 | 1 | `reproducible-environment` | shipped | A fresh locked environment reaches the complete CI gate without manual repair | [Developer tooling](../impl/current/developer-tooling.md) |
 | 2 | `project-identity` | shipped | Import, CLI, and distribution-build tests agree on the project identity | [Product core](../impl/current/product-core.md) |
 | 3 | `corpus-provenance` | planned | Import/hash/canonical-decode, staged frame bundles, synchronized multi-stream grouping, generated cases, version lineage, duplicate-frame and source-term refusals and scenario-rights/split fixtures; malformed source yields structured failure | - |
-| 4 | `data-contracts` | planned | Every shipped record and declaration conforms unchanged to its frozen contract; every section 17.3 change classifies as declared, with an independent checker agreeing on structure; real records of every historic major read under their disposition with no byte or hash moved; a consumer with only the contracts validates a record; optional descriptors validate and leak nothing | - |
+| 4 | `data-contracts` | shipped | Every shipped record and declaration conforms unchanged to its frozen contract; every section 17.3 change classifies as declared, with an independent checker agreeing on structure; real records of every historic major read under their disposition with no byte or hash moved; a consumer with only the contracts validates a record; optional descriptors validate and leak nothing | [Contracts](../impl/current/contracts.md) |
 | 5 | `annotation-selection` | planned | Two-reviewer G0 labels, stable class/instance IDs, frozen mask and identical seed replay | - |
 | 6 | `module-contract-runner` | planned | Oracle, null, dropper, crash, schema and class-identity fixtures pass with exact frame accounting | - |
 | 7 | `motion-sot-evaluation` | planned | Hand-computed fixture metrics, denominators and time weights match evaluator output | - |

@@ -1,0 +1,178 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ss-track:meta:dialect",
+  "title": "Contract dialect",
+  "description": "The restricted JSON Schema 2020-12 that every contract is written in. It keeps each change classifiable. The registry check adds contextual rules: union branches share a required const tag with distinct values; tuple bounds equal their positional length; only command-result root details may be open; a pattern uses only ASCII literals, escapes, positive classes, groups, alternation and quantifiers, with no top-level alternation.",
+  "$ref": "#/$defs/contract",
+  "$defs": {
+    "contract": {
+      "$ref": "#/$defs/keywords",
+      "properties": {
+        "$schema": {"const": "https://json-schema.org/draft/2020-12/schema"},
+        "$id": {
+          "type": "string",
+          "pattern": "^urn:ss-track:contract:(declaration|record|result|shared):[a-z0-9]+(-[a-z0-9]+)*:(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"
+        },
+        "$defs": {
+          "type": "object",
+          "propertyNames": {"pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"},
+          "additionalProperties": {"$ref": "#/$defs/node"}
+        }
+      },
+      "required": ["$schema", "$id", "title", "description"],
+      "if": {"properties": {"$id": {"pattern": "^urn:ss-track:contract:shared:"}}},
+      "then": {"required": ["$defs"], "not": {"required": ["type"]}},
+      "else": {"required": ["type"]},
+      "unevaluatedProperties": false
+    },
+    "node": {
+      "$ref": "#/$defs/keywords",
+      "anyOf": [{"required": ["type"]}, {"required": ["$ref"]}, {"required": ["oneOf"]}],
+      "unevaluatedProperties": false
+    },
+    "property": {
+      "$ref": "#/$defs/node",
+      "required": ["description"]
+    },
+    "branch": {
+      "$ref": "#/$defs/node",
+      "required": ["type", "properties", "required"],
+      "properties": {
+        "type": {"const": "object"},
+        "properties": {"not": {"additionalProperties": {"not": {"required": ["const"]}}}}
+      }
+    },
+    "type-name": {
+      "enum": ["string", "integer", "number", "boolean", "object", "array", "null"]
+    },
+    "type": {
+      "oneOf": [
+        {"$ref": "#/$defs/type-name"},
+        {"const": ["string", "number"]},
+        {"const": ["string", "number", "null"]},
+        {
+          "type": "array",
+          "prefixItems": [
+            {"$ref": "#/$defs/type-name", "not": {"const": "null"}},
+            {"const": "null"}
+          ],
+          "items": false,
+          "minItems": 2
+        }
+      ]
+    },
+    "states-object": {
+      "properties": {
+        "type": {
+          "anyOf": [{"const": "object"}, {"type": "array", "contains": {"const": "object"}}]
+        }
+      },
+      "required": ["type"]
+    },
+    "states-array": {
+      "properties": {
+        "type": {"anyOf": [{"const": "array"}, {"type": "array", "contains": {"const": "array"}}]}
+      },
+      "required": ["type"]
+    },
+    "annotation-only": {
+      "pattern": "^(title|description|examples|x-[a-z]+|\\$ref|oneOf)$"
+    },
+    "keywords": {
+      "type": "object",
+      "properties": {
+        "title": {"type": "string", "minLength": 1},
+        "description": {"type": "string", "minLength": 1},
+        "examples": {"type": "array"},
+        "type": {"$ref": "#/$defs/type"},
+        "const": true,
+        "enum": {"type": "array", "minItems": 1, "uniqueItems": true},
+        "properties": {
+          "type": "object",
+          "additionalProperties": {"$ref": "#/$defs/property"}
+        },
+        "required": {
+          "type": "array",
+          "items": {"type": "string"},
+          "uniqueItems": true
+        },
+        "additionalProperties": {"type": "boolean"},
+        "items": {"anyOf": [{"$ref": "#/$defs/node"}, {"const": false}]},
+        "prefixItems": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/node"}},
+        "oneOf": {
+          "type": "array",
+          "minItems": 2,
+          "items": {"$ref": "#/$defs/branch"}
+        },
+        "minItems": {"type": "integer", "minimum": 0},
+        "maxItems": {"type": "integer", "minimum": 0},
+        "minLength": {"type": "integer", "minimum": 0},
+        "maxLength": {"type": "integer", "minimum": 0},
+        "minimum": {"type": "number"},
+        "maximum": {"type": "number"},
+        "exclusiveMinimum": {"type": "number"},
+        "exclusiveMaximum": {"type": "number"},
+        "pattern": {
+          "type": "string",
+          "format": "regex",
+          "pattern": "^\\^.*\\$$",
+          "not": {"pattern": "\\\\[dDwWsSbB]"}
+        },
+        "format": {"enum": ["date"]},
+        "$ref": {
+          "type": "string",
+          "pattern": "^(urn:ss-track:contract:(declaration|record|result|shared):[a-z0-9]+(-[a-z0-9]+)*:(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*))?#/\\$defs/[a-z0-9]+(-[a-z0-9]+)*$"
+        },
+        "x-unit": {"type": "string", "minLength": 1},
+        "x-quantity": {"type": "string", "minLength": 1},
+        "x-clock": {"type": "string", "minLength": 1},
+        "x-frame": {"type": "string", "minLength": 1},
+        "x-vocabulary": {"type": "string", "minLength": 1},
+        "x-references": {
+          "type": "string",
+          "pattern": "^(declaration|record|result|shared)/[a-z0-9]+(-[a-z0-9]+)*#(/[A-Za-z0-9_$-]+)+$"
+        },
+        "x-sensitivity": {"enum": ["public", "restricted", "sensitive"]},
+        "x-rules": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {"pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"},
+          "additionalProperties": {"type": "string", "minLength": 1}
+        }
+      },
+      "allOf": [
+        {
+          "if": {"$ref": "#/$defs/states-object"},
+          "then": {"required": ["properties", "additionalProperties"]}
+        },
+        {
+          "if": {"$ref": "#/$defs/states-array"},
+          "then": {"required": ["items"]}
+        },
+        {"if": {"required": ["properties"]}, "then": {"$ref": "#/$defs/states-object"}},
+        {"if": {"required": ["additionalProperties"]}, "then": {"$ref": "#/$defs/states-object"}},
+        {"if": {"required": ["items"]}, "then": {"$ref": "#/$defs/states-array"}},
+        {
+          "if": {"required": ["prefixItems"]},
+          "then": {
+            "$ref": "#/$defs/states-array",
+            "required": ["minItems", "maxItems", "items"],
+            "properties": {"items": {"const": false}}
+          }
+        },
+        {
+          "if": {"properties": {"items": {"const": false}}, "required": ["items"]},
+          "then": {"required": ["prefixItems"]}
+        },
+        {
+          "if": {"required": ["$ref"]},
+          "then": {"propertyNames": {"$ref": "#/$defs/annotation-only"}}
+        },
+        {
+          "if": {"required": ["oneOf"]},
+          "then": {"propertyNames": {"$ref": "#/$defs/annotation-only"}}
+        }
+      ]
+    }
+  }
+}

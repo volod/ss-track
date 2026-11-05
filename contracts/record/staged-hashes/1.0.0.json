@@ -1,0 +1,203 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ss-track:contract:record:staged-hashes:1.0.0",
+  "title": "Staged hashes",
+  "type": "object",
+  "description": "The shipped staged-hashes format.",
+  "properties": {
+    "kind": {
+      "type": "string",
+      "description": "Names this record format.",
+      "const": "ss-track.staged-hashes"
+    },
+    "schema_version": {
+      "type": "integer",
+      "description": "The format major, independent of algorithm revisions.",
+      "x-unit": "1",
+      "const": 1,
+      "minimum": 0
+    },
+    "manifest_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Seal of this record, excluding this field."
+    },
+    "corpus_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "Corpus version."
+    },
+    "corpus_manifest_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Corpus seal."
+    },
+    "decode_policy_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Decode policy hash."
+    },
+    "frame_set_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Verified frame-set seal."
+    },
+    "host": {
+      "type": "object",
+      "description": "Host facts, outside the frame-set identity.",
+      "properties": {
+        "machine": {
+          "type": "string",
+          "description": "Processor architecture."
+        },
+        "system": {
+          "type": "string",
+          "description": "Operating system."
+        },
+        "python": {
+          "type": "string",
+          "description": "Python interpreter version."
+        }
+      },
+      "required": [
+        "machine",
+        "system",
+        "python"
+      ],
+      "additionalProperties": false
+    },
+    "sources": {
+      "type": "array",
+      "description": "Source facts sorted by hash.",
+      "items": {
+        "type": "object",
+        "description": "Decoder path associated with a source.",
+        "properties": {
+          "source_sha256": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+            "description": "Source bytes."
+          },
+          "source_manifest_sha256": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+            "description": "Source seal."
+          },
+          "codec": {
+            "type": "string",
+            "description": "FFmpeg codec name."
+          },
+          "source_pixel_format": {
+            "type": "string",
+            "description": "FFmpeg source pixel format name."
+          }
+        },
+        "required": [
+          "source_sha256",
+          "source_manifest_sha256",
+          "codec",
+          "source_pixel_format"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1
+    },
+    "bundles": {
+      "type": "array",
+      "description": "Bundle hashes sorted by stream_id.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "stream_id",
+          "parent_stream_id",
+          "bundle_sha256",
+          "source_sha256",
+          "source_manifest_sha256",
+          "frames"
+        ],
+        "properties": {
+          "stream_id": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+            "description": "The stream, or the id of a generated case.",
+            "x-references": "record/frame-bundle#/properties/stream_id",
+            "x-sensitivity": "restricted"
+          },
+          "parent_stream_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+            "description": "The stream a generated case derives from, or null for a stream.",
+            "x-references": "record/frame-bundle#/properties/stream_id",
+            "x-sensitivity": "restricted"
+          },
+          "bundle_sha256": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+            "description": "Hash of the bundle's identity: its pixels, timing and source.",
+            "x-references": "record/frame-bundle#/properties/bundle_sha256",
+            "x-sensitivity": "restricted"
+          },
+          "source_sha256": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+            "description": "Hash of the source file's bytes. A generated case states its parent's.",
+            "x-references": "record/source-manifest#/properties/source/properties/sha256",
+            "x-sensitivity": "restricted"
+          },
+          "source_manifest_sha256": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+            "description": "Seal of the source record the bundle rests on. A generated case states its parent's.",
+            "x-references": "record/source-manifest#/properties/manifest_sha256",
+            "x-sensitivity": "restricted"
+          },
+          "frames": {
+            "type": "array",
+            "description": "Positional [frame_index, pts, sha256] triples.",
+            "items": {
+              "type": "array",
+              "description": "One frame index, timestamp and pixel hash.",
+              "prefixItems": [
+                {
+                  "type": "integer",
+                  "description": "Zero-based source frame index.",
+                  "x-unit": "1",
+                  "minimum": 0
+                },
+                {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "description": "Presentation timestamp in stream time_base ticks; null means absent.",
+                  "x-unit": "{tick}",
+                  "x-clock": "source presentation timeline"
+                },
+                {
+                  "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+                  "description": "Raw RGB bytes."
+                }
+              ],
+              "items": false,
+              "minItems": 3,
+              "maxItems": 3
+            },
+            "minItems": 1
+          }
+        }
+      },
+      "minItems": 1
+    }
+  },
+  "required": [
+    "kind",
+    "schema_version",
+    "manifest_sha256",
+    "corpus_id",
+    "corpus_manifest_sha256",
+    "decode_policy_sha256",
+    "frame_set_sha256",
+    "host",
+    "sources",
+    "bundles"
+  ],
+  "additionalProperties": false,
+  "x-rules": {
+    "seal": "manifest_sha256 is SHA-256 of the record excluding that key, serialized as sorted-key JSON with ASCII escapes and no whitespace.",
+    "membership": "Sources and bundles exactly match the verified corpus frame set. Each source and stream appears once.",
+    "frames": "Each tuple matches the corresponding verified bundle frame entry, in source-frame order."
+  }
+}

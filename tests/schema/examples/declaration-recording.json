@@ -1,0 +1,26 @@
+{
+  "schema_version": 2,
+  "source": {
+    "path": "clip.mkv"
+  },
+  "rights": {
+    "holder": "Project Contributors",
+    "basis": "owned",
+    "retention": "project duration",
+    "retain_until": null,
+    "derived_frames": true,
+    "sharing": "restricted"
+  },
+  "sensitivity": {
+    "level": "low"
+  },
+  "capture": {
+    "camera": "example camera",
+    "exposure": 0.005,
+    "range": {
+      "status": "measured",
+      "value_m": 3.5,
+      "method": "generated example"
+    }
+  }
+}

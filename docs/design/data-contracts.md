@@ -50,13 +50,13 @@ already lives in a declaration or a pinned scenario.
 
 These are the reasons this work comes before labels and events.
 
-1. **One integer answers three questions.** `require_schema` in `src/ss_track/corpus/sealed.py`
+1. **One integer answers three questions.** `read_sealed` in `src/ss_track/corpus/records/sealed.py`
    accepts one exact value, so a format change has only one possible outcome. The refusal is deliberate
    and safe, and what it costs is in [reading older records](#reading-older-records).
 2. **Version constants are shared across formats.** `CORPUS_SCHEMA_VERSION` versions both a
    declaration and a sealed record, and `importer.SCHEMA_VERSION` is `RECORDING_SCHEMA_VERSION`. A
    declaration change therefore forces a new record version with no change to the record.
-3. **A format can only be read by reading the Python.** `Fields` in `corpus/fields.py`,
+3. **A format can only be read by reading the Python.** `Fields` in `corpus/declarations/fields.py`,
    `read_recipe` and the record writers are the definition of each format. A consumer without this
    repository has nothing to validate against.
 4. **Two null conventions.** `capture` stores an unknown fact as explicit `null`, while `supersedes`
@@ -78,7 +78,7 @@ and the current-state pages at the repository head.
 | `evolution-check` and `evolution-freeze` in CI | Adopt, stricter | A reviewed baseline is the right gate. A change with no bump always fails |
 | Structural and semantic fingerprints | Adopt | Section 5 forbids changing a unit or enum meaning, and only a meaning hash can detect that |
 | Major and minor rule table | Adopt, amended | Adds hash stability, and treats a unit change as forbidden within a major, where fl-op allows a minor |
-| Step-by-step authoring manual | Adopt, shorter | `contract-registry` writes `docs/guide/authoring-contracts.md` |
+| Step-by-step authoring manual | Adopt, shorter | The [authoring guide](../guide/authoring-contracts.md) |
 | Physical, canonical and mapping layers | Adopt for telemetry only | Corpus records have one physical form and nothing to project |
 | ODCS as the authored schema | Replace | See the comparison below |
 | `schema_snapshot` of top-level name, type and required | Replace | It sees no nested field, enum, pattern or bound. Almost every ss-track rule is nested, such as `rights.sharing` and `groups[].split` |
@@ -118,7 +118,8 @@ every hash on every additive release, which splits cohorts and breaks "two stagi
 So the record keeps today's integer, which is the contract major, and the minor lives in the registry.
 
 This has two useful results. Every record the current code writes already conforms with no byte
-changed, so adoption needs no migration. And `schema_version: 3` maps directly onto contract `3.0.0`.
+changed, so adoption needs no migration. And `schema_version: 3` maps onto major 3. The first frozen
+contract of that major is `3.0.0`; a later minor can add annotations without changing record bytes.
 
 The cost is that a reader cannot tell which minor wrote a record. It does not need to. Objects are
 closed, so an older tool that meets a newer field refuses, and a newer tool reads every older minor by
@@ -126,8 +127,8 @@ the backward-transitive rule. A descriptor lists exact contract versions outside
 
 Hash stability has an elegant test. Because objects are closed, a writer's output for input that uses
 no new feature must still validate against the previous frozen minor. If it does, no field was added
-to those records, so their bytes did not change. The test needs no golden hash, so it does not depend
-on the decoder or the media.
+to those records. This alone cannot prove existing values stayed equal; replay tests also compare
+canonical bytes and seals with retained output, using fixed facts independent of the decoder.
 
 ## Reading older records
 
@@ -162,11 +163,11 @@ and an amended later record is byte-identical to one the first schema 2 code wri
 | Case on current code | Result |
 | --- | --- |
 | `stage`, `verify` and `hashes` on any older era | `RECORD_SCHEMA_UNSUPPORTED`, as designed |
-| Re-import over an older source | `IMPORT_CONFLICT`, which misnames the cause. Four of nine sealed reads have no schema check |
+| Re-import over an older source | `RECORD_SCHEMA_UNSUPPORTED`, naming `--amend-terms`, before any decode |
 | Source moved to `locked`, predecessor at the current major | `SPLIT_LEAKAGE`, as designed |
 | Same move, predecessor at another major | `RECORD_SCHEMA_UNSUPPORTED`, and no version can link to it |
 | Same move, `supersedes` dropped | **Builds and stages as `no_lineage`.** The guard's only exit goes around it |
-| Successor whose predecessor holds another major's bundle | Stage refused, where section 4.1 says such a predecessor is reported |
+| Successor whose predecessor holds another major's bundle | Stages, naming that bundle under `other_schema`, because section 4.1 says such a predecessor is reported |
 | Same source as a new corpus version | `bundle_sha256` equal across all four eras, while corpus seal, frame set and bundle seal differ and every frame is stored again |
 
 The last row sets the price: a million 1080p frames is 6 TB and about four hours of staging. A decode
@@ -219,9 +220,18 @@ found four cases that JSON Schema alone would weaken:
 | `fov: .nan` or `.inf` | Refused | Accepted by the Python validator | YAML loader refuses non-finite values before validation |
 | `start_frame` not below `end_frame` | Refused | Accepted, a cross-field rule | Stays in code, and is stated in the contract under `x-rules` |
 | Unquoted YAML date | Normalized | Refused, a `date` object is not JSON | YAML loader normalizes before validation |
+| A hash ending in a newline | Refused, by `fullmatch` | Accepted by the Python validator, whose `$` also matches before a final newline | Local validator ends a pattern at the end of the value |
+| `\d` in a pattern | Not used | Matches other digits in Python, ASCII only in ECMA-262 | The dialect refuses `\d`, `\w`, `\s` and `\b` |
+| `format: date-time` | Not used | Passes everything unless an optional package is installed | The dialect allows only `date`, which is enforced |
 
 A third-party validator gets the structure right and may be looser on the first two. That is
 acceptable: this repository's reader stays the strict gate, and the contract states the rule in words.
+
+The dialect meta-schema can state nearly everything, including that a branch of a `oneOf` holds a
+`const` property. It cannot state that all branches hold the same one, because a schema sees one branch
+at a time, so `make lint-contracts` adds that rule. The registry also pins each file's bytes as well
+as its fingerprints: a fingerprint ignores formatting by design, and a frozen file is never edited at
+all.
 
 ## Self-service
 
@@ -250,24 +260,28 @@ stay outside the repository.
 
 ```text
 copy the newest frozen file to the next version -> edit it
-ss-track contracts diff <contract>     # names each change and its class
-ss-track contracts freeze <contract>   # refuses a wrong bump, stamps fingerprints, adds the log entry
+ss-track contracts diff <contract> --file <candidate.json>
+ss-track contracts freeze <contract> --file <candidate.json> --summary "What changed"
 make ci                                # refuses an edited frozen file or a stale fingerprint
 ```
 
 A breaking change also states its migration in the change log, because that text is what a refusal
 shows a person holding an old record. The classifier is written here because it must name each
-changed field, and `jsoncompat` answers only yes or no. `jsoncompat` stays a dev-only independent
-oracle in the tests, so a disagreement fails CI. It is a small project at version 0.5.0, MIT licensed,
-and being an oracle rather than the authority makes it replaceable. In the spike its answers on a
-closed object matched the rule table on all ten structural change kinds tried. It cannot see an
-annotation, so a unit change stays with the meaning fingerprint.
+changed field, and `jsoncompat` answers only compatible, incompatible with a counterexample, or
+unknown. `jsoncompat` stays a dev-only independent oracle in the tests, so a disagreement fails CI.
+It is a small project at version 0.5.0, MIT licensed, and being an oracle rather than the authority
+makes it replaceable. In the spike its answers on a closed object matched the rule table on all ten
+structural change kinds tried. On an open object it called an added optional constraint
+compatible, and it cannot decide pattern widening or a raised bound. The tests therefore wrap it:
+equivalent rewrites, an automaton for patterns, and a bounded search of one and two positions,
+with every counterexample confirmed by the local validator. It cannot see an annotation, so a
+unit change stays with the meaning fingerprint.
 
 ## Risks
 
 | Risk | Control |
 | --- | --- |
-| Schema and reader drift | `contract-enforced-readers` removes the second copy of each structural rule |
+| Schema and reader drift | Readers take structure from contracts at runtime; the group audit owns any rule still stated twice |
 | Frozen-file growth | One small file per version. Corpus-era history shows a handful of changes |
 | Dialect too narrow | Widening the dialect is a reviewed change to one meta-schema |
 | Effort before labels | The baseline describes existing formats and changes no behavior, and every later contract is cheaper to write now than to retrofit |

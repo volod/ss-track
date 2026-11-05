@@ -1,0 +1,15 @@
+{
+  "status": "refused",
+  "code": "MANIFEST_INVALID",
+  "message": "Example refusal.",
+  "details": {
+    "field": "schema_version",
+    "nested": {
+      "values": [
+        1,
+        null,
+        true
+      ]
+    }
+  }
+}

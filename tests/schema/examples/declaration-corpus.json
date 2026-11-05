@@ -1,0 +1,35 @@
+{
+  "schema_version": 3,
+  "corpus_id": "example",
+  "scenario_rights": {
+    "sharing": "restricted",
+    "max_sensitivity": "high"
+  },
+  "groups": [
+    {
+      "group_id": "site-a",
+      "split": "development",
+      "encounters": [
+        {
+          "encounter_id": "encounter",
+          "streams": [
+            {
+              "stream_id": "camera",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "generated_cases": [
+                {
+                  "case_id": "blurred",
+                  "transform": "blur",
+                  "seed": 7,
+                  "parameters": {
+                    "max_radius": 2
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

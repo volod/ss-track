@@ -1,0 +1,298 @@
+schema_version: 1
+contracts:
+- family: declaration
+  id: corpus
+  owner: corpus-provenance
+  status: active
+  description: The shipped corpus format.
+  versions:
+  - version: 3.0.0
+    file_sha256: 76750d2e26ec256791d9dd3e8089dfb7c8ac44ebd4825e16b77a491278050b15
+    fingerprints:
+      structure: f24444e04c244f90ecfad71ab08fc1af37b5eacf2d00e79a7448e876e9e274f2
+      meaning: fda44c200776838caada5c76d6435785d8863453adf1b50a55b12e7a39faf935
+    change:
+      class: initial
+      summary: The shipped format at major 3, with no record bytes changed.
+  retired_majors:
+  - major: 1
+    status: retired
+    reason: No retained runtime evidence needs this major; historic files in tests
+      are compatibility fixtures, not usable corpus evidence. No contract is frozen
+      for this major.
+    migration: 'Rewrite it at schema_version 3: each sequence becomes a stream of
+      an encounter inside a group with a split, and scenario_rights states what the
+      corpus asks of its sources.'
+  - major: 2
+    status: retired
+    reason: No retained runtime evidence needs this major; historic files in tests
+      are compatibility fixtures, not usable corpus evidence. No contract is frozen
+      for this major.
+    migration: Set schema_version 3 and state scenario_rights; groups, encounters
+      and streams keep their form.
+- family: declaration
+  id: dataset
+  owner: data-contracts
+  status: active
+  description: Operator declaration of dataset discovery metadata.
+  versions:
+  - version: 1.0.0
+    file_sha256: 54f4048f8af2c9039577fa20a013d809b31b54d19012428f622b63367eb1d4af
+    fingerprints:
+      structure: f25a9e8d6eea74b60aa245c2831f5754da4c1e54f4a516b82c0039025767b161
+      meaning: 17399633e88c6599dd083a288203b416ea5ced3352cfbf9690dc2769958b6740
+    change:
+      class: initial
+      summary: Initial operator dataset declaration.
+  - version: 1.1.0
+    file_sha256: d85209e38dab244219b6032642f8d8493d61fff53a7821c6d3c890226c1270ae
+    fingerprints:
+      structure: f25a9e8d6eea74b60aa245c2831f5754da4c1e54f4a516b82c0039025767b161
+      meaning: f3fc616839afaebb2d345cb34cb49f3ab85a1d0c5c9acd869d191bf7641840a4
+    change:
+      class: minor
+      summary: State the not-blank rule of each free-text field under x-rules. Accepted
+        values do not change.
+- family: declaration
+  id: recording
+  owner: corpus-provenance
+  status: active
+  description: Operator recording declaration.
+  versions:
+  - version: 2.0.0
+    file_sha256: 0f5943421082c419ec9433d0ec06ff88d1d2f8a28fb35beb5db13500066cf281
+    fingerprints:
+      structure: bca41728867b6cef0a49888785287a0be9e3ceea3327430292ba1175261f776d
+      meaning: 1fc73d91030f025920c7fd16c20f1b935821f66da850fdac8745d17081133e69
+    change:
+      class: initial
+      summary: The shipped format at major 2, including descriptive capture scalars,
+        with no record bytes changed.
+  - version: 2.1.0
+    file_sha256: 42777cc4ca6d957600fef6808b1df9387a87b836eb3e6eda96062221aeabcb32
+    fingerprints:
+      structure: bca41728867b6cef0a49888785287a0be9e3ceea3327430292ba1175261f776d
+      meaning: ec6f4686adf5964ff6a3a30e108a3f3ed1ffd4adfdd5e064aadd6a282439f8a6
+    change:
+      class: minor
+      summary: State the not-blank rule of each free-text field under x-rules. Accepted
+        values do not change.
+  retired_majors:
+  - major: 1
+    status: retired
+    reason: No retained runtime evidence needs this major; historic files in tests
+      are compatibility fixtures, not usable corpus evidence. No contract is frozen
+      for this major.
+    migration: Set schema_version 2 and state rights.retain_until and rights.derived_frames,
+      which only an operator can state.
+- family: record
+  id: corpus-manifest
+  owner: corpus-provenance
+  status: active
+  description: The shipped corpus-manifest format.
+  versions:
+  - version: 3.0.0
+    file_sha256: 445c85421507903474f0358f52b7c2e360e45dabbf01c4bf1effd34c94cb2306
+    fingerprints:
+      structure: 85b964e257f5507d3ceba487103bd77516d3c3c3abecbb324578f03e73454e49
+      meaning: 75377930f3a0c505c693f771750f8cccf49a7518fb2e6730dc7babebf8f73a47
+    change:
+      class: initial
+      summary: The shipped format at major 3, with no record bytes changed.
+  - version: 3.1.0
+    file_sha256: 4ec30a85ff8f6fafa52840901093f245cf7733abde0e64300a6de565685dd6d9
+    fingerprints:
+      structure: 85b964e257f5507d3ceba487103bd77516d3c3c3abecbb324578f03e73454e49
+      meaning: 1e772aed7dcf0be78fdfbd72adebc2523af13690a69e66cbdfc41957b2ee9c24
+    change:
+      class: minor
+      summary: State which fields a public descriptor may carry. Existing record bytes
+        stay valid.
+  retired_majors:
+  - major: 1
+    status: retired
+    reason: No retained runtime evidence needs this major; historic files in tests
+      are compatibility fixtures, not usable corpus evidence. No contract is frozen
+      for this major.
+    migration: Build a new corpus version under a new corpus_id that names this one
+      in supersedes. This major states no group or split, so lineage reports it as
+      not_compared and checks nothing against it.
+  - major: 2
+    status: retired
+    reason: No retained runtime evidence needs this major; historic files in tests
+      are compatibility fixtures, not usable corpus evidence. No contract is frozen
+      for this major.
+    migration: Build a new corpus version under a new corpus_id that names this one
+      in supersedes; lineage and shared frames compare it through this major's projection.
+- family: record
+  id: frame-bundle
+  owner: corpus-provenance
+  status: active
+  description: The shipped frame-bundle format.
+  versions:
+  - version: 3.0.0
+    file_sha256: c166d83e87e0c8ef6a440b82f0041841e2f6a6020db288ca0e83f73323d36969
+    fingerprints:
+      structure: 414384d8b3fcc2e97e18d66692ed30416251f9599d4f35620beebc4f3ecc9c25
+      meaning: 69846b8a56d360d542d43962fbd74a56839ddfa3cf3592bd379f181ed6131c07
+    change:
+      class: initial
+      summary: The shipped format at major 3, with no record bytes changed.
+  - version: 3.1.0
+    file_sha256: 0c77ae11c95f78f9b73e0d425d78643e8b8a770822261f883e4693ae84b2816a
+    fingerprints:
+      structure: 414384d8b3fcc2e97e18d66692ed30416251f9599d4f35620beebc4f3ecc9c25
+      meaning: a8e644e7e9a1f264042a0a2774195fd3da02c83d21a4454a8a163b5ae97028e2
+    change:
+      class: minor
+      summary: State which fields a public descriptor may carry. Existing record bytes
+        stay valid.
+  retired_majors:
+  - major: 1
+    status: retired
+    reason: No retained runtime evidence needs this major; historic files in tests
+      are compatibility fixtures, not usable corpus evidence. No contract is frozen
+      for this major.
+    migration: Build and stage a new corpus version.
+  - major: 2
+    status: retired
+    reason: No retained runtime evidence needs this major; historic files in tests
+      are compatibility fixtures, not usable corpus evidence. No contract is frozen
+      for this major.
+    migration: Build and stage a new corpus version.
+- family: record
+  id: frame-set
+  owner: corpus-provenance
+  status: active
+  description: Which frame bundles a corpus version staged.
+  versions:
+  - version: 1.0.0
+    file_sha256: 00d41661b538872e124cea435102e60e99101489dce6047967291bc1110e431d
+    fingerprints:
+      structure: 02af83afffdf8c6e4204d040b1ef7eae68dee15b0ed25c9f81528dcc2dc2cd01
+      meaning: 0047bf8ea5ce2dc77a162c5fdb481ca1d6e547a64cc61d27ff7217f0d221a834
+    change:
+      class: initial
+      summary: The format as shipped at schema 1.
+- family: record
+  id: hash-comparison
+  owner: corpus-provenance
+  status: active
+  description: The shipped hash-comparison format.
+  versions:
+  - version: 1.0.0
+    file_sha256: 5b2353f65dd8d467e088f65ac8a7657dc3110d072f2a0ab5a36934f694f29a19
+    fingerprints:
+      structure: ce9d1548ec736024f1206a230863472efc29d2fd2913f085446b5e116a39cf1b
+      meaning: 7e0ef5b75fdaee84a2a478f6adc617c54c6451385898b64333b8ba10b7aa4d00
+    change:
+      class: initial
+      summary: The shipped format at major 1, with no record bytes changed.
+- family: record
+  id: source-manifest
+  owner: corpus-provenance
+  status: active
+  description: Imported source provenance and decoded facts.
+  versions:
+  - version: 2.0.0
+    file_sha256: 5b237260139a54f9c72d6aaba3d5e44f83a16d5e868249eb92c8ae0eb08b9137
+    fingerprints:
+      structure: 50ce4b08a57346130dd2d14c172d4db8665c177e13247e7e8147d518f1a03402
+      meaning: 43d00b6d1757be667a5becc81969dce1203532c32eaaf426907c6532cffcca7e
+    change:
+      class: initial
+      summary: The shipped format at major 2, including descriptive capture scalars,
+        with no record bytes changed.
+  - version: 2.1.0
+    file_sha256: 2e6ccd48123840a2dc7fda3255ec88f6bdde8eee3a3aae24a269495d274e2daf
+    fingerprints:
+      structure: 50ce4b08a57346130dd2d14c172d4db8665c177e13247e7e8147d518f1a03402
+      meaning: 983cd672af739edb2c958a922e73b83ae457366497fcde42ebd848e87aad8789
+    change:
+      class: minor
+      summary: State which fields a public descriptor may carry. Existing record bytes
+        stay valid.
+  retired_majors:
+  - major: 1
+    status: facts
+    reason: A retained source record of this major lacks retain_until and derived_frames,
+      which only an operator can state, so it serves no evidence; an amendment reads
+      its stated facts and writes the current major beside it. No contract is frozen
+      for this major.
+    migration: Record its terms with ss-track import --amend-terms.
+- family: record
+  id: staged-hashes
+  owner: corpus-provenance
+  status: active
+  description: The shipped staged-hashes format.
+  versions:
+  - version: 1.0.0
+    file_sha256: d83d7253c9b4fafc7af2b97b6dc69747e7a5f6fd002bf88139ff4005a2c07b1a
+    fingerprints:
+      structure: 2a0c089ff2919279b11f43506d848e724816842e386ccce677024d98e39eacc5
+      meaning: 1225c87facd77772fad9b5ff95199f9249da099739c72d8d85ffd2cdfacde5e0
+    change:
+      class: initial
+      summary: The shipped format at major 1, with no record bytes changed.
+- family: result
+  id: command
+  owner: data-contracts
+  status: active
+  description: The shipped command format.
+  versions:
+  - version: 1.0.0
+    file_sha256: 3830d3760900c95b19144da514a50da53e9d974f679c6aa44f9457ade45b33be
+    fingerprints:
+      structure: 6949267e12a0ae3fc906ef4617ddbf9dad10d1a9bc402ed67f01d8128d3b5aac
+      meaning: 4832586c5763e71c167e14eaa225abb6a91549b8ca8049537ee99e48475cd86c
+    change:
+      class: initial
+      summary: The shipped format at major 1, with no record bytes changed.
+  - version: 1.1.0
+    file_sha256: 4d14f1e3939f544d4c4cbda55f1149144994138819b05bf91f326816b63d3570
+    fingerprints:
+      structure: 094287509dcbe13cdb582488ca8c99b68381263af22a2e873853632b5dcc462e
+      meaning: 66eaa973f481973ac180a16311f86f1f4450c9b63f7b88abe4f8661a5a4ea1e9
+    change:
+      class: minor
+      summary: Add contract diff and freeze results and predecessor-major dispositions.
+  - version: 1.2.0
+    file_sha256: 6fcdf761d73634af344ed43c553045e7dc7e3e4e6cfa7190206ed332b29fc855
+    fingerprints:
+      structure: e94a7dcaafdb81bd6bc0d3cfc67e28695a6a79201d21bc4efcab673a34a9bb05
+      meaning: 1045463937c65e99895693126c2d9ef7dccde27bd0e02a04883d4b61ea88544f
+    change:
+      class: minor
+      summary: List the migration a holder of a record of each retired major must
+        make.
+  - version: 1.3.0
+    file_sha256: 91c273d9a78cdb49548902f0fbda57e82433b6371abc0be2ca215d1eea85a063
+    fingerprints:
+      structure: 97a9cfe223c95e8c6c4e93da77caeb4b6ccf2feb8f527549905ce918622ae275
+      meaning: e2594fb21e9cb996da7fb6dd546578a46be9f5f76590385cb7f45d6f2a37d5b5
+    change:
+      class: minor
+      summary: List a historic major's facts disposition, and name the predecessors
+        a lineage could not compare.
+  - version: 1.4.0
+    file_sha256: f4ebb09fc5a0f75238da5e4a4c715f252c56375d763503175f98590ae7932a09
+    fingerprints:
+      structure: 6a44cd87ee2b3cce5262693565758b2d9f180c9a3a2dbccf9be13c9c9ffabdcb
+      meaning: 608a97dc2c8d972fa2308d439bf93e5fabff75975354ec72a4e14a11875b8f12
+    change:
+      class: minor
+      summary: List paths written by reference and ODCS export commands.
+- family: shared
+  id: types
+  owner: data-contracts
+  status: active
+  description: Value types that other contracts reference.
+  versions:
+  - version: 1.0.0
+    file_sha256: 8767dae47c3092bc2a9ce1d79f4be89ceaa67115f4763e9529199db5c098325b
+    fingerprints:
+      structure: 24873012e5c08cc1e45af2aa3977cb705409a0efcabda5abe0b201f503fcc026
+      meaning: d9b7155f2a4f1376a98dbbc937148be0453db28e5cd18aaaac1ec1bfbe32602a
+    change:
+      class: initial
+      summary: SHA-256 digest and identifier.

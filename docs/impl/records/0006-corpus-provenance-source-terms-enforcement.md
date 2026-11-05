@@ -52,8 +52,7 @@ publication; ordinary stream staging remains allowed.
 Existing source records require schema 2. Legacy corpora missing explicit terms refuse rather than
 silently receiving defaults. Migration is operator-managed import and a new corpus version, described
 in the [current corpus contract](../current/corpus.md). Corpus and bundle schemas remain unchanged.
-No dependency, lockfile, environment-variable or CLI-option changes were needed. The builder remains
-one cohesive module at 268 lines, slightly above the approximate size target.
+No dependency, lockfile, environment-variable or CLI-option changes were needed.
 
 ## Acceptance evidence
 

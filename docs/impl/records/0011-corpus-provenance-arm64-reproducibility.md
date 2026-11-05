@@ -119,9 +119,7 @@ Compatibility: `POLICY_REVISION` is 3, and the policy hash changes with it. Ever
 record and corpus now refuses, `corpus build` and `corpus stage` with `DECODE_POLICY_MISMATCH` and
 `import` with `IMPORT_CONFLICT`, so an existing data root needs replacing. None exists outside tests:
 `.data` holds only tool caches. New CLI commands, new refusal codes, and `read_frame_set`. No
-environment variable, `pyproject.toml` or `uv.lock` change. `tests/corpus/test_host_hashes.py` is
-about 350 lines and stays one unit over one record, and `_fixed_corpus.py` is about 270, most of it the
-table.
+environment variable, `pyproject.toml` or `uv.lock` change.
 
 The emulated runs used the locked arm64 wheels, `av` 19.0.2 with FFmpeg 9.0.2 and `numpy` 2.5.4, under
 `qemu-aarch64` 10.2.1 user mode on an arm64 `python:3.12-slim-bookworm` root. Tests that start Python

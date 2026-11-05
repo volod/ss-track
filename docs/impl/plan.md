@@ -51,13 +51,15 @@ the stored source.
 - Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`,
   `$DATA_DIR/import/<source-sha256>/`.
 - Execution path: Decode the stored copy under the installed policy and re-seal the record under one
-  atomic replace, reusing the lock and `replaced_record_path` in `amendment.py`.
+  atomic replace, reusing the lock and `replaced_record_path` in `amendment.py`. Replace
+  `_DECODE_AGAIN_REMEDY` in that file, which still tells an operator to delete the stored source, with
+  the two flags together.
 - Acceptance gates: A record of an older policy gains the installed one with its stored source
   byte-identical, and `corpus build` of a new version accepts it. A corpus version pinning the old
   record refuses with `SOURCE_RECORD_CHANGED`. A stored source that no longer matches its hash is
   refused, a repeat reports `unchanged`, and an interrupted run leaves one whole record. The real
-  `tests/corpus/records/` schema 1 record of `d6b704d`, amended and then re-decoded, builds, and the
-  one of `0238d55` builds through both flags together with no term invented.
+  `tests/corpus/kept_records/` schema 1 record of `d6b704d`, amended and then re-decoded, builds,
+  and the one of `0238d55` builds through both flags together with no term invented.
 - Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
 
 #### group-repeated-frames (optional)
@@ -100,8 +102,8 @@ split, and its build says only that it has no lineage.
   Source hashes on one data root only. Versions in the declared chain stay with the refusal.
 - Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/corpus/`.
 - Execution path: Scan `$DATA_DIR/corpus/*/manifest.json` and reuse the placement comparison in
-  `lineage.py`, reading every major through its projection once `record-read-window` provides one, and
-  naming a manifest it cannot read rather than skipping it.
+  `lineage.py`, reading every major through `read_comparable` and its projection, and naming a
+  manifest it cannot read, or one whose major keeps no projection, rather than skipping it.
 - Acceptance gates: A source placed in `locked` by an unlinked version and by a sibling branch are
   each listed with both versions, and both builds succeed. One state gives one listing in one order,
   and a version in the declared chain is never listed.
@@ -122,9 +124,11 @@ After `--amend-terms` an operator learns which corpus versions hold the affected
 - Scope boundary: A report on one data root that refuses nothing and removes nothing, and never fails
   an amendment that is already recorded. Other hosts stay out of reach.
 - Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/corpus/`.
-- Execution path: Scan `$DATA_DIR/corpus/*/manifest.json` for streams pinning the replaced seal, sharing
-  the scan with `unlinked-version-report` when that exists, reading every major through its projection
-  once `record-read-window` provides one, and naming a manifest it cannot read rather than skipping it.
+- Execution path: Scan `$DATA_DIR/corpus/*/manifest.json` for streams pinning the replaced seal,
+  sharing the scan with `unlinked-version-report` when that exists. A corpus projection holds no
+  pin, so add `source_manifest_sha256` to each major's projection in
+  `corpus/records/projections.py`, read every major through `read_comparable`, and name a manifest
+  it cannot read rather than skipping it.
 - Acceptance gates: A source pinned by two versions lists both, a version pinning another record is
   not listed, an unreadable manifest is named and the amendment still records, and a repeat reporting
   `unchanged` lists nothing. One state gives one listing in one order.
@@ -355,274 +359,16 @@ import, build, stage and verify as one path.
 - Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`,
   `$DATA_DIR/import/<source-sha256>/`, `$DATA_DIR/corpus/`, `$DATA_DIR/corpus/<corpus-id>/`.
 - Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from what
-  is already known to repeat: the two `flock` routines and their scratch clearing in `staging.py`
-  and `amendment.py`, the `.incoming-` literal in `importer.py` beside `SCRATCH_PREFIX`, the two
-  `PermissionError` handlers for one source read, and the `_rights`, `cli_root` and `_last_record`
-  test helpers. Then compare the refusal table with the codes raised.
+  is already known to repeat: the `flock` routines and their scratch clearing in `staging.py`,
+  `amendment.py` and `descriptor_publish.py`, the `.incoming-` literal in `importer.py` beside
+  `SCRATCH_PREFIX`, the two `PermissionError` handlers for one source read, and the `_rights` test
+  helpers beside `_record` in `tests/test_cli.py`. Then compare the refusal table with the codes
+  raised.
 - Acceptance gates: Each named repetition is merged or kept for a stated reason. The fixed corpus
   keeps its `bundle_sha256` and `frame_set_sha256`, and every refusal code keeps its meaning. Every
   finding is fixed, routed to a task or dropped with its reason, and `make quality` passes. Finding
   nothing is a valid result when the record states what was reviewed.
 - Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
-### Data contracts -- `data-contracts`
-
-#### record-read-gate
-
-Four of nine sealed reads check no schema, an older source is misreported as `IMPORT_CONFLICT`, a
-refusal never says what to do, and an unreadable predecessor fails a successor where section 4.1 says
-it is reported.
-
-- Serves: `data-contracts` -- [Reading older records](../design/spec.md#reading-older-records)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: One read path checks seal, kind and schema for every sealed record, and a
-  refusal states the record, its major, whether it is older or newer, and the remedy.
-- Scope boundary: Exact-version acceptance stays, and so does every refusal code except the import
-  misreport. No registry, view or new dependency. A real record of each historic major enters the
-  tests.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `tests/corpus/records/`.
-- Execution path: Replace the `read_sealed` and `require_schema` pair with one function, covering
-  `generated.py`, the existing-record reads in `builder.py` and `importer.py`, and `host_hashes.py`.
-  Add `not_compared` reason `other_schema` for a predecessor's frames. Keep `amendment.py` able to
-  read the older major it exists to replace, through the same function. Export each historic commit,
-  have its own code write records from a generated clip, and keep only the JSON with a note of the
-  commit, beside the two source records already there.
-- Acceptance gates: A static test finds no sealed read outside the one function. Re-importing over an
-  older source record is `RECORD_SCHEMA_UNSUPPORTED`, naming `--amend-terms` as its remedy, and that
-  command still accepts the record. A successor whose predecessor
-  holds another major's bundle stages and names it under `other_schema`. An older and a newer record
-  are told apart. Each kept historic record refuses by name, with no traceback.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
-#### contract-registry
-
-No format has a definition outside the Python that reads it, so a consumer needs this repository to
-read one record.
-
-- Serves: `data-contracts` -- [Contract families](../design/spec.md#171-contract-families)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: `ss-track contracts list` and `validate` work from an installed wheel over a
-  registry of frozen contracts, and `make lint-contracts` runs inside `make ci`.
-- Scope boundary: Registry, dialect meta-schema, shared definitions, identity, both fingerprints,
-  packaging, and `record/frame-set` end to end as the first contract. No reader changes and no
-  change classifier.
-- Data and artifact paths: `contracts/`, `src/ss_track/schema/`, `tests/schema/`,
-  `docs/guide/authoring-contracts.md`.
-- Execution path: Ship root `contracts/` as package data through a setuptools `package-dir` mapping,
-  and add `jsonschema` to the runtime dependencies and `uv.lock`. Validate with a strict integer type
-  and reuse `canonical_json` for fingerprints. Keep `src/ss_track/schema/` distinct from
-  `src/ss_track/contract/`, which holds events and scenarios. Add the authoring guide, and the
-  `AGENTS.md` rule that a new interchangeable format adds its contract in the same change.
-- Acceptance gates: A real frame set validates with no byte changed, from a wheel installed outside
-  the checkout. A standalone validator given only `contracts/` accepts it and refuses an altered copy.
-  The meta-schema refuses an open object, `if`, `not`, an untagged union and a property with no
-  description. An edited frozen file and a stale fingerprint each fail the build.
-- Documentation target: [Current implementation](current.md#areas), new page `current/contracts.md`.
-
-#### corpus-contract-baseline
-
-Every shipped format still has no contract, and some of its values mean nothing outside FFmpeg.
-
-- Serves: `data-contracts` -- [Identity and versions](../design/spec.md#172-identity-and-versions)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: contract-registry.
-- User-visible outcome: Recording, corpus, source manifest, corpus manifest, frame bundle, staged
-  hashes, hash comparison and command result each have a frozen contract at their shipped major.
-- Scope boundary: Describe formats as the current code writes them, changing no shipped byte and no
-  reader's behavior. Split the shared version constants so each format owns its major. Cross-field
-  rules go in `x-rules`. FFmpeg color integers gain `x-vocabulary`. Earlier majors are listed `retired`
-  with no contract, because no retained record exists. Corpus 3.0.0 requires source terms, so a
-  schema 3 manifest written before they existed stays refused.
-- Data and artifact paths: `contracts/declaration/`, `contracts/record/`, `contracts/result/`,
-  `tests/schema/`.
-- Execution path: Add a session-wide test hook that validates every record any test writes, examples
-  per contract, and one tagged branch per transform and label-transform kind.
-- Acceptance gates: Every record the suite writes validates. A recipe carrying another transform's
-  parameters is refused by the schema alone. Each numeric quantity has `x-unit`, each coded integer
-  has `x-vocabulary`, and the result contract's `code` enum equals `RefusalCode`, so a test fails when
-  either changes alone. A format the dialect cannot state stays `draft` with its reason.
-- Documentation target: [Current implementation](current.md#areas), page `current/contracts.md`.
-
-#### contract-evolution-gate
-
-A format can change only by a new integer that refuses every earlier record, and nothing notices a
-changed unit.
-
-- Serves: `data-contracts` -- [Compatibility rules](../design/spec.md#173-compatibility-rules)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: corpus-contract-baseline.
-- User-visible outcome: `ss-track contracts diff` names each change and its class, `freeze` refuses a
-  wrong bump and writes the change-log entry, and CI refuses an unreviewed change.
-- Scope boundary: JSON Schema contracts. The protobuf gate belongs to `event-schema-contract`.
-- Data and artifact paths: `src/ss_track/schema/`, `contracts/`, `tests/schema/`.
-- Execution path: Classify by walking both versions through nested objects, array items, `$ref`
-  targets and tagged branches, naming each change by JSON pointer. Keep `jsoncompat` pinned in the dev
-  extra as an independent oracle, never as the authority. Add the hash-stability test: writer output
-  for input using no new feature validates against the previous frozen minor.
-- Acceptance gates: Table-driven fixtures pass every row of spec section 17.3, each at a nested path
-  and inside a tagged branch. A bump that is too small fails, and a disagreement with the oracle fails.
-  Replaying the kept historic records classifies all five real bumps as major. A new field written as
-  `null` fails hash stability, as does a writer adding a key under an unchanged version, which is how
-  source terms entered schema 3 corpus manifests. A major with no migration text or no disposition
-  fails to freeze.
-- Documentation target: [Current implementation](current.md#areas), page `current/contracts.md`.
-
-#### contract-enforced-readers
-
-A format stays stated twice, in its contract and in hand-written readers, so the two can disagree.
-
-- Serves: `data-contracts` -- [Enforcement](../design/spec.md#174-enforcement)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: contract-evolution-gate, record-read-gate.
-- User-visible outcome: A declaration on read and a record before sealing are checked for structure
-  by their contract alone, with the same refusal codes, and a refusal of an old record names the
-  migration from its change log.
-- Scope boundary: Structural rules move out of `Fields`, `read_recipe` and the declaration readers.
-  Cross-field and cross-file rules stay in code. A sealed read checks seal, kind and major only. No
-  record byte changes.
-- Data and artifact paths: `src/ss_track/corpus/`, `src/ss_track/schema/`, `tests/corpus/`,
-  `tests/schema/`.
-- Execution path: Keep duplicate-key refusal in the YAML loader, add non-finite refusal and date
-  normalization, validate each declaration, validate before `seal`, and reduce `Fields` to typed
-  access. Remove the key check in `terms.py`, which stands in for a version the contract now states.
-- Acceptance gates: Every existing refusal code holds across the existing suite. `1.0` as an index, a
-  non-finite number, a repeated key and an unquoted date each keep today's result. A writer defect is
-  `RECORD_INVALID` before anything is sealed. `corpus verify` on a million-frame index takes no longer
-  than before, shown by a benchmark fixture.
-- Documentation target: [Current implementation](current.md#areas), pages `current/contracts.md` and
-  `current/corpus.md`.
-
-#### record-read-window
-
-A format change sends every record to a fresh data root, and a predecessor of another major cannot be
-compared, so the only exit drops `supersedes` and the split guard with it.
-
-- Serves: `data-contracts` -- [Reading older records](../design/spec.md#reading-older-records)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: contract-enforced-readers.
-- User-visible outcome: Each older major declares `view`, `facts` or `retired`. A view record serves
-  as evidence with no byte, seal or cohort change, and `supersedes` works across majors.
-- Scope boundary: Pure in-memory views stepping one major at a time, one comparison projection per
-  major, and accepted majors in the registry. Nothing rewrites a sealed record. A view never derives
-  an operator judgment or changes an algorithm revision. No views for the retired historic majors,
-  whose records are test data only.
-- Data and artifact paths: `src/ss_track/schema/`, `src/ss_track/corpus/`, `tests/schema/`,
-  `tests/corpus/`.
-- Execution path: Add the disposition to the registry and read path, then route `lineage.py`,
-  `duplicate_frames.py` and the unlinked listing through the projection. Prove it with a synthetic next
-  major of a real contract in the tests. Replace the older-major constant in `amendment.py` with the
-  `facts` disposition, and keep `SEQUENCE_KEYS` as the check that a record holds the current facts.
-- Acceptance gates: A view major verifies with its frame-set hash and file bytes unchanged. A
-  `facts` major is refused as evidence, stays inspectable, and a move of its source is
-  `SPLIT_LEAKAGE` and not a schema refusal. A view that derives a rights field fails a test.
-  `DECODE_POLICY_MISMATCH` still refuses through a view. A predecessor with no projection is
-  `not_compared`, never a failure of its successor. The five real bumps replay to their
-  dispositions: `view` for bundle 1 to 2, bundle 2 to 3 and corpus 2 to 3, and `facts` for corpus 1
-  to 2 and source 1 to 2.
-- Documentation target: [Current implementation](current.md#areas), pages `current/contracts.md` and
-  `current/corpus.md`.
-
-#### contract-reference-docs (optional)
-
-A reader of a contract should not need to read JSON Schema to learn what a field means, or how
-records link.
-
-- Serves: `data-contracts` -- [Identity and versions](../design/spec.md#172-identity-and-versions)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: contract-evolution-gate.
-- User-visible outcome: `ss-track contracts docs --out <dir>` writes a data dictionary per contract,
-  the first version of each field, and a lineage graph from `x-references`.
-- Scope boundary: Generated Markdown only. No site or hosting. The change log stays the authored
-  text.
-- Data and artifact paths: `src/ss_track/schema/`, `tests/schema/`.
-- Execution path: Render from frozen contracts and add dangling-reference detection to the check.
-- Acceptance gates: Output is deterministic and lists every property and enum value. A dangling
-  `x-references` target fails `make lint-contracts`.
-- Documentation target: [Current implementation](current.md#areas), page `current/contracts.md`.
-
-#### dataset-descriptor (optional)
-
-A future consumer cannot find, judge or load a corpus version without this repository.
-
-- Serves: `data-contracts` -- [Dataset
-  descriptors](../design/spec.md#175-dataset-descriptors-and-self-service)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: contract-enforced-readers.
-- User-visible outcome: `ss-track corpus describe` writes a Croissant 1.1 document, a dataset card and
-  the contract versions used.
-- Scope boundary: Inputs are sealed records, frozen contracts and one `declaration/dataset` supplying
-  title, description, license, citation, address and publication date, which no sealed record holds.
-  Default visibility is restricted. Raw frames are indexed with their layout. No upload, hosting or
-  publication decision.
-- Data and artifact paths: `src/ss_track/corpus/`, `contracts/declaration/`, `tests/corpus/`.
-- Execution path: Generate from the corpus manifest, frame set and source manifests. Validate with
-  `mlcroissant` in a separate locked extra and CI job, outside the runtime closure.
-- Acceptance gates: A descriptor validates with zero errors and its streams, bundles and per-frame
-  index load as records. Two runs give identical bytes. A public request on a restricted corpus
-  refuses without printing a value, and so does one with no license. A public descriptor holds no
-  value marked `restricted` or `sensitive` and gives `locked` as counts. Generated cases stay a
-  labelled slice.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
-#### odcs-contract-export (optional)
-
-A data catalog may expect ODCS, and a generated view costs little once contracts exist.
-
-- Serves: `data-contracts` -- [Dataset
-  descriptors](../design/spec.md#175-dataset-descriptors-and-self-service)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: contract-evolution-gate.
-- User-visible outcome: `ss-track contracts export --format odcs` writes one ODCS document per
-  contract.
-- Scope boundary: A generated view, never authored or read back. A tagged union is listed as the
-  union of its branches, and what ODCS cannot state is named in `customProperties`.
-- Data and artifact paths: `src/ss_track/schema/`, `tests/schema/`.
-- Execution path: Project each contract and validate against the official ODCS JSON Schema, pinned by
-  hash.
-- Acceptance gates: Every document validates, with id and version matching its contract. Every
-  property appears, and each construct lost in projection is listed.
-- Documentation target: [Current implementation](current.md#areas), page `current/contracts.md`.
-
-#### data-contracts-audit (optional)
-
-Contracts, readers and disposition rules arrive in separate tasks, so a format can still be stated
-twice and an older-major rule can sit in code the registry should own.
-
-- Serves: `data-contracts` -- [Reading older records](../design/spec.md#reading-older-records)
-- Agent status: CLEAR
-- Milestone: M1
-- Effort: high
-- Dependencies: every other agent task in this group.
-- User-visible outcome: Each format has one statement, its contract, and each older major has one
-  stated route, with no record byte moved.
-- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
-  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
-  score or refusal code.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `tests/corpus/records/`,
-  `contracts/`, `src/ss_track/schema/`, `tests/schema/`, `docs/guide/authoring-contracts.md`,
-  `contracts/declaration/`, `contracts/record/`, `contracts/result/`.
-- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from the
-  code that still knows a version: the older-major constant in `amendment.py`, `SEQUENCE_KEYS`, and
-  any structural rule left in a hand-written reader. Then replay every record in
-  `tests/corpus/records/` and compare the change log with the real bumps.
-- Acceptance gates: Every historic record reads under its disposition with its bytes and seal
-  unchanged, a static search finds no version check outside the read path, and `corpus verify` on a
-  million-frame index is no slower than before. Every finding is fixed, routed to a task or dropped
-  with its reason, and `make quality` passes. Finding nothing is a valid result when the record
-  states what was reviewed.
-- Documentation target: [Current implementation](current.md#areas), pages `current/corpus.md` and
-  `current/contracts.md`.
 
 ### Annotation and selection -- `annotation-selection`
 
@@ -633,7 +379,7 @@ Labels need stable identity and a frozen mask before scores can mean anything.
 - Serves: `annotation-selection` -- [Annotation contract](../design/spec.md#42-annotation-contract)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: contract-registry.
+- Dependencies: none.
 - User-visible outcome: An operator validates visibility status, geometry, instance identity, motion
   events, operator seeds and masks against a versioned contract.
 - Scope boundary: Label, seed and mask contracts, validation and frozen seed replay, in the stored
@@ -722,7 +468,7 @@ Python and later C++ modules need one versioned meaning for every event.
 - Serves: `module-contract-runner` -- [Module contract](../design/spec.md#5-module-contract-execution-and-fault-semantics)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: contract-registry.
+- Dependencies: none.
 - User-visible outcome: Modules and tools share a validated event schema with golden fixtures, and a
   breaking change fails CI.
 - Scope boundary: The G0 and G1 record families. G2 fusion records are out of scope.
@@ -731,7 +477,9 @@ Python and later C++ modules need one versioned meaning for every event.
   that regenerates bindings and a CI drift check, keep generated files out of the size and lint
   gates, and add the smallest justified dependency to `uv.lock`. Register each package under
   `contracts/event/`, pin `buf-bin` in the dev extra, and gate on `buf breaking` with the `WIRE_JSON`
-  category against the frozen descriptor set, because G0 events travel as JSON.
+  category against the frozen descriptor set, because G0 events travel as JSON. The registry,
+  `make lint-contracts` and the contract `$id` pattern hold JSON Schema files only, so this task
+  teaches them the `event` family.
 - Acceptance gates: Golden fixtures cover absent and unknown fields, malformed payloads, coordinates,
   timestamps and power units. A malformed event is rejected with a reason. A renamed field, a reused
   field number and a changed `json_name` each fail the gate. `FrameRef` round-trips every
@@ -2163,15 +1911,16 @@ Telemetry has nowhere to live as evidence, because import takes only video.
 - Serves: `telemetry-ingest` -- [Telemetry bundles](../design/spec.md#182-telemetry-bundles)
 - Agent status: CLEAR
 - Milestone: M6
-- Dependencies: contract-enforced-readers.
+- Dependencies: none.
 - User-visible outcome: `ss-track telemetry import`, `stage` and `verify` turn a declared source into
   a sealed bundle of raw typed columns.
 - Scope boundary: Contracts for the source declaration and the source and bundle records, the column
   store, and a declared CSV reader as the first format. No profiles, analysis or live capture.
 - Data and artifact paths: `src/ss_track/telemetry/`, `tests/telemetry/`, `contracts/`,
   `$DATA_DIR/import/<source-sha256>/`, `$DATA_DIR/telemetry/<bundle-sha256>/`.
-- Execution path: Reuse `sealed.py`, publish-by-rename and the source-terms checks by generalizing
-  them, with no parallel copy. Store one little-endian file per field under a sealed index.
+- Execution path: Reuse `sealing.py` and `sealed.py`, publish-by-rename and the source-terms checks
+  by generalizing them, with no parallel copy. Store one little-endian file per field under a sealed
+  index.
 - Acceptance gates: Two stagings across data roots, and on x86-64 and arm64, give one hash. A float
   column round-trips bit-exact, including NaN payloads. A flipped column byte fails `verify` by name.
   Rights and retention refuse as they do for a recording.

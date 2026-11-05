@@ -1,0 +1,63 @@
+{
+  "corpus_id": "pilot-v1",
+  "decode_policy": {
+    "codec_options": {
+      "err_detect": "explode",
+      "flags": "bitexact"
+    },
+    "conversion_flags": "BILINEAR|ACCURATE_RND|BITEXACT|FULL_CHR_H_INT|FULL_CHR_H_INP",
+    "decoder": "pyav",
+    "decoder_version": "19.0.2",
+    "ffmpeg_version": "9.0.2",
+    "format_options": {
+      "err_detect": "explode",
+      "fflags": "nofillin"
+    },
+    "output_pixel_format": "rgb24",
+    "revision": 2,
+    "thread_count": 1
+  },
+  "decode_policy_sha256": "946fa68e3a97ae7c890a13e7329f3bd52d7ffb1cacf8acfd64c990bfd0f9a9b5",
+  "generated_cases": [],
+  "kind": "ss-track.corpus-manifest",
+  "manifest_sha256": "f1c89c7b0c1a4953bd84496a0265249e1235ffb93428393f2b61f7d0ff83dcb9",
+  "scenario_rights": {
+    "max_sensitivity": "high",
+    "sharing": "restricted"
+  },
+  "schema_version": 3,
+  "streams": [
+    {
+      "completeness_checks": [
+        "matroska_segment_size"
+      ],
+      "encounter_id": "enc",
+      "frame_count": 24,
+      "group_id": "site-a",
+      "height": 48,
+      "modality": "camera",
+      "rights": {
+        "basis": "owned",
+        "derived_frames": true,
+        "holder": "Project Contributors",
+        "retain_until": null,
+        "retention": "project duration",
+        "sharing": "restricted"
+      },
+      "selection": {
+        "end_frame": 24,
+        "start_frame": 0
+      },
+      "sensitivity": {
+        "level": "low",
+        "notes": null
+      },
+      "source_manifest_sha256": "b36e06f73373f99caa0ecbfd80b41d6ca8ca2983b649f87357afa2621a928837",
+      "source_sha256": "33d0c1e8a64e92429543829e6861d1f9bcfb4b030cfab2264135c7771d19943d",
+      "split": "development",
+      "stream_id": "one",
+      "timestamp_quality": "derived",
+      "width": 64
+    }
+  ]
+}

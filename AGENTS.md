@@ -15,12 +15,17 @@ specific files must link here and keep only integration-specific routing.
   honor `.env` and `DATA_DIR`.
 - **Secrets:** Never commit credentials or include them in logs, tests, fixtures, or documentation.
 - **Dependencies:** Add the smallest justified dependency. Update `uv.lock` in the same change.
+- **Contracts:** A new interchangeable format adds its contract under `contracts/` in the same change.
+  See the [authoring guide](docs/guide/authoring-contracts.md).
 
 ## Code organization
 
 - Production Python lives under `src/ss_track/`; tests mirror it under `tests/`.
-- `src/ss_track/cli.py` owns command parsing. Domain behavior belongs in focused modules, not in
-  CLI handlers or top-level shell scripts.
+- `src/ss_track/cli.py` is the only module in the package root: the entry point and root parser.
+  Each command group lives in `src/ss_track/commands/`, with `commands/report.py` for the one JSON
+  record every command reports. Shared primitives live in `src/ss_track/core/`, and each area
+  package groups its modules into subpackages by responsibility. Domain behavior belongs in focused
+  modules, not in CLI handlers or top-level shell scripts.
 - Prefer cohesive modules and functions with small interfaces. Reuse existing code and avoid
   parallel implementations of one rule.
 - Aim to keep tracked Python and shell files at or below about 250 lines. Split only at a clear
@@ -36,7 +41,7 @@ specific files must link here and keep only integration-specific routing.
 - Add or update tests with every behavior change. A bug fix includes a failing regression case.
 - Keep tests deterministic and network-free unless a task explicitly declares an external run.
 - `make ci` is the required gate: format check, lint, typing, tests, complexity, shell lint,
-  documentation links, and spec-plan integrity.
+  documentation links, spec-plan integrity, and frozen contracts.
 - `make quality` adds coverage, Markdown lint, and a package build. Fix findings at their source;
   do not weaken checks to fit new code.
 - Use `make format` to apply formatting. Fix Markdown findings by hand.
@@ -62,6 +67,8 @@ After every product or developer-facing change, before reporting completion:
 4. Route everything surfaced during implementation exactly once, in the same change:
    - a chore: do it now when necessary, otherwise drop it;
    - an audit of the work just produced: perform it as part of completion, then drop it;
+   - a bug or an improvement not fixed in this change: report it and add or amend a plan task that
+     states it (see [Findings](#findings));
    - more work for a registered capability, including a gap, limitation, risk or follow-up: amend the
      open task that owns it so its text states the work, or add a future task, optional when it is a
      refinement;
@@ -76,6 +83,26 @@ separate session.
 A note in a task record is not routing. Every audit handoff entry and every limitation that affects a
 result must reach an open task whose text states it, or be recorded as dropped with its reason.
 "No plan task exists" is not a valid owner, and an owner task that does not mention the item loses it.
+
+### Findings
+
+A bug or an improvement is never dropped. When it is not fixed in the change that found it:
+
+- Report it in the task record's audit handoff and in the completion report to the user.
+- Give it a plan task with a proper description: the observed behavior and the expected one, a
+  minimal reproduction or the evidence, its impact, the fix or the improvement to make, and
+  acceptance gates that prove it. Amending an open task is enough only when that task's text then
+  states all of this.
+- A bug's task is required, never `(optional)`. An improvement's task is `(optional)` when it is a
+  refinement.
+- A bug in a third-party package is fixed here in the same change, because this project does not
+  control third-party packages: a check, a wrapper or a patch around the faulty behavior, never a
+  fork or vendored copy. Add a test that fails once the pinned release no longer shows the bug,
+  with a message saying to remove the workaround. Such a bug is not reported upstream and gets no
+  plan task.
+
+Only a chore, an observation that needs no work, or a finding fixed in the same change, including a
+third-party bug behind a workaround, may be dropped, each with its reason.
 
 Keep current-state documentation focused on current contracts, constraints, rationale, and actionable
 limitations. Do not retain task-count snapshots, migration narratives, completed audit logs, or

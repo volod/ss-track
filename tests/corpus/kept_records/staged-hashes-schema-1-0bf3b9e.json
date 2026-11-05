@@ -1,0 +1,153 @@
+{
+  "bundles": [
+    {
+      "bundle_sha256": "a5f3cd707c77929c943accb000ba50f068323f03005e38756af5f94e1ce71384",
+      "frames": [
+        [
+          0,
+          0,
+          "162350835f74de14ed706231dbba89f62743ed915c99380e3513a10168d14657"
+        ],
+        [
+          1,
+          40,
+          "ce70c61ab7bef43477553dd0a618bba837a611b3fcd4eabc23afaef74ca0a767"
+        ],
+        [
+          2,
+          80,
+          "8a033a3e80efc0e3fa608697ea9665bb39f25276ee1c1839d87362fe86a989f5"
+        ],
+        [
+          3,
+          120,
+          "ead3534254f33394a8d81500fa960073333627323b487ef3bd3dcfe2ccfbc32e"
+        ],
+        [
+          4,
+          160,
+          "7faaed33af8543f76177e545d1cf6fab39fe3008af364c1d47ad88fbab9ee1d5"
+        ],
+        [
+          5,
+          200,
+          "318f710edcebb3bd5bb12a29946bc2d41945e702893a281d61a6229e97ccf48a"
+        ],
+        [
+          6,
+          240,
+          "d6fcea210536aa68de790b5c621819373152227fb26c42b68b2d16ad1ffb10d6"
+        ],
+        [
+          7,
+          280,
+          "6dff871374086d0c75e9420f1d0afb96529c5377ae600b901993263eb2b07e75"
+        ],
+        [
+          8,
+          320,
+          "2d385835f132c495d865a051a66bdf7a205ac4e300ff36d6d6f8aa7f75614d23"
+        ],
+        [
+          9,
+          360,
+          "899f4384da69f48cd2c7bbecaba2b32578d533a9dfa1093542c9ada939bd52fd"
+        ],
+        [
+          10,
+          400,
+          "b7914bbd1b6a2d7f3e03217bef58048a5a4c7d861c48da913da60cb9867b9af4"
+        ],
+        [
+          11,
+          440,
+          "60b47548822cce83d7fca169db3d33da93f99f250248bdec520f3e66b8c1b029"
+        ],
+        [
+          12,
+          480,
+          "abe087dca931bcf7c6771be7855c283c79b21c8126df08e931b827efad49be05"
+        ],
+        [
+          13,
+          520,
+          "943085d7965755855924f70b56fbbe3ff2bdf30f25b3df88c8c8518eeac36511"
+        ],
+        [
+          14,
+          560,
+          "5dce8a9d3320f51b663594bc59ecc621210f67622d3e853591284c9d3059c0c7"
+        ],
+        [
+          15,
+          600,
+          "8ae9ae8a6014f5b9b9a3f17a61212f23ebd5cd5d3b69af2db26488c1c3b224a9"
+        ],
+        [
+          16,
+          640,
+          "5da315c8399dd33c71e79ef220c11c79ff5b035ffcc5ad61352f6f6281da570f"
+        ],
+        [
+          17,
+          680,
+          "b788fe7d8e05545ae613945e37fd181832c08d07daae26a1ab6a12adfa4faa7b"
+        ],
+        [
+          18,
+          720,
+          "86308d5b0dfa7ddcad13fa9ce21ac41f145af73981ae149610d937b1a6885e2a"
+        ],
+        [
+          19,
+          760,
+          "793994a9f142f2041f9d5787ff19875a04e40bbeebbf5bfcd99b18a2a4ddeabc"
+        ],
+        [
+          20,
+          800,
+          "085e859dce8869ffd58874dbe50f139167a2d468a9e355fd437685c3d5b3f8e7"
+        ],
+        [
+          21,
+          840,
+          "faaa6d97b5407c0c6ee837b2a4320688e088dfae1932675e8391769d2f52d560"
+        ],
+        [
+          22,
+          880,
+          "727ddd1ba6aebbd56698ae57740a4e1eda386c3314ca31fd8fbc483617eb8064"
+        ],
+        [
+          23,
+          920,
+          "cd39a995edeccb4c052b69e59773d0ad8d3f54e98d47181d1add6427b36dd026"
+        ]
+      ],
+      "parent_stream_id": null,
+      "source_manifest_sha256": "18d69b04b9a655525156783ff1de87b715d86a8d98debf9a289a9d84e19601f3",
+      "source_sha256": "33d0c1e8a64e92429543829e6861d1f9bcfb4b030cfab2264135c7771d19943d",
+      "stream_id": "one"
+    }
+  ],
+  "corpus_id": "pilot-v1",
+  "corpus_manifest_sha256": "e93a7ca02380b47e557b0a4e80529004f23371cdee343e43193277409ffa8583",
+  "decode_policy_sha256": "95bb69676dea209fc720aa93d283181e96ba70a0f86c7cac620eed325ce27db5",
+  "frame_set_sha256": "7fbe708e1663fb163fbc459a215688285283d724638785cd7a230364ead8edfd",
+  "host": {
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "system": "Linux"
+  },
+  "kind": "ss-track.staged-hashes",
+  "manifest_sha256": "4de618d102ba02b85eb1dab51db69542eb3236fd4b0e8fc42964f7b8496d6067",
+  "schema_version": 1,
+  "sources": [
+    {
+      "codec": "mjpeg",
+      "source_manifest_sha256": "18d69b04b9a655525156783ff1de87b715d86a8d98debf9a289a9d84e19601f3",
+      "source_pixel_format": "yuvj420p",
+      "source_sha256": "33d0c1e8a64e92429543829e6861d1f9bcfb4b030cfab2264135c7771d19943d"
+    }
+  ]
+}

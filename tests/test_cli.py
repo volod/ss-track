@@ -5,7 +5,8 @@ from pathlib import Path
 import pytest
 import yaml
 
-from ss_track.cli import EXIT_OK, EXIT_REFUSED, build_parser, main
+from ss_track.cli import build_parser, main
+from ss_track.commands.report import EXIT_OK, EXIT_REFUSED
 from tests.corpus._media import write_clip
 from tests.corpus.conftest import recording_declaration
 

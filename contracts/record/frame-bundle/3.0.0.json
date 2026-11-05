@@ -1,0 +1,1268 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ss-track:contract:record:frame-bundle:3.0.0",
+  "title": "Frame bundle",
+  "type": "object",
+  "description": "The shipped frame-bundle format.",
+  "properties": {
+    "kind": {
+      "type": "string",
+      "description": "Names this record format.",
+      "const": "ss-track.frame-bundle"
+    },
+    "schema_version": {
+      "type": "integer",
+      "description": "The format major, independent of algorithm revisions.",
+      "x-unit": "1",
+      "const": 3,
+      "minimum": 0
+    },
+    "manifest_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Seal of this record, excluding this field."
+    },
+    "corpus_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "Owning corpus version."
+    },
+    "corpus_manifest_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Owning corpus seal."
+    },
+    "stream_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "Stream or generated-case identifier."
+    },
+    "source_manifest_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Imported source seal."
+    },
+    "bundle_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "SHA-256 of canonical identity JSON."
+    },
+    "identity": {
+      "type": "object",
+      "description": "Content identity independent of corpus and stream names.",
+      "properties": {
+        "source_sha256": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+          "description": "Source file bytes."
+        },
+        "decode_policy_sha256": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+          "description": "Pinned decode policy."
+        },
+        "selection": {
+          "type": "object",
+          "description": "Half-open source frame window.",
+          "properties": {
+            "start_frame": {
+              "type": "integer",
+              "description": "Inclusive zero-based source frame index.",
+              "x-unit": "1",
+              "minimum": 0
+            },
+            "end_frame": {
+              "type": "integer",
+              "description": "Exclusive zero-based source frame index.",
+              "x-unit": "1",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "start_frame",
+            "end_frame"
+          ],
+          "additionalProperties": false,
+          "x-rules": {
+            "order": "start_frame is strictly before end_frame and the window lies within its parent selection."
+          }
+        },
+        "pixel_format": {
+          "type": "string",
+          "description": "Packed row-major RGB, eight bits per component.",
+          "const": "rgb24"
+        },
+        "width": {
+          "type": "integer",
+          "description": "Frame width.",
+          "x-unit": "{pixel}",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "description": "Frame height.",
+          "x-unit": "{pixel}",
+          "minimum": 1
+        },
+        "bytes_per_frame": {
+          "type": "integer",
+          "description": "Raw bytes per frame.",
+          "x-unit": "By",
+          "minimum": 1
+        },
+        "time_base": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Seconds per presentation timestamp tick, as a rational numerator/denominator.",
+          "pattern": "^-?[0-9]+/[1-9][0-9]*$",
+          "x-unit": "s",
+          "x-clock": "source presentation timeline"
+        },
+        "frames": {
+          "type": "array",
+          "description": "Frame entries in ascending source frame order.",
+          "items": {
+            "type": "object",
+            "description": "One stored frame.",
+            "properties": {
+              "frame_index": {
+                "type": "integer",
+                "description": "Zero-based original source frame index.",
+                "x-unit": "1",
+                "minimum": 0
+              },
+              "pts": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "description": "Presentation timestamp in stream time_base ticks; null means absent.",
+                "x-unit": "{tick}",
+                "x-clock": "source presentation timeline"
+              },
+              "sha256": {
+                "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+                "description": "SHA-256 of the raw RGB frame."
+              },
+              "content_frame_index": {
+                "type": "integer",
+                "description": "Earlier source frame whose pixels are repeated.",
+                "x-unit": "1",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "frame_index",
+              "pts",
+              "sha256"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1
+        },
+        "parent_bundle_sha256": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+          "description": "Parent bundle identity, for a generated case."
+        },
+        "recipe": {
+          "$ref": "#/$defs/recipe",
+          "description": "Pinned generated recipe."
+        },
+        "label_transform": {
+          "$ref": "#/$defs/labels",
+          "description": "Generated label mapping."
+        }
+      },
+      "required": [
+        "source_sha256",
+        "decode_policy_sha256",
+        "selection",
+        "pixel_format",
+        "width",
+        "height",
+        "bytes_per_frame",
+        "time_base",
+        "frames"
+      ],
+      "additionalProperties": false
+    },
+    "source_pixel_format": {
+      "type": "string",
+      "description": "FFmpeg source pixel format name."
+    },
+    "source_bits_per_component": {
+      "type": "integer",
+      "description": "Source precision per color component.",
+      "x-unit": "bit",
+      "minimum": 1
+    },
+    "precision_reduced": {
+      "type": "boolean",
+      "description": "Whether conversion reduced source precision."
+    },
+    "color": {
+      "type": "object",
+      "description": "Unmodified FFmpeg color metadata; unspecified codes remain unspecified.",
+      "properties": {
+        "range": {
+          "type": "integer",
+          "description": "Full or limited signal range.",
+          "x-unit": "1",
+          "x-vocabulary": "FFmpeg AVColorRange"
+        },
+        "matrix": {
+          "type": "integer",
+          "description": "YUV to RGB coefficient matrix.",
+          "x-unit": "1",
+          "x-vocabulary": "FFmpeg AVColorSpace"
+        },
+        "primaries": {
+          "type": "integer",
+          "description": "Color primaries.",
+          "x-unit": "1",
+          "x-vocabulary": "FFmpeg AVColorPrimaries"
+        },
+        "transfer": {
+          "type": "integer",
+          "description": "Transfer characteristic.",
+          "x-unit": "1",
+          "x-vocabulary": "FFmpeg AVColorTransferCharacteristic"
+        },
+        "chroma_location": {
+          "type": "integer",
+          "description": "Chroma sample siting.",
+          "x-unit": "1",
+          "x-vocabulary": "FFmpeg AVChromaLocation"
+        }
+      },
+      "required": [
+        "range",
+        "matrix",
+        "primaries",
+        "transfer",
+        "chroma_location"
+      ],
+      "additionalProperties": false
+    },
+    "display_rotation_degrees": {
+      "type": "integer",
+      "description": "Source display rotation.",
+      "x-unit": "deg"
+    },
+    "interlaced_frames": {
+      "type": "integer",
+      "description": "Number of interlaced source frames.",
+      "x-unit": "1",
+      "minimum": 0
+    },
+    "timestamp_quality": {
+      "type": "string",
+      "description": "Timestamp evidence quality.",
+      "enum": [
+        "measured",
+        "derived",
+        "missing"
+      ]
+    },
+    "capture_clock_evidence": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Operator evidence for a measured capture clock."
+    },
+    "generated": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "Inherited generated-case membership; null for an original stream.",
+      "properties": {
+        "parent_stream_id": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+          "description": "Parent stream."
+        },
+        "encounter_id": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+          "description": "Inherited encounter."
+        },
+        "group_id": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+          "description": "Inherited group."
+        },
+        "split": {
+          "type": "string",
+          "description": "Evaluation partition.",
+          "enum": [
+            "development",
+            "calibration",
+            "locked"
+          ]
+        }
+      },
+      "required": [
+        "parent_stream_id",
+        "encounter_id",
+        "group_id",
+        "split"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "kind",
+    "schema_version",
+    "manifest_sha256",
+    "corpus_id",
+    "corpus_manifest_sha256",
+    "stream_id",
+    "source_manifest_sha256",
+    "bundle_sha256",
+    "identity",
+    "source_pixel_format",
+    "source_bits_per_component",
+    "precision_reduced",
+    "color",
+    "display_rotation_degrees",
+    "interlaced_frames",
+    "timestamp_quality",
+    "capture_clock_evidence",
+    "generated"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "recipe": {
+      "description": "Exactly one transform with its own parameter vocabulary.",
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "Recipe for target_absence.",
+          "properties": {
+            "transform": {
+              "type": "string",
+              "description": "Transform algorithm name.",
+              "const": "target_absence"
+            },
+            "seed": {
+              "type": "integer",
+              "description": "Deterministic random seed.",
+              "x-unit": "1",
+              "maximum": 9223372036854775807,
+              "minimum": 0
+            },
+            "window": {
+              "type": "object",
+              "description": "Half-open source frame window.",
+              "properties": {
+                "start_frame": {
+                  "type": "integer",
+                  "description": "Inclusive zero-based source frame index.",
+                  "x-unit": "1",
+                  "minimum": 0
+                },
+                "end_frame": {
+                  "type": "integer",
+                  "description": "Exclusive zero-based source frame index.",
+                  "x-unit": "1",
+                  "minimum": 1
+                }
+              },
+              "required": [
+                "start_frame",
+                "end_frame"
+              ],
+              "additionalProperties": false,
+              "x-rules": {
+                "order": "start_frame is strictly before end_frame and the window lies within its parent selection."
+              }
+            },
+            "parameters": {
+              "type": "object",
+              "description": "Parameters for this transform only.",
+              "properties": {
+                "region": {
+                  "type": "object",
+                  "description": "Rectangle in decoded image coordinates.",
+                  "properties": {
+                    "x": {
+                      "type": "integer",
+                      "description": "Left edge from image left.",
+                      "x-unit": "{pixel}",
+                      "x-frame": "decoded image",
+                      "minimum": 0
+                    },
+                    "y": {
+                      "type": "integer",
+                      "description": "Top edge from image top.",
+                      "x-unit": "{pixel}",
+                      "x-frame": "decoded image",
+                      "minimum": 0
+                    },
+                    "width": {
+                      "type": "integer",
+                      "description": "Rectangle width.",
+                      "x-unit": "{pixel}",
+                      "x-frame": "decoded image",
+                      "minimum": 1
+                    },
+                    "height": {
+                      "type": "integer",
+                      "description": "Rectangle height.",
+                      "x-unit": "{pixel}",
+                      "x-frame": "decoded image",
+                      "minimum": 1
+                    }
+                  },
+                  "required": [
+                    "x",
+                    "y",
+                    "width",
+                    "height"
+                  ],
+                  "additionalProperties": false
+                },
+                "plate_frame": {
+                  "type": "integer",
+                  "description": "Source frame supplying the target-free plate.",
+                  "x-unit": "1",
+                  "minimum": 0
+                },
+                "noise": {
+                  "type": "integer",
+                  "description": "Maximum additive RGB channel noise.",
+                  "x-unit": "1",
+                  "maximum": 255,
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "region",
+                "plate_frame",
+                "noise"
+              ],
+              "additionalProperties": false
+            },
+            "transform_revision": {
+              "type": "integer",
+              "description": "Pinned transform algorithm revision.",
+              "x-unit": "1",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "transform",
+            "seed",
+            "window",
+            "parameters",
+            "transform_revision"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "Recipe for moving_background.",
+          "properties": {
+            "transform": {
+              "type": "string",
+              "description": "Transform algorithm name.",
+              "const": "moving_background"
+            },
+            "seed": {
+              "type": "integer",
+              "description": "Deterministic random seed.",
+              "x-unit": "1",
+              "maximum": 9223372036854775807,
+              "minimum": 0
+            },
+            "window": {
+              "type": "object",
+              "description": "Half-open source frame window.",
+              "properties": {
+                "start_frame": {
+                  "type": "integer",
+                  "description": "Inclusive zero-based source frame index.",
+                  "x-unit": "1",
+                  "minimum": 0
+                },
+                "end_frame": {
+                  "type": "integer",
+                  "description": "Exclusive zero-based source frame index.",
+                  "x-unit": "1",
+                  "minimum": 1
+                }
+              },
+              "required": [
+                "start_frame",
+                "end_frame"
+              ],
+              "additionalProperties": false,
+              "x-rules": {
+                "order": "start_frame is strictly before end_frame and the window lies within its parent selection."
+              }
+            },
+            "parameters": {
+              "type": "object",
+              "description": "Parameters for this transform only.",
+              "properties": {
+                "region": {
+                  "type": "object",
+                  "description": "Rectangle in decoded image coordinates.",
+                  "properties": {
+                    "x": {
+                      "type": "integer",
+                      "description": "Left edge from image left.",
+                      "x-unit": "{pixel}",
+                      "x-frame": "decoded image",
+                      "minimum": 0
+                    },
+                    "y": {
+                      "type": "integer",
+                      "description": "Top edge from image top.",
+                      "x-unit": "{pixel}",
+                      "x-frame": "decoded image",
+                      "minimum": 0
+                    },
+                    "width": {
+                      "type": "integer",
+                      "description": "Rectangle width.",
+                      "x-unit": "{pixel}",
+                      "x-frame": "decoded image",
+                      "minimum": 1
+                    },
+                    "height": {
+                      "type": "integer",
+                      "description": "Rectangle height.",
+                      "x-unit": "{pixel}",
+                      "x-frame": "decoded image",
+                      "minimum": 1
+                    }
+                  },
+                  "required": [
+                    "x",
+                    "y",
+                    "width",
+                    "height"
+                  ],
+                  "additionalProperties": false
+                },
+                "sprite_count": {
+                  "type": "integer",
+                  "description": "Number of distractor sprites.",
+                  "x-unit": "1",
+                  "maximum": 256,
+                  "minimum": 1
+                },
+                "sprite_size": {
+                  "type": "integer",
+                  "description": "Sprite side length.",
+                  "x-unit": "{pixel}",
+                  "minimum": 1
+                },
+                "max_speed": {
+                  "type": "integer",
+                  "description": "Maximum displacement per frame.",
+                  "x-unit": "{pixel}/{frame}",
+                  "minimum": 1
+                }
+              },
+              "required": [
+                "region",
+                "sprite_count",
+                "sprite_size",
+                "max_speed"
+              ],
+              "additionalProperties": false
+            },
+            "transform_revision": {
+              "type": "integer",
+              "description": "Pinned transform algorithm revision.",
+              "x-unit": "1",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "transform",
+            "seed",
+            "window",
+            "parameters",
+            "transform_revision"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "Recipe for camera_shake.",
+          "properties": {
+            "transform": {
+              "type": "string",
+              "description": "Transform algorithm name.",
+              "const": "camera_shake"
+            },
+            "seed": {
+              "type": "integer",
+              "description": "Deterministic random seed.",
+              "x-unit": "1",
+              "maximum": 9223372036854775807,
+              "minimum": 0
+            },
+            "window": {
+              "type": "object",
+              "description": "Half-open source frame window.",
+              "properties": {
+                "start_frame": {
+                  "type": "integer",
+                  "description": "Inclusive zero-based source frame index.",
+                  "x-unit": "1",
+                  "minimum": 0
+                },
+                "end_frame": {
+                  "type": "integer",
+                  "description": "Exclusive zero-based source frame index.",
+                  "x-unit": "1",
+                  "minimum": 1
+                }
+              },
+              "required": [
+                "start_frame",
+                "end_frame"
+              ],
+              "additionalProperties": false,
+              "x-rules": {
+                "order": "start_frame is strictly before end_frame and the window lies within its parent selection."
+              }
+            },
+            "parameters": {
+              "type": "object",
+              "description": "Parameters for this transform only.",
+              "properties": {
+                "amplitude": {
+                  "type": "integer",
+                  "description": "Maximum translation on either axis.",
+                  "x-unit": "{pixel}",
+                  "minimum": 1
+                }
+              },
+              "required": [
+                "amplitude"
+              ],
+              "additionalProperties": false
+            },
+            "transform_revision": {
+              "type": "integer",
+              "description": "Pinned transform algorithm revision.",
+              "x-unit": "1",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "transform",
+            "seed",
+            "window",
+            "parameters",
+            "transform_revision"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "Recipe for blur.",
+          "properties": {
+            "transform": {
+              "type": "string",
+              "description": "Transform algorithm name.",
+              "const": "blur"
+            },
+            "seed": {
+              "type": "integer",
+              "description": "Deterministic random seed.",
+              "x-unit": "1",
+              "maximum": 9223372036854775807,
+              "minimum": 0
+            },
+            "window": {
+              "type": "object",
+              "description": "Half-open source frame window.",
+              "properties": {
+                "start_frame": {
+                  "type": "integer",
+                  "description": "Inclusive zero-based source frame index.",
+                  "x-unit": "1",
+                  "minimum": 0
+                },
+                "end_frame": {
+                  "type": "integer",
+                  "description": "Exclusive zero-based source frame index.",
+                  "x-unit": "1",
+                  "minimum": 1
+                }
+              },
+              "required": [
+                "start_frame",
+                "end_frame"
+              ],
+              "additionalProperties": false,
+              "x-rules": {
+                "order": "start_frame is strictly before end_frame and the window lies within its parent selection."
+              }
+            },
+            "parameters": {
+              "type": "object",
+              "description": "Parameters for this transform only.",
+              "properties": {
+                "max_radius": {
+                  "type": "integer",
+                  "description": "Maximum box-blur radius.",
+                  "x-unit": "{pixel}",
+                  "minimum": 1
+                }
+              },
+              "required": [
+                "max_radius"
+              ],
+              "additionalProperties": false
+            },
+            "transform_revision": {
+              "type": "integer",
+              "description": "Pinned transform algorithm revision.",
+              "x-unit": "1",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "transform",
+            "seed",
+            "window",
+            "parameters",
+            "transform_revision"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "Recipe for dropped_frames.",
+          "properties": {
+            "transform": {
+              "type": "string",
+              "description": "Transform algorithm name.",
+              "const": "dropped_frames"
+            },
+            "seed": {
+              "type": "integer",
+              "description": "Deterministic random seed.",
+              "x-unit": "1",
+              "maximum": 9223372036854775807,
+              "minimum": 0
+            },
+            "window": {
+              "type": "object",
+              "description": "Half-open source frame window.",
+              "properties": {
+                "start_frame": {
+                  "type": "integer",
+                  "description": "Inclusive zero-based source frame index.",
+                  "x-unit": "1",
+                  "minimum": 0
+                },
+                "end_frame": {
+                  "type": "integer",
+                  "description": "Exclusive zero-based source frame index.",
+                  "x-unit": "1",
+                  "minimum": 1
+                }
+              },
+              "required": [
+                "start_frame",
+                "end_frame"
+              ],
+              "additionalProperties": false,
+              "x-rules": {
+                "order": "start_frame is strictly before end_frame and the window lies within its parent selection."
+              }
+            },
+            "parameters": {
+              "type": "object",
+              "description": "Parameters for this transform only.",
+              "properties": {
+                "count": {
+                  "type": "integer",
+                  "description": "Number of frames removed.",
+                  "x-unit": "1",
+                  "minimum": 1
+                }
+              },
+              "required": [
+                "count"
+              ],
+              "additionalProperties": false
+            },
+            "transform_revision": {
+              "type": "integer",
+              "description": "Pinned transform algorithm revision.",
+              "x-unit": "1",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "transform",
+            "seed",
+            "window",
+            "parameters",
+            "transform_revision"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "Recipe for duplicated_frames.",
+          "properties": {
+            "transform": {
+              "type": "string",
+              "description": "Transform algorithm name.",
+              "const": "duplicated_frames"
+            },
+            "seed": {
+              "type": "integer",
+              "description": "Deterministic random seed.",
+              "x-unit": "1",
+              "maximum": 9223372036854775807,
+              "minimum": 0
+            },
+            "window": {
+              "type": "object",
+              "description": "Half-open source frame window.",
+              "properties": {
+                "start_frame": {
+                  "type": "integer",
+                  "description": "Inclusive zero-based source frame index.",
+                  "x-unit": "1",
+                  "minimum": 0
+                },
+                "end_frame": {
+                  "type": "integer",
+                  "description": "Exclusive zero-based source frame index.",
+                  "x-unit": "1",
+                  "minimum": 1
+                }
+              },
+              "required": [
+                "start_frame",
+                "end_frame"
+              ],
+              "additionalProperties": false,
+              "x-rules": {
+                "order": "start_frame is strictly before end_frame and the window lies within its parent selection."
+              }
+            },
+            "parameters": {
+              "type": "object",
+              "description": "Parameters for this transform only.",
+              "properties": {
+                "count": {
+                  "type": "integer",
+                  "description": "Number of frames replaced by preceding content.",
+                  "x-unit": "1",
+                  "minimum": 1
+                }
+              },
+              "required": [
+                "count"
+              ],
+              "additionalProperties": false
+            },
+            "transform_revision": {
+              "type": "integer",
+              "description": "Pinned transform algorithm revision.",
+              "x-unit": "1",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "transform",
+            "seed",
+            "window",
+            "parameters",
+            "transform_revision"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "Recipe for short_occlusion.",
+          "properties": {
+            "transform": {
+              "type": "string",
+              "description": "Transform algorithm name.",
+              "const": "short_occlusion"
+            },
+            "seed": {
+              "type": "integer",
+              "description": "Deterministic random seed.",
+              "x-unit": "1",
+              "maximum": 9223372036854775807,
+              "minimum": 0
+            },
+            "window": {
+              "type": "object",
+              "description": "Half-open source frame window.",
+              "properties": {
+                "start_frame": {
+                  "type": "integer",
+                  "description": "Inclusive zero-based source frame index.",
+                  "x-unit": "1",
+                  "minimum": 0
+                },
+                "end_frame": {
+                  "type": "integer",
+                  "description": "Exclusive zero-based source frame index.",
+                  "x-unit": "1",
+                  "minimum": 1
+                }
+              },
+              "required": [
+                "start_frame",
+                "end_frame"
+              ],
+              "additionalProperties": false,
+              "x-rules": {
+                "order": "start_frame is strictly before end_frame and the window lies within its parent selection."
+              }
+            },
+            "parameters": {
+              "type": "object",
+              "description": "Parameters for this transform only.",
+              "properties": {
+                "region": {
+                  "type": "object",
+                  "description": "Rectangle in decoded image coordinates.",
+                  "properties": {
+                    "x": {
+                      "type": "integer",
+                      "description": "Left edge from image left.",
+                      "x-unit": "{pixel}",
+                      "x-frame": "decoded image",
+                      "minimum": 0
+                    },
+                    "y": {
+                      "type": "integer",
+                      "description": "Top edge from image top.",
+                      "x-unit": "{pixel}",
+                      "x-frame": "decoded image",
+                      "minimum": 0
+                    },
+                    "width": {
+                      "type": "integer",
+                      "description": "Rectangle width.",
+                      "x-unit": "{pixel}",
+                      "x-frame": "decoded image",
+                      "minimum": 1
+                    },
+                    "height": {
+                      "type": "integer",
+                      "description": "Rectangle height.",
+                      "x-unit": "{pixel}",
+                      "x-frame": "decoded image",
+                      "minimum": 1
+                    }
+                  },
+                  "required": [
+                    "x",
+                    "y",
+                    "width",
+                    "height"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "region"
+              ],
+              "additionalProperties": false
+            },
+            "transform_revision": {
+              "type": "integer",
+              "description": "Pinned transform algorithm revision.",
+              "x-unit": "1",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "transform",
+            "seed",
+            "window",
+            "parameters",
+            "transform_revision"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "labels": {
+      "description": "How to carry source labels into this generated case.",
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "No geometric label change.",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "description": "Label transform tag.",
+              "const": "identity"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "Translate geometry and mark camera motion.",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "description": "Label transform tag.",
+              "const": "translate"
+            },
+            "camera_motion": {
+              "type": "string",
+              "description": "Known camera motion.",
+              "const": "shake"
+            },
+            "frames": {
+              "type": "object",
+              "description": "Affected half-open source frame interval.",
+              "properties": {
+                "start_frame": {
+                  "type": "integer",
+                  "description": "Inclusive source frame index.",
+                  "x-unit": "1",
+                  "minimum": 0
+                },
+                "end_frame": {
+                  "type": "integer",
+                  "description": "Exclusive source frame index.",
+                  "x-unit": "1",
+                  "minimum": 1
+                }
+              },
+              "required": [
+                "start_frame",
+                "end_frame"
+              ],
+              "additionalProperties": false
+            },
+            "offsets": {
+              "type": "array",
+              "description": "Per-frame translation.",
+              "items": {
+                "type": "object",
+                "description": "One translation.",
+                "properties": {
+                  "frame_index": {
+                    "type": "integer",
+                    "description": "Source frame index.",
+                    "x-unit": "1",
+                    "minimum": 0
+                  },
+                  "dx": {
+                    "type": "integer",
+                    "description": "Horizontal translation.",
+                    "x-unit": "{pixel}"
+                  },
+                  "dy": {
+                    "type": "integer",
+                    "description": "Vertical translation.",
+                    "x-unit": "{pixel}"
+                  }
+                },
+                "required": [
+                  "frame_index",
+                  "dx",
+                  "dy"
+                ],
+                "additionalProperties": false
+              },
+              "minItems": 1
+            }
+          },
+          "required": [
+            "kind",
+            "camera_motion",
+            "frames",
+            "offsets"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "Remove or repeat source labels with their frame content.",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "description": "Label transform tag.",
+              "const": "frame_map"
+            },
+            "removed": {
+              "type": "array",
+              "description": "Removed source frame indexes.",
+              "items": {
+                "type": "integer",
+                "description": "Source frame index.",
+                "x-unit": "1",
+                "minimum": 0
+              },
+              "minItems": 0
+            },
+            "repeated": {
+              "type": "array",
+              "description": "Frames carrying earlier content.",
+              "items": {
+                "type": "object",
+                "description": "One repeated frame.",
+                "properties": {
+                  "frame_index": {
+                    "type": "integer",
+                    "description": "Output frame index.",
+                    "x-unit": "1",
+                    "minimum": 0
+                  },
+                  "content_frame_index": {
+                    "type": "integer",
+                    "description": "Frame whose content is repeated.",
+                    "x-unit": "1",
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "frame_index",
+                  "content_frame_index"
+                ],
+                "additionalProperties": false
+              },
+              "minItems": 0
+            }
+          },
+          "required": [
+            "kind",
+            "removed",
+            "repeated"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "Change label status in a painted region.",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "description": "Label transform tag.",
+              "const": "region_status"
+            },
+            "frames": {
+              "type": "object",
+              "description": "Affected half-open source frame interval.",
+              "properties": {
+                "start_frame": {
+                  "type": "integer",
+                  "description": "Inclusive source frame index.",
+                  "x-unit": "1",
+                  "minimum": 0
+                },
+                "end_frame": {
+                  "type": "integer",
+                  "description": "Exclusive source frame index.",
+                  "x-unit": "1",
+                  "minimum": 1
+                }
+              },
+              "required": [
+                "start_frame",
+                "end_frame"
+              ],
+              "additionalProperties": false
+            },
+            "region": {
+              "type": "object",
+              "description": "Rectangle in decoded image coordinates.",
+              "properties": {
+                "x": {
+                  "type": "integer",
+                  "description": "Left edge from image left.",
+                  "x-unit": "{pixel}",
+                  "x-frame": "decoded image",
+                  "minimum": 0
+                },
+                "y": {
+                  "type": "integer",
+                  "description": "Top edge from image top.",
+                  "x-unit": "{pixel}",
+                  "x-frame": "decoded image",
+                  "minimum": 0
+                },
+                "width": {
+                  "type": "integer",
+                  "description": "Rectangle width.",
+                  "x-unit": "{pixel}",
+                  "x-frame": "decoded image",
+                  "minimum": 1
+                },
+                "height": {
+                  "type": "integer",
+                  "description": "Rectangle height.",
+                  "x-unit": "{pixel}",
+                  "x-frame": "decoded image",
+                  "minimum": 1
+                }
+              },
+              "required": [
+                "x",
+                "y",
+                "width",
+                "height"
+              ],
+              "additionalProperties": false
+            },
+            "inside": {
+              "type": "string",
+              "description": "Status for labels wholly inside.",
+              "enum": [
+                "absent",
+                "unknown",
+                "fully_occluded"
+              ]
+            },
+            "overlap": {
+              "type": "string",
+              "description": "Status for labels overlapping the boundary.",
+              "enum": [
+                "unknown",
+                "partially_occluded"
+              ]
+            },
+            "overlap_geometry": {
+              "type": "string",
+              "description": "Geometry after partial overlap.",
+              "const": "unlocalizable"
+            },
+            "added_objects": {
+              "type": "string",
+              "description": "Added objects are distractors.",
+              "const": "distractor"
+            }
+          },
+          "required": [
+            "kind",
+            "frames",
+            "region",
+            "inside",
+            "overlap",
+            "overlap_geometry"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    }
+  },
+  "x-rules": {
+    "seal": "manifest_sha256 is SHA-256 of the record excluding that key, serialized as sorted-key JSON with ASCII escapes and no whitespace.",
+    "identity": "bundle_sha256 hashes canonical identity JSON. bytes_per_frame equals width times height times three. Frame files contain tightly packed row-major RGB24 bytes with no headers.",
+    "frames": "Frame indexes are unique and ordered within selection; PTS values, when present, strictly increase. Stored bytes match each frame hash and size.",
+    "generated": "generated is null for original streams, which omit parent_bundle_sha256, recipe and label_transform. Generated bundles require all three and inherit parent identity except transformed frames.",
+    "labels": "label_transform agrees with the deterministic recipe; regions, windows and referenced frames lie inside the parent.",
+    "time": "Measured timestamps require capture clock evidence. Repeated earlier content cannot claim measured capture timing."
+  }
+}

@@ -18,13 +18,14 @@ The documentation lifecycle keeps product intent, future work, and available beh
 A chore is handled during the change when necessary or dropped. An audit of the work just produced
 is part of completion and does not become a task. The one scheduled audit is the
 [group audit](#group-audits), which reviews a whole group. More work for an existing capability
-amends the open task that owns it or becomes a new task; mark a refinement `(optional)`. A new
-capability always returns to specification.
+amends the open task that owns it or becomes a new task; mark a refinement `(optional)`. A bug or an
+improvement is never dropped: it is reported and gets a plan task, under the
+[findings rule](../../AGENTS.md#findings). A new capability always returns to specification.
 
 Discovery is part of implementation. A gap, wrong boundary, risk or directly usable feature found in
 a deep dive changes the specification and the plan in the same change, unasked. A task record explains
 what happened; it does not schedule anything. An item is routed only when an open task's text states
-it, or when the record says why it was dropped.
+it, or, for a chore or an observation that needs no work, when the record says why it was dropped.
 
 ## Task lanes
 
@@ -133,7 +134,9 @@ A refactor moves no sealed byte, hash, score or refusal code. A change that must
 contract change and follows [section 17](../design/spec.md#17-data-contracts-and-schema-evolution).
 
 Route each finding once, as any other task does: fix it in the audit when it is in scope, amend the
-open task that owns it, add a task, or drop it with its reason in the record. A new task in the audit's
+open task that owns it, or add a task. Only a chore or an observation that needs no work may be
+dropped, with its reason in the record; a bug or an improvement follows the
+[findings rule](../../AGENTS.md#findings). A new task in the audit's
 own group goes above it and keeps the audit open for that work alone. A feature with no evaluation yet
 goes to [section 12](../design/spec.md#12-unscheduled-design-candidates), which schedules nothing and
 leaves the audit free to close. Finding nothing is a valid result when the record states what was

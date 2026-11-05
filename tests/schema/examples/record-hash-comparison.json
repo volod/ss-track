@@ -1,0 +1,28 @@
+{
+  "bundle_count": 1,
+  "corpus_id": "pilot-v1",
+  "kind": "ss-track.hash-comparison",
+  "left": {
+    "corpus_manifest_sha256": "e93a7ca02380b47e557b0a4e80529004f23371cdee343e43193277409ffa8583",
+    "frame_set_sha256": "7fbe708e1663fb163fbc459a215688285283d724638785cd7a230364ead8edfd",
+    "host": {
+      "machine": "x86_64",
+      "python": "3.12.15",
+      "system": "Linux"
+    }
+  },
+  "manifest_sha256": "aa560e7227ad3e1d2a85f5fe704102e91ee8a504dbec535df59317b54aba2a6c",
+  "right": {
+    "corpus_manifest_sha256": "e93a7ca02380b47e557b0a4e80529004f23371cdee343e43193277409ffa8583",
+    "frame_set_sha256": "7fbe708e1663fb163fbc459a215688285283d724638785cd7a230364ead8edfd",
+    "host": {
+      "machine": "x86_64",
+      "python": "3.12.15",
+      "system": "Linux"
+    }
+  },
+  "schema_version": 1,
+  "source_count": 1,
+  "sources": [],
+  "status": "identical"
+}

@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ss-track:contract:record:frame-set:1.0.0",
+  "title": "Frame set",
+  "description": "One sealed record of exactly which frame bundles a corpus version staged. A scenario pins its single hash. It holds no path or clock, so two stagings of one corpus version give one hash on any data root.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind",
+    "schema_version",
+    "corpus_id",
+    "corpus_manifest_sha256",
+    "bundles",
+    "manifest_sha256"
+  ],
+  "properties": {
+    "kind": {
+      "type": "string",
+      "const": "ss-track.frame-set",
+      "description": "Names this format.",
+      "x-sensitivity": "public"
+    },
+    "schema_version": {
+      "type": "integer",
+      "const": 1,
+      "description": "The contract's major.",
+      "x-sensitivity": "public"
+    },
+    "corpus_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "The corpus version staged.",
+      "x-references": "record/corpus-manifest#/properties/corpus_id",
+      "x-sensitivity": "public"
+    },
+    "corpus_manifest_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Seal of the corpus manifest, which binds this record to the version's membership and splits.",
+      "x-references": "record/corpus-manifest#/properties/manifest_sha256",
+      "x-sensitivity": "public"
+    },
+    "bundles": {
+      "type": "array",
+      "minItems": 1,
+      "description": "One line per stream and generated case of the corpus version.",
+      "items": {"$ref": "#/$defs/bundle"},
+      "x-sensitivity": "restricted"
+    },
+    "manifest_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Seal of this record. It is the hash a scenario pins.",
+      "x-sensitivity": "public"
+    }
+  },
+  "$defs": {
+    "bundle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stream_id",
+        "parent_stream_id",
+        "bundle_sha256",
+        "source_sha256",
+        "source_manifest_sha256"
+      ],
+      "properties": {
+        "stream_id": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+          "description": "The stream, or the id of a generated case.",
+          "x-references": "record/frame-bundle#/properties/stream_id",
+          "x-sensitivity": "restricted"
+        },
+        "parent_stream_id": {
+          "type": ["string", "null"],
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+          "description": "The stream a generated case derives from, or null for a stream.",
+          "x-references": "record/frame-bundle#/properties/stream_id",
+          "x-sensitivity": "restricted"
+        },
+        "bundle_sha256": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+          "description": "Hash of the bundle's identity: its pixels, timing and source.",
+          "x-references": "record/frame-bundle#/properties/bundle_sha256",
+          "x-sensitivity": "restricted"
+        },
+        "source_sha256": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+          "description": "Hash of the source file's bytes. A generated case states its parent's.",
+          "x-references": "record/source-manifest#/properties/source/properties/sha256",
+          "x-sensitivity": "restricted"
+        },
+        "source_manifest_sha256": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+          "description": "Seal of the source record the bundle rests on. A generated case states its parent's.",
+          "x-references": "record/source-manifest#/properties/manifest_sha256",
+          "x-sensitivity": "restricted"
+        }
+      }
+    }
+  },
+  "x-rules": {
+    "seal": "manifest_sha256 is the lowercase SHA-256 of the record without that key, as JSON with sorted keys, ASCII escapes and no whitespace.",
+    "order": "bundles are in ascending stream_id order, and each stream_id appears once.",
+    "membership": "bundles name exactly the streams and generated cases of the corpus manifest that corpus_manifest_sha256 seals.",
+    "parent": "parent_stream_id is null for a stream. For a generated case it names a stream of this record, whose source_sha256 and source_manifest_sha256 the case repeats."
+  }
+}

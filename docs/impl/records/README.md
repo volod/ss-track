@@ -20,5 +20,20 @@ Copy the [template](template.md) using the
 | 0013 | `record-version-refusal` | [0013-adhoc-record-version-refusal](0013-adhoc-record-version-refusal.md) |
 | 0014 | `source-terms-amendment` | [0014-corpus-provenance-source-terms-amendment](0014-corpus-provenance-source-terms-amendment.md) |
 | 0015 | `group-audit-tasks` | [0015-adhoc-group-audit-tasks](0015-adhoc-group-audit-tasks.md) |
+| 0016 | `record-read-gate` | [0016-data-contracts-record-read-gate](0016-data-contracts-record-read-gate.md) |
+| 0017 | `contract-registry` | [0017-data-contracts-contract-registry](0017-data-contracts-contract-registry.md) |
+| 0018 | `corpus-contract-baseline` | [0018-data-contracts-corpus-contract-baseline](0018-data-contracts-corpus-contract-baseline.md) |
+| 0019 | `contract-evolution-gate` | [0019-data-contracts-contract-evolution-gate](0019-data-contracts-contract-evolution-gate.md) |
+| 0020 | `contract-enforced-readers` | [0020-data-contracts-contract-enforced-readers](0020-data-contracts-contract-enforced-readers.md) |
+| 0021 | `record-read-window` | [0021-data-contracts-record-read-window](0021-data-contracts-record-read-window.md) |
+| 0022 | `contract-oracle-coverage` | [0022-data-contracts-contract-oracle-coverage](0022-data-contracts-contract-oracle-coverage.md) |
+| 0023 | `contract-reference-docs` | [0023-data-contracts-contract-reference-docs](0023-data-contracts-contract-reference-docs.md) |
+| 0024 | `dataset-descriptor` | [0024-data-contracts-dataset-descriptor](0024-data-contracts-dataset-descriptor.md) |
+| 0025 | `odcs-contract-export` | [0025-data-contracts-odcs-contract-export](0025-data-contracts-odcs-contract-export.md) |
+| 0026 | `public-descriptor-fields` | [0026-data-contracts-public-descriptor-fields](0026-data-contracts-public-descriptor-fields.md) |
+| 0027 | `descriptor-refresh` | [0027-data-contracts-descriptor-refresh](0027-data-contracts-descriptor-refresh.md) |
+| 0028 | `pattern-reshaped-inclusion` | [0028-data-contracts-pattern-reshaped-inclusion](0028-data-contracts-pattern-reshaped-inclusion.md) |
+| 0029 | `oracle-coordinated-witnesses` | [0029-data-contracts-oracle-coordinated-witnesses](0029-data-contracts-oracle-coordinated-witnesses.md) |
+| 0030 | `data-contracts-audit` | [0030-data-contracts-data-contracts-audit](0030-data-contracts-data-contracts-audit.md) |
 
-Next unused sequence: `0016`.
+Next unused sequence: `0031`.
