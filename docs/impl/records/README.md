@@ -40,5 +40,9 @@ Copy the [template](template.md) using the
 | 0033 | `unlinked-version-report` | [0033-corpus-provenance-unlinked-version-report](0033-corpus-provenance-unlinked-version-report.md) |
 | 0034 | `amendment-impact-report` | [0034-corpus-provenance-amendment-impact-report](0034-corpus-provenance-amendment-impact-report.md) |
 | 0035 | `case-preview` | [0035-corpus-provenance-case-preview](0035-corpus-provenance-case-preview.md) |
+| 0036 | `staging-single-pass` | [0036-corpus-provenance-staging-single-pass](0036-corpus-provenance-staging-single-pass.md) |
+| 0037 | `select-development-workload` | [0037-corpus-provenance-select-development-workload](0037-corpus-provenance-select-development-workload.md) |
 
-Next unused sequence: `0036`.
+| 0038 | `self-supervised-corpus-plan` | [0038-adhoc-self-supervised-corpus-plan](0038-adhoc-self-supervised-corpus-plan.md) |
+
+Next unused sequence: `0039`.

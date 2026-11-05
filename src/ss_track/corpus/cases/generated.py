@@ -12,8 +12,9 @@ from typing import Any
 from ss_track.core.canonical import SEAL_FIELD
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.bundles.bundle_reader import open_frame_bundle
-from ss_track.corpus.bundles.bundle_writer import publish_bundle, require_space, store_frame
+from ss_track.corpus.bundles.bundle_writer import require_space, store_frame
 from ss_track.corpus.bundles.frames import FRAME_BUNDLE, FrameBundle, bundle_hash
+from ss_track.corpus.bundles.publish import publish_bundle
 from ss_track.corpus.cases.case_model import Pixels, ReadFrame, Rendering, Slot, as_pixels
 from ss_track.corpus.cases.transforms import prepare_case
 from ss_track.corpus.records.sealed import read_sealed

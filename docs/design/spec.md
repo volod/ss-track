@@ -166,7 +166,9 @@ decoder would conceal, and a source whose completeness cannot be established say
 G0 modules consume one staged, immutable decoded-frame bundle. This makes their actual input
 identical without requiring cross-platform decoders to produce identical pixels. The bundle hash
 covers the source hash, decode policy, pixel layout and per-frame hashes, and no corpus or sequence
-name, so two stagings of one source under one policy give one hash. The decode policy includes the
+name, so two stagings of one source under one policy give one hash. Staging decodes each source
+once, in full, and writes every stream that source feeds. Seeking to a window would skip the proof
+that the stored source still matches its import. The decode policy includes the
 conversion to the output pixel format, and a bundle records the stored color tags that conversion
 used, without inventing a tag the source lacks. Later external
 modules may consume the same bundle or original packets. The latter path matches source hash,
@@ -314,6 +316,47 @@ listing. A record with no terms to carry is refused and names `--amend-terms`, a
 invented; a record too old for
 `--amend-terms` alone reaches the current major only through `--redecode --amend-terms` together,
 which takes its terms from the declaration instead of carrying them.
+
+### 4.1a Self-supervised video corpus formation
+
+Operators need a larger and more varied collection of authorized video encounters, including rare
+birds of prey, other birds, confusing moving objects, and target-absent footage. Manual inspection of
+every long recording does not scale, while selecting only frames that a model already recognizes
+misses small or unfamiliar targets. This capability forms a reviewable, versioned development corpus
+from approved sources using self-supervised visual representations for discovery, diversity and
+similarity. It retains independently sampled material so selection bias and missed candidates can be
+measured rather than hidden.
+
+The [ss-video](https://github.com/volod/ss-video) video ingest and search service provides frame
+sampling, CLIP/DINO embeddings and vector search; [ss-fusion](https://github.com/volod/ss-fusion)
+provides perception packages and a research pipeline with SSL adaptation. Their actual export
+interfaces, versions, model licenses, reproducibility and operational requirements must be evaluated
+before choosing an integration. ss-track owns rights decisions, candidate and corpus provenance,
+encounter grouping, split membership, audit samples and immutable benchmark inputs. A candidate
+proposal is not a verified species, ground-truth label, or proof that a negative segment has no
+bird. Existing annotation and reviewer authority remain the route to frozen labels. Integrations do
+not grant download, processing, model-weight, redistribution or storage rights.
+
+Each source and derivative must have authorized uses and retention; jobs are limited by an approved
+source list, resource envelope and access rules. Evidence retains source and time/frame identity,
+model and preprocessing versions, score provenance, selection method, deterministic seeds and
+sampling probabilities where applicable. Group related and duplicate footage before assigning
+splits; never train or tune on a locked test. Discovery-only model data remains distinct from
+reviewed labels and frozen corpus membership. An unavailable external service, model, permission or
+insufficient budget must be visible, not silently replaced by invented results. No arbitrary video
+acquisition, autonomous approval of sources, field-safety claim, or promotion of pseudo-labels to
+truth is implied.
+
+Evaluation: on an independently reviewed, grouped reference sample with target-present,
+target-absent, small-target and confuser cases, compare model-assisted selection with a
+predeclared random or uniform baseline under equal review cost. Report candidate yield, missed
+positives with uncertainty, diversity and duplication, reviewed negative coverage, time, compute,
+storage and unprocessed exposure; retain both selected and non-selected audit samples. Fixture
+checks prove deterministic membership, source/rights lineage, leakage refusal and resume behavior.
+A useful result meets owner-declared corpus size and coverage targets without violating rights or
+split isolation. A valid negative states when selection misses targets, is no better than the
+baseline, available sources or resources are insufficient, or the sibling projects cannot integrate;
+it retains the evidence and makes no unsupported improvement or large-corpus claim.
 
 ### 4.2 Annotation contract
 
@@ -2425,31 +2468,32 @@ Group order alone never establishes readiness.
 | 1 | `reproducible-environment` | shipped | A fresh locked environment reaches the complete CI gate without manual repair | [Developer tooling](../impl/current/developer-tooling.md) |
 | 2 | `project-identity` | shipped | Import, CLI, and distribution-build tests agree on the project identity | [Product core](../impl/current/product-core.md) |
 | 3 | `corpus-provenance` | planned | Import/hash/canonical-decode, staged frame bundles, synchronized multi-stream grouping, generated cases, version lineage, duplicate-frame and source-term refusals and scenario-rights/split fixtures; malformed source yields structured failure | - |
-| 4 | `data-contracts` | shipped | Every shipped record and declaration conforms unchanged to its frozen contract; every section 17.3 change classifies as declared, with an independent checker agreeing on structure; real records of every historic major read under their disposition with no byte or hash moved; a consumer with only the contracts validates a record; optional descriptors validate and leak nothing | [Contracts](../impl/current/contracts.md) |
-| 5 | `annotation-selection` | planned | Two-reviewer G0 labels, stable class/instance IDs, frozen mask and identical seed replay | - |
-| 6 | `module-contract-runner` | planned | Oracle, null, dropper, crash, schema and class-identity fixtures pass with exact frame accounting | - |
-| 7 | `motion-sot-evaluation` | planned | Hand-computed fixture metrics, denominators and time weights match evaluator output | - |
-| 8 | `reference-tracker` | planned | Deterministic seeded SOT and proposal front end pass continuity, lost/re-entry, identity and deadline fixtures; optional load setting preserves lockstep outputs | - |
-| 9 | `comparison-report` | planned | Compatible-cohort report exposes errors; incompatible runs are refused with reason | - |
-| 10 | `hardware-probe-adaptive-launch` | planned | Recorded and live host probes report CPU, memory, storage, scheduler, frequency and throttle evidence, and select a supported profile, `UNSUPPORTED` or `MEASURE_REQUIRED` | - |
-| 11 | `controlled-bench-timing-energy` | planned | section 7.9 versioned trials retain instrument/calibration and raw-trace hashes and compute timing, resource, thermal and energy estimates with uncertainty and explicit validity | - |
-| 12 | `hardware-selection` | planned | Fixture configurations against a stated budget; only measured configurations are chosen; a selection record states rejected and unmeasured options; none qualifying is stated | - |
-| 13 | `sensor-joint-mode-probe` | planned | Every installed sensor's modes and simultaneous joint modes are probed under sustained load and yield a supported profile or explicit fallback | - |
-| 14 | `camera-bench-characterization` | planned | Independent stimulus, capture, optics and vibration trials retain raw evidence and report estimates with uncertainty and explicit validity | - |
-| 15 | `sensor-adapter-frontends` | planned | Typed observations, mixed-modality bundles and four scenario boundaries pass conformance; fake-driver capture covers skew, overflow, outage and recovery before live acceptance | - |
-| 16 | `fusion-analysis` | planned | Fixed hashed observation bundles isolate event-time association, deduplication, calibrated existence/class evidence, abstention and degraded-source behavior | - |
-| 17 | `fixed-input-tracker-evaluation` | planned | Fixed hashed observations and schedule isolate SOT/MOT identity, re-entry, prediction, confidence and tracker-stage cost | - |
-| 18 | `multi-source-reference-tracker` | planned | The staged reference tracker consumes frozen observation bundles and passes hand-audited provenance, identity and deadline fixtures | - |
-| 19 | `track-classification` | planned | Known-class, unknown-subtype, too-small-object and confident-wrong-class fixtures pass with coverage and class-probability calibration; an uninstalled or uncalibrated cue abstains rather than inventing a class | - |
-| 20 | `pointing-guidance-evaluation` | planned | Hand-audited cruise, sudden-turn, near-stationary and induced-loss fixtures reproduce expected pointing coverage, angular error and reacquisition delay; a law never emits a vehicle or effector command | - |
-| 21 | `g2-sensor-set-evaluation` | planned | Feasible single, paired, all-installed and leave-one-out sets run through one frozen reference fusion rule; achieved quality and oracle observability ceiling remain distinct | - |
-| 22 | `installed-system-evaluation` | planned | Same-trial raw-to-output quality, timing and installed-boundary energy retain validity; four local report panels distinguish component from whole-system results | - |
-| 23 | `mot-trackeval` | planned | Byte-exact per-class export fixtures, pinned environment and hand-audited MOT results | - |
-| 24 | `paced-thermal-trial` | planned | Hand-audited cool, hot and capped fixtures on identical frames, then a live baseline run; a hot run with no throttling is `not_tested`, and a failed bet is published | - |
-| 25 | `benchmark-ranking` | planned | Optional matched-cohort fixtures yield rank, tier, inconclusive or refusal; scores recompute exactly; below the minimum every row stays unranked | - |
-| 26 | `device-bench-evaluation` | planned | Optional same-stimulus fixtures validate unranked cross-host cases; incompatible references are refused and missing device output is UNSUPPORTED | - |
-| 27 | `telemetry-ingest` | planned | Optional readers match an independent reader on generated logs; bundles hash identically across hosts; drift, loss and truncation are reported and never filled; a declared layout needs no new code; live fixtures account for all loss | - |
-| 28 | `documentation-integrity` | shipped | Link, registry-plan, task-lane, metadata, ordering, and forward-language checks pass over fixtures and the repository tree | [Governance](../impl/current/governance.md) |
+| 4 | `self-supervised-corpus` | planned | Pinned sibling integrations and deterministic fixtures preserve authorized provenance and split isolation; reviewed audit samples compare recall, candidate yield, diversity and cost against a declared baseline, or report a valid negative | - |
+| 5 | `data-contracts` | shipped | Every shipped record and declaration conforms unchanged to its frozen contract; every section 17.3 change classifies as declared, with an independent checker agreeing on structure; real records of every historic major read under their disposition with no byte or hash moved; a consumer with only the contracts validates a record; optional descriptors validate and leak nothing | [Contracts](../impl/current/contracts.md) |
+| 6 | `annotation-selection` | planned | Two-reviewer G0 labels, stable class/instance IDs, frozen mask and identical seed replay | - |
+| 7 | `module-contract-runner` | planned | Oracle, null, dropper, crash, schema and class-identity fixtures pass with exact frame accounting | - |
+| 8 | `motion-sot-evaluation` | planned | Hand-computed fixture metrics, denominators and time weights match evaluator output | - |
+| 9 | `reference-tracker` | planned | Deterministic seeded SOT and proposal front end pass continuity, lost/re-entry, identity and deadline fixtures; optional load setting preserves lockstep outputs | - |
+| 10 | `comparison-report` | planned | Compatible-cohort report exposes errors; incompatible runs are refused with reason | - |
+| 11 | `hardware-probe-adaptive-launch` | planned | Recorded and live host probes report CPU, memory, storage, scheduler, frequency and throttle evidence, and select a supported profile, `UNSUPPORTED` or `MEASURE_REQUIRED` | - |
+| 12 | `controlled-bench-timing-energy` | planned | section 7.9 versioned trials retain instrument/calibration and raw-trace hashes and compute timing, resource, thermal and energy estimates with uncertainty and explicit validity | - |
+| 13 | `hardware-selection` | planned | Fixture configurations against a stated budget; only measured configurations are chosen; a selection record states rejected and unmeasured options; none qualifying is stated | - |
+| 14 | `sensor-joint-mode-probe` | planned | Every installed sensor's modes and simultaneous joint modes are probed under sustained load and yield a supported profile or explicit fallback | - |
+| 15 | `camera-bench-characterization` | planned | Independent stimulus, capture, optics and vibration trials retain raw evidence and report estimates with uncertainty and explicit validity | - |
+| 16 | `sensor-adapter-frontends` | planned | Typed observations, mixed-modality bundles and four scenario boundaries pass conformance; fake-driver capture covers skew, overflow, outage and recovery before live acceptance | - |
+| 17 | `fusion-analysis` | planned | Fixed hashed observation bundles isolate event-time association, deduplication, calibrated existence/class evidence, abstention and degraded-source behavior | - |
+| 18 | `fixed-input-tracker-evaluation` | planned | Fixed hashed observations and schedule isolate SOT/MOT identity, re-entry, prediction, confidence and tracker-stage cost | - |
+| 19 | `multi-source-reference-tracker` | planned | The staged reference tracker consumes frozen observation bundles and passes hand-audited provenance, identity and deadline fixtures | - |
+| 20 | `track-classification` | planned | Known-class, unknown-subtype, too-small-object and confident-wrong-class fixtures pass with coverage and class-probability calibration; an uninstalled or uncalibrated cue abstains rather than inventing a class | - |
+| 21 | `pointing-guidance-evaluation` | planned | Hand-audited cruise, sudden-turn, near-stationary and induced-loss fixtures reproduce expected pointing coverage, angular error and reacquisition delay; a law never emits a vehicle or effector command | - |
+| 22 | `g2-sensor-set-evaluation` | planned | Feasible single, paired, all-installed and leave-one-out sets run through one frozen reference fusion rule; achieved quality and oracle observability ceiling remain distinct | - |
+| 23 | `installed-system-evaluation` | planned | Same-trial raw-to-output quality, timing and installed-boundary energy retain validity; four local report panels distinguish component from whole-system results | - |
+| 24 | `mot-trackeval` | planned | Byte-exact per-class export fixtures, pinned environment and hand-audited MOT results | - |
+| 25 | `paced-thermal-trial` | planned | Hand-audited cool, hot and capped fixtures on identical frames, then a live baseline run; a hot run with no throttling is `not_tested`, and a failed bet is published | - |
+| 26 | `benchmark-ranking` | planned | Optional matched-cohort fixtures yield rank, tier, inconclusive or refusal; scores recompute exactly; below the minimum every row stays unranked | - |
+| 27 | `device-bench-evaluation` | planned | Optional same-stimulus fixtures validate unranked cross-host cases; incompatible references are refused and missing device output is UNSUPPORTED | - |
+| 28 | `telemetry-ingest` | planned | Optional readers match an independent reader on generated logs; bundles hash identically across hosts; drift, loss and truncation are reported and never filled; a declared layout needs no new code; live fixtures account for all loss | - |
+| 29 | `documentation-integrity` | shipped | Link, registry-plan, task-lane, metadata, ordering, and forward-language checks pass over fixtures and the repository tree | [Governance](../impl/current/governance.md) |
 
 Every task declares its outcome, scope, evidence, execution and acceptance. Only tested and
 documented implementation changes a capability to `shipped`. Optional branches cannot gate

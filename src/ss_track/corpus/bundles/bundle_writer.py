@@ -1,11 +1,9 @@
-"""Write one frame bundle: strictly decode a source, keep the selected frames, seal the index."""
+"""Write the frame bundles of one source from a single strict decode."""
 
 import logging
 import shutil
-from collections.abc import Iterator
-from contextlib import contextmanager
+from collections.abc import Mapping, Sequence
 from pathlib import Path
-from tempfile import TemporaryDirectory
 from typing import Any
 
 import av
@@ -14,7 +12,8 @@ from ss_track.core.canonical import SEAL_FIELD, sha256_bytes
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.bundles.bundle_reader import open_frame_bundle
 from ss_track.corpus.bundles.frames import FRAME_BUNDLE, FrameBundle, bundle_hash, frame_name
-from ss_track.corpus.decoding.decode import inspect_media
+from ss_track.corpus.bundles.publish import publish_bundles
+from ss_track.corpus.decoding.decode import FrameConsumer, inspect_media
 from ss_track.corpus.decoding.decode_policy import DecodePolicy
 from ss_track.corpus.decoding.pixels import (
     OUTPUT_BITS_PER_COMPONENT,
@@ -24,13 +23,7 @@ from ss_track.corpus.decoding.pixels import (
     frame_size_bytes,
     uses_color_matrix,
 )
-from ss_track.corpus.records.sealing import (
-    READ_ONLY_DIRECTORY_MODE,
-    READ_ONLY_FILE_MODE,
-    SCRATCH_PREFIX,
-    seal,
-    write_sealed,
-)
+from ss_track.corpus.records.sealing import READ_ONLY_FILE_MODE, seal, write_sealed
 from ss_track.corpus.sources.importer import (
     MANIFEST_NAME,
     decode_policy_sha256,
@@ -42,43 +35,109 @@ from ss_track.corpus.sources.stored import load_verified_source
 _LOG = logging.getLogger(__name__)
 
 
-def write_bundle(
-    stream: dict[str, Any],
+def write_source_bundles(
+    streams: Sequence[dict[str, Any]],
     corpus: dict[str, JsonValue],
     policy: DecodePolicy,
     root: Path,
     data_root: Path,
-) -> FrameBundle:
-    """Write into a scratch directory and publish with one rename, so a failure leaves nothing."""
-    source: dict[str, Any] = load_verified_source(stream["source_sha256"], data_root)
+) -> tuple[FrameBundle, ...]:
+    """Decode one source once and publish each stream. A failure publishes none of them.
+
+    Every frame is decoded, including frames no stream stores. Seeking to a window would skip the
+    proof that this decode still matches the import. Each stream keeps its own converter, so its
+    frames are produced in the same sequence as a stage of that stream alone.
+    """
+    source_sha256 = _one_source(streams)
+    source: dict[str, Any] = load_verified_source(source_sha256, data_root)
     policy_sha256 = decode_policy_sha256(policy.as_record())
     media: dict[str, Any] = source["sequence"]
-    stored = source_directory(data_root, stream["source_sha256"]) / source["source"]["stored_name"]
-    selection = stream["selection"]
+    stored = source_directory(data_root, source_sha256) / source["source"]["stored_name"]
     width, height = media["decoded_width"], media["decoded_height"]
-    require_space(root, selection["end_frame"] - selection["start_frame"], width, height)
-    target = root / stream["stream_id"]
-    with publish_bundle(root, target) as staged:
-        converter = PixelConverter(policy.conversion_flags, policy.thread_count)
-        writer = _FrameWriter(staged, stream["selection"], converter)
-        inspection = inspect_media(stored, policy, writer.accept)
-        _require_same_decode(decoded_facts(inspection), media, stream)
+    require_space(root, sum(_selection_length(stream) for stream in streams), width, height)
+    targets = tuple(root / str(stream["stream_id"]) for stream in streams)
+    with publish_bundles(root, targets) as staged_dirs:
+        writers = _writers(staged_dirs, streams, policy)
+        inspection = inspect_media(stored, policy, _fan_out(writers))
+        _require_same_decode(decoded_facts(inspection), media, streams)
+        _seal_bundles(streams, writers, staged_dirs, corpus, media, policy_sha256)
+    _warn_about_conversion([str(stream["stream_id"]) for stream in streams], media)
+    return tuple(open_frame_bundle(target) for target in targets)
+
+
+def _one_source(streams: Sequence[Mapping[str, Any]]) -> str:
+    """Return the source these streams share. Staging groups them before it decodes."""
+    source_sha256 = str(streams[0]["source_sha256"])
+    if any(stream["source_sha256"] != source_sha256 for stream in streams):
+        raise AssertionError("one decode serves one source")
+    return source_sha256
+
+
+def _selection_length(stream: Mapping[str, Any]) -> int:
+    selection = stream["selection"]
+    return int(selection["end_frame"]) - int(selection["start_frame"])
+
+
+class _FrameWriter:
+    """Writes one stream's selection and keeps the index a solo decode would have written."""
+
+    def __init__(self, directory: Path, selection: Mapping[str, Any], converter: PixelConverter):
+        self.window = range(int(selection["start_frame"]), int(selection["end_frame"]))
+        self._directory = directory
+        self._converter = converter
+        self.frames: list[JsonValue] = []
+
+    def store(self, frame_index: int, frame: av.VideoFrame) -> None:
+        """Convert and store one frame. This converter sees only this stream's frames."""
+        pixels = self._converter.pixels(frame)
+        self.frames.append(store_frame(self._directory, frame_index, frame.pts, pixels))
+
+
+def _writers(
+    staged_dirs: Sequence[Path],
+    streams: Sequence[Mapping[str, Any]],
+    policy: DecodePolicy,
+) -> tuple[_FrameWriter, ...]:
+    return tuple(
+        _FrameWriter(staged, stream["selection"], _converter(policy))
+        for staged, stream in zip(staged_dirs, streams, strict=True)
+    )
+
+
+def _converter(policy: DecodePolicy) -> PixelConverter:
+    return PixelConverter(policy.conversion_flags, policy.thread_count)
+
+
+def _fan_out(writers: Sequence[_FrameWriter]) -> FrameConsumer:
+    """Deliver each frame to every stream whose window contains it."""
+    routes = _routes(writers)
+
+    def accept(frame_index: int, frame: av.VideoFrame) -> None:
+        for writer in routes.get(frame_index, ()):
+            writer.store(frame_index, frame)
+
+    return accept
+
+
+def _routes(writers: Sequence[_FrameWriter]) -> dict[int, tuple[_FrameWriter, ...]]:
+    grouped: dict[int, list[_FrameWriter]] = {}
+    for writer in writers:
+        for index in writer.window:
+            grouped.setdefault(index, []).append(writer)
+    return {index: tuple(chosen) for index, chosen in grouped.items()}
+
+
+def _seal_bundles(
+    streams: Sequence[dict[str, Any]],
+    writers: Sequence[_FrameWriter],
+    staged_dirs: Sequence[Path],
+    corpus: dict[str, JsonValue],
+    media: dict[str, Any],
+    policy_sha256: str,
+) -> None:
+    for stream, writer, staged in zip(streams, writers, staged_dirs, strict=True):
         body = _bundle_body(stream, corpus, media, policy_sha256, writer)
         write_sealed(staged / MANIFEST_NAME, seal(body))
-    _warn_about_conversion(stream["stream_id"], media)
-    return open_frame_bundle(target)
-
-
-@contextmanager
-def publish_bundle(root: Path, target: Path) -> Iterator[Path]:
-    """Yield a scratch directory and publish it complete by one rename, or leave nothing."""
-    with TemporaryDirectory(prefix=SCRATCH_PREFIX, dir=root) as scratch:
-        staged = Path(scratch) / "staged"
-        staged.mkdir()
-        yield staged
-        # Moving a directory rewrites its parent link, so it must stay writable until it arrives.
-        staged.rename(target)
-    target.chmod(READ_ONLY_DIRECTORY_MODE)
 
 
 def store_frame(
@@ -103,34 +162,33 @@ def require_space(root: Path, frames: int, width: int, height: int) -> None:
         )
 
 
-class _FrameWriter:
-    """Writes the selected frames of one decode and keeps the index of what it wrote."""
-
-    def __init__(self, directory: Path, selection: dict[str, int], converter: PixelConverter):
-        self._directory = directory
-        self._window = range(selection["start_frame"], selection["end_frame"])
-        self._converter = converter
-        self.frames: list[JsonValue] = []
-
-    def accept(self, frame_index: int, frame: av.VideoFrame) -> None:
-        """Store one frame if the selection includes it."""
-        if frame_index not in self._window:
-            return
-        pixels = self._converter.pixels(frame)
-        self.frames.append(store_frame(self._directory, frame_index, frame.pts, pixels))
-
-
 def _require_same_decode(
-    decoded: dict[str, JsonValue], media: dict[str, Any], stream: dict[str, Any]
+    decoded: Mapping[str, JsonValue],
+    media: Mapping[str, Any],
+    streams: Sequence[Mapping[str, Any]],
 ) -> None:
     """A decode that disagrees with the import record means the decoder is not reproducing it."""
     differing = sorted(key for key, value in decoded.items() if media[key] != value)
-    if differing:
-        raise CorpusRefusal(
-            RefusalCode.DECODE_DRIFT,
-            "this decode differs from the imported source record",
-            {"stream_id": stream["stream_id"], "fields": list(differing)},
-        )
+    if not differing:
+        return
+    raise CorpusRefusal(
+        RefusalCode.DECODE_DRIFT,
+        "this decode differs from the imported source record",
+        _drift_details(differing, [str(stream["stream_id"]) for stream in streams]),
+    )
+
+
+def _drift_details(fields: list[str], stream_ids: list[str]) -> dict[str, JsonValue]:
+    """Name the fields that moved and every stream this pass was writing."""
+    listed: list[JsonValue] = []
+    named: list[JsonValue] = []
+    for field in fields:
+        listed.append(field)
+    for stream_id in stream_ids:
+        named.append(stream_id)
+    if len(named) == 1:
+        return {"fields": listed, "stream_id": named[0]}
+    return {"fields": listed, "stream_ids": named}
 
 
 def _bundle_body(
@@ -172,11 +230,18 @@ def _bundle_body(
     }
 
 
-def _warn_about_conversion(stream_id: str, media: dict[str, Any]) -> None:
-    """Both facts stay in the bundle record; the operator should also hear them at staging."""
+def _warn_about_conversion(stream_ids: Sequence[str], media: Mapping[str, Any]) -> None:
+    """Both facts stay in each bundle record; say them once for the source."""
+    subject = _stream_subject(stream_ids)
     bits = media["source_bits_per_component"]
     if bits > OUTPUT_BITS_PER_COMPONENT:
-        _LOG.warning("stream %s: %d-bit source staged at 8 bits", stream_id, bits)
+        _LOG.warning("%s: %d-bit source staged at 8 bits", subject, bits)
     unspecified = media["color"]["matrix"] == UNSPECIFIED_COLOR_MATRIX
     if unspecified and uses_color_matrix(media["source_pixel_format"]):
-        _LOG.warning("stream %s: no color matrix tag, converted as BT.601", stream_id)
+        _LOG.warning("%s: no color matrix tag, converted as BT.601", subject)
+
+
+def _stream_subject(stream_ids: Sequence[str]) -> str:
+    if len(stream_ids) == 1:
+        return f"stream {stream_ids[0]}"
+    return "streams " + ", ".join(stream_ids)

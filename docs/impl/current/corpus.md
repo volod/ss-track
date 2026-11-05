@@ -2,11 +2,12 @@
 
 `ss-track import` turns one declared recording into an immutable, hashed source record.
 `ss-track corpus build` groups imported sources into encounters and splits in one immutable corpus
-version. `ss-track corpus stage` decodes each stream into one immutable frame bundle that every
-module reads, plus one derived bundle for each declared generated case, and seals them into one
-frame set whose hash a scenario can pin. `ss-track corpus verify` proves those frames are intact, are
-the ones the frame set names, and that the source records they rest on still hold. Both refuse one
-recording held by two groups, or twice in one group, under different source hashes.
+version. `ss-track corpus stage` decodes each source once into one immutable frame bundle per
+stream that every module reads, plus one derived bundle for each declared generated case, and seals
+them into one frame set whose hash a scenario can pin. `ss-track corpus verify` proves those
+frames are intact, are the ones the frame set names, and that the source records they rest on still
+hold. Both refuse one recording held by two groups, or twice in one group, under different source
+hashes.
 `ss-track corpus hashes` and `ss-track corpus compare` show whether two hosts staged the same
 bytes. Each command produces a complete record or a structured refusal, and none invents a value
 it could not establish.
@@ -27,6 +28,44 @@ tasks, their decisions and their acceptance evidence:
 [source terms amendment](../records/0014-corpus-provenance-source-terms-amendment.md),
 [amendment impact](../records/0034-corpus-provenance-amendment-impact-report.md) and
 [record read gate](../records/0016-data-contracts-record-read-gate.md).
+
+The available corpus path imports declared sources and stages reviewed selections; it does not yet
+form a large corpus from sibling video indexes or self-supervised selection. The specification and
+plan define that future work, including source permissions and independent review. See the
+[corpus formation planning record](../records/0038-adhoc-self-supervised-corpus-plan.md).
+
+## Selected development workload
+
+The owner-selected pilot is [Hawk attacks drone](https://commons.wikimedia.org/wiki/File:Hawk_attacks_drone.webm),
+by Michael deAgonia, under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). Credit the
+creator, link the license and identify any changes when using the footage. The source description
+suggests Swainson's hawk but marks the species uncertain; the task class is bird of prey. This edited,
+aerial video has a moving landscape and an approaching bird that grows large in frame. Its unknown
+range and target extent mean it does not establish sustained small-target performance.
+
+After `make bootstrap`, run `make development-workload-prepare`. It downloads the pinned source,
+checks its SHA-256, and prepares the source, contact sheet and declarations under
+`$DATA_DIR/workload-selection/hawk-drone-pilot/`. The command needs network access and `ffmpeg`,
+uses the configured data root, and refuses to replace a conflicting source or declaration. Re-running
+it reuses matching files. Source terms, including no fixed retention end and permission for derived
+frames, are in the recording declaration. Corpus sharing is restricted.
+
+Import, build, stage and verify the prepared corpus from the project root:
+
+```bash
+SST_WORKLOAD_ROOT="$(.venv/bin/python -c 'from ss_track.core.paths import resolve_data_root; print(resolve_data_root())')/workload-selection/hawk-drone-pilot"
+.venv/bin/ss-track import --source "$SST_WORKLOAD_ROOT/recording.yaml"
+.venv/bin/ss-track corpus build --manifest "$SST_WORKLOAD_ROOT/corpus.yaml"
+.venv/bin/ss-track corpus stage --corpus hawk-drone-pilot-v1
+.venv/bin/ss-track corpus verify --corpus hawk-drone-pilot-v1
+```
+
+The half-open source windows are
+`[0, 168)` for the candidate negative and `[432, 552)` for the positive. They belong to one
+`development` group because they come from the same recording. The one-frame-per-second survey does
+not prove negative absence in every frame: the pilot-labeling task reviews all frames and keeps
+uncertainty visible. These are not frozen labels or held-out evidence. See the
+[selection record](../records/0037-corpus-provenance-select-development-workload.md).
 
 ## Commands
 
@@ -631,17 +670,24 @@ with the carried record is `IMPORT_CONFLICT`.
 ## Frame bundles
 
 `corpus stage` writes one bundle per stream of a built corpus, with the same strict decode as
-import. `src/ss_track/corpus/bundles/bundle_writer.py` writes a bundle and `src/ss_track/corpus/bundles/staging.py`
-runs the command.
+import. Pending streams of one source share that decode. `src/ss_track/corpus/bundles/staging.py`
+groups them, `src/ss_track/corpus/bundles/bundle_writer.py` fans the frames out, and
+`src/ss_track/corpus/bundles/publish.py` publishes that pass together.
 
 | Path | Content |
 | --- | --- |
 | `00000012.rgb24` | One frame: tightly packed RGB rows, `width * height * 3` bytes, no padding |
 | `manifest.json` | Sealed record with the frame index, per-frame SHA-256 and `bundle_sha256` |
 
+The decode reads every frame, including frames no stream stores. Seeking to a window would skip the
+proof that the stored source still matches its import. Only a frame inside a pending selection is
+converted. Each stream keeps its own converter and sees only its own frames, so its pixels match a
+stage of that stream alone. A build refuses a frame named by two selections. The writer still stores
+that frame in each selection, which keeps the bundle hash equal to a stage of that stream alone.
+
 Frame names and `frame_index` are positions in the source sequence, so a selection keeps them: a
-window `[5, 9)` holds frames 5 to 8, and labels stay aligned with any window. A bundle holds only its
-selection, even though staging decodes the whole source to prove it still matches its import.
+window `[5, 9)` holds frames 5 to 8, and labels stay aligned with any window. A bundle holds only
+its selection.
 
 `bundle_sha256` covers the `identity` block: source hash, decode policy hash, pixel format, width,
 height, bytes per frame, time base, selection and the ordered index of frame index, PTS and frame
@@ -650,22 +696,35 @@ hash, whatever the corpus or stream is called. The record separately holds the s
 and bit depth, `precision_reduced`, stored color tags, display rotation, interlaced frame count,
 timestamp quality, its `stream_id` and the links to its corpus and source manifests.
 
-Staging trusts nothing from before it ran. It re-hashes the stored source, requires the installed
-decode policy, requires the source record the corpus pinned, and refuses with `DECODE_DRIFT` if this
-decode disagrees with the import record in any field. It checks free space first, because raw frames
-dwarf their source: 14 MB of H.264 became 3.5 GB at 1080p. On the development host that clip staged
-at 74 frames per second with an 87 MB peak.
+Staging trusts nothing from before it ran. It re-hashes each stored source once on a pass, requires
+the installed decode policy, requires the source record the corpus pinned, and refuses with
+`DECODE_DRIFT` if this decode disagrees with the import record in any field. One stream is named
+`stream_id`. Several are named `stream_ids`, in corpus order. It checks free space for the frames
+those pending streams will store before decoding, because raw frames dwarf their source: 14 MB of
+H.264 became 3.5 GB at 1080p. On the development host that clip staged at 74 frames per second with
+an 87 MB peak.
 
-Frames are written to a scratch directory and published by one rename, so a failure leaves no bundle.
-One staging runs per corpus, under a lock the kernel releases however a run ends. A second run gets
-`STAGING_IN_PROGRESS`, and the next run to take the lock removes what a killed run left behind.
-Streams finished before a refusal stay staged, and repeating the command skips them.
+Each new bundle is written in a scratch directory. The pass renames them into place only after the
+source has decoded and every manifest is sealed, so a failure before that leaves none of them. A
+rename that fails, or an interruption while they are moving, removes the ones already renamed.
+Scratch that never moved is removed with its temporary directory. A source published before the
+failure stays staged, including a stream listed after the one that failed, and repeating the command
+decodes only a source that still has a missing bundle. One staging runs per corpus, under a lock
+the kernel releases however a run ends. A second run gets `STAGING_IN_PROGRESS`, and the next run
+to take the lock removes what a killed run left behind. A kill that the process cannot catch can
+leave a complete bundle of that pass; the next stage keeps it and decodes the source again only for
+what is still missing.
 
-Repeating `corpus stage` re-hashes each existing bundle and reports `unchanged`. A bundle staged from
+Repeating `corpus stage` re-hashes each existing bundle and reports `unchanged`. A source whose
+streams are all present is left unread. A reduced-precision or untagged-matrix warning is logged
+once for the source, naming every stream of the pass. A bundle staged from
 another corpus version, or one sitting under another stream's path, is `BUNDLE_CONFLICT`, so moving a
 bundle cannot carry frames into another split. A bundle is immutable: frames are mode `0444`, the
 directory is `0555`, and a damaged one is never repaired in place. Remove it with
 `chmod -R u+w <bundle> && rm -rf <bundle>`, then stage again; the hash comes back the same.
+`tests/corpus/bundles/test_single_pass.py` checks one decode per source, hashes that match a
+per-stream stage, and a failure that publishes nothing from the pass. The
+[task record](../records/0036-corpus-provenance-staging-single-pass.md) holds the acceptance.
 
 ### Frame set
 
@@ -1248,8 +1307,9 @@ repository. `tests/corpus/decoding/test_decode.py` covers the strict inspection,
 `test_decode_policy.py` the policy and its hash, and `test_decode_damage.py` the truncation sweep
 over small H.264 Matroska and MP4 clips and the damage default decoding hides and the policy
 refuses. `tests/corpus/bundles/test_bundle_writer.py`, `test_bundle_writer_refusals.py`,
-`test_staging.py`, `test_frames.py`, `test_bundle_reader.py`, `test_frame_verification.py` and
-`test_pixels.py` cover staging, reading and verifying bundles, and `test_pixels.py` includes the
+`test_staging.py`, `test_single_pass.py`, `test_frames.py`, `test_bundle_reader.py`,
+`test_frame_verification.py` and `test_pixels.py` cover staging, reading and verifying bundles, and
+`test_pixels.py` includes the
 comparison with FFmpeg's SIMD disabled. `tests/corpus/bundles/test_frame_set.py` covers the frame
 set across data roots, `test_frame_set_runs.py` an interrupted, failed or concurrent stage and the
 staging lock, and `test_frame_set_refusals.py` each refusal by name.

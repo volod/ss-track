@@ -30,25 +30,6 @@ extensions; none blocks M3. Fixture implementation proceeds without physical har
 
 ### Corpus provenance -- `corpus-provenance`
 
-#### staging-single-pass (optional)
-
-A long recording cut into many streams is decoded in full once per stream.
-
-- Serves: `corpus-provenance` -- [Corpus
-  identity](../design/spec.md#41-corpus-identity-and-input-handling)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: `corpus stage` decodes each source once, however many streams it feeds.
-- Scope boundary: Fan-out of one strict decode. Seeking is out of scope, because the whole decode
-  proves a source still matches its import.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`.
-- Execution path: Group pending streams by source and let one `inspect_media` consumer write several
-  bundles.
-- Acceptance gates: Bundle hashes match per-stream staging exactly, a failure leaves no partial
-  bundle, and decode count equals source count on a multi-encounter fixture.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
 #### bundle-frame-sharing (optional)
 
 A generated case stores a full raw copy of every frame, even frames identical to its parent.
@@ -247,6 +228,181 @@ import, build, stage and verify as one path.
   finding is fixed, routed to a task or dropped with its reason, and `make quality` passes. Finding
   nothing is a valid result when the record states what was reviewed.
 - Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
+
+### Self-supervised video corpus -- `self-supervised-corpus`
+
+#### corpus-sibling-integration-study
+
+The sibling projects expose video indexing and SSL research, but their exact export and version
+compatibility for frozen corpus formation need evidence.
+
+- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
+- Agent status: CLEAR
+- Research: yes
+- Dependencies: none.
+- User-visible outcome: A reviewable adapter plan identifies usable ss-video and ss-fusion interfaces.
+- Scope boundary: Inspect pinned revisions, package and model licenses, sampling and export paths;
+  training, privileged service deployment, and broad source acquisition are excluded.
+- Data and artifact paths: `docs/impl/current/corpus.md`, `docs/impl/records/`, `$DATA_DIR/self-supervised-corpus/<run-id>/`.
+- Execution path: Inspect ss-video ingest/search and ss-fusion perception/SSL paths; test a small
+  local example or fixtures and record exact revisions, versions, resource requirements and gaps.
+- Acceptance gates: Document the source/frame-to-embedding and export mapping, model and data rights,
+  version compatibility and reproducibility; a reasoned incompatibility or unavailable interface is
+  a valid negative with an alternative or explicit block. `make ci` passes.
+- Documentation target: [Corpus](current/corpus.md).
+
+#### corpus-discovery-contract
+
+Reviewers cannot reconstruct why a frame or interval entered a candidate list without stable records.
+
+- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
+- Agent status: CLEAR
+- Dependencies: corpus-sibling-integration-study.
+- User-visible outcome: A portable, validated candidate inventory records authorized source lineage,
+  frame or time windows, group, model and processing revision, scores, selection and audit status.
+- Scope boundary: Versioned interchange contracts and validators; predictions are not labels and
+  scores do not authorize a source or assign a final split.
+- Data and artifact paths: `contracts/`, `src/ss_track/corpus/`, `tests/corpus/`.
+- Execution path: Reuse source and frame identities, define candidate and run contracts and validate
+  golden records without either external service.
+- Acceptance gates: Fixtures reject missing rights references, ambiguous frame/time identity, missing
+  model provenance and invalid selection probability; contract-only consumers validate unchanged
+  records and `make ci` passes.
+- Documentation target: [Corpus](current/corpus.md).
+
+#### corpus-video-index-adapter
+
+An operator needs to use indexed video candidates without losing source or frame identity.
+
+- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
+- Agent status: CLEAR
+- Dependencies: corpus-discovery-contract.
+- User-visible outcome: Authorized indexed observations become auditable candidate records.
+- Scope boundary: An ss-video adapter against the studied interface; no unrestricted URL crawl,
+  network requirement in tests, silent source download, or conversion of predictions to labels.
+- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/self-supervised-corpus/<run-id>/`.
+- Execution path: Map source hashes, decoded frame identity and sampled timestamps through a pinned
+  adapter, recording unsupported or unavailable records and service or model configuration.
+- Acceptance gates: Fixture responses map exactly to source and frame references; missing rights,
+  timestamps, revisions, incompatible models and partial responses are refused or reported, never
+  fabricated; retries are deterministic and `make ci` passes.
+- Documentation target: [Corpus](current/corpus.md).
+
+#### corpus-ssl-selection
+
+Ranking only known objects misses rare, tiny or unfamiliar birds and background negatives.
+
+- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
+- Agent status: CLEAR
+- Research: yes
+- Dependencies: corpus-discovery-contract, corpus-sibling-integration-study.
+- User-visible outcome: Operators get ranked, diverse candidate windows plus reproducible independent
+  audit samples from the eligible pool.
+- Scope boundary: Frozen or explicitly versioned ss-fusion visual representations where feasible,
+  diversity, uncertainty, motion and seeded random sampling; no claim that a score is a label.
+- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/self-supervised-corpus/<run-id>/`.
+- Execution path: Implement a model-agnostic selection seam and evaluate sibling embeddings against a
+  simple uniform baseline, retaining each sampling probability, seed and exclusion reason.
+- Acceptance gates: Fixtures reproduce selection and independent audit membership; negatives,
+  confusers and unseen candidates can enter the audit sample; unavailable features are explicit.
+  A negative model comparison is valid and `make ci` passes.
+- Documentation target: [Corpus](current/corpus.md).
+
+#### corpus-group-and-leakage-review
+
+Related recordings and visually similar copies can leak across splits and exaggerate evidence.
+
+- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
+- Agent status: CLEAR
+- Dependencies: corpus-discovery-contract.
+- User-visible outcome: Reviewers see likely related video and keep related encounters together.
+- Scope boundary: Source and exact frame checks plus flagged embedding or perceptual candidates;
+  final grouping decisions remain human-owned, and a similarity threshold is not ground truth.
+- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/self-supervised-corpus/<run-id>/`.
+- Execution path: Reuse existing corpus grouping and duplicate checks, add reviewable candidate
+  links and reject known cross-split leakage on export.
+- Acceptance gates: Fixtures cover remuxed and related recordings, unrelated lookalikes and an
+  unresolved conflict; known leakage is refused and uncertain matches are exposed, not silently
+  merged. `make ci` passes.
+- Documentation target: [Corpus](current/corpus.md).
+
+#### corpus-review-and-freeze
+
+Large candidate inventories need bounded human decisions before they become benchmark inputs.
+
+- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
+- Agent status: CLEAR
+- Dependencies: corpus-video-index-adapter, corpus-ssl-selection, corpus-group-and-leakage-review.
+- User-visible outcome: Reviewers can inspect candidates and export a frozen, reproducible corpus
+  version with source terms, group, split, exclusions and decision provenance.
+- Scope boundary: Review and source-to-corpus manifest export; label adjudication uses the existing
+  annotation contract and the locked split requires its existing custodian policy.
+- Data and artifact paths: `contracts/`, `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/corpus/<corpus-id>/`.
+- Execution path: Provide bounded review decisions and manifest generation through existing import,
+  corpus build, stage and verify flows, with refusal on expired terms or unresolved split conflicts.
+- Acceptance gates: Replaying frozen reviewed decisions yields the same membership and hashes;
+  rejected, unknown or unreviewed cases cannot masquerade as verified labels; denied, expired and
+  conflicting sources refuse. Fixture tests and `make ci` pass.
+- Documentation target: [Corpus](current/corpus.md).
+
+#### corpus-selection-evaluation
+
+A larger selected pool may conceal missed small birds or exclude hard negatives.
+
+- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
+- Agent status: CLEAR
+- Dependencies: corpus-ssl-selection, corpus-discovery-contract.
+- User-visible outcome: A report compares model-assisted selection with a random or uniform
+  baseline and exposes missed cases and resource cost at a matched review budget.
+- Scope boundary: Independently reviewed audit samples and stratified uncertainty; no field accuracy,
+  generalization or verified species claim from model proposals alone.
+- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/self-supervised-corpus/<run-id>/`.
+- Execution path: Define a reproducible evaluation protocol before running, score reviewed random
+  samples including unselected material, and report diversity, negatives, recall, cost and exclusions.
+- Acceptance gates: Hand-calculated fixtures verify denominators, sampling weights, uncertainty and
+  unavailable strata; empty or insufficient evidence produces an explicit inconclusive result.
+  Negative gains remain valid and `make ci` passes.
+- Documentation target: [Corpus](current/corpus.md).
+
+#### corpus-scale-pilot
+
+A large corpus needs evidence that selection can run within the owner's available resources.
+
+- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
+- Agent status: RUN NEEDED
+- Research: yes
+- Dependencies: corpus-review-and-freeze, corpus-selection-evaluation,
+  authorize-video-corpus-sources, review-video-corpus-sample.
+- User-visible outcome: An authorized pilot produces a measured, reproducible corpus or explains why
+  available video, quality, cost or resources do not support it.
+- Scope boundary: Only approved sources, processing and storage budgets; no acquisition beyond the
+  agreed list or unattended spend.
+- Data and artifact paths: `$DATA_DIR/self-supervised-corpus/<run-id>/`, `$DATA_DIR/corpus/<corpus-id>/`.
+- Execution path: Use the approved corpus-size and diversity targets, candidate sampling, human
+  review and baseline protocol; measure ingest, storage, compute and completeness; retain run pins.
+- Acceptance gates: Corpus verification, rights and grouping checks pass; the report states selection
+  recall, uncertainty, negative coverage and matched-budget baseline results, including missing
+  evidence. Insufficient resources or a negative selection result is a valid negative; `make ci` passes.
+- Documentation target: [Corpus](current/corpus.md).
+
+#### self-supervised-corpus-audit (optional)
+
+The full corpus formation path needs one review across sibling integrations and reviewer decisions.
+
+- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
+- Agent status: CLEAR
+- Effort: high
+- Dependencies: every other agent task in this group.
+- User-visible outcome: The complete workflow preserves source rights, frame identity, sampling
+  evidence, review authority and split isolation across its seams.
+- Scope boundary: Group audit over this group's paths, contracts, external version pins, tests and
+  limitations; no new acquisition or claimed field performance.
+- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `contracts/`, `$DATA_DIR/self-supervised-corpus/`.
+- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits), including
+  stopped runs, unavailable models, unselected negatives and duplicate or revoked source terms.
+- Acceptance gates: Each finding is fixed, routed or dropped with its reason, verified evidence is
+  reproducible and `make quality` passes; finding nothing is valid when scope is recorded.
+- Documentation target: [Corpus](current/corpus.md).
 
 ### Annotation and selection -- `annotation-selection`
 
@@ -2335,26 +2491,6 @@ prepares protocols, analyzes evidence and produces reviewable selection records.
 
 ### Corpus provenance -- `corpus-provenance`
 
-#### select-development-workload
-
-Software development needs authorized footage with a declared task and useful negative cases.
-
-- Serves: `corpus-provenance` -- [Corpus identity](../design/spec.md#41-corpus-identity-and-input-handling)
-- Agent status: HUMAN-GATED
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: One candidate workload has recorded terms, and the owner knows how close it
-  is to the small-target stress case.
-- Scope boundary: Authorized private or public development sources, benchmarking rights, retention and
-  access restrictions. Public redistribution is a separate permission, never a G0a prerequisite.
-- Data and artifact paths: `$DATA_DIR/corpus/<corpus-id>/`, with source terms and hashes.
-- Execution path: The owner checks source terms and selects positive/negative encounters; original
-  controlled recordings are an alternative when no existing source fits.
-- Acceptance gates: Every source has recorded rights, a retention date, a derived-frame permission and
-  task suitability. With no authorized source,
-  real-data claims remain unavailable while fixture implementation continues.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
 #### define-locked-test-policy (optional)
 
 A locked test needs a named custodian and access rules that no software can supply.
@@ -2363,7 +2499,7 @@ A locked test needs a named custodian and access rules that no software can supp
   identity](../design/spec.md#41-corpus-identity-and-input-handling)
 - Agent status: HUMAN-GATED
 - Milestone: M4
-- Dependencies: select-development-workload.
+- Dependencies: none.
 - User-visible outcome: A named custodian holds a written access policy, so a locked split can
   support a held-out claim.
 - Scope boundary: The spec section 15 custodian and access inputs. Runner enforcement belongs to
@@ -2375,6 +2511,46 @@ A locked test needs a named custodian and access rules that no software can supp
   `locked` split stays membership only and no held-out claim is made.
 - Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
 
+### Self-supervised video corpus -- `self-supervised-corpus`
+
+#### authorize-video-corpus-sources
+
+A large candidate pool needs source permissions, available storage and a spending envelope a tool
+cannot grant itself.
+
+- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
+- Agent status: HUMAN-GATED
+- Dependencies: none.
+- User-visible outcome: The owner approves a source list, corpus size and diversity targets, permitted
+  processing, compute and storage budgets, and a baseline review budget.
+- Scope boundary: Authorized public or private sources, benchmarking, model processing and derived
+  artifacts, retention and access; public redistribution is a separate permission.
+- Data and artifact paths: `$DATA_DIR/self-supervised-corpus/<run-id>/`, `$DATA_DIR/import/`.
+- Execution path: Record each source's terms, allowed uses, retention and handling, and select an
+  explicit resource envelope before acquiring or running over the sources.
+- Acceptance gates: Every selected source has verifiable rights and retention, a named owner of the
+  approval, approved model use and cost limits, and target coverage and negative cases. No eligible
+  source or inadequate budget is a recorded valid negative and authorizes no acquisition.
+- Documentation target: [Corpus](current/corpus.md).
+
+#### review-video-corpus-sample
+
+The usefulness and missed cases of self-supervised selection require independent human judgment.
+
+- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
+- Agent status: HUMAN-GATED
+- Dependencies: authorize-video-corpus-sources, corpus-selection-evaluation, corpus-review-and-freeze.
+- User-visible outcome: Reviewers adjudicate selected and independently sampled unselected material,
+  including negative windows, confusers and small or uncertain birds.
+- Scope boundary: A predeclared independent audit sample, grouping decisions and reviewer time; the
+  existing annotation authority owns final labels and a locked set needs its custodian.
+- Data and artifact paths: `$DATA_DIR/self-supervised-corpus/<run-id>/`, `$DATA_DIR/corpus/<corpus-id>/labels/`.
+- Execution path: Freeze the baseline and sampling plan before review; reviewers record source and
+  frame decisions, uncertainty, disagreements and time, and settle them under named authority.
+- Acceptance gates: Reviewed samples and exclusions are frozen and hashed; absent or uncertain labels
+  stay unknown, unreviewed exposure is reported, and insufficient sample size is inconclusive.
+- Documentation target: [Corpus](current/corpus.md).
+
 ### Annotation and selection -- `annotation-selection`
 
 #### label-pilot-encounters
@@ -2384,10 +2560,11 @@ G0a needs only one positive and one negative encounter, so it should not wait fo
 - Serves: `annotation-selection` -- [Annotation contract](../design/spec.md#42-annotation-contract)
 - Agent status: HUMAN-GATED
 - Milestone: M1
-- Dependencies: select-development-workload, annotation-review-tools.
+- Dependencies: annotation-review-tools.
 - User-visible outcome: Two encounters have frozen labels, selections and masks.
 - Scope boundary: The pilot encounters, including motion events. The pass also measures labelling
-  time per encounter.
+  time per encounter. Review every frame of the selected negative window for target absence, and
+  leave any uncertain frames unknown; the initial selection used a one-frame-per-second survey.
 - Data and artifact paths: `$DATA_DIR/corpus/<corpus-id>/labels/`.
 - Execution path: Two reviewers label and settle disagreements under a named authority.
 - Acceptance gates: Validation passes and the revision is frozen and hashed. Unresolved labels remain

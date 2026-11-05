@@ -11,7 +11,7 @@ from typing import Any
 
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.bundles.bundle_reader import open_corpus_bundle
-from ss_track.corpus.bundles.bundle_writer import write_bundle
+from ss_track.corpus.bundles.bundle_writer import write_source_bundles
 from ss_track.corpus.bundles.duplicate_frames import SharedFramesCheck, require_unshared_frames
 from ss_track.corpus.bundles.frame_set import commit_frame_set, frame_set_path, require_frame_set
 from ss_track.corpus.bundles.frames import FrameBundle, FrameDamage, frames_corrupted, frames_root
@@ -107,7 +107,8 @@ def _require_sources_hold(corpus: dict[str, Any], data_root: Path, today: date) 
 def stage_corpus(corpus_id: str, data_root: Path, *, today: date | None = None) -> FramesResult:
     """Stage every stream and case, then seal the frame set. A failure leaves it unwritten.
 
-    A first stage refuses a repeated run before its cases. An existing frame set is matched first.
+    Pending streams of one source share one strict decode. A first stage refuses a repeated run
+    before its cases. An existing frame set is matched first.
     """
     checked_on = evaluation_date(today)
     corpus = load_corpus_manifest(corpus_id, data_root)
@@ -120,9 +121,7 @@ def stage_corpus(corpus_id: str, data_root: Path, *, today: date | None = None) 
     root = frames_root(data_root, corpus_id)
     root.mkdir(parents=True, exist_ok=True)
     with _exclusive_staging(root, corpus_id):
-        streams = tuple(
-            _stage_stream(stream, corpus, policy, root, data_root) for stream in _streams(corpus)
-        )
+        streams = _stage_streams(corpus, policy, root, data_root)
         frame_set_sha256, written, bundles, shared_frames = _seal_stage(
             corpus, streams, root, data_root
         )
@@ -224,16 +223,26 @@ def _open_case(case: dict[str, Any], corpus: dict[str, JsonValue], root: Path) -
     return bundle
 
 
-def _stage_stream(
-    stream: dict[str, Any],
+def _stage_streams(
     corpus: dict[str, JsonValue],
     policy: DecodePolicy,
     root: Path,
     data_root: Path,
-) -> BundleSummary:
-    if (root / stream["stream_id"]).exists():
-        return _unchanged(open_corpus_bundle(stream["stream_id"], corpus, root))
-    return _summary(write_bundle(stream, corpus, policy, root, data_root), STAGED)
+) -> tuple[BundleSummary, ...]:
+    """Stage each missing stream. One source is decoded once, however many streams it still owes."""
+    declared = _streams(corpus)
+    summaries: dict[str, BundleSummary] = {}
+    pending: dict[str, list[dict[str, Any]]] = {}
+    for stream in declared:
+        stream_id = str(stream["stream_id"])
+        if (root / stream_id).exists():
+            summaries[stream_id] = _unchanged(open_corpus_bundle(stream_id, corpus, root))
+        else:
+            pending.setdefault(str(stream["source_sha256"]), []).append(stream)
+    for streams in pending.values():
+        for bundle in write_source_bundles(streams, corpus, policy, root, data_root):
+            summaries[bundle.stream_id] = _summary(bundle, STAGED)
+    return tuple(summaries[str(stream["stream_id"])] for stream in declared)
 
 
 def _stage_case(case: dict[str, Any], corpus: dict[str, JsonValue], root: Path) -> BundleSummary:

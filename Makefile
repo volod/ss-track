@@ -20,7 +20,7 @@ export MYPY_CACHE_DIR := $(DATA_ROOT)/cache/mypy
 	complexity-gate shell-lint-gate lint-md lint-doc-links lint-spec-plan lint-contracts \
 	plan-status \
 	ci-checks ci ci-github build quality code-quality quality-report \
-	fixed-corpus-sources fixed-corpus-stage fixed-corpus-compare
+	fixed-corpus-sources fixed-corpus-stage fixed-corpus-compare development-workload-prepare
 
 help: ## List available targets
 	@awk 'BEGIN {FS = ":.*## "; print "Usage: make <target>\n"} /^[a-zA-Z0-9_.-]+:.*## / {printf "  %-20s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -102,6 +102,9 @@ ci-checks: format-check lint typecheck complexity-gate shell-lint-gate lint-doc-
 ci: ci-checks test ## Run the required local and GitHub CI gate
 
 ci-github: ci ## Explicit GitHub Actions entrypoint
+
+development-workload-prepare: ## Download and prepare the selected hawk development workload
+	@"$(PY)" -m ss_track.corpus.sources.pilot_workload
 
 fixed-corpus-sources: ## Write the fixed corpus sources once, for every host to stage
 	@"$(PY)" -m tests.corpus.hosts._fixed_corpus write --output "$(FIXED_SOURCES)"
