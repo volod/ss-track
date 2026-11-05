@@ -4,7 +4,9 @@ Material already evaluated in one split has been seen, so it cannot reappear in 
 can drop a source and the next bring it back, so a new version answers to its whole declared chain,
 not only to its nearest predecessor. Everything here reads records it is given and touches no disk,
 and it reads only source hashes, groups and splits: a source's rights or frame window can change
-between versions without moving the source. Reading the chain itself is `corpus.versions.predecessors`.
+between versions without moving the source. Reading the chain itself is
+`corpus.versions.predecessors`. The same comparison lists versions no declaration links, in
+`corpus.versions.unlinked`, and that report refuses nothing.
 """
 
 from collections.abc import Iterable, Mapping, Sequence
@@ -99,18 +101,33 @@ def require_same_places(
         )
 
 
+def sources_placed_elsewhere(
+    corpus_id: str, streams: Sequence[StreamRecord], other: Manifest
+) -> tuple[dict[str, JsonValue], ...]:
+    """Return sources this version places in another group or split than `other`, by hash.
+
+    Each record matches a split-leakage move: `from` is `other` and `to` is this version. Callers
+    that refuse keep the nearest version; a report keeps every one.
+    """
+    places = _placements(streams)
+    found = [
+        _move(other, earlier, corpus_id, places[earlier.source_sha256])
+        | {"source_sha256": earlier.source_sha256}
+        for earlier in _placements(other["streams"]).values()
+        if earlier.source_sha256 in places and _differs(places[earlier.source_sha256], earlier)
+    ]
+    return tuple(sorted(found, key=lambda item: str(item["source_sha256"])))
+
+
 def _moved_sources(
     corpus_id: str, streams: Sequence[StreamRecord], predecessors: Sequence[Manifest]
 ) -> dict[str, JsonValue]:
     """Map each moved source to its move. The nearest version comes last, so it is the one named."""
-    places = _placements(streams)
-    return {
-        earlier.source_sha256: _move(version, earlier, corpus_id, places[earlier.source_sha256])
-        | {"source_sha256": earlier.source_sha256}
-        for version in reversed(predecessors)
-        for earlier in _placements(version["streams"]).values()
-        if earlier.source_sha256 in places and _differs(places[earlier.source_sha256], earlier)
-    }
+    moved: dict[str, JsonValue] = {}
+    for version in reversed(predecessors):
+        for item in sources_placed_elsewhere(corpus_id, streams, version):
+            moved[str(item["source_sha256"])] = item
+    return moved
 
 
 def _moved_groups(

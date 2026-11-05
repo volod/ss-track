@@ -64,9 +64,11 @@ makes it fail, and what it does not prove. A case with no task left is listed as
   Value: protects=split isolation over time; fails_when=a moved source builds, or a replaced
   predecessor is compared; no_claim=versions that declare no predecessor.
 - `unlinked-version-report`: a source placed in `locked` by an unlinked version and by a sibling
-  branch.
-  Value: protects=an operator's sight of reuse no declaration links; fails_when=either goes unlisted
-  or an independent reuse is refused; no_claim=that a listed reuse is leakage.
+  branch, one listing order, a declared predecessor left out, and a manifest that cannot be read or
+  whose major keeps no projection. `tests/corpus/` covers them.
+  Value: protects=an operator's sight of reuse no declaration links; fails_when=either goes
+  unlisted, an independent reuse is refused, or an unreadable manifest is skipped; no_claim=that
+  a listed reuse is leakage, or that versions on another data root were seen.
 - `staged-frame-set`: two stagings of one corpus across data roots, a replaced, missing and undeclared
   bundle, and a stage killed at each step of writing the record.
   Value: protects=one pin for all staged input; fails_when=a changed bundle keeps its frame set, or a

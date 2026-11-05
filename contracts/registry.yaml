@@ -290,6 +290,14 @@ contracts:
     change:
       class: minor
       summary: Add the redecoded status for ss-track import --redecode.
+  - version: 1.6.0
+    file_sha256: deeaef86655138542282169aaa688f18ec5b1632adaca9d5a88b5765dd6ab41c
+    fingerprints:
+      structure: fa0d65ea744448bd7481900c917c9432c54151f0d63e13b836c6e9bb675ca310
+      meaning: 3fa95554dc91cd8570393742b904777a01a2d5813e8f7a89657f3d8fd7b9b13d
+    change:
+      class: minor
+      summary: List corpus versions on this data root that place a source elsewhere.
 - family: shared
   id: types
   owner: data-contracts

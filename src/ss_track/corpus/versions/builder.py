@@ -41,6 +41,7 @@ from ss_track.corpus.versions.lineage import (
     trace_lineage,
 )
 from ss_track.corpus.versions.predecessors import Predecessor, link_field, read_predecessors
+from ss_track.corpus.versions.unlinked import UnlinkedVersions, report_unlinked
 from ss_track.schema.validation.enforce import is_shared_type
 
 CORPUS_DIRECTORY = "corpus"
@@ -60,10 +61,11 @@ class BuildResult:
     generated_case_count: int
     splits: dict[str, SplitSummary]
     lineage: Lineage | None
+    unlinked: UnlinkedVersions
 
     def to_record(self) -> dict[str, JsonValue]:
         """Return the JSON-compatible result shown to the operator."""
-        return {
+        record: dict[str, JsonValue] = {
             "status": self.status,
             "corpus_id": self.corpus_id,
             "manifest_sha256": self.manifest_sha256,
@@ -73,6 +75,8 @@ class BuildResult:
             "splits": {name: summary.to_record() for name, summary in self.splits.items()},
             "lineage": lineage_record(self.lineage),
         }
+        record.update(self.unlinked.when_present())
+        return record
 
 
 def load_corpus_manifest(corpus_id: str, data_root: Path) -> dict[str, JsonValue]:
@@ -123,6 +127,13 @@ def build_corpus(
     require_separate_sources(streams)
     require_scenario_rights(streams, declaration.scenario_rights)
     require_same_places(declaration.corpus_id, streams, predecessors)
+    unlinked = report_unlinked(
+        declaration.corpus_id,
+        streams,
+        predecessors,
+        data_root / CORPUS_DIRECTORY,
+        CORPUS_MANIFEST,
+    )
     cases = case_records(list(declaration.recipes()), streams)
     body = _corpus_body(declaration, policy_record, policy_sha256, streams, cases)
     sealed = seal(body | link_field(predecessors))
@@ -137,6 +148,7 @@ def build_corpus(
         generated_case_count=len(cases),
         splits=summarize_splits(streams, cases),
         lineage=trace_lineage(streams, predecessors),
+        unlinked=unlinked,
     )
 
 

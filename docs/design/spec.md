@@ -242,10 +242,14 @@ version's manifest therefore outlives its frames. This comparison reads only ver
 declaration, so a version that names no predecessor says so in its result, and a locked evaluation of
 such a version repeats it, because nothing has shown its locked material to be unseen. A predecessor's
 format version is no reason to lose this comparison, and
-[reading older records](#reading-older-records) keeps it across majors. An unlinked
-version or a sibling branch cannot be refused, since independent work may reuse a recording, but a
-build lists every other version on its data root that places one of its sources elsewhere, for the
-operator's decision.
+[reading older records](#reading-older-records) keeps it across majors. An unlinked version or a
+sibling branch cannot be refused, since independent work may reuse a recording, but a build lists
+every other version on its data root that places one of its sources in
+another group or split, for the operator's decision. A manifest on that data root that cannot be
+read, or whose major keeps no comparison, is named rather than skipped. A version in the declared
+chain is not listed again. The listing compares source hashes only, so a group's split is not
+applied to an undeclared version, and it is not sealed: it describes one data root at the time of
+the build.
 
 Staging ends with one sealed frame-set record that names every stream and generated-case bundle hash
 of a corpus version and the source records they rest on. A scenario pins that one hash rather than a

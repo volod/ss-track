@@ -166,7 +166,7 @@ and an amended later record is byte-identical to one the first schema 2 code wri
 | Re-import over an older source | `RECORD_SCHEMA_UNSUPPORTED`, naming `--amend-terms`, before any decode |
 | Source moved to `locked`, predecessor at the current major | `SPLIT_LEAKAGE`, as designed |
 | Same move, predecessor at another major | `RECORD_SCHEMA_UNSUPPORTED`, and no version can link to it |
-| Same move, `supersedes` dropped | **Builds and stages as `no_lineage`.** The guard's only exit goes around it |
+| Same move, `supersedes` dropped | **Builds and stages as `no_lineage`, and the build lists the other version.** It does not refuse an undeclared reuse |
 | Successor whose predecessor holds another major's bundle | Stages, naming that bundle under `other_schema`, because section 4.1 says such a predecessor is reported |
 | Same source as a new corpus version | `bundle_sha256` equal across all four eras, while corpus seal, frame set and bundle seal differ and every frame is stored again |
 

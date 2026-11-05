@@ -30,29 +30,6 @@ extensions; none blocks M3. Fixture implementation proceeds without physical har
 
 ### Corpus provenance -- `corpus-provenance`
 
-#### unlinked-version-report (optional)
-
-A version that names no predecessor, or branches from one, can place an evaluated source in another
-split, and its build says only that it has no lineage.
-
-- Serves: `corpus-provenance` -- [Corpus
-  identity](../design/spec.md#41-corpus-identity-and-input-handling)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: `corpus build` lists every other built version on its data root that places
-  one of its sources in another group or split, for an operator's decision.
-- Scope boundary: A report that refuses nothing, because independent work may reuse a recording.
-  Source hashes on one data root only. Versions in the declared chain stay with the refusal.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/corpus/`.
-- Execution path: Scan `$DATA_DIR/corpus/*/manifest.json` and reuse the placement comparison in
-  `lineage.py`, reading every major through `read_comparable` and its projection, and naming a
-  manifest it cannot read, or one whose major keeps no projection, rather than skipping it.
-- Acceptance gates: A source placed in `locked` by an unlinked version and by a sibling branch are
-  each listed with both versions, and both builds succeed. One state gives one listing in one order,
-  and a version in the declared chain is never listed.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
 #### amendment-impact-report (optional)
 
 After `--amend-terms` an operator learns which corpus versions hold the affected frames only by running
@@ -68,11 +45,10 @@ After `--amend-terms` an operator learns which corpus versions hold the affected
 - Scope boundary: A report on one data root that refuses nothing and removes nothing, and never fails
   an amendment that is already recorded. Other hosts stay out of reach.
 - Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/corpus/`.
-- Execution path: Scan `$DATA_DIR/corpus/*/manifest.json` for streams pinning the replaced seal,
-  sharing the scan with `unlinked-version-report` when that exists. A corpus projection holds no
-  pin, so add `source_manifest_sha256` to each major's projection in
-  `corpus/records/projections.py`, read every major through `read_comparable`, and name a manifest
-  it cannot read rather than skipping it.
+- Execution path: Scan with `scan_corpus_manifests` in `src/ss_track/corpus/versions/unlinked.py`
+  for streams pinning the replaced seal. A corpus projection holds no pin, so add
+  `source_manifest_sha256` to each major's projection in `corpus/records/projections.py`. Name a
+  manifest the scan cannot read rather than skipping it.
 - Acceptance gates: A source pinned by two versions lists both, a version pinning another record is
   not listed, an unreadable manifest is named and the amendment still records, and a repeat reporting
   `unchanged` lists nothing. One state gives one listing in one order.

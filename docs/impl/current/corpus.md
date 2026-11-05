@@ -19,6 +19,7 @@ tasks, their decisions and their acceptance evidence:
 [source terms](../records/0006-corpus-provenance-source-terms-enforcement.md),
 [rights verification](../records/0007-corpus-provenance-corpus-verify-rights.md),
 [version lineage](../records/0008-corpus-provenance-corpus-version-lineage.md),
+[unlinked versions](../records/0033-corpus-provenance-unlinked-version-report.md),
 [frame sets](../records/0009-corpus-provenance-staged-frame-set.md),
 [shared frames](../records/0010-corpus-provenance-duplicate-frame-detection.md),
 [repeated frames in one group](../records/0032-corpus-provenance-group-repeated-frames.md),
@@ -254,9 +255,32 @@ and `added`, `removed` and `kept` are empty when it is the named version:
 `not_compared` appears only when a version in the chain was not compared, so a fully compared
 chain reports what it did before.
 
-A version that names nothing reports `{"status": "no_lineage"}`, and nothing compared it with anything:
-the same source can sit in `locked` there, and so can it in a sibling that branches from one
-predecessor. `unlinked-version-report` in the [plan](../plan.md) schedules a listing of those.
+A version that names nothing reports `{"status": "no_lineage"}`. That status is only the declared
+chain. Another version on the same data root can place one of its sources in another group or split,
+including `locked`, and the build still succeeds. The result then carries `unlinked`. `from` is the
+other version and `to` is the one being built, the same shape as a move, and it is not a refusal:
+
+```json
+{"status": "built", "lineage": {"status": "no_lineage"}, "unlinked": {"placements": [
+ {"source_sha256": "...",
+  "from": {"corpus_id": "pilot-v1", "group_id": "site-a", "split": "development"},
+  "to": {"corpus_id": "pilot-v2", "group_id": "held-out", "split": "locked"}}]}}
+```
+
+Placements are ordered by source hash, then by the other version's directory name. A manifest that
+cannot be read, or whose major keeps no projection, is named under `not_compared` with reason
+`unreadable` or `other_schema`, ordered by directory name. A version in the declared chain is never
+listed: a move against that chain is still `SPLIT_LEAKAGE`, and an unprojected predecessor stays in
+`lineage.not_compared`. The same source in the same group and split is not listed. A group's split
+is not applied to an undeclared version, because this listing compares source hashes only.
+
+The field is absent when there is nothing to report. It is not sealed, so a corpus hash does not
+change when another version appears, and `unchanged` can still carry a new listing. Repeating the
+build reports the data root as it is. `src/ss_track/corpus/versions/unlinked.py` reads
+`$DATA_DIR/corpus/*/manifest.json` through `read_comparable`, and `lineage.py` compares placements.
+One data root only. Versions outside `corpus/` are not listed. The
+[unlinked-versions record](../records/0033-corpus-provenance-unlinked-version-report.md) holds the
+accepted task.
 
 The manifest seals `supersedes` as `{"corpus_id", "manifest_sha256"}`, and only when one was named, so
 a version that names none keeps its hash and corpus manifests stay schema 3. Naming a predecessor on
@@ -366,8 +390,8 @@ What this cannot see:
   stream with fewer than eight different frames cannot hold a run at all.
 - A copy that replaces its original in the same group of a linked version. No version holds both,
   so none counts a frame twice.
-- A version no chain links to, which `unlinked-version-report` in the [plan](../plan.md) lists only by
-  source hash.
+- A version no chain links to. [Version lineage](#version-lineage) lists a shared source hash.
+  This check still does not read that version's frames.
 
 On the development host, reading a sealed index of a million frames takes about 2 s, and searching
 ten million hashes across 100 streams took 11 s, so the check costs about 3 s and 600 MB per million
@@ -1163,6 +1187,8 @@ format. `tests/corpus/versions/test_grouping.py`, `test_grouping_manifest.py`,
 identity from build to `FrameRef`. `tests/corpus/versions/test_lineage.py` compares hand-built
 versions, and `test_lineage_build.py`, `test_lineage_leakage.py` and `test_lineage_chain.py` cover
 linked builds, leakage and broken chains from the declaration to the exit status.
+`test_unlinked_versions.py` and `test_unlinked_scan.py` cover sources placed elsewhere by a version
+no declaration links, and manifests the scan cannot read.
 `tests/corpus/bundles/test_shared_runs.py` covers the run rule on hand-written indexes, and
 `test_shared_runs_group.py` a run inside one group. `test_duplicate_frames.py`,
 `test_duplicate_frames_allowed.py`, `test_duplicate_frames_chain.py`,
