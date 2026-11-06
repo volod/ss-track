@@ -15,6 +15,7 @@ from typing import Any
 
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.records.projections import NotCompared, Unprojected
+from ss_track.corpus.sources.identity import recording_sha256
 from ss_track.corpus.versions.predecessors import (
     Manifest,
     Predecessor,
@@ -116,7 +117,36 @@ def sources_placed_elsewhere(
         for earlier in _placements(other["streams"]).values()
         if earlier.source_sha256 in places and _differs(places[earlier.source_sha256], earlier)
     ]
+    seen = {str(item["source_sha256"]) for item in found}
+    found.extend(_recording_moves(corpus_id, streams, other, seen))
     return tuple(sorted(found, key=lambda item: str(item["source_sha256"])))
+
+
+def _recording_moves(
+    corpus_id: str,
+    streams: Sequence[StreamRecord],
+    other: Manifest,
+    seen: set[str],
+) -> list[dict[str, JsonValue]]:
+    """Return file-hash moves that a source-identity comparison cannot see.
+
+    A later video stream's identity is not the file hash. The move is reported under the file hash,
+    and a move already reported for that hash is left as it is.
+    """
+    current: dict[str, Placement] = {}
+    for stream in streams:
+        key = recording_sha256(stream)
+        current.setdefault(key, Placement(key, str(stream["group_id"]), str(stream["split"])))
+    found: list[dict[str, JsonValue]] = []
+    for stream in other["streams"]:
+        key = recording_sha256(stream)
+        if key in seen or key not in current:
+            continue
+        earlier = Placement(key, str(stream["group_id"]), str(stream["split"]))
+        if _differs(current[key], earlier):
+            found.append(_move(other, earlier, corpus_id, current[key]) | {"source_sha256": key})
+            seen.add(key)
+    return found
 
 
 def _moved_sources(

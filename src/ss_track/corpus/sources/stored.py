@@ -11,7 +11,7 @@ from typing import Any
 from ss_track.core.canonical import SEAL_FIELD
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.records.sealed import read_sealed
-from ss_track.corpus.records.sealing import sha256_file
+from ss_track.corpus.sources.identity import require_stored_source
 from ss_track.corpus.sources.importer import MANIFEST_NAME, SOURCE_MANIFEST, source_directory
 from ss_track.corpus.sources.terms import changed_terms
 
@@ -48,14 +48,9 @@ def require_source_record(stream: Mapping[str, Any], data_root: Path) -> None:
 def load_verified_source(source_sha256: str, data_root: Path) -> dict[str, JsonValue]:
     """Load a source record only if both the record and the stored bytes are still intact."""
     manifest = load_source_record(source_sha256, data_root)
-    source = manifest["source"]
-    if not isinstance(source, dict):
-        raise CorpusRefusal(RefusalCode.RECORD_TAMPERED, "source record has no source section")
-    stored = source_directory(data_root, source_sha256) / str(source["stored_name"])
-    if not stored.is_file() or sha256_file(stored) != source_sha256:
-        raise CorpusRefusal(
-            RefusalCode.SOURCE_HASH_MISMATCH,
-            "stored source bytes do not match the imported hash",
-            {"source_sha256": source_sha256},
-        )
+    require_stored_source(
+        source_directory(data_root, source_sha256),
+        manifest,
+        mismatch=RefusalCode.SOURCE_HASH_MISMATCH,
+    )
     return manifest

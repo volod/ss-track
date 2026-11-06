@@ -117,6 +117,15 @@ contracts:
       class: minor
       summary: State which fields a public descriptor may carry. Existing record bytes
         stay valid.
+  - version: 3.2.0
+    file_sha256: b4e9e4234d94f1ee7bc89627db11ffd6af3cb74edc13c20149d89210330e8954
+    fingerprints:
+      structure: 12df0939eafcbe31550541cc3b0654c42686cbbec1cafcde07b62951b14c165c
+      meaning: 3999aa2b0240fa0a32389a0217b5a0c609e45642fd85bbd48a5c9078eb553171
+    change:
+      class: minor
+      summary: Record the file hash of a later video stream when its source identity
+        is not that hash.
   retired_majors:
   - major: 1
     status: retired
@@ -342,6 +351,15 @@ contracts:
       class: minor
       summary: Add VIDEO_STREAM_UNSPECIFIED when a recording does not name a video
         stream the container holds.
+  - version: 1.9.1
+    file_sha256: 6e514812d1adf01a98b72a157c3edf19e436af52856e7c2d7abb0a7176325a77
+    fingerprints:
+      structure: ea431a638ed356a14db1135d6c023ba9da3cdbc0b9fa9a33f71e16e270bfb720
+      meaning: 84755c31d0f876bcf01e90053724e7f0004e3a65c123b6a30f64c8e4154db9c8
+    change:
+      class: patch
+      summary: Name source_sha256 as the source identity, which is the file hash for
+        the first video stream.
 - family: shared
   id: types
   owner: data-contracts

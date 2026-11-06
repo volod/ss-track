@@ -22,9 +22,9 @@ from ss_track.corpus.records.sealing import (
     READ_ONLY_FILE_MODE,
     copy_with_sha256,
     seal,
-    sha256_file,
     write_sealed,
 )
+from ss_track.corpus.sources.identity import require_stored_source, source_identity
 from ss_track.corpus.sources.terms import AMEND_COMMAND, changed_terms
 from ss_track.corpus.sources.timestamps import assess_timestamps
 
@@ -144,20 +144,20 @@ def _import_into(
             "source bytes do not match the declared hash",
             {"expected_sha256": expected, "actual_sha256": sha256},
         )
-    target = source_directory(data_root, sha256)
-    if target.exists():  # a record no import can replace must not cost a whole decode first
-        read_sealed(target / MANIFEST_NAME, SOURCE_MANIFEST)
+    _read_if_present(data_root, sha256, declaration.video_stream_index)
     inspection = inspect_media(stored, policy, video_stream_index=declaration.video_stream_index)
     quality = assess_timestamps(inspection.pts, declaration.capture_clock_evidence)
+    identity = source_identity(sha256, inspection.video_stream_index)
     if not inspection.completeness_checks:
-        _LOG.warning("source %s has no container-level completeness evidence", sha256)
+        _LOG.warning("source %s has no container-level completeness evidence", identity)
     sealed = seal(_manifest_body(declaration, policy, inspection, quality, sha256, size, stored))
     write_sealed(staged / MANIFEST_NAME, sealed)
     stored.chmod(READ_ONLY_FILE_MODE)
+    target = source_directory(data_root, identity)
     status = _commit(staged, target, sealed, declaration)
     return ImportResult(
         status=status,
-        source_sha256=sha256,
+        source_sha256=identity,
         manifest_sha256=str(sealed[SEAL_FIELD]),
         manifest_path=target / MANIFEST_NAME,
         timestamp_quality=quality.value,
@@ -197,6 +197,18 @@ def _manifest_body(
     }
 
 
+def _read_if_present(data_root: Path, content_sha256: str, index: int | None) -> None:
+    """Refuse a damaged record of this identity before spending a decode on it.
+
+    An omitted index addresses the first video stream. Inspection still refuses a container that
+    has more than one before anything is published.
+    """
+    identity = source_identity(content_sha256, 0 if index is None else index)
+    target = source_directory(data_root, identity)
+    if target.exists():
+        read_sealed(target / MANIFEST_NAME, SOURCE_MANIFEST)
+
+
 def _commit(
     staged: Path, target: Path, sealed: dict[str, Any], declaration: RecordingDeclaration
 ) -> str:
@@ -207,12 +219,7 @@ def _commit(
     existing = read_sealed(target / MANIFEST_NAME, SOURCE_MANIFEST)
     if existing != sealed:
         raise _import_conflict(existing, sealed, declaration)
-    if sha256_file(target / sealed["source"]["stored_name"]) != target.name:
-        raise CorpusRefusal(
-            RefusalCode.RECORD_TAMPERED,
-            "the stored source no longer matches its hash",
-            {"source_sha256": target.name},
-        )
+    require_stored_source(target, sealed, mismatch=RefusalCode.RECORD_TAMPERED)
     return "unchanged"
 
 

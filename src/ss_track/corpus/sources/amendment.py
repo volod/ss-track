@@ -35,6 +35,7 @@ from ss_track.corpus.records.sealing import (
     sha256_file,
     write_sealed,
 )
+from ss_track.corpus.sources.identity import source_identity
 from ss_track.corpus.sources.importer import (
     IMPORT_DIRECTORY,
     MANIFEST_NAME,
@@ -110,8 +111,8 @@ def amend_source_terms(declaration_path: Path, data_root: Path) -> AmendmentResu
         return _amend(declaration, sha256, directory, data_root)
 
 
-def named_source(declaration: RecordingDeclaration) -> str:
-    """Find the source by its bytes, or by its declared hash once the original has gone."""
+def content_hash(declaration: RecordingDeclaration) -> str:
+    """Return the file hash, or the declared hash once the original file has gone."""
     declared = declaration.expected_sha256
     path = declaration.source_path
     if declared is not None and not path.exists():
@@ -128,6 +129,17 @@ def named_source(declaration: RecordingDeclaration) -> str:
             {"expected_sha256": declared, "actual_sha256": found},
         )
     return found
+
+
+def named_source(declaration: RecordingDeclaration) -> str:
+    """Return the source identity this declaration names.
+
+    An omitted index addresses the first video stream. A later stream keeps its index, including
+    after the file is gone, when the declared hash and that index together name it. An amendment
+    does not open the container, so it cannot tell a missing index from the first stream.
+    """
+    index = declaration.video_stream_index
+    return source_identity(content_hash(declaration), 0 if index is None else index)
 
 
 @contextmanager

@@ -19,6 +19,7 @@ from ss_track.corpus import (
 from ss_track.corpus.bundles.frames import frame_name
 from ss_track.corpus.decoding.pixels import OUTPUT_PIXEL_FORMAT
 from ss_track.corpus.records.sealed import read_sealed
+from ss_track.corpus.records.sealing import sha256_file
 from ss_track.corpus.sources.importer import SOURCE_MANIFEST, ImportResult
 from ss_track.schema import validate_file
 from tests.corpus._media import (
@@ -135,21 +136,20 @@ def test_each_index_imports_and_stages_its_own_frames(
     assert pixels[0] != pixels[1]
 
 
-def test_the_other_index_of_the_same_file_conflicts(
+def test_the_other_index_of_the_same_file_imports_beside_it(
     media: Path, write_recording: WriteRecording, data_root: Path
 ) -> None:
     write_dual_video(media / "dual.mkv")
     first = import_source(write_recording("dual.mkv", video_stream_index=0), data_root)
     before = first.manifest_path.read_bytes()
 
-    refusal = _refused(
-        lambda: import_source(write_recording("dual.mkv", video_stream_index=1), data_root),
-        RefusalCode.IMPORT_CONFLICT,
-    )
+    second = import_source(write_recording("dual.mkv", video_stream_index=1), data_root)
 
-    assert refusal.details["changed_facts"] == ["sequence.video_stream_index"]
+    assert second.status == "imported"
+    assert second.source_sha256 != first.source_sha256
     assert first.manifest_path.read_bytes() == before
     assert _sequence(first)["frame_count"] == DUAL_FIRST_FRAMES
+    assert _sequence(second)["frame_count"] == DUAL_SECOND_FRAMES
 
 
 def test_naming_the_only_stream_keeps_the_previous_manifest(
@@ -159,7 +159,10 @@ def test_naming_the_only_stream_keeps_the_previous_manifest(
     named = import_source(write_recording(clip.name, video_stream_index=0), tmp_path / "named")
 
     assert omitted.manifest_path.read_bytes() == named.manifest_path.read_bytes()
+    assert omitted.source_sha256 == sha256_file(clip)
+    assert omitted.manifest_path.parent.name == omitted.source_sha256
     body = json.loads(omitted.manifest_path.read_bytes())
+    assert body["source"]["sha256"] == omitted.source_sha256
     assert "video_stream_index" not in body["sequence"]
     assert validate_file(omitted.manifest_path, version="2.1.0").version == "2.1.0"
 
@@ -236,7 +239,8 @@ def test_redecode_keeps_the_named_stream(
         lambda: redecode_source(write_recording("dual.mkv", video_stream_index=0), data_root),
         RefusalCode.IMPORT_CONFLICT,
     )
-    assert refusal.details["changed_facts"] == ["sequence.video_stream_index"]
+    assert "no imported source" in refusal.message
+    assert "changed_facts" not in refusal.details
     omitted = _refused(
         lambda: redecode_source(write_recording("dual.mkv"), data_root),
         RefusalCode.VIDEO_STREAM_UNSPECIFIED,

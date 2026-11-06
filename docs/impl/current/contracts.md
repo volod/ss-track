@@ -16,19 +16,22 @@ baseline scope and evidence. The installed set contains these document contracts
 | `declaration/corpus` | `3.0.0` |
 | `declaration/dataset` | `1.0.0`, `1.1.0` |
 | `declaration/recording` | `2.0.0`, `2.1.0`, `2.2.0` |
-| `record/corpus-manifest` | `3.0.0`, `3.1.0` |
+| `record/corpus-manifest` | `3.0.0`, `3.1.0`, `3.2.0` |
 | `record/frame-bundle` | `3.0.0`, `3.1.0` |
 | `record/frame-set` | `1.0.0` |
 | `record/staged-hashes` | `1.0.0` |
 | `record/hash-comparison` | `1.0.0` |
 | `record/source-manifest` | `2.0.0`, `2.1.0`, `2.2.0` |
-| `result/command` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0`, `1.4.0`, `1.5.0`, `1.6.0`, `1.7.0`, `1.8.0`, `1.9.0` |
+| `result/command` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0`, `1.4.0`, `1.5.0`, `1.6.0`, `1.7.0`, `1.8.0`, `1.9.0`, `1.9.1` |
 
 `result/command` `1.5.0` adds `redecoded`. `1.6.0` adds optional `unlinked` on a corpus build,
 present only when that data root has something to report. `1.7.0` adds optional `impact` when an
 amendment or a redecode replaces a record, and optional `scan` when the corpus directory could not
 be listed. `1.8.0` adds optional `preview` on `corpus preview`. `1.9.0` adds
-`VIDEO_STREAM_UNSPECIFIED`. `declaration/recording` 2.2.0 adds optional
+`VIDEO_STREAM_UNSPECIFIED`. `1.9.1` names `source_sha256` as the source identity, which is the
+file hash when the recording names its first video stream. `record/corpus-manifest` 3.2.0 adds
+optional `content_sha256` on a stream, present only when that stream's source identity is not the
+file hash. `declaration/recording` 2.2.0 adds optional
 `source.video_stream_index`. `record/source-manifest` 2.2.0 adds optional
 `sequence.video_stream_index`, absent when the decoded stream is the first.
 

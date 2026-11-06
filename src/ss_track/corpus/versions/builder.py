@@ -16,10 +16,12 @@ from ss_track.corpus.declarations.declaration import (
     load_corpus_declaration,
 )
 from ss_track.corpus.decoding.decode_policy import current_decode_policy
+from ss_track.corpus.decoding.streams import recorded_video_stream_index
 from ss_track.corpus.records.kinds import CORPUS_MANIFEST_KIND, RecordFormat
 from ss_track.corpus.records.projections import Unprojected
 from ss_track.corpus.records.sealed import read_comparable, read_sealed
 from ss_track.corpus.records.sealing import seal, write_sealed
+from ss_track.corpus.sources.identity import recorded_content_sha256, source_identity
 from ss_track.corpus.sources.importer import (
     MANIFEST_NAME,
     decode_policy_sha256,
@@ -214,7 +216,7 @@ def _stream_record(
     media = manifest["sequence"]
     if not isinstance(media, dict) or not isinstance(media["frame_count"], int):
         raise CorpusRefusal(RefusalCode.RECORD_TAMPERED, "source record has no sequence section")
-    return {
+    record: dict[str, JsonValue] = {
         "stream_id": stream.stream_id,
         "modality": CAMERA_MODALITY,
         "encounter_id": encounter.encounter_id,
@@ -231,6 +233,11 @@ def _stream_record(
         "rights": manifest["rights"],
         "sensitivity": manifest["sensitivity"],
     }
+    content = recorded_content_sha256(manifest)
+    index = recorded_video_stream_index(media)
+    if content != stream.source_sha256 and source_identity(content, index) == stream.source_sha256:
+        record["content_sha256"] = content
+    return record
 
 
 def _commit(target: Path, sealed: dict[str, JsonValue]) -> str:

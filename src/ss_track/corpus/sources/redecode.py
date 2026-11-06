@@ -26,17 +26,19 @@ from ss_track.corpus.declarations.declaration import (
 )
 from ss_track.corpus.decoding.decode import inspect_media
 from ss_track.corpus.decoding.decode_policy import current_decode_policy
+from ss_track.corpus.decoding.streams import selected_video_index
 from ss_track.corpus.records.sealed import read_sealed, read_stated
-from ss_track.corpus.records.sealing import seal, sha256_file, write_sealed
+from ss_track.corpus.records.sealing import seal, write_sealed
 from ss_track.corpus.sources.amendment import (
     UNCHANGED,
     AmendmentResult,
+    content_hash,
     exclusive_source_lock,
     keep_replaced,
-    named_source,
     require_current_facts,
     require_unchanged_facts,
 )
+from ss_track.corpus.sources.identity import require_stored_source, source_identity
 from ss_track.corpus.sources.importer import (
     MANIFEST_NAME,
     SOURCE_MANIFEST,
@@ -58,7 +60,7 @@ def redecode_source(
 ) -> AmendmentResult:
     """Decode one imported source's stored bytes again, and re-seal it under one atomic replace."""
     declaration = load_recording_declaration(declaration_path)
-    sha256 = named_source(declaration)
+    sha256 = source_identity(content_hash(declaration), _index_for_redecode(declaration))
     directory = source_directory(data_root, sha256)
     if not directory.is_dir():
         raise CorpusRefusal(
@@ -85,7 +87,7 @@ def _redecode(
         read_sealed(path, SOURCE_MANIFEST) if stated.disposition == VIEW else stated.record
     )
     require_unchanged_facts(existing, declaration, sha256)
-    stored = _verified_stored_path(existing, sha256, directory)
+    stored = require_stored_source(directory, existing, mismatch=RefusalCode.SOURCE_HASH_MISMATCH)
     policy = current_decode_policy()
     inspection = inspect_media(stored, policy, video_stream_index=declaration.video_stream_index)
     clock_evidence = existing["sequence"]["capture_clock_evidence"]
@@ -129,18 +131,22 @@ def _redecode(
     )
 
 
+def _index_for_redecode(declaration: RecordingDeclaration) -> int:
+    """Return the stream this redecode addresses.
+
+    An omitted index on a file that is still present opens the container and refuses an unnamed
+    choice, so a later stream is not rewritten as the first. After the file is gone, an omitted
+    index addresses the first stream and the declaration's hash.
+    """
+    declared = declaration.video_stream_index
+    if declared is not None:
+        return declared
+    path = declaration.source_path
+    if path.is_file():
+        return selected_video_index(path, current_decode_policy().format_options, None)
+    return 0
+
+
 def _carried_terms(existing: Mapping[str, Any]) -> dict[str, JsonValue]:
     """Return the existing rights and sensitivity, exactly as recorded: never invented."""
     return {section: existing.get(section, {}) for section in TERM_SECTIONS}
-
-
-def _verified_stored_path(existing: Mapping[str, Any], sha256: str, directory: Path) -> Path:
-    """Return the stored copy, refusing one that no longer matches the hash that names it."""
-    stored = directory / str(existing["source"]["stored_name"])
-    if not stored.is_file() or sha256_file(stored) != sha256:
-        raise CorpusRefusal(
-            RefusalCode.SOURCE_HASH_MISMATCH,
-            "stored source bytes do not match the imported hash",
-            {"source_sha256": sha256},
-        )
-    return stored

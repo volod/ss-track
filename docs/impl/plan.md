@@ -30,29 +30,6 @@ extensions; none blocks M3. Fixture implementation proceeds without physical har
 
 ### Corpus provenance -- `corpus-provenance`
 
-#### dual-camera-file-identity (optional)
-
-A dual-camera file can name one video stream, and the other camera of those same bytes is
-`IMPORT_CONFLICT`, so one container still cannot feed two sensors of one encounter.
-
-- Serves: `corpus-provenance` -- [Corpus
-  identity](../design/spec.md#41-corpus-identity-and-input-handling)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: Two recordings of one file, each naming a video stream, import beside each
-  other and can sit in one encounter.
-- Scope boundary: A one-stream import keeps its source hash and manifest bytes. Audio and sidecars
-  stay with G2 bundles. A second index is a second source record, not a second window of the first
-  decode.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/import/`.
-- Execution path: Give a non-zero video stream its own source identity that a one-stream import does
-  not use, and let one encounter name both.
-- Acceptance gates: One two-stream fixture imports both indexes into one data root. Their frame
-  bundles differ, one encounter holds both, and a one-stream import keeps its source hash and
-  manifest bytes. Repeating either index reports unchanged.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
 #### declared-color-tags (optional)
 
 A source with no color matrix tag converts as BT.601, which misreads BT.709 content.

@@ -45,5 +45,6 @@ Copy the [template](template.md) using the
 | 0038 | `self-supervised-corpus-plan` | [0038-adhoc-self-supervised-corpus-plan](0038-adhoc-self-supervised-corpus-plan.md) |
 | 0039 | `bundle-frame-sharing` | [0039-corpus-provenance-bundle-frame-sharing](0039-corpus-provenance-bundle-frame-sharing.md) |
 | 0040 | `import-stream-selection` | [0040-corpus-provenance-import-stream-selection](0040-corpus-provenance-import-stream-selection.md) |
+| 0041 | `dual-camera-file-identity` | [0041-corpus-provenance-dual-camera-file-identity](0041-corpus-provenance-dual-camera-file-identity.md) |
 
-Next unused sequence: `0041`.
+Next unused sequence: `0042`.

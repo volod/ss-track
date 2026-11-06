@@ -174,17 +174,39 @@ one of those streams is refused the same way. Naming index 0 selects the first v
 leaves the field off the source record, so a one-stream import keeps its previous manifest bytes.
 A later stream stores `sequence.video_stream_index`. Staging and redecode read that stream. The
 index is not part of the shared decode policy, because a corpus pins one policy for every source.
-The same file under another index is `IMPORT_CONFLICT`, and the details name
-`sequence.video_stream_index`, because one source record holds one video stream. Audio is not
-imported. `src/ss_track/corpus/decoding/streams.py` chooses the stream, and
+Audio is not imported. `src/ss_track/corpus/decoding/streams.py` chooses the stream, and
 `tests/corpus/sources/test_stream_selection.py` covers the refusal, each index and staging. The
 [task record](../records/0040-corpus-provenance-import-stream-selection.md) holds the acceptance.
+
+### Two cameras of one file
+
+Each video stream is its own source record and its own decode. The first stream's source identity
+is the file hash, so its directory and `source.sha256` stay that hash. A later stream's identity is
+the SHA-256 of the canonical JSON object
+`{"content_sha256", "kind": "video-stream", "video_stream_index"}`, computed by
+`src/ss_track/corpus/sources/identity.py`. A one-stream import never uses that form. The manifest
+still stores the file hash as `source.sha256`, and `import` reports the identity as
+`source_sha256`: that is the value a corpus names. Repeating either index reports `unchanged`.
+
+Both identities can sit in one encounter. Their frame bundles differ because each decode is that
+stream, not a window of the other. A corpus stream stores `content_sha256`, the file hash, only
+when the identity is not that hash. Two groups that share the file are `SPLIT_LEAKAGE`, and so is
+a later version that places the file in another group or split. The move and an unlinked listing
+name the file hash. Adding the other camera in the same group is an added source, not a move.
+
+An amendment addresses the named index and does not open the container. After the file is gone, a
+declared `source.sha256` plus the index still finds a later stream. An omitted index addresses the
+first stream. A redecode with an omitted index opens the container first, so a multi-stream file is
+`VIDEO_STREAM_UNSPECIFIED` and lists both streams instead of rewriting one of them. Each identity
+directory keeps its own copy of the file. `tests/corpus/sources/test_dual_camera_identity.py` covers
+the import, the encounter, the repeated import, the group and lineage refusals. The
+[task record](../records/0041-corpus-provenance-dual-camera-file-identity.md) holds the acceptance.
 
 ## Stored evidence
 
 | Path | Content |
 | --- | --- |
-| `$DATA_DIR/import/<source-sha256>/source<ext>` | Read-only copy of the source bytes |
+| `$DATA_DIR/import/<source-sha256>/source<ext>` | Read-only copy of the source bytes. The directory name is the source identity, which is the file hash for the first video stream |
 | `$DATA_DIR/import/<source-sha256>/manifest.json` | Sealed source manifest |
 | `$DATA_DIR/import/<source-sha256>/replaced/<manifest-sha256>.json` | Each record an amendment replaced, under its own seal |
 | `$DATA_DIR/import/.amendment.lock` | Empty lock that serializes amendments |
@@ -261,11 +283,14 @@ it held-out. Changing any membership needs a new corpus version, and
 A version may name the one it supersedes with `supersedes`. Material already evaluated has been seen,
 so `corpus build` compares the new version with that version and with every older version linked
 behind it. `src/ss_track/corpus/versions/lineage.py` owns these rules, `predecessors.py` reads the declared
-chain link by pinned link, and both read only source hashes, groups and splits:
+chain link by pinned link, and both read only source hashes, groups and splits. A later video
+stream's file hash is `content_sha256` on the corpus stream when its identity is not that hash, and
+the comparison treats that file hash as the recording:
 
 | Across the declared chain | Result |
 | --- | --- |
 | A source in another split or another group | `SPLIT_LEAKAGE` |
+| The file hash of one camera placed where another version held the other camera of that file | `SPLIT_LEAKAGE`, naming the file hash |
 | A group in another split, even holding only new sources | `SPLIT_LEAKAGE` |
 | A new source, or a new group in any split | Accepted, and listed as `added` |
 | A source a version dropped, back in the place it left | Accepted |
@@ -1213,7 +1238,8 @@ it. This replaced the key check `corpus/sources/terms.py` held.
 **Comparison projections.** `src/ss_track/corpus/records/projections.py` holds, per kind and major,
 the facts a comparison reads from a record as written: a corpus version's `corpus_id`, seal, decode
 policy hash, `supersedes` and each stream's `stream_id`, `source_sha256`, `group_id` and `split`,
-plus `source_manifest_sha256`, which the amendment listing matches, and a bundle's pins and
+plus `content_sha256` when the source identity is not the file hash, and
+`source_manifest_sha256`, which the amendment listing matches, and a bundle's pins and
 `(frame_index, sha256)` pairs. Corpus majors 2 and 3 and bundle majors 2 and
 3 have one, whatever their disposition. Corpus major 1 states no group or split, so it has none, and
 nor does bundle major 1, which only a major-1 version staged. A record lacking a fact its projection
@@ -1260,7 +1286,7 @@ accepted task, its decisions and its evidence.
 | `SELECTION_OUT_OF_RANGE` | A selection runs past the end of its sequence |
 | `SOURCE_NOT_IMPORTED` | A corpus names a source with no import record |
 | `SOURCE_RECORD_CHANGED` | A source's record differs from the one its corpus pinned, at stage or verify |
-| `SPLIT_LEAKAGE` | A group, encounter, stream or case name is declared in two splits, two groups share a source or a run of identical frames, or a source or group sits elsewhere than a declared predecessor placed it |
+| `SPLIT_LEAKAGE` | A group, encounter, stream or case name is declared in two splits, two groups share a source, a file, or a run of identical frames, or a source, file or group sits elsewhere than a declared predecessor placed it |
 | `STREAM_OVERLAP` | Two streams use the same frames of one source, or two streams of one group share a run of identical frames |
 | `RIGHTS_CONFLICT` | Scenario sharing/sensitivity conflicts or a generated case lacks derivation permission |
 | `RETENTION_EXPIRED` | The evaluation day is after a source's inclusive retention deadline |
@@ -1331,8 +1357,9 @@ Decoding cannot detect all corruption, because most video bitstreams carry no ch
 Only a hash taken at capture excludes this, so declare `source.sha256` when one exists. The manifest
 records this as `sha256_declared`; without it the hash proves only what bytes were imported.
 
-Import reads the first video stream, records how many there are and ignores audio. A strict decode
-can refuse a healthy-looking file that logs an FFmpeg error, such as a capture that starts mid-GOP;
+Import reads the named video stream, records how many there are and ignores audio. A file with one
+video stream may omit the index; a file with more than one must name one. A strict decode can
+refuse a healthy-looking file that logs an FFmpeg error, such as a capture that starts mid-GOP;
 the refusal carries FFmpeg's message.
 
 PyAV is BSD-3-Clause, but its wheels bundle FFmpeg libraries, including libx264 and libx265 whose

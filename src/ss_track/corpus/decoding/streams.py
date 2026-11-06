@@ -5,8 +5,10 @@ every source, and putting the index in that policy would make a second camera lo
 decoder.
 """
 
+import os
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, cast
 
 import av
@@ -45,6 +47,23 @@ def recorded_video_stream_index(sequence: Mapping[str, Any]) -> int:
             "source record video_stream_index is not a stream index",
         )
     return cast(int, value)
+
+
+def selected_video_index(path: Path, format_options: Mapping[str, str], index: int | None) -> int:
+    """Return the named video stream's index without decoding frames.
+
+    `index` is omitted only when the container has one video stream. A container with more is
+    `VIDEO_STREAM_UNSPECIFIED` and lists every video stream.
+    """
+    try:
+        container = av.open(os.fspath(path), options=dict(format_options))
+    except av.FFmpegError as error:
+        raise CorpusRefusal(
+            RefusalCode.SOURCE_UNREADABLE, f"cannot open media: {error.strerror}"
+        ) from error
+    with container:
+        _stream, selected = select_video_stream(container.streams.video, index)
+        return selected
 
 
 def select_video_stream(

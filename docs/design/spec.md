@@ -184,7 +184,12 @@ of them is refused the same way. Audio and other non-video streams are not impor
 stream is the sequence later decodes read, including staging and redecode. The index is a fact of
 the source and is absent from the record when it is the first video stream. It is not part of the
 shared decode policy, because a corpus pins one policy for every source. One source record holds
-one video stream of one file, so the same bytes under another index conflict with the first import.
+one video stream of one file. The first video stream's source identity is the file hash, so a
+one-stream import keeps that hash and its manifest bytes. A later stream's identity is a hash of
+the file hash and its index, and a one-stream import does not use that form. Both records can sit
+in one data root and one encounter. Each is its own decode, not a second window of the first. The
+file hash is still one recording: two groups cannot share it, and a later version cannot place
+that recording in another group or split.
 
 A canonical decode names everything that can choose a pixel, including the inverse transform of codecs
 whose standards leave it open, so one pinned decoder gives one set of bytes on x86-64 and arm64 Linux
@@ -224,8 +229,9 @@ A corpus version declares this structure directly. An independent encounter grou
 stream is one sensor's frames of one encounter, taken from one source and frame window, and its
 `stream_id` is unique in the corpus. A source belongs to one group, because groups that share a
 recording are not independent, and a source frame belongs to one stream, because a frame counted
-twice distorts anything aggregated by encounter. Sharing a source is detected by byte hash, and a
-remux is detected after staging: two groups holding a run of identical decoded frames are refused,
+twice distorts anything aggregated by encounter. Sharing a recording is detected by file hash,
+including two video streams of one file whose source identities differ, and a remux is detected
+after staging: two groups holding a run of identical decoded frames are refused,
 within one version or across linked versions, because a different container does not make different
 evidence. A run is a named number of different frames in a row, so a uniform, held or blinking frame
 shared by independent clips is not one. A predecessor that cannot be compared is reported, because it

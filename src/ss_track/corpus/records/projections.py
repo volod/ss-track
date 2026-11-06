@@ -1,6 +1,7 @@
 """Comparison projections: the facts a later version or an amendment report reads.
 
-Lineage reads a corpus version's source hashes, groups and splits. The amendment report reads each
+Lineage reads a corpus version's source hashes, groups and splits. A later video stream also
+carries `content_sha256`, the file hash, when its identity is not that hash. The amendment report reads each
 stream's source-record pin. The shared-frame rule reads a bundle's frame hashes. A projection yields
 only those, from a record as it was written, and stays for as long as records of its major may exist:
 a record's disposition decides whether it may serve as evidence, never whether a successor is compared
@@ -61,11 +62,18 @@ def _corpus(record: Mapping[str, Any]) -> dict[str, JsonValue]:
         key: record[key] for key in ("kind", "schema_version", SEAL_FIELD, "corpus_id")
     }
     projected["decode_policy_sha256"] = record["decode_policy_sha256"]
-    projected["streams"] = [
-        {key: stream[key] for key in _STREAM_KEYS} for stream in record["streams"]
-    ]
+    projected["streams"] = [_project_stream(stream) for stream in record["streams"]]
     if SUPERSEDES_FIELD in record:
         projected[SUPERSEDES_FIELD] = record[SUPERSEDES_FIELD]
+    return projected
+
+
+def _project_stream(stream: Mapping[str, Any]) -> dict[str, JsonValue]:
+    """Project one stream. A later camera keeps the file hash beside its own identity."""
+    projected = {key: stream[key] for key in _STREAM_KEYS}
+    content = stream.get("content_sha256")
+    if isinstance(content, str):
+        projected["content_sha256"] = content
     return projected
 
 

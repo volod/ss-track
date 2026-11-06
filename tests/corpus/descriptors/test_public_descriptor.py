@@ -223,7 +223,7 @@ def _bundle_hashes(frame_set: dict[str, Any]) -> list[str]:
 
 def _assert_contracts(directory: Path) -> None:
     copied = load_contract_set(directory / "contracts")
-    assert copied.named("record/corpus-manifest").versions[-1].version == "3.1.0"
+    assert copied.named("record/corpus-manifest").versions[-1].version == "3.2.0"
     assert copied.named("record/source-manifest").versions[-1].version == "2.2.0"
     assert copied.named("record/frame-bundle").versions[-1].version == "3.1.0"
 
