@@ -2,12 +2,13 @@
 
 `ss-track import` turns one declared recording into an immutable, hashed source record.
 `ss-track corpus build` groups imported sources into encounters and splits in one immutable corpus
-version. `ss-track corpus stage` decodes each source once into one immutable frame bundle per
-stream that every module reads, plus one derived bundle for each declared generated case, and seals
-them into one frame set whose hash a scenario can pin. `ss-track corpus verify` proves those
-frames are intact, are the ones the frame set names, and that the source records they rest on still
-hold. Both refuse one recording held by two groups, or twice in one group, under different source
-hashes.
+version. `ss-track corpus stage` decodes each new source once into one immutable frame bundle per
+stream that every module reads. When a linked version already staged that source under the same
+bundle hash, the frames are hard-linked instead of decoded. The command also writes one derived
+bundle for each declared generated case, and seals them into one frame set a scenario can pin.
+`ss-track corpus verify` proves those frames are intact, are the ones the frame set names, and
+that the source records they rest on still hold. Both refuse one recording held by two groups,
+or twice in one group, under different source hashes.
 `ss-track corpus hashes` and `ss-track corpus compare` show whether two hosts staged the same
 bytes. Each command produces a complete record or a structured refusal, and none invents a value
 it could not establish.
@@ -889,11 +890,50 @@ another corpus version, or one sitting under another stream's path, is `BUNDLE_C
 bundle cannot carry frames into another split. A bundle is immutable: frames are mode `0444`, the
 directory is `0555`, and a damaged one is never repaired in place. Remove it with
 `chmod u+w <bundle> && rm -rf <bundle>`, then stage again; the hash comes back the same. `chmod`
-applies to the directory only. A generated case may hard-link a parent frame, and changing that
-file's mode would change the parent frame too.
+applies to the directory only. A generated case may hard-link a parent frame, and a reused bundle
+may hard-link every frame. Changing that file's mode would change every name of the inode.
 `tests/corpus/bundles/test_single_pass.py` checks one decode per source, hashes that match a
 per-stream stage, and a failure that publishes nothing from the pass. The
 [task record](../records/0036-corpus-provenance-staging-single-pass.md) holds the acceptance.
+
+### Reusing a linked version
+
+A later version that keeps a source does not decode it again when a linked version on the same
+data root already sealed the same bundle. `src/ss_track/corpus/bundles/reuse_offers.py` walks the
+declared chain, nearest first, and keeps a candidate whose layout matches: source hash, decode
+policy hash, pixel layout and selection. `src/ss_track/corpus/bundles/reuse.py` then re-reads that
+candidate's frame index, predicts `bundle_sha256`, and checks every frame file. The new version
+hard-links those files and writes its own bundle record, with its own corpus id, stream id and
+seals, over the same identity. The command status stays `staged` when the frame set is written.
+Each reused bundle reports status `reused` and `reused_from`, naming the corpus and stream the
+frames came from. A repeat of that version reports `unchanged` and does not name an origin again.
+
+The prediction uses the sealed index, so a different window or policy never matches and that
+stream is decoded. A version the declaration does not link is not a candidate. A missing
+predecessor manifest ends the chain, so versions behind it are not candidates. One bundle that
+is missing, whose schema this code does not read, or whose hash does not cover its identity is
+skipped. `BUNDLE_CONFLICT` still refuses. A candidate whose files differ from its index is
+`FRAME_CORRUPTED`. The refusal names the stream being staged and the candidate corpus and stream.
+That source is not linked and not decoded, and an older intact copy is not tried. Repair or
+remove the named bundle, then stage again.
+
+`src/ss_track/corpus/bundles/frame_store.py` links each frame. A host that cannot link, including
+a link across devices, abandons that stream's scratch and decodes it. Other errors still refuse.
+Linked frames stay mode `0444`; the new directory is `0555`. The stored source is hashed before
+any link, so a damaged source is `SOURCE_HASH_MISMATCH` and nothing is linked.
+
+A generated case is not reused from another version. A case of a reused parent is still written,
+and frames it leaves unchanged hard-link to that parent. Removing one version removes only its
+directory names. Change the mode of the directories, not the frame files, then delete the tree.
+The other version stays readable, and `corpus verify` of it succeeds. Two names of one inode
+share damage: a changed frame is named for every bundle that holds it.
+
+`tests/corpus/bundles/test_bundle_reuse.py` and `test_bundle_reuse_bounds.py` cover a kept source,
+a damaged candidate, a removed version, another window or policy, an unlinked copy, a host that
+cannot link, a match further back in the chain, one source with two windows, a damaged source,
+and a case of a reused parent. The
+[task record](../records/0047-corpus-provenance-bundle-reuse-across-versions.md) holds the
+acceptance.
 
 ### Frame set
 
@@ -1115,8 +1155,8 @@ every frame of every stream and names each damaged file with its stream:
 The reason is `hash_mismatch`, `missing` or `unexpected_file`. `damaged_count` is always complete; the
 list names the first 32. A stage over a damaged bundle and a read of a damaged frame refuse the same
 way, so a changed frame cannot reach a module. A case frame that is a hard link of its parent is the
-same inode: damage is named once for every bundle that holds that file, and removing one name leaves
-the others. A frame the case copied is named alone.
+same inode, as is a frame reused from a linked version. Damage is named once for every bundle that
+holds that file, and removing one name leaves the others. A frame the case copied is named alone.
 
 A `verified` result covers source records and frames, not stored source bytes. Only `corpus build`
 and staging a new bundle read those, so `corpus verify` and a repeated `corpus stage` do not notice a
@@ -1482,7 +1522,7 @@ accepted task, its decisions and its evidence.
 | `HASHES_NOT_COMPARABLE` | Two staged-hash records state different corpora, decode policies, sources or bundles |
 | `STAGED_HASHES_DIFFER` | Two hosts staged different bytes. The comparison is kept and names each source |
 | `STAGING_IN_PROGRESS` | Another run is staging this corpus version |
-| `FRAME_CORRUPTED` | A staged file differs from the sealed index, is gone, or is not in it |
+| `FRAME_CORRUPTED` | A staged file differs from the sealed index, is gone, or is not in it. A reuse candidate that differs is named and not linked |
 | `FRAME_NOT_IN_BUNDLE` | A bundle does not hold a frame index, including a frame a case dropped |
 | `INTERRUPTED` | SIGINT stopped the command. Import and stage leave no scratch |
 | `STORAGE_FAILED` | The data root cannot be written, lacks the space for raw frames, or a preview PNG cannot be written outside the corpus directory |
@@ -1550,9 +1590,9 @@ repository. `tests/corpus/decoding/test_decode.py` covers the strict inspection,
 `test_decode_damage.py` the truncation sweep
 over small H.264 Matroska and MP4 clips and the damage default decoding hides and the policy
 refuses. `tests/corpus/bundles/test_bundle_writer.py`, `test_bundle_writer_refusals.py`,
-`test_staging.py`, `test_single_pass.py`, `test_frame_store.py`, `test_frames.py`,
-`test_bundle_reader.py`, `test_frame_verification.py` and `test_pixels.py` cover staging, reading
-and verifying bundles, and
+`test_staging.py`, `test_single_pass.py`, `test_bundle_reuse.py`, `test_bundle_reuse_bounds.py`,
+`test_frame_store.py`, `test_frames.py`, `test_bundle_reader.py`, `test_frame_verification.py` and
+`test_pixels.py` cover staging, reuse, reading and verifying bundles, and
 `test_pixels.py` includes the
 comparison with FFmpeg's SIMD disabled. `tests/corpus/bundles/test_frame_set.py` covers the frame
 set across data roots, `test_frame_set_runs.py` an interrupted, failed or concurrent stage and the

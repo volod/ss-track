@@ -89,7 +89,8 @@ makes it fail, and what it does not prove. A case with no task left is listed as
   or a match refuses the build; no_claim=a version the declaration does not link, a copy that stays
   in one group, windows that share no frame, or heavy quantization of high-frequency noise.
 - `bundle-reuse-across-versions`: a kept source, a damaged candidate, another window, and a removed
-  version. Value: protects=identical frames at no decode or storage cost; fails_when=a damaged
+  version. `tests/corpus/bundles/test_bundle_reuse.py` and `test_bundle_reuse_bounds.py` cover them.
+  Value: protects=identical frames at no decode or storage cost; fails_when=a damaged
   bundle links or a reused bundle differs from a fresh stage; no_claim=a filesystem without hard
   links.
 - `decode-policy-reimport`: a record of an older policy re-decoded from its stored bytes, a corpus

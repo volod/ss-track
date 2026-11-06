@@ -4,7 +4,6 @@ import fcntl
 import shutil
 from collections.abc import Iterable, Iterator
 from contextlib import contextmanager
-from dataclasses import asdict, dataclass
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -15,6 +14,9 @@ from ss_track.corpus.bundles.bundle_writer import write_source_bundles
 from ss_track.corpus.bundles.duplicate_frames import SharedFramesCheck, require_unshared_frames
 from ss_track.corpus.bundles.frame_set import commit_frame_set, frame_set_path, require_frame_set
 from ss_track.corpus.bundles.frames import FrameBundle, FrameDamage, frames_corrupted, frames_root
+from ss_track.corpus.bundles.reuse import reuse_streams
+from ss_track.corpus.bundles.reuse_offers import bundle_offers
+from ss_track.corpus.bundles.stage_report import BundleSummary, FramesResult
 from ss_track.corpus.cases.generated import write_case_bundle
 from ss_track.corpus.cases.transforms import require_transform_revision
 from ss_track.corpus.decoding.decode_policy import DecodePolicy, current_decode_policy
@@ -25,45 +27,16 @@ from ss_track.corpus.sources.terms import evaluation_date, require_retention
 from ss_track.corpus.versions.builder import load_corpus_manifest, require_policy
 
 STAGED = "staged"
+REUSED = "reused"
 UNCHANGED = "unchanged"
 VERIFIED = "verified"
 _LOCK_NAME = ".staging.lock"
 
 
-@dataclass(frozen=True, slots=True)
-class BundleSummary:
-    """One stream's bundle as reported to the operator."""
-
-    stream_id: str
-    status: str
-    transform: str
-    bundle_sha256: str
-    frame_count: int
-    pixel_format: str
-    width: int
-    height: int
-    manifest_path: str
-
-
-@dataclass(frozen=True, slots=True)
-class FramesResult:
-    """Outcome of staging or verifying every bundle of a corpus version."""
-
-    status: str
-    corpus_id: str
-    frame_set_sha256: str
-    bundles: tuple[BundleSummary, ...]
-    shared_frames: SharedFramesCheck
-
-    def to_record(self) -> dict[str, JsonValue]:
-        """Return the JSON-compatible result shown to the operator."""
-        record: dict[str, JsonValue] = asdict(self)
-        record["bundles"] = [asdict(bundle) for bundle in self.bundles]
-        record["shared_frames"] = self.shared_frames.to_record()
-        return record
-
-
-def _summary(bundle: FrameBundle, status: str) -> BundleSummary:
+def _summary(
+    bundle: FrameBundle, status: str, *, origin: tuple[str, str] | None = None
+) -> BundleSummary:
+    corpus_id, stream_id = origin if origin is not None else (None, None)
     return BundleSummary(
         stream_id=bundle.stream_id,
         status=status,
@@ -74,6 +47,8 @@ def _summary(bundle: FrameBundle, status: str) -> BundleSummary:
         width=bundle.width,
         height=bundle.height,
         manifest_path=str(bundle.directory / MANIFEST_NAME),
+        origin_corpus_id=corpus_id,
+        origin_stream_id=stream_id,
     )
 
 
@@ -125,7 +100,7 @@ def stage_corpus(corpus_id: str, data_root: Path, *, today: date | None = None) 
         frame_set_sha256, written, bundles, shared_frames = _seal_stage(
             corpus, streams, root, data_root
         )
-    changed = written or any(bundle.status == STAGED for bundle in bundles)
+    changed = written or any(bundle.status in {STAGED, REUSED} for bundle in bundles)
     status = STAGED if changed else UNCHANGED
     return FramesResult(status, corpus_id, frame_set_sha256, bundles, shared_frames)
 
@@ -239,9 +214,24 @@ def _stage_streams(
             summaries[stream_id] = _unchanged(open_corpus_bundle(stream_id, corpus, root))
         else:
             pending.setdefault(str(stream["source_sha256"]), []).append(stream)
+    offers = bundle_offers(corpus, data_root) if pending else ()
+    policy_sha256 = decode_policy_sha256(policy.as_record())
     for streams in pending.values():
-        for bundle in write_source_bundles(streams, corpus, policy, root, data_root):
-            summaries[bundle.stream_id] = _summary(bundle, STAGED)
+        passed = reuse_streams(streams, offers, corpus, policy_sha256, root, data_root)
+        for item in passed.reused:
+            summaries[item.bundle.stream_id] = _summary(
+                item.bundle, REUSED, origin=(item.origin_corpus_id, item.origin_stream_id)
+            )
+        if passed.remaining:
+            for bundle in write_source_bundles(
+                passed.remaining,
+                corpus,
+                policy,
+                root,
+                data_root,
+                verified_source=passed.verified_source,
+            ):
+                summaries[bundle.stream_id] = _summary(bundle, STAGED)
     return tuple(summaries[str(stream["stream_id"])] for stream in declared)
 
 

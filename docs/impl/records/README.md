@@ -51,5 +51,6 @@ Copy the [template](template.md) using the
 | 0044 | `compression-and-timing-cases` | [0044-corpus-provenance-compression-and-timing-cases](0044-corpus-provenance-compression-and-timing-cases.md) |
 | 0045 | `label-driven-cases` | [0045-corpus-provenance-label-driven-cases](0045-corpus-provenance-label-driven-cases.md) |
 | 0046 | `near-duplicate-detection` | [0046-corpus-provenance-near-duplicate-detection](0046-corpus-provenance-near-duplicate-detection.md) |
+| 0047 | `bundle-reuse-across-versions` | [0047-corpus-provenance-bundle-reuse-across-versions](0047-corpus-provenance-bundle-reuse-across-versions.md) |
 
-Next unused sequence: `0047`.
+Next unused sequence: `0048`.

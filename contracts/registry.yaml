@@ -459,6 +459,15 @@ contracts:
       class: minor
       summary: Report likely re-encoded copies across groups on a corpus build, without
         refusing.
+  - version: 1.13.0
+    file_sha256: fc41a81a7f4dfc3f14a4b84bb574be16f065d8cd0fe0c4a77abd51b705835225
+    fingerprints:
+      structure: 66e0cc1d62615628b03c448002d27faea279cffa66898378f8834b959a580868
+      meaning: 8671cf11888d00a742259ab22c293fe39e2a05e73f9949f635e1046b49baa621
+    change:
+      class: minor
+      summary: A staged bundle may report status reused and name the linked version
+        its frames came from.
 - family: shared
   id: types
   owner: data-contracts

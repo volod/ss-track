@@ -89,10 +89,11 @@ def _predecessor_frames(
     return stream_frames(version["corpus_id"], stream, bundle_frames(bundle))
 
 
-def _linked_versions(
-    corpus: Manifest, data_root: Path
-) -> tuple[list[Manifest], NotCompared | None]:
-    """Return what the chain reaches. A removed manifest ends it, as older links went with it."""
+def linked_versions(corpus: Manifest, data_root: Path) -> tuple[list[Manifest], NotCompared | None]:
+    """Return what the chain reaches. A removed manifest ends it, as older links went with it.
+
+    Bundle reuse walks this same chain. A version outside it is not a candidate.
+    """
     reached: list[Manifest] = []
     try:
         for version in follow_links(corpus, lambda name: load_predecessor(name, data_root)):
@@ -136,7 +137,7 @@ def _staged_streams(version: Manifest, policy: str, data_root: Path) -> _ChainSt
 
 def require_unshared_frames(corpus: Manifest, data_root: Path) -> SharedFramesCheck:
     """Refuse a repeated run across groups, or twice in one group of this version."""
-    versions, broken = _linked_versions(corpus, data_root)
+    versions, broken = linked_versions(corpus, data_root)
     steps = [
         (version["corpus_id"], _staged_streams(version, corpus["decode_policy_sha256"], data_root))
         for version in versions

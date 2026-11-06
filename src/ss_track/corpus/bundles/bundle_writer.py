@@ -7,25 +7,19 @@ from typing import Any
 
 import av
 
-from ss_track.core.canonical import SEAL_FIELD
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.bundles.bundle_reader import open_frame_bundle
+from ss_track.corpus.bundles.bundle_record import stream_bundle_body
 from ss_track.corpus.bundles.frame_store import require_space, store_frame
-from ss_track.corpus.bundles.frames import FRAME_BUNDLE, FrameBundle, bundle_hash
+from ss_track.corpus.bundles.frames import FrameBundle
 from ss_track.corpus.bundles.publish import publish_bundles
-from ss_track.corpus.decoding.declared_color import (
-    DECLARED_COLOR,
-    recorded_matrix,
-    sws_colorspace,
-)
+from ss_track.corpus.decoding.declared_color import recorded_matrix, sws_colorspace
 from ss_track.corpus.decoding.decode import FrameConsumer, inspect_media
 from ss_track.corpus.decoding.decode_policy import DecodePolicy
 from ss_track.corpus.decoding.pixels import (
     OUTPUT_BITS_PER_COMPONENT,
-    OUTPUT_PIXEL_FORMAT,
     UNSPECIFIED_COLOR_MATRIX,
     PixelConverter,
-    frame_size_bytes,
     uses_color_matrix,
 )
 from ss_track.corpus.decoding.streams import VIDEO_STREAM_INDEX, recorded_video_stream_index
@@ -47,15 +41,23 @@ def write_source_bundles(
     policy: DecodePolicy,
     root: Path,
     data_root: Path,
+    *,
+    verified_source: Mapping[str, Any] | None = None,
 ) -> tuple[FrameBundle, ...]:
     """Decode one source once and publish each stream. A failure publishes none of them.
 
     Every frame is decoded, including frames no stream stores. Seeking to a window would skip the
     proof that this decode still matches the import. Each stream keeps its own converter, so its
-    frames are produced in the same sequence as a stage of that stream alone.
+    frames are produced in the same sequence as a stage of that stream alone. `verified_source`
+    is a record this call's source hash was already checked against, so a caller that both links
+    and decodes one source does not hash the file twice.
     """
     source_sha256 = _one_source(streams)
-    source: dict[str, Any] = load_verified_source(source_sha256, data_root)
+    source: dict[str, Any] = (
+        dict(verified_source)
+        if verified_source is not None
+        else load_verified_source(source_sha256, data_root)
+    )
     policy_sha256 = decode_policy_sha256(policy.as_record())
     media: dict[str, Any] = source["sequence"]
     stored = source_directory(data_root, source_sha256) / source["source"]["stored_name"]
@@ -150,7 +152,7 @@ def _seal_bundles(
     policy_sha256: str,
 ) -> None:
     for stream, writer, staged in zip(streams, writers, staged_dirs, strict=True):
-        body = _bundle_body(stream, corpus, media, policy_sha256, writer)
+        body = stream_bundle_body(stream, corpus, media, policy_sha256, writer.frames)
         write_sealed(staged / MANIFEST_NAME, seal(body))
 
 
@@ -196,53 +198,6 @@ def _drift_details(fields: list[str], stream_ids: list[str]) -> dict[str, JsonVa
     if len(named) == 1:
         return {"fields": listed, "stream_id": named[0]}
     return {"fields": listed, "stream_ids": named}
-
-
-def _bundle_body(
-    stream: dict[str, Any],
-    corpus: dict[str, JsonValue],
-    media: dict[str, Any],
-    policy_sha256: str,
-    writer: _FrameWriter,
-) -> dict[str, JsonValue]:
-    """Build the record. Its identity block alone decides the bundle hash."""
-    identity: dict[str, JsonValue] = {
-        "source_sha256": stream["source_sha256"],
-        "decode_policy_sha256": policy_sha256,
-        "pixel_format": OUTPUT_PIXEL_FORMAT,
-        "width": media["decoded_width"],
-        "height": media["decoded_height"],
-        "bytes_per_frame": frame_size_bytes(media["decoded_width"], media["decoded_height"]),
-        "time_base": media["time_base"],
-        "selection": stream["selection"],
-        "frames": writer.frames,
-    }
-    return {
-        **FRAME_BUNDLE.stamp(),
-        "corpus_id": corpus["corpus_id"],
-        "corpus_manifest_sha256": corpus[SEAL_FIELD],
-        "stream_id": stream["stream_id"],
-        "source_manifest_sha256": stream["source_manifest_sha256"],
-        "bundle_sha256": bundle_hash(identity),
-        "identity": identity,
-        "source_pixel_format": media["source_pixel_format"],
-        "source_bits_per_component": media["source_bits_per_component"],
-        "precision_reduced": media["source_bits_per_component"] > OUTPUT_BITS_PER_COMPONENT,
-        "color": media["color"],
-        **_declared_color(media),
-        "display_rotation_degrees": media["display_rotation_degrees"],
-        "interlaced_frames": media["interlaced_frames"],
-        "timestamp_quality": media["timestamp_quality"],
-        "capture_clock_evidence": media["capture_clock_evidence"],
-        "generated": None,
-    }
-
-
-def _declared_color(media: Mapping[str, Any]) -> dict[str, JsonValue]:
-    """Return the declared matrix when conversion used one, and nothing otherwise."""
-    if DECLARED_COLOR not in media:
-        return {}
-    return {DECLARED_COLOR: media[DECLARED_COLOR]}
 
 
 def _warn_about_conversion(

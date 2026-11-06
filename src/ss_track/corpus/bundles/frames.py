@@ -23,7 +23,7 @@ IDENTITY_TRANSFORM = "identity"
 MISSING = "missing"
 HASH_MISMATCH = "hash_mismatch"
 UNEXPECTED_FILE = "unexpected_file"
-_MAX_NAMED_FRAMES = 32
+MAX_NAMED_FRAMES = 32
 
 
 def frames_root(data_root: Path, corpus_id: str) -> Path:
@@ -93,7 +93,7 @@ class FrameDamage:
 
 def frames_corrupted(damage: Sequence[FrameDamage]) -> CorpusRefusal:
     """Build the refusal that names damaged frames, bounded for a badly damaged corpus."""
-    named: list[JsonValue] = [entry.to_record() for entry in damage[:_MAX_NAMED_FRAMES]]
+    named: list[JsonValue] = [entry.to_record() for entry in damage[:MAX_NAMED_FRAMES]]
     return CorpusRefusal(
         RefusalCode.FRAME_CORRUPTED,
         f"{len(damage)} staged frame file(s) do not match the sealed index, first "

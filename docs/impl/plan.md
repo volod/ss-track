@@ -30,29 +30,6 @@ extensions; none blocks M3. Fixture implementation proceeds without physical har
 
 ### Corpus provenance -- `corpus-provenance`
 
-#### bundle-reuse-across-versions (optional)
-
-A new corpus version that keeps a source decodes and stores identical frames again, though its
-`bundle_sha256` is unchanged, so any new version costs hours and terabytes.
-
-- Serves: `corpus-provenance` -- [Corpus
-  identity](../design/spec.md#41-corpus-identity-and-input-handling)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: `corpus stage` reuses a linked version's frames by hard link when the bundle
-  hash matches, and reports which streams it reused.
-- Scope boundary: Bundles of the same hash on one data root, inside a declared chain. The new version
-  still writes its own bundle record and frame set. A host that cannot link decodes, and nothing is
-  shared across decode policies.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/corpus/<corpus-id>/`.
-- Execution path: Predict the bundle hash from the sealed index and the source and policy hashes before
-  decoding, verify every frame hash of the candidate, then link and write the record.
-- Acceptance gates: A kept source gives the same `bundle_sha256` and identical bytes as a fresh stage,
-  with no decode and no added frame storage. A damaged candidate is refused by name and never linked.
-  A stream with another window or policy decodes. Removing one version leaves the other readable.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
 #### near-duplicates-outside-the-chain (optional)
 
 A re-encoded copy in a corpus version the declaration does not link still crosses a split, and the

@@ -56,16 +56,21 @@ def require_space(root: Path, frames: int, width: int, height: int) -> None:
         )
 
 
+def linked_name(source: Path, target: Path) -> bool:
+    """Hard-link `source` as `target`. False when this filesystem cannot link the two names."""
+    try:
+        os.link(source, target)
+    except OSError as error:
+        if error.errno not in _COPY_INSTEAD:
+            raise
+        return False
+    return True
+
+
 def _linked(
     path: Path, source: Path | None, digest: str, link_sha256: str | None, size: int
 ) -> bool:
     """Link `source` onto `path` when it is this frame. False means the caller copies."""
     if source is None or link_sha256 != digest or source.stat().st_size != size:
         return False
-    try:
-        os.link(source, path)
-    except OSError as error:
-        if error.errno not in _COPY_INSTEAD:
-            raise
-        return False
-    return True
+    return linked_name(source, path)

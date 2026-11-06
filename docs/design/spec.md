@@ -294,10 +294,13 @@ only against a hash held elsewhere, which is why a scenario pins it and why it d
 a process opening a bundle directly.
 
 A new corpus version that keeps a source keeps its pixels, and an equal `bundle_sha256` shows it.
-Staging may reuse a bundle of a linked version with that hash by hard link, after checking every frame
-hash, and writes the new version's own bundle record. The frame set still changes with its corpus
-manifest. The decode policy is part of that hash, so reuse crosses no policy, and a host that cannot
-link decodes instead.
+Staging reuses a bundle of a linked version with that hash by hard link, after checking every frame
+hash, and writes the new version's own bundle record. The stage result names each reused stream and
+the corpus and stream the frames came from. A candidate whose frames do not match its sealed index
+is refused by name and is not linked, and that stream is not decoded from an older copy. A different
+window does not match, so that stream is decoded. The decode policy is part of the hash, so reuse
+crosses no policy. A host that cannot link decodes instead. Removing either version leaves the other
+readable. The frame set still changes with its corpus manifest.
 
 A corpus also declares its **scenario rights**: the widest sharing it intends and the highest
 sensitivity it accepts. A build that asks more of any source than its recorded rights allow is
@@ -2525,7 +2528,7 @@ Group order alone never establishes readiness.
 | --- | --- | --- | --- | --- |
 | 1 | `reproducible-environment` | shipped | A fresh locked environment reaches the complete CI gate without manual repair | [Developer tooling](../impl/current/developer-tooling.md) |
 | 2 | `project-identity` | shipped | Import, CLI, and distribution-build tests agree on the project identity | [Product core](../impl/current/product-core.md) |
-| 3 | `corpus-provenance` | planned | Import/hash/canonical-decode, staged frame bundles, synchronized multi-stream grouping, generated cases, version lineage, duplicate-frame and source-term refusals and scenario-rights/split fixtures; malformed source yields structured failure; a likely re-encode across groups is reported and not refused | - |
+| 3 | `corpus-provenance` | planned | Import/hash/canonical-decode, staged frame bundles, a kept source reuses a linked version's frames by hard link, synchronized multi-stream grouping, generated cases, version lineage, duplicate-frame and source-term refusals and scenario-rights/split fixtures; malformed source yields structured failure; a likely re-encode across groups is reported and not refused | - |
 | 4 | `self-supervised-corpus` | planned | Pinned sibling integrations and deterministic fixtures preserve authorized provenance and split isolation; reviewed audit samples compare recall, candidate yield, diversity and cost against a declared baseline, or report a valid negative | - |
 | 5 | `data-contracts` | shipped | Every shipped record and declaration conforms unchanged to its frozen contract; every section 17.3 change classifies as declared, with an independent checker agreeing on structure; real records of every historic major read under their disposition with no byte or hash moved; a consumer with only the contracts validates a record; optional descriptors validate and leak nothing | [Contracts](../impl/current/contracts.md) |
 | 6 | `annotation-selection` | planned | Two-reviewer G0 labels, stable class/instance IDs, frozen mask and identical seed replay | - |

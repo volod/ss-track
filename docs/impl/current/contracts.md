@@ -22,7 +22,7 @@ baseline scope and evidence. The installed set contains these document contracts
 | `record/staged-hashes` | `1.0.0` |
 | `record/hash-comparison` | `1.0.0` |
 | `record/source-manifest` | `2.0.0`, `2.1.0`, `2.2.0`, `2.3.0` |
-| `result/command` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0`, `1.4.0`, `1.5.0`, `1.6.0`, `1.7.0`, `1.8.0`, `1.9.0`, `1.9.1`, `1.10.0`, `1.11.0`, `1.12.0` |
+| `result/command` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0`, `1.4.0`, `1.5.0`, `1.6.0`, `1.7.0`, `1.8.0`, `1.9.0`, `1.9.1`, `1.10.0`, `1.11.0`, `1.12.0`, `1.13.0` |
 
 `result/command` `1.5.0` adds `redecoded`. `1.6.0` adds optional `unlinked` on a corpus build,
 present only when that data root has something to report. `1.7.0` adds optional `impact` when an
@@ -39,6 +39,8 @@ file hash. `declaration/recording` 2.2.0 adds optional
 declaration. `result/command` 1.10.0 adds `COLOR_TAG_CONFLICT`. `1.11.0` adds
 `DECODE_TIME_EXCEEDED` and `INTERRUPTED`. `1.12.0` adds optional `near_duplicates` on a corpus
 build, present only when a likely re-encode crosses groups or a window could not be read.
+`1.13.0` adds bundle status `reused` and optional `reused_from` on a staged bundle, present only
+when that bundle's frames were hard-linked from a linked corpus version.
 `declaration/corpus` 3.1.0 adds `compression` and `variable_timing` recipes.
 `record/corpus-manifest` 3.3.0 and `record/frame-bundle` 3.3.0 add those
 recipes and the label kinds `compression` and `timing`. `declaration/corpus` 3.2.0 adds
