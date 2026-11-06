@@ -99,7 +99,7 @@ traceback. Import and stage remove their scratch before that record is written:
 ## Declarations
 
 Each file is checked in full against its contract on read, `declaration/recording` 2.3.0 and
-`declaration/corpus` 3.0.0, before any reader takes a value from it. Both reject unknown fields,
+`declaration/corpus` 3.1.0, before any reader takes a value from it. Both reject unknown fields,
 repeated keys, non-finite numbers and any other schema version, so a misspelled key cannot silently
 drop a fact. A recording is schema 2 and a corpus is schema 3. There are no defaults for rights,
 sensitivity, split or scenario rights: a declaration without them is refused, and `basis` has no
@@ -949,10 +949,13 @@ A record is sealed against accidents, not against a person, like every seal here
 
 `tests/corpus/hosts/_fixed_sources.py` holds the fixed corpus, `arch-fixed-v1`: 71 sources through 20
 decoders and 28 pixel formats, with odd and short-row sizes, several color matrices and chroma
-sitings, plus all seven transforms, and `tests/corpus/hosts/_fixed_corpus.py` holds the commands that
-write and stage it. Each row states the format it must decode as. Its sources are written by one
-host and carried to the other, so no binary enters the repository, and the [developer tooling
-page](developer-tooling.md#quality-gates) describes the job that does this.
+sitings, plus every generated-case transform, and `tests/corpus/hosts/_fixed_corpus.py` holds the
+commands that write and stage it. Each row states the format it must decode as. Its sources are
+written by one host and carried to the other, so no binary enters the repository, and the
+[developer tooling page](developer-tooling.md#quality-gates) describes the job that does this. The
+host rows below were measured when the fixture held seven transforms (78 bundles, 879 frames).
+Compression and variable timing are integer transforms. Their bytes are pinned by the golden
+hashes, which that job runs with the rest of the fixture.
 
 | Host pair | Result |
 | --- | --- |
@@ -1085,13 +1088,22 @@ parent stream and has no other home:
 | `dropped_frames` | `count` | Which frames | `frame_map`, listing `removed` |
 | `duplicated_frames` | `count` | Which frames | `frame_map`, listing `repeated` |
 | `short_occlusion` | `region` | One rigid noise texture | `region_status`: `fully_occluded` inside, `partially_occluded` overlapping |
+| `compression` | `max_step` (1 to 255) | Each frame's quantization step, from 1 | `compression`: encoder, block and each step |
+| `variable_timing` | `max_scale` (2 to 16) | Each scaled gap's integer multiple, from 2 | `timing`: `timestamp_quality: derived` and the scaled gaps |
 
 `region` is `{x, y, width, height}` in stored orientation, and each `region_status` also carries
 `frames`, `region` and `overlap_geometry: unlocalizable`. Pixels outside a case's window keep their
 parent's exact bytes and, on one filesystem, that frame's disk space. `short_occlusion` needs parent
 frames on both sides of its window, so a window
 is required in practice. One `blur` draw is an edge-repeating box filter of `2 * radius + 1`, applied
-per axis. `camera_shake` repeats the nearest pixel at an exposed edge.
+per axis. `camera_shake` repeats the nearest pixel at an exposed edge. `compression` revision 1 is
+the encoder `block-quant-rgb24-v1`. Each 8x8 block, and any leftover edge rectangle, becomes its
+average, rounded half-up to a multiple of that frame's step and clamped to 0..255. Step 1 already
+flattens a block to its average. The encoder name and the block size are part of the revision, so
+another encoder is another revision. `variable_timing` multiplies the presentation gap that ends at
+each selected frame inside the window. It does not change pixels. The
+[compression and timing record](../records/0044-corpus-provenance-compression-and-timing-cases.md)
+holds the acceptance.
 
 Nothing here knows where a target is. A `region` must cover the target for the whole window, and for
 `target_absence` the plate frame must not show it there. Both are the operator's claims, and a wrong
@@ -1126,24 +1138,35 @@ stage reports it `unchanged`. A case is an ordinary bundle, read through `open_f
 
 `bundle_sha256` covers that identity, so one recipe over one parent gives one hash whatever the
 corpus or case is called. A case whose `parent_bundle_sha256` is not its parent's current bundle is
-`BUNDLE_CONFLICT`. A case that changes no frame, such as a blur over a uniform clip, is `CASE_INVALID`
-at staging, and that corpus version then needs replacing. Streams and cases finished before a refusal
-stay staged.
+`BUNDLE_CONFLICT`. A case that changes neither pixels nor presentation time, such as a blur or a
+block compression of a uniform clip, is `CASE_INVALID` at staging, and that corpus version
+then needs replacing. A change of presentation time counts, so variable timing of a uniform
+clip is staged.
+Streams and cases finished before a refusal stay staged.
 
-A case keeps each frame's source index and PTS. `dropped_frames` leaves a gap in both, and reading a
-removed frame is `FRAME_NOT_IN_BUNDLE`, so a removed operator seed frame needs a window that avoids
-it. `duplicated_frames` repeats the previous frame's pixels at a frame's own index and PTS, with
-`content_frame_index` naming the frame shown; a run of repeats all show the last real frame, and the
-first frame of a selection is never repeated. Labels follow pixels, so a repeated frame takes the
-labels of the frame it shows. Such a frame's PTS is no longer a capture time, so a `measured` parent
-gives a `derived` case with no capture-clock evidence. A `missing` parent stays `missing`.
+A case keeps each frame's source index. `dropped_frames` leaves a gap in the index and in PTS, and
+reading a removed frame is `FRAME_NOT_IN_BUNDLE`, so a removed operator seed frame needs a window
+that avoids it. `duplicated_frames` repeats the previous frame's pixels at a frame's own index
+and PTS, with `content_frame_index` naming the frame shown. A run of repeats all show the last
+real frame, and the first frame of a selection is never repeated. Labels follow pixels, so a
+repeated frame takes the labels of the frame it shows. Such a frame's PTS is no longer a capture
+time, so a `measured` parent gives a `derived` case with no capture-clock evidence. A
+`missing` parent stays `missing`.
+`compression` keeps each frame's PTS and the parent's timestamp quality, and it hard-links frames
+outside its window. `variable_timing` keeps every pixel, so every frame hard-links. It multiplies
+the gap ending at each frame inside the window by an integer from 2 to `max_scale`. Frames before
+the window keep their PTS. Every later frame, including frames outside the window, keeps its parent
+interval and starts from the new time, so PTS stays strictly increasing. The case is `derived` and
+stores no capture-clock evidence: a changed PTS never stays `measured`. A parent whose timestamp
+quality is `missing` is refused at build, because the case does not invent a presentation time.
 
 `src/ss_track/corpus/bundles/frame_store.py` writes each frame. When the bytes hash to the parent
 frame they were read from, the name in scratch is a hard link to that file, and publishing the
 scratch directory keeps the link. A filesystem that refuses the link, including a link across
 devices, stores a copy of the same bytes. The sealed index and `bundle_sha256` are the same either
-way. Free space is reserved for frames the case may change. A case that only drops or repeats frames
-reserves none for pixels, because every stored frame is one of the parent's. If a filesystem shares
+way. Free space is reserved for frames the case may change. A case that only drops or repeats
+frames, or that only changes presentation time, reserves none for pixels, because every stored frame
+is one of the parent's. If a filesystem shares
 a device and then refuses the link, the copy can still run out of space: the command reports
 `STORAGE_FAILED` and leaves that case unstaged.
 
@@ -1155,15 +1178,18 @@ holds the acceptance.
 
 ### Reproducibility
 
-`src/ss_track/corpus/cases/transforms.py` and `region_transforms.py` hold the transforms. Each is a pure
-function of frames, parameters and seed, in integer arithmetic only, and `seeded.py` derives every
-random value with SHAKE-256 rather than a library generator whose stream may change.
+`src/ss_track/corpus/cases/transforms.py`, `field_transforms.py` and `region_transforms.py` hold the
+transforms. Each is a pure function of frames, parameters and seed, in integer arithmetic only, and
+`seeded.py` derives every random value with SHAKE-256 rather than a library generator whose stream
+may change.
 
 `TRANSFORM_REVISIONS` versions each transform. A change to what one produces must raise its
 revision, and `tests/corpus/cases/test_transform_golden.py` fails until it does. The installed
 revision is stored in each case, and a stored case of another revision, or of a transform that no
 longer exists, is `TRANSFORM_REVISION_MISMATCH` before anything is written. A case is never silently
-regenerated as different evidence.
+regenerated as different evidence. `compression` revision 1 names the encoder
+`block-quant-rgb24-v1` and an 8x8 block. Changing that encoder, or what it writes, raises the
+revision.
 
 ## Case preview
 
@@ -1176,7 +1202,7 @@ A case whose label transform is `region_status`, and whose window contains the f
 rectangle's perimeter replaced with RGB (255, 0, 0). The outline uses the region's own pixels,
 including a rectangle that touches the frame edge. Pixels inside and outside that perimeter stay
 as the case stored them. The parent panel is not outlined. A case with no region on that frame,
-such as blur or a frame outside the window, is shown unchanged.
+such as blur, compression, variable timing, or a frame outside the window, is shown unchanged.
 
 A frame the case does not hold, which is how `dropped_frames` leaves a gap, is a panel of RGB
 (255, 0, 255) in that case's place. The case is not dropped from the sheet. This is not
@@ -1218,6 +1244,9 @@ directory, is `STORAGE_FAILED`.
 | `measured` | Every frame stores a PTS, and the operator declared capture-clock evidence |
 | `derived` | Every frame stores a PTS, with no evidence of where it came from |
 | `missing` | At least one frame stores no PTS. Stored values are kept and absent ones stay `null` |
+
+A `variable_timing` case is always `derived` and stores no capture-clock evidence. A `compression`
+case does not change presentation time, so it keeps the parent's quality.
 
 Duplicate or decreasing PTS is `PTS_NON_INCREASING`, naming the first offending frame. Capture-clock
 evidence for a stream with missing PTS is `TIMESTAMP_CLAIM_UNSUPPORTED`. Under `nofillin`, AVI and
@@ -1484,8 +1513,9 @@ write and hashed copies, and `test_sealed_reads.py` scans for reads around the r
 that can reach it, `test_duplicate_frames_major.py` covers a predecessor's bundles of another major,
 real and unprojected, and `test_read_window.py` covers a synthetic next major read as a view and as
 `facts`, a view deriving a rights field, a decode policy mismatch through a view and the stated
-shape. `tests/corpus/cases/test_transforms.py`, `test_transform_recipes.py` and
-`test_transform_golden.py` cover each transform on hand-checkable frames and pin its bytes, and
+shape. `tests/corpus/cases/test_transforms.py`, `test_transform_recipes.py`,
+`test_field_cases.py` and `test_transform_golden.py` cover each transform on hand-checkable
+frames and pin its bytes, and
 `test_recipes.py`, `test_generated_cases.py`, `test_case_membership.py`, `test_case_frames.py`,
 `test_frame_sharing.py` and `test_case_refusals.py` cover recipes and cases from declaration to
 staged frames.

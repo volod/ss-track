@@ -74,7 +74,12 @@ def case_records(
         record = _case_record(recipe, parent)
         selection = range(parent["selection"]["start_frame"], parent["selection"]["end_frame"])
         rendering = prepare_case(
-            record, selection, parent["width"], parent["height"], _no_pixels_at_build
+            record,
+            selection,
+            parent["width"],
+            parent["height"],
+            _no_pixels_at_build,
+            timestamp_quality=parent["timestamp_quality"],
         )
         records.append(record | {"label_transform": rendering.label_transform})
     return sorted(records, key=lambda record: str(record["case_id"]))

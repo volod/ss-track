@@ -70,11 +70,16 @@ class Slot:
 
 @dataclass(frozen=True, slots=True)
 class Rendering:
-    """Everything a recipe does to its parent."""
+    """Everything a recipe does to its parent.
+
+    `gap_scale` is empty unless the case retimes frames. Each pair is a frame and the integer
+    scale of the presentation gap from the previous frame. `None` keeps the parent's PTS.
+    """
 
     slots: tuple[Slot, ...]
     paint: Paint | None
     label_transform: dict[str, JsonValue]
+    gap_scale: tuple[tuple[int, int], ...] | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -90,6 +95,7 @@ class CaseContext:
     height: int
     draws: SeededDraws
     read: ReadFrame
+    timestamp_quality: str = "derived"
 
     def require(self, condition: bool, message: str) -> None:
         """Refuse a recipe that its parent cannot satisfy."""

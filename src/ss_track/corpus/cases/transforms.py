@@ -12,6 +12,7 @@ import numpy as np
 
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.cases.case_model import CaseContext, Pixels, ReadFrame, Rendering, Slot
+from ss_track.corpus.cases.field_transforms import compression, variable_timing
 from ss_track.corpus.cases.region_transforms import (
     moving_background,
     short_occlusion,
@@ -110,6 +111,8 @@ _TRANSFORMS: dict[str, tuple[int, Callable[[CaseContext], Rendering]]] = {
     "dropped_frames": (1, _dropped_frames),
     "duplicated_frames": (1, _duplicated_frames),
     "short_occlusion": (1, short_occlusion),
+    "compression": (1, compression),
+    "variable_timing": (1, variable_timing),
 }
 TRANSFORM_REVISIONS = {name: revision for name, (revision, _) in _TRANSFORMS.items()}
 
@@ -136,8 +139,13 @@ def prepare_case(
     width: int,
     height: int,
     read: ReadFrame,
+    timestamp_quality: str = "derived",
 ) -> Rendering:
-    """Validate one recipe against its parent and return what it does to that parent."""
+    """Validate one recipe against its parent and return what it does to that parent.
+
+    `timestamp_quality` is the parent's. Build and stage pass it. Pixel transforms ignore it.
+    The default is only for a hand check that has no parent record.
+    """
     window = range(case["window"]["start_frame"], case["window"]["end_frame"])
     context = CaseContext(
         case_id=case["case_id"],
@@ -149,6 +157,7 @@ def prepare_case(
         height=height,
         draws=SeededDraws(case["transform"], case["seed"]),
         read=read,
+        timestamp_quality=timestamp_quality,
     )
     context.require(
         window.start >= selection.start and window.stop <= selection.stop,

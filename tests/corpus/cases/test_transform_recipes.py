@@ -63,6 +63,17 @@ _REFUSED = [
     ),
     pytest.param("camera_shake", {"amplitude": HEIGHT}, {}, "amplitude", id="shake-too-large"),
     pytest.param("blur", {"max_radius": HEIGHT}, {}, "max_radius", id="blur-too-large"),
+    pytest.param("compression", {"max_step": 0}, {}, "max_step", id="step-too-small"),
+    pytest.param("compression", {"max_step": 256}, {}, "max_step", id="step-too-large"),
+    pytest.param("variable_timing", {"max_scale": 1}, {}, "max_scale", id="scale-too-small"),
+    pytest.param("variable_timing", {"max_scale": 17}, {}, "max_scale", id="scale-too-large"),
+    pytest.param(
+        "variable_timing",
+        {"max_scale": 2},
+        {"window": window(0, 1)},
+        "presentation interval",
+        id="timing-without-a-gap",
+    ),
     pytest.param("dropped_frames", {"count": FRAMES}, {}, "at least one", id="drop-everything"),
     pytest.param(
         "dropped_frames", {"count": 3}, {"window": window(0, 2)}, "window", id="drop-past-window"
@@ -110,6 +121,8 @@ _SEEDED: list[tuple[str, dict[str, object], Callable[[Rendering], object]]] = [
     ("blur", {"max_radius": 4}, lambda r: [painted(r, i).tobytes() for i in range(FRAMES)]),
     ("dropped_frames", {"count": 3}, lambda r: r.label_transform),
     ("duplicated_frames", {"count": 3}, lambda r: r.label_transform),
+    ("compression", {"max_step": 8}, lambda r: painted(r, 4).tobytes()),
+    ("variable_timing", {"max_scale": 4}, lambda r: r.label_transform),
 ]
 
 

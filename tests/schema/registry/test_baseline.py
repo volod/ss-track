@@ -126,6 +126,8 @@ def test_label_transform_kinds_are_tagged() -> None:
         "translate",
         "frame_map",
         "region_status",
+        "compression",
+        "timing",
     }
 
 

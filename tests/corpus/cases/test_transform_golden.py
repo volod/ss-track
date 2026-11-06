@@ -28,6 +28,8 @@ _RECIPES: dict[str, dict[str, object]] = {
     "dropped_frames": {"count": 3},
     "duplicated_frames": {"count": 3},
     "short_occlusion": {"region": _REGION},
+    "compression": {"max_step": 8},
+    "variable_timing": {"max_scale": 4},
 }
 _GOLDEN: dict[tuple[str, int], str] = {
     ("blur", 1): "fa3aeb6d6b9b6003d39e9b7b1827c3c68e6b058d6371190384189c2667831b53",
@@ -37,6 +39,8 @@ _GOLDEN: dict[tuple[str, int], str] = {
     ("moving_background", 1): "110c234849899fbc9f2bc3e055c0f13fa5aaf523c056af37be09d999f84a9e9e",
     ("short_occlusion", 1): "ed22f544252ad8dc757ff9c407f79d92183a3ad5db58ff381b20518047ee5542",
     ("target_absence", 1): "28d97e65ef8857a7c126c61369bd069ed294da038c5f75bec47d4723b232c91f",
+    ("compression", 1): "db6fd2df8e6e0048e965590d64edd2e5c78f9699b059cdb95351c2f78fdc4ae3",
+    ("variable_timing", 1): "d9d05fdf5e674456796799265f90a55c5d6baabeae8e3ef5b9094f68ec52f3c5",
 }
 
 

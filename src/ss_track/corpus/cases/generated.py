@@ -32,12 +32,67 @@ def _frame_reader(parent: FrameBundle) -> ReadFrame:
 
 
 def _time_claim(parent_record: Mapping[str, Any], rendering: Rendering) -> tuple[str, str | None]:
-    """A repeated frame shows an older capture, so its PTS is no longer a measured capture time."""
+    """A repeated frame, or a retimed one, no longer has a measured capture time."""
     quality, evidence = parent_record["timestamp_quality"], parent_record["capture_clock_evidence"]
+    if rendering.gap_scale is not None:
+        if quality == TimestampQuality.MISSING:
+            raise CorpusRefusal(
+                RefusalCode.CASE_INVALID,
+                "variable timing needs a presentation time on every frame",
+                {"timestamp_quality": quality},
+            )
+        return TimestampQuality.DERIVED.value, None
     stale = any(slot.content_frame_index != slot.frame_index for slot in rendering.slots)
     if stale and quality == TimestampQuality.MEASURED:
         return TimestampQuality.DERIVED.value, None
     return quality, evidence
+
+
+def _presentation_times(
+    parent: FrameBundle, rendering: Rendering, case_id: str, transform: str
+) -> dict[int, int | None]:
+    """Return each case frame's PTS.
+
+    A scaled gap keeps its own multiple of the parent interval. Every later frame keeps its
+    parent interval and starts from that new time, so the sequence stays strictly increasing.
+    """
+    if rendering.gap_scale is None:
+        return {
+            slot.frame_index: parent.frame_ref(slot.frame_index).pts for slot in rendering.slots
+        }
+    scales = dict(rendering.gap_scale)
+    times: dict[int, int | None] = {}
+    previous: int | None = None
+    for slot in rendering.slots:
+        index = slot.frame_index
+        times[index] = _scaled_pts(
+            parent, previous, index, scales.get(index, 1), times, case_id, transform
+        )
+        previous = index
+    return times
+
+
+def _scaled_pts(
+    parent: FrameBundle,
+    previous: int | None,
+    index: int,
+    scale: int,
+    times: Mapping[int, int | None],
+    case_id: str,
+    transform: str,
+) -> int | None:
+    original = parent.frame_ref(index).pts
+    if previous is None:
+        return original
+    anchor = times[previous]
+    earlier = parent.frame_ref(previous).pts
+    if original is None or earlier is None or anchor is None:
+        raise CorpusRefusal(
+            RefusalCode.CASE_INVALID,
+            f"generated case {case_id}: presentation time is missing",
+            {"case_id": case_id, "transform": transform},
+        )
+    return anchor + (original - earlier) * scale
 
 
 def _case_body(
@@ -94,7 +149,12 @@ def _new_frame_count(rendering: Rendering, window: range, parent: FrameBundle, r
 
 
 def _store_slot(
-    directory: Path, slot: Slot, window: range, parent: FrameBundle, rendering: Rendering
+    directory: Path,
+    slot: Slot,
+    window: range,
+    parent: FrameBundle,
+    rendering: Rendering,
+    pts: int | None,
 ) -> dict[str, JsonValue]:
     """Store one case frame. Bytes equal to a parent frame share that frame's disk."""
     content = parent.frame_ref(slot.content_frame_index)
@@ -102,7 +162,6 @@ def _store_slot(
     if rendering.paint is not None and slot.frame_index in window:
         pixels = as_pixels(packed, parent.width, parent.height)
         packed = rendering.paint(pixels, slot.frame_index).tobytes()
-    pts = parent.frame_ref(slot.frame_index).pts
     entry = store_frame(
         directory,
         slot.frame_index,
@@ -121,9 +180,12 @@ def _require_some_change(
 ) -> None:
     """A case identical to its parent tests no failure mechanism and must not pass as one."""
     same_frames = len(frames) == len(parent)
-    if same_frames and all(
-        frame["sha256"] == parent.frame_ref(frame["frame_index"]).sha256 for frame in frames
-    ):
+    unchanged = all(
+        frame["sha256"] == parent.frame_ref(frame["frame_index"]).sha256
+        and frame["pts"] == parent.frame_ref(frame["frame_index"]).pts
+        for frame in frames
+    )
+    if same_frames and unchanged:
         raise CorpusRefusal(
             RefusalCode.CASE_INVALID,
             f"generated case {case['case_id']} changes no frame of its parent",
@@ -133,15 +195,25 @@ def _require_some_change(
 
 def write_case_bundle(case: Mapping[str, Any], parent: FrameBundle, root: Path) -> FrameBundle:
     """Write one case into scratch and publish it with one rename."""
-    read = _frame_reader(parent)
-    rendering = prepare_case(case, parent.selection, parent.width, parent.height, read)
+    parent_record = read_sealed(parent.directory / MANIFEST_NAME, FRAME_BUNDLE)
+    rendering = prepare_case(
+        case,
+        parent.selection,
+        parent.width,
+        parent.height,
+        _frame_reader(parent),
+        timestamp_quality=parent.timestamp_quality,
+    )
     window = range(case["window"]["start_frame"], case["window"]["end_frame"])
     reserve = _new_frame_count(rendering, window, parent, root)
     require_space(root, reserve, parent.width, parent.height)
-    parent_record = read_sealed(parent.directory / MANIFEST_NAME, FRAME_BUNDLE)
+    times = _presentation_times(parent, rendering, case["case_id"], case["transform"])
     target = root / case["case_id"]
     with publish_bundle(root, target) as staged:
-        frames = [_store_slot(staged, slot, window, parent, rendering) for slot in rendering.slots]
+        frames = [
+            _store_slot(staged, slot, window, parent, rendering, times[slot.frame_index])
+            for slot in rendering.slots
+        ]
         _require_some_change(case, parent, frames)
         body = _case_body(case, parent, parent_record, rendering, frames)
         write_sealed(staged / MANIFEST_NAME, seal(body))

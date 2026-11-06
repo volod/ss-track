@@ -147,6 +147,8 @@ CASES = (
     ("dropped_frames", {"count": 2}),
     ("duplicated_frames", {"count": 2}),
     ("short_occlusion", {"region": _REGION}),
+    ("compression", {"max_step": 8}),
+    ("variable_timing", {"max_scale": 4}),
 )
 
 

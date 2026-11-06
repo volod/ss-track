@@ -46,6 +46,8 @@ def every_case(seed: int = 5) -> list[dict[str, object]]:
         case_of("dropped", "dropped_frames", seed, {"count": 4}, window=_WINDOW),
         case_of("repeated", "duplicated_frames", seed, {"count": 4}, window=_WINDOW),
         case_of("occluded", "short_occlusion", seed, {"region": _REGION}, window=_WINDOW),
+        case_of("compressed", "compression", seed, {"max_step": 8}, window=_WINDOW),
+        case_of("timed", "variable_timing", seed, {"max_scale": 4}, window=_WINDOW),
     ]
 
 
@@ -93,7 +95,18 @@ def test_a_rerun_with_one_seed_is_byte_identical(
 def test_a_second_process_stages_identical_case_bytes(staged: Path, tmp_path: Path) -> None:
     copy = tmp_path / "copy"
     shutil.copytree(staged.parents[2], copy)
-    for name in ("shake", "blur", "absence", "background", "occluded", "dropped", "repeated"):
+    names = (
+        "shake",
+        "blur",
+        "absence",
+        "background",
+        "occluded",
+        "dropped",
+        "repeated",
+        "compressed",
+        "timed",
+    )
+    for name in names:
         bundle = copy / "corpus" / _CORPUS / "frames" / name
         bundle.chmod(0o755)
         shutil.rmtree(bundle)

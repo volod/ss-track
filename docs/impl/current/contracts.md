@@ -13,11 +13,11 @@ baseline scope and evidence. The installed set contains these document contracts
 
 | Contract | Frozen version |
 | --- | --- |
-| `declaration/corpus` | `3.0.0` |
+| `declaration/corpus` | `3.0.0`, `3.1.0` |
 | `declaration/dataset` | `1.0.0`, `1.1.0` |
 | `declaration/recording` | `2.0.0`, `2.1.0`, `2.2.0`, `2.3.0` |
-| `record/corpus-manifest` | `3.0.0`, `3.1.0`, `3.2.0` |
-| `record/frame-bundle` | `3.0.0`, `3.1.0`, `3.2.0` |
+| `record/corpus-manifest` | `3.0.0`, `3.1.0`, `3.2.0`, `3.3.0` |
+| `record/frame-bundle` | `3.0.0`, `3.1.0`, `3.2.0`, `3.3.0` |
 | `record/frame-set` | `1.0.0` |
 | `record/staged-hashes` | `1.0.0` |
 | `record/hash-comparison` | `1.0.0` |
@@ -37,7 +37,9 @@ file hash. `declaration/recording` 2.2.0 adds optional
 `declaration/recording` 2.3.0 adds optional `color.matrix`. `record/source-manifest` 2.3.0 and
 `record/frame-bundle` 3.2.0 add optional `declared_color`, present only when conversion used that
 declaration. `result/command` 1.10.0 adds `COLOR_TAG_CONFLICT`. `1.11.0` adds
-`DECODE_TIME_EXCEEDED` and `INTERRUPTED`.
+`DECODE_TIME_EXCEEDED` and `INTERRUPTED`. `declaration/corpus` 3.1.0 adds `compression` and
+`variable_timing` recipes. `record/corpus-manifest` 3.3.0 and `record/frame-bundle` 3.3.0 add those
+recipes and the label kinds `compression` and `timing`. Writers still stamp the major.
 
 `declaration/dataset` states the operator-supplied title, description, license, citation, address
 and publication date. It can be checked with `ss-track contracts validate` and is consumed by the

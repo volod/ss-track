@@ -40,6 +40,8 @@ def _refused(media: Path, recipe: object) -> CorpusRefusal:
         ("dropped_frames", {"count": 1}),
         ("duplicated_frames", {"count": 1}),
         ("short_occlusion", {"region": _REGION}),
+        ("compression", {"max_step": 4}),
+        ("variable_timing", {"max_scale": 2}),
     ],
 )
 def test_every_transform_reads_its_own_parameters(
@@ -137,6 +139,10 @@ def test_nothing_in_a_recipe_has_a_default(media: Path, missing: str) -> None:
         pytest.param(
             "short_occlusion", {"region": {"x": 0, "y": 0, "width": 4}}, "height", id="open-region"
         ),
+        pytest.param("compression", {"max_step": 0}, "max_step", id="step-below-one"),
+        pytest.param("compression", {"max_step": 256}, "max_step", id="step-above-a-component"),
+        pytest.param("variable_timing", {"max_scale": 1}, "max_scale", id="scale-below-two"),
+        pytest.param("variable_timing", {"max_scale": 17}, "max_scale", id="scale-above-sixteen"),
     ],
 )
 def test_a_parameter_outside_its_rule_is_refused(

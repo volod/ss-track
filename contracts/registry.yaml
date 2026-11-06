@@ -14,6 +14,14 @@ contracts:
     change:
       class: initial
       summary: The shipped format at major 3, with no record bytes changed.
+  - version: 3.1.0
+    file_sha256: a92f023b83e1e5c00ec26823d65ae46e72398500ea656843e83e5d2255867646
+    fingerprints:
+      structure: 1d3d8399d65bc78d75a7f5843ce0d96fed6a95a17f981fe22d79244ee2f3b263
+      meaning: 07f8caa75e2211c298cceb0967a136773d5b428c5f8e1adda0530cc3cccb5be6
+    change:
+      class: minor
+      summary: Add compression and variable timing generated-case recipes.
   retired_majors:
   - major: 1
     status: retired
@@ -134,6 +142,14 @@ contracts:
       class: minor
       summary: Record the file hash of a later video stream when its source identity
         is not that hash.
+  - version: 3.3.0
+    file_sha256: 1e1604c906073fc5c64d442102ff92f8d5dcfe26a3a5d2fe86bf5c3c843a34be
+    fingerprints:
+      structure: 903c4eba653ec368df2cfe5420b02c8c72083c93568b87f4847e15a8d56da06f
+      meaning: 2c2cbfc2721a9804780203b1ff37a9049b381d0662117d46cc5f8a751c122c4f
+    change:
+      class: minor
+      summary: Add compression and variable timing cases and their label transforms.
   retired_majors:
   - major: 1
     status: retired
@@ -181,6 +197,14 @@ contracts:
     change:
       class: minor
       summary: Record an operator-declared color matrix when conversion used it.
+  - version: 3.3.0
+    file_sha256: 700fa9210c97f362c02728111b2fda3a8a7b09d24c3f30aafa0508e4806d8fa5
+    fingerprints:
+      structure: 83e0f5fc96e604292dfcc78dff7daf7f3c53ddcd3b0bb98e5c1ff177f4a754a9
+      meaning: e3033dd60f887e953c4064fea68a31f17cedcb4ff6235c5bde09a8064365fc82
+    change:
+      class: minor
+      summary: Add compression and variable timing recipes and their label transforms.
   retired_majors:
   - major: 1
     status: retired

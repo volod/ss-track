@@ -32,8 +32,12 @@ def case_record(
     } | fields
 
 
-def prepare(record: dict[str, object], selection: range = range(FRAMES)) -> Rendering:
-    return prepare_case(record, selection, WIDTH, HEIGHT, frame)
+def prepare(
+    record: dict[str, object],
+    selection: range = range(FRAMES),
+    timestamp_quality: str = "derived",
+) -> Rendering:
+    return prepare_case(record, selection, WIDTH, HEIGHT, frame, timestamp_quality)
 
 
 def painted(rendering: Rendering, index: int) -> Pixels:

@@ -48,5 +48,6 @@ Copy the [template](template.md) using the
 | 0041 | `dual-camera-file-identity` | [0041-corpus-provenance-dual-camera-file-identity](0041-corpus-provenance-dual-camera-file-identity.md) |
 | 0042 | `declared-color-tags` | [0042-corpus-provenance-declared-color-tags](0042-corpus-provenance-declared-color-tags.md) |
 | 0043 | `decode-interruption-safety` | [0043-corpus-provenance-decode-interruption-safety](0043-corpus-provenance-decode-interruption-safety.md) |
+| 0044 | `compression-and-timing-cases` | [0044-corpus-provenance-compression-and-timing-cases](0044-corpus-provenance-compression-and-timing-cases.md) |
 
-Next unused sequence: `0044`.
+Next unused sequence: `0045`.

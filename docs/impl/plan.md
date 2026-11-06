@@ -30,27 +30,6 @@ extensions; none blocks M3. Fixture implementation proceeds without physical har
 
 ### Corpus provenance -- `corpus-provenance`
 
-#### compression-and-timing-cases (optional)
-
-Field video also fails through heavy compression and uneven frame timing, which no generated case
-covers.
-
-- Serves: `corpus-provenance` -- [Deterministic
-  cases](../design/spec.md#43-deterministic-cases-and-negative-evidence)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: Recipes generate compression artifacts and variable frame timing from a
-  parent and seed.
-- Scope boundary: The spec section 4.3 further cases that need no labels. Sensor loss belongs to
-  `fusion-generated-fixtures`.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`.
-- Execution path: Add versioned transforms, pinning the encoder in the compression revision, and
-  declare what a timing change does to `timestamp_quality`.
-- Acceptance gates: A rerun with one seed is byte-identical, golden hashes pin each revision, and a
-  changed PTS never stays `measured`.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
 #### label-driven-cases (optional)
 
 One static rectangle cannot follow a moving target, and an occluder that appears in one frame is
@@ -376,14 +355,17 @@ create a false negative.
 - User-visible outcome: `ss-track annotate derive` gives each generated case a hashed label revision
   from its parent's frozen labels and stored label transform.
 - Scope boundary: Every stored label transform: region status, translation with clipping and
-  `out_of_view`, and frame maps. Derived labels are never edited by hand.
+  `out_of_view`, frame maps, `compression` and `timing`. `compression` and `timing` do not move
+  geometry. `timing` records that presentation time is `derived`. Derived labels are never edited
+  by hand.
 - Data and artifact paths: `src/ss_track/annotate/`, `tests/annotate/`,
   `$DATA_DIR/corpus/<corpus-id>/labels/`.
 - Execution path: Apply each label-transform kind to hand-built parent labels, then check plates and
   regions against those labels.
-- Acceptance gates: Hand-computed labels match for all seven transforms. A plate showing a target
-  inside its region is refused, and a target the region does not fully cover stays `unknown`. A
-  parent with no frozen labels leaves its cases unscorable, never scored as zero.
+- Acceptance gates: Hand-computed labels match for every transform, including `compression` and
+  `timing`. A plate showing a target inside its region is refused, and a target the region does not
+  fully cover stays `unknown`. A parent with no frozen labels leaves its cases unscorable, never
+  scored as zero.
 - Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
 
 #### annotation-selection-audit (optional)

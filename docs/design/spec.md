@@ -437,9 +437,9 @@ fused truth.
 
 ### 4.3 Deterministic cases and negative evidence
 
-Initial generated fixtures cover target absence, moving background (for example vegetation, crowds
-or traffic), camera shake, blur, dropped/duplicated frames and short occlusion. Further cases
-(compression, variable frame rate, multiple similar objects, out-of-view/re-entry, sensor loss)
+Generated fixtures cover target absence, moving background (for example vegetation, crowds
+or traffic), camera shake, blur, dropped/duplicated frames, short occlusion, heavy compression and
+variable frame timing. Further cases (multiple similar objects, out-of-view/re-entry, sensor loss)
 enter with their owning capability. Each case stores parent sequence, transform, seed and label
 transform. Geometry-changing cases update geometry/calibration or invalidate dependent labels.
 Synthetic cases test failure mechanisms and are never counted as independent field encounters.
@@ -450,18 +450,29 @@ It is staged as a frame bundle derived from its parent's staged frames, and modu
 read a stream. Its hash covers the parent bundle, transform revision, seed, parameters, label
 transform and frames, and no corpus or case name, so one recipe over one parent gives identical
 bytes. A transform that would produce other bytes takes a new revision, and a stored case of another
-revision is refused rather than regenerated. A case that changes no frame of its parent is refused,
-because it would test nothing while claiming to. A frame a case stores with the same bytes as one
-of its parent frames is a hard link to that parent frame when both are on one filesystem, so frames
-the case leaves untouched take no extra disk. A filesystem that cannot link stores a copy of those
-bytes. The bundle hash, the frame index and every read path are unchanged, because they name bytes.
+revision is refused rather than regenerated. A case that changes neither pixels nor presentation
+time is refused, because it would test nothing while claiming to. A frame a case stores with the
+same bytes as one of its parent frames is a hard link to that parent frame when both are on one
+filesystem, so frames the case leaves untouched take no extra disk. A filesystem that cannot link
+stores a copy of those bytes. The bundle hash, the frame index and every read path are
+unchanged, because they name bytes.
 Verification of a changed inode names every bundle that links it, and removing one name leaves the
 others.
 
 Labels follow pixels. A case keeps each frame's source index, so a shifted frame translates its
 labels, a removed frame takes no label, and a repeated frame takes the labels of the frame it shows.
 A repeated frame keeps its own presentation time, which stops being a measured capture time, so such
-a case is at best `derived`. Absence, occlusion and moving-background cases act on a declared
+a case is at best `derived`. Heavy compression replaces each block with the quantized average of
+that block. The encoder name and block size belong to that transform's revision, so another encoder
+is another revision, and a stored case of the old revision is refused. Compression does not move
+labels or presentation time. Variable frame timing keeps every pixel and multiplies presentation
+intervals inside its window by a seed-chosen integer of at least two. The first frame keeps its
+presentation time. A later frame keeps its own parent interval and starts from the new time, so the
+sequence stays strictly increasing, including frames outside the window. A presentation time this
+changes is not a measured capture time: the case is `derived` and keeps no capture-clock evidence.
+A parent that does not store a presentation time on every frame cannot take this case. A changed
+presentation time is a real change even when the pixels stay. Neither of these cases needs a label
+or a rectangle. Absence, occlusion and moving-background cases act on a declared
 rectangle. That rectangle is the operator's claim: a label inside it takes the case's status, and a
 label that only overlaps it loses its geometry rather than keeping a box that may be wrong.
 `corpus preview` shows one staged frame of a parent stream beside each generated case of that
