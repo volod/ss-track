@@ -1,229 +1,159 @@
-"""`ss-track corpus stage` and `corpus verify`: one immutable frame bundle per corpus stream."""
+"""`ss-track corpus stage`: one immutable frame bundle per corpus stream and generated case.
 
-import fcntl
-import shutil
-from collections.abc import Iterable, Iterator
-from contextlib import contextmanager
-from dataclasses import asdict, dataclass
+A stage opens a parent bundle once for a run of its cases and hashes a linked frame file once,
+however many cases or names share it. `corpus verify` is `corpus.bundles.verification`.
+"""
+
 from datetime import date
 from pathlib import Path
 from typing import Any
 
-from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
+from ss_track.core.refusal import CorpusRefusal, RefusalCode
 from ss_track.corpus.bundles.bundle_reader import open_corpus_bundle
-from ss_track.corpus.bundles.bundle_writer import write_bundle
+from ss_track.corpus.bundles.bundle_writer import write_source_bundles
 from ss_track.corpus.bundles.duplicate_frames import SharedFramesCheck, require_unshared_frames
-from ss_track.corpus.bundles.frame_set import commit_frame_set, require_frame_set
-from ss_track.corpus.bundles.frames import FrameBundle, FrameDamage, frames_corrupted, frames_root
+from ss_track.corpus.bundles.frame_set import commit_frame_set
+from ss_track.corpus.bundles.frames import FileDigests, FrameBundle, frames_corrupted
+from ss_track.corpus.bundles.reuse import reuse_streams
+from ss_track.corpus.bundles.reuse_offers import bundle_offers
+from ss_track.corpus.bundles.stage_report import (
+    BundleSummary,
+    FramesResult,
+    bundle_hashes,
+    summarize,
+)
+from ss_track.corpus.bundles.version_bundles import (
+    Manifest,
+    ParentBundle,
+    declared_cases,
+    declared_streams,
+    open_case,
+    require_sources_hold,
+)
 from ss_track.corpus.cases.generated import write_case_bundle
 from ss_track.corpus.cases.transforms import require_transform_revision
-from ss_track.corpus.decoding.decode_policy import DecodePolicy, current_decode_policy
-from ss_track.corpus.records.sealing import SCRATCH_PREFIX
-from ss_track.corpus.sources.importer import MANIFEST_NAME, decode_policy_sha256
-from ss_track.corpus.sources.stored import require_source_record
-from ss_track.corpus.sources.terms import evaluation_date, require_retention
-from ss_track.corpus.versions.builder import load_corpus_manifest, require_policy
+from ss_track.corpus.decoding.decode_policy import (
+    DecodePolicy,
+    current_decode_policy,
+    require_policy,
+)
+from ss_track.corpus.sources.terms import evaluation_date
+from ss_track.corpus.storage.layout import frame_set_path, frames_root
+from ss_track.corpus.storage.scratch import exclusive_lock
+from ss_track.corpus.versions.manifests import load_corpus_manifest
 
 STAGED = "staged"
+REUSED = "reused"
 UNCHANGED = "unchanged"
-VERIFIED = "verified"
 _LOCK_NAME = ".staging.lock"
-
-
-@dataclass(frozen=True, slots=True)
-class BundleSummary:
-    """One stream's bundle as reported to the operator."""
-
-    stream_id: str
-    status: str
-    transform: str
-    bundle_sha256: str
-    frame_count: int
-    pixel_format: str
-    width: int
-    height: int
-    manifest_path: str
-
-
-@dataclass(frozen=True, slots=True)
-class FramesResult:
-    """Outcome of staging or verifying every bundle of a corpus version."""
-
-    status: str
-    corpus_id: str
-    frame_set_sha256: str
-    bundles: tuple[BundleSummary, ...]
-    shared_frames: SharedFramesCheck
-
-    def to_record(self) -> dict[str, JsonValue]:
-        """Return the JSON-compatible result shown to the operator."""
-        record: dict[str, JsonValue] = asdict(self)
-        record["bundles"] = [asdict(bundle) for bundle in self.bundles]
-        record["shared_frames"] = self.shared_frames.to_record()
-        return record
-
-
-def _summary(bundle: FrameBundle, status: str) -> BundleSummary:
-    return BundleSummary(
-        stream_id=bundle.stream_id,
-        status=status,
-        transform=bundle.transform,
-        bundle_sha256=bundle.bundle_sha256,
-        frame_count=len(bundle),
-        pixel_format=bundle.pixel_format,
-        width=bundle.width,
-        height=bundle.height,
-        manifest_path=str(bundle.directory / MANIFEST_NAME),
-    )
-
-
-def _hashes(bundles: Iterable[BundleSummary | FrameBundle]) -> dict[str, str]:
-    return {bundle.stream_id: bundle.bundle_sha256 for bundle in bundles}
-
-
-def _streams(corpus: dict[str, Any]) -> list[dict[str, Any]]:
-    streams: list[dict[str, Any]] = corpus["streams"]
-    return streams
-
-
-def _cases(corpus: dict[str, Any]) -> list[dict[str, Any]]:
-    cases: list[dict[str, Any]] = corpus["generated_cases"]
-    return cases
-
-
-def _require_sources_hold(corpus: dict[str, Any], data_root: Path, today: date) -> None:
-    """Refuse a corpus outside its recorded terms, before any bundle is written, skipped or hashed.
-
-    Retention goes first because it reads only the corpus, so removing expired material, which is
-    the operator's to do, cannot turn the reason into a missing record. A generated case holds its
-    parent's rights, so checking every stream covers every case.
-    """
-    for stream in _streams(corpus):
-        require_retention(stream, today)
-    for stream in _streams(corpus):
-        require_source_record(stream, data_root)
 
 
 def stage_corpus(corpus_id: str, data_root: Path, *, today: date | None = None) -> FramesResult:
     """Stage every stream and case, then seal the frame set. A failure leaves it unwritten.
 
-    Frame hashes exist only once streams are staged, so shared frames are checked here, before a
-    refused version spends anything on its generated cases.
+    Pending streams of one source share one strict decode. A first stage refuses a repeated run
+    before its cases. An existing frame set is matched first.
+
+    The staging lock proves no other run owns a scratch directory, and a killed run's raw frames
+    could otherwise fill the disk with nothing to remove them. Only the frame set is written beside
+    the manifest, and a stage implies a finished build, so a partial file there is ours as well.
     """
     checked_on = evaluation_date(today)
     corpus = load_corpus_manifest(corpus_id, data_root)
-    _require_sources_hold(corpus, data_root, checked_on)
+    require_sources_hold(corpus, data_root, checked_on)
     policy = current_decode_policy()
-    policy_sha256 = decode_policy_sha256(policy.as_record())
-    require_policy(corpus["decode_policy_sha256"], policy_sha256, f"corpus {corpus_id}")
-    for case in _cases(corpus):
+    require_policy(corpus["decode_policy_sha256"], policy.sha256(), f"corpus {corpus_id}")
+    for case in declared_cases(corpus):
         require_transform_revision(case)
     root = frames_root(data_root, corpus_id)
-    root.mkdir(parents=True, exist_ok=True)
-    with _exclusive_staging(root, corpus_id):
-        streams = [
-            _stage_stream(stream, corpus, policy, root, data_root) for stream in _streams(corpus)
-        ]
-        shared_frames = require_unshared_frames(corpus, data_root)
-        bundles = (*streams, *(_stage_case(case, corpus, root) for case in _cases(corpus)))
-        frame_set_sha256, written = commit_frame_set(corpus, _hashes(bundles), data_root)
-    changed = written or any(bundle.status == STAGED for bundle in bundles)
+    busy = CorpusRefusal(
+        RefusalCode.STAGING_IN_PROGRESS,
+        "another run is staging this corpus version",
+        {"corpus_id": corpus_id},
+    )
+    with exclusive_lock(root, _LOCK_NAME, clear=(root, root.parent), busy=busy):
+        digests = FileDigests()
+        streams = _stage_streams(corpus, policy, root, data_root, digests)
+        frame_set_sha256, written, bundles, shared_frames = _seal_stage(
+            corpus, streams, root, data_root, digests
+        )
+    changed = written or any(bundle.status in {STAGED, REUSED} for bundle in bundles)
     status = STAGED if changed else UNCHANGED
     return FramesResult(status, corpus_id, frame_set_sha256, bundles, shared_frames)
 
 
-@contextmanager
-def _exclusive_staging(root: Path, corpus_id: str) -> Iterator[None]:
-    """Hold a lock the kernel drops however a run ends, then clear what a killed run left.
-
-    Holding the lock proves no other run owns a scratch directory, and a killed run's raw frames
-    could otherwise fill the disk with nothing to remove them. Only the frame set is written beside
-    the manifest, and a stage implies a finished build, so a partial file there is ours as well.
-    """
-    with (root / _LOCK_NAME).open("w") as lock:
-        try:
-            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError as error:
-            raise CorpusRefusal(
-                RefusalCode.STAGING_IN_PROGRESS,
-                "another run is staging this corpus version",
-                {"corpus_id": corpus_id},
-            ) from error
-        for leftover in root.glob(f"{SCRATCH_PREFIX}*"):
-            shutil.rmtree(leftover)
-        for partial in root.parent.glob(f"{SCRATCH_PREFIX}*"):
-            partial.unlink()
-        yield
+def _seal_stage(
+    corpus: Manifest,
+    streams: tuple[BundleSummary, ...],
+    root: Path,
+    data_root: Path,
+    digests: FileDigests,
+) -> tuple[str, bool, tuple[BundleSummary, ...], SharedFramesCheck]:
+    """Match an existing frame set before a repeated run, and a run before a new frame set."""
+    path = frame_set_path(data_root, str(corpus["corpus_id"]))
+    shared = None if path.is_file() else require_unshared_frames(corpus, data_root)
+    cases = _stage_cases(corpus, root, digests)
+    bundles = (*streams, *cases)
+    sealed, written = commit_frame_set(corpus, bundle_hashes(bundles), data_root)
+    if shared is None:
+        shared = require_unshared_frames(corpus, data_root)
+    return sealed, written, bundles, shared
 
 
-def verify_corpus_frames(
-    corpus_id: str, data_root: Path, *, today: date | None = None
-) -> FramesResult:
-    """Prove the source terms hold, the bundles are the frame set's, and every frame is intact.
-
-    Source records are read and stored sources are not: a frame's hash covers what modules receive,
-    and staging is what ties those frames to the source bytes. Shared frames are checked again
-    because a predecessor staged after this version was not there to compare with.
-    """
-    checked_on = evaluation_date(today)
-    corpus = load_corpus_manifest(corpus_id, data_root)
-    _require_sources_hold(corpus, data_root, checked_on)
-    root = frames_root(data_root, corpus_id)
-    bundles = [open_corpus_bundle(stream["stream_id"], corpus, root) for stream in _streams(corpus)]
-    bundles += [_open_case(case, corpus, root) for case in _cases(corpus)]
-    frame_set_sha256 = require_frame_set(corpus, _hashes(bundles), data_root)
-    shared_frames = require_unshared_frames(corpus, data_root)
-    damage: list[FrameDamage] = [item for bundle in bundles for item in bundle.damage()]
-    if damage:
-        raise frames_corrupted(damage)
-    return FramesResult(
-        VERIFIED,
-        corpus_id,
-        frame_set_sha256,
-        tuple(_summary(bundle, VERIFIED) for bundle in bundles),
-        shared_frames,
-    )
-
-
-def _open_case(case: dict[str, Any], corpus: dict[str, JsonValue], root: Path) -> FrameBundle:
-    """Open one case's bundle, which must derive from the parent frames staged here now."""
-    bundle = open_corpus_bundle(case["case_id"], corpus, root)
-    parent = open_corpus_bundle(case["parent_stream_id"], corpus, root)
-    if bundle.parent_bundle_sha256 != parent.bundle_sha256:
-        raise CorpusRefusal(
-            RefusalCode.BUNDLE_CONFLICT,
-            "this generated case derives from frames other than its parent's",
-            {
-                "stream_id": case["case_id"],
-                "parent_stream_id": case["parent_stream_id"],
-                "case_parent_bundle_sha256": bundle.parent_bundle_sha256,
-                "parent_bundle_sha256": parent.bundle_sha256,
-            },
-        )
-    return bundle
-
-
-def _stage_stream(
-    stream: dict[str, Any],
-    corpus: dict[str, JsonValue],
+def _stage_streams(
+    corpus: Manifest,
     policy: DecodePolicy,
     root: Path,
     data_root: Path,
-) -> BundleSummary:
-    if (root / stream["stream_id"]).exists():
-        return _unchanged(open_corpus_bundle(stream["stream_id"], corpus, root))
-    return _summary(write_bundle(stream, corpus, policy, root, data_root), STAGED)
+    digests: FileDigests,
+) -> tuple[BundleSummary, ...]:
+    """Stage each missing stream. One source is decoded once, however many streams it still owes."""
+    declared = declared_streams(corpus)
+    summaries: dict[str, BundleSummary] = {}
+    pending: dict[str, list[dict[str, Any]]] = {}
+    for stream in declared:
+        stream_id = str(stream["stream_id"])
+        if (root / stream_id).exists():
+            bundle = open_corpus_bundle(stream_id, corpus, root)
+            summaries[stream_id] = _unchanged(bundle, digests)
+        else:
+            pending.setdefault(str(stream["source_sha256"]), []).append(stream)
+    offers = bundle_offers(corpus, data_root) if pending else ()
+    policy_sha256 = policy.sha256()
+    for streams in pending.values():
+        passed = reuse_streams(streams, offers, corpus, policy_sha256, root, data_root)
+        for item in passed.reused:
+            summaries[item.bundle.stream_id] = summarize(
+                item.bundle, REUSED, origin=(item.origin_corpus_id, item.origin_stream_id)
+            )
+        if passed.remaining:
+            for bundle in write_source_bundles(
+                passed.remaining,
+                corpus,
+                policy,
+                root,
+                data_root,
+                verified_source=passed.verified_source,
+            ):
+                summaries[bundle.stream_id] = summarize(bundle, STAGED)
+    return tuple(summaries[str(stream["stream_id"])] for stream in declared)
 
 
-def _stage_case(case: dict[str, Any], corpus: dict[str, JsonValue], root: Path) -> BundleSummary:
-    if (root / case["case_id"]).exists():
-        return _unchanged(_open_case(case, corpus, root))
-    parent = open_corpus_bundle(case["parent_stream_id"], corpus, root)
-    return _summary(write_case_bundle(case, parent, root), STAGED)
+def _stage_cases(corpus: Manifest, root: Path, digests: FileDigests) -> tuple[BundleSummary, ...]:
+    """Stage each missing case and re-hash each existing one, in `case_id` order."""
+    parent_of = ParentBundle(corpus, root)
+    staged: list[BundleSummary] = []
+    for case in declared_cases(corpus):
+        if (root / case["case_id"]).exists():
+            staged.append(_unchanged(open_case(case, corpus, root, parent_of), digests))
+        else:
+            parent = parent_of(case["parent_stream_id"])
+            staged.append(summarize(write_case_bundle(case, parent, root), STAGED))
+    return tuple(staged)
 
 
-def _unchanged(bundle: FrameBundle) -> BundleSummary:
+def _unchanged(bundle: FrameBundle, digests: FileDigests) -> BundleSummary:
     """Re-hash a bundle that already exists, because staging repairs nothing."""
-    if damage := bundle.damage():
+    if damage := bundle.damage(digests):
         raise frames_corrupted(damage)
-    return _summary(bundle, UNCHANGED)
+    return summarize(bundle, UNCHANGED)

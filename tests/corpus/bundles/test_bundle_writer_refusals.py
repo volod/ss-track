@@ -60,6 +60,7 @@ def test_a_decode_that_disagrees_with_the_import_record_is_refused(
     refusal = _refused(data_root, RefusalCode.DECODE_DRIFT)
 
     assert refusal.details["fields"] == ["pts"]
+    assert refusal.details["stream_id"] == "one"
     assert not bundle_dir(data_root).exists()
     assert not _scratch(data_root)
 

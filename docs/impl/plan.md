@@ -28,347 +28,180 @@ extensions; none blocks M3. Fixture implementation proceeds without physical har
 
 ## Agent Implementation Tasks
 
-### Corpus provenance -- `corpus-provenance`
+### Self-supervised video corpus -- `self-supervised-corpus`
 
-#### decode-policy-reimport (optional)
+#### corpus-sibling-integration-study
 
-A new decode policy strands every import: `corpus build` refuses the old record with
-`DECODE_POLICY_MISMATCH`, `import` refuses a new one with `IMPORT_CONFLICT`, and the only route deletes
-the stored source.
+The sibling projects expose video indexing and SSL research, but their exact export and version
+compatibility for frozen corpus formation need evidence.
 
-- Serves: `corpus-provenance` -- [Corpus
-  identity](../design/spec.md#41-corpus-identity-and-input-handling)
+- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: CLEAR
-- Milestone: M1
+- Research: yes
 - Dependencies: none.
-- User-visible outcome: `ss-track import --redecode` records an imported source under the installed
-  decode policy from its stored bytes, and every corpus version pinning the old record then refuses.
-  A record with no terms to carry is refused and names `--amend-terms`.
-- Scope boundary: One imported source. Its stored bytes, rights, sensitivity and capture facts carry
-  over unchanged, and the replaced record is kept beside the new one. Corpus versions are not rebuilt,
-  and frames stay on disk. Terms are never invented: `--redecode` carries them, and only a record too
-  old for `--amend-terms` alone takes them from a declaration, through both flags together.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`,
-  `$DATA_DIR/import/<source-sha256>/`.
-- Execution path: Decode the stored copy under the installed policy and re-seal the record under one
-  atomic replace, reusing the lock and `replaced_record_path` in `amendment.py`. Replace
-  `_DECODE_AGAIN_REMEDY` in that file, which still tells an operator to delete the stored source, with
-  the two flags together.
-- Acceptance gates: A record of an older policy gains the installed one with its stored source
-  byte-identical, and `corpus build` of a new version accepts it. A corpus version pinning the old
-  record refuses with `SOURCE_RECORD_CHANGED`. A stored source that no longer matches its hash is
-  refused, a repeat reports `unchanged`, and an interrupted run leaves one whole record. The real
-  `tests/corpus/kept_records/` schema 1 record of `d6b704d`, amended and then re-decoded, builds,
-  and the one of `0238d55` builds through both flags together with no term invented.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
+- User-visible outcome: A reviewable adapter plan identifies usable ss-video and ss-fusion interfaces.
+- Scope boundary: Inspect pinned revisions, package and model licenses, sampling and export paths;
+  training, privileged service deployment, and broad source acquisition are excluded.
+- Data and artifact paths: `docs/impl/current/corpus.md`, `docs/impl/records/`, `$DATA_DIR/self-supervised-corpus/<run-id>/`.
+- Execution path: Inspect ss-video ingest/search and ss-fusion perception/SSL paths; test a small
+  local example or fixtures and record exact revisions, versions, resource requirements and gaps.
+- Acceptance gates: Document the source/frame-to-embedding and export mapping, model and data rights,
+  version compatibility and reproducibility; a reasoned incompatibility or unavailable interface is
+  a valid negative with an alternative or explicit block. `make ci` passes.
+- Documentation target: [Corpus](current/corpus.md).
 
-#### group-repeated-frames (optional)
+#### corpus-discovery-contract
 
-A remux of one recording held twice inside one group counts each frame twice, in anything aggregated
-by encounter, and only a frame in two streams of one source is refused today.
+Reviewers cannot reconstruct why a frame or interval entered a candidate list without stable records.
 
-- Serves: `corpus-provenance` -- [Corpus
-  identity](../design/spec.md#41-corpus-identity-and-input-handling)
+- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: `corpus stage` and `corpus verify` refuse a run of identical frames in two
-  streams of one group of one version with `STREAM_OVERLAP`, naming both streams and the first shared
-  frame.
-- Scope boundary: The run definition that `shared_runs.py` already applies, in one version. A copy
-  replacing its original across linked versions stays accepted, because no version counts a frame
-  twice.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`.
-- Execution path: Report same-group pairs from `find_shared_runs` for streams of one version, and
-  raise them in `require_unshared_runs` beside the cross-group refusal.
-- Acceptance gates: A remux in two encounters of one group and in one encounter are each
-  `STREAM_OVERLAP`. A cross-group pair stays `SPLIT_LEAKAGE`, a copy replacing its original in a linked
-  version stages normally, and adjacent windows of one recording still share nothing.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
+- Dependencies: corpus-sibling-integration-study.
+- User-visible outcome: A portable, validated candidate inventory records authorized source lineage,
+  frame or time windows, group, model and processing revision, scores, selection and audit status.
+- Scope boundary: Versioned interchange contracts and validators; predictions are not labels and
+  scores do not authorize a source or assign a final split.
+- Data and artifact paths: `contracts/`, `src/ss_track/corpus/`, `tests/corpus/`.
+- Execution path: Reuse source and frame identities, define candidate and run contracts and validate
+  golden records without either external service.
+- Acceptance gates: Fixtures reject missing rights references, ambiguous frame/time identity, missing
+  model provenance and invalid selection probability; contract-only consumers validate unchanged
+  records and `make ci` passes.
+- Documentation target: [Corpus](current/corpus.md).
 
-#### unlinked-version-report (optional)
+#### corpus-video-index-adapter
 
-A version that names no predecessor, or branches from one, can place an evaluated source in another
-split, and its build says only that it has no lineage.
+An operator needs to use indexed video candidates without losing source or frame identity.
 
-- Serves: `corpus-provenance` -- [Corpus
-  identity](../design/spec.md#41-corpus-identity-and-input-handling)
+- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: `corpus build` lists every other built version on its data root that places
-  one of its sources in another group or split, for an operator's decision.
-- Scope boundary: A report that refuses nothing, because independent work may reuse a recording.
-  Source hashes on one data root only. Versions in the declared chain stay with the refusal.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/corpus/`.
-- Execution path: Scan `$DATA_DIR/corpus/*/manifest.json` and reuse the placement comparison in
-  `lineage.py`, reading every major through `read_comparable` and its projection, and naming a
-  manifest it cannot read, or one whose major keeps no projection, rather than skipping it.
-- Acceptance gates: A source placed in `locked` by an unlinked version and by a sibling branch are
-  each listed with both versions, and both builds succeed. One state gives one listing in one order,
-  and a version in the declared chain is never listed.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
+- Dependencies: corpus-discovery-contract.
+- User-visible outcome: Authorized indexed observations become auditable candidate records.
+- Scope boundary: An ss-video adapter against the studied interface; no unrestricted URL crawl,
+  network requirement in tests, silent source download, or conversion of predictions to labels.
+- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/self-supervised-corpus/<run-id>/`.
+- Execution path: Map source hashes, decoded frame identity and sampled timestamps through a pinned
+  adapter, recording unsupported or unavailable records and service or model configuration.
+- Acceptance gates: Fixture responses map exactly to source and frame references; missing rights,
+  timestamps, revisions, incompatible models and partial responses are refused or reported, never
+  fabricated; retries are deterministic and `make ci` passes.
+- Documentation target: [Corpus](current/corpus.md).
 
-#### amendment-impact-report (optional)
+#### corpus-ssl-selection
 
-After `--amend-terms` an operator learns which corpus versions hold the affected frames only by running
-`corpus verify` on each, and a version nobody verifies stays unnoticed with its frames on disk.
+Ranking only known objects misses rare, tiny or unfamiliar birds and background negatives.
 
-- Serves: `corpus-provenance` -- [Corpus
-  identity](../design/spec.md#41-corpus-identity-and-input-handling)
+- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: `ss-track import --amend-terms` lists every corpus version on its data root
-  that pins the replaced record, with its frames directory, for an operator's decision.
-- Scope boundary: A report on one data root that refuses nothing and removes nothing, and never fails
-  an amendment that is already recorded. Other hosts stay out of reach.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/corpus/`.
-- Execution path: Scan `$DATA_DIR/corpus/*/manifest.json` for streams pinning the replaced seal,
-  sharing the scan with `unlinked-version-report` when that exists. A corpus projection holds no
-  pin, so add `source_manifest_sha256` to each major's projection in
-  `corpus/records/projections.py`, read every major through `read_comparable`, and name a manifest
-  it cannot read rather than skipping it.
-- Acceptance gates: A source pinned by two versions lists both, a version pinning another record is
-  not listed, an unreadable manifest is named and the amendment still records, and a repeat reporting
-  `unchanged` lists nothing. One state gives one listing in one order.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
+- Research: yes
+- Dependencies: corpus-discovery-contract, corpus-sibling-integration-study.
+- User-visible outcome: Operators get ranked, diverse candidate windows plus reproducible independent
+  audit samples from the eligible pool.
+- Scope boundary: Frozen or explicitly versioned ss-fusion visual representations where feasible,
+  diversity, uncertainty, motion and seeded random sampling; no claim that a score is a label.
+- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/self-supervised-corpus/<run-id>/`.
+- Execution path: Implement a model-agnostic selection seam and evaluate sibling embeddings against a
+  simple uniform baseline, retaining each sampling probability, seed and exclusion reason.
+- Acceptance gates: Fixtures reproduce selection and independent audit membership; negatives,
+  confusers and unseen candidates can enter the audit sample; unavailable features are explicit.
+  A negative model comparison is valid and `make ci` passes.
+- Documentation target: [Corpus](current/corpus.md).
 
-#### case-preview (optional)
+#### corpus-group-and-leakage-review
 
-A declared region is a claim that an operator can only check by eye, and no tool shows it.
+Related recordings and visually similar copies can leak across splits and exaggerate evidence.
 
-- Serves: `corpus-provenance` -- [Deterministic
-  cases](../design/spec.md#43-deterministic-cases-and-negative-evidence)
+- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: `ss-track corpus preview` writes a sheet of a parent frame beside its
-  generated cases, with each region outlined.
-- Scope boundary: One frame of staged bundles, read-only, as a PNG. No labelling interface.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`.
-- Execution path: Add the command with the pinned encoder and a hand-checked outline position.
-- Acceptance gates: One input gives identical PNG bytes. The outline lies on the declared pixels,
-  and a frame a case removed is marked, not skipped.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
+- Dependencies: corpus-discovery-contract.
+- User-visible outcome: Reviewers see likely related video and keep related encounters together.
+- Scope boundary: Source and exact frame checks plus flagged embedding or perceptual candidates;
+  final grouping decisions remain human-owned, and a similarity threshold is not ground truth.
+- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/self-supervised-corpus/<run-id>/`.
+- Execution path: Reuse existing corpus grouping and duplicate checks, add reviewable candidate
+  links and reject known cross-split leakage on export.
+- Acceptance gates: Fixtures cover remuxed and related recordings, unrelated lookalikes and an
+  unresolved conflict; known leakage is refused and uncertain matches are exposed, not silently
+  merged. `make ci` passes.
+- Documentation target: [Corpus](current/corpus.md).
 
-#### staging-single-pass (optional)
+#### corpus-review-and-freeze
 
-A long recording cut into many streams is decoded in full once per stream.
+Large candidate inventories need bounded human decisions before they become benchmark inputs.
 
-- Serves: `corpus-provenance` -- [Corpus
-  identity](../design/spec.md#41-corpus-identity-and-input-handling)
+- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: `corpus stage` decodes each source once, however many streams it feeds.
-- Scope boundary: Fan-out of one strict decode. Seeking is out of scope, because the whole decode
-  proves a source still matches its import.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`.
-- Execution path: Group pending streams by source and let one `inspect_media` consumer write several
-  bundles.
-- Acceptance gates: Bundle hashes match per-stream staging exactly, a failure leaves no partial
-  bundle, and decode count equals source count on a multi-encounter fixture.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
+- Dependencies: corpus-video-index-adapter, corpus-ssl-selection, corpus-group-and-leakage-review.
+- User-visible outcome: Reviewers can inspect candidates and export a frozen, reproducible corpus
+  version with source terms, group, split, exclusions and decision provenance.
+- Scope boundary: Review and source-to-corpus manifest export; label adjudication uses the existing
+  annotation contract and the locked split requires its existing custodian policy.
+- Data and artifact paths: `contracts/`, `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/corpus/<corpus-id>/`.
+- Execution path: Provide bounded review decisions and manifest generation through existing import,
+  corpus build, stage and verify flows, with refusal on expired terms or unresolved split conflicts.
+- Acceptance gates: Replaying frozen reviewed decisions yields the same membership and hashes;
+  rejected, unknown or unreviewed cases cannot masquerade as verified labels; denied, expired and
+  conflicting sources refuse. Fixture tests and `make ci` pass.
+- Documentation target: [Corpus](current/corpus.md).
 
-#### bundle-frame-sharing (optional)
+#### corpus-selection-evaluation
 
-A generated case stores a full raw copy of every frame, even frames identical to its parent.
+A larger selected pool may conceal missed small birds or exclude hard negatives.
 
-- Serves: `corpus-provenance` -- [Deterministic
-  cases](../design/spec.md#43-deterministic-cases-and-negative-evidence)
+- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: Frames a case leaves untouched take no extra disk space.
-- Scope boundary: Hard links within one corpus version, falling back to a copy across filesystems.
-  Hashes, records and read paths are unchanged.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`.
-- Execution path: Link in `store_frame` when a frame hash equals its parent's, with a
-  scratch-to-bundle fixture.
-- Acceptance gates: Bundle hashes match unlinked staging. Disk use on a short-window case falls by
-  the untouched share, as measured, and `corpus verify` still names a damaged frame.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
+- Dependencies: corpus-ssl-selection, corpus-discovery-contract.
+- User-visible outcome: A report compares model-assisted selection with a random or uniform
+  baseline and exposes missed cases and resource cost at a matched review budget.
+- Scope boundary: Independently reviewed audit samples and stratified uncertainty; no field accuracy,
+  generalization or verified species claim from model proposals alone.
+- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/self-supervised-corpus/<run-id>/`.
+- Execution path: Define a reproducible evaluation protocol before running, score reviewed random
+  samples including unselected material, and report diversity, negatives, recall, cost and exclusions.
+- Acceptance gates: Hand-calculated fixtures verify denominators, sampling weights, uncertainty and
+  unavailable strata; empty or insufficient evidence produces an explicit inconclusive result.
+  Negative gains remain valid and `make ci` passes.
+- Documentation target: [Corpus](current/corpus.md).
 
-#### import-stream-selection (optional)
+#### corpus-scale-pilot
 
-A container with two video streams imports only the first, and a dual-camera file loses a sensor
-unnoticed.
+A large corpus needs evidence that selection can run within the owner's available resources.
 
-- Serves: `corpus-provenance` -- [Corpus
-  identity](../design/spec.md#41-corpus-identity-and-input-handling)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: A recording names the video stream it means, and an ambiguous container is
-  refused.
-- Scope boundary: One video stream per recording, with a stream index that the decode policy honors.
-  Audio and sidecars belong to G2 bundles.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`.
-- Execution path: Add an index to the recording declaration, required when `video_stream_count`
-  exceeds one, with a two-stream fixture.
-- Acceptance gates: A two-stream file with no index is refused with both streams listed, and each
-  index imports its own frames.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
-#### declared-color-tags (optional)
-
-A source with no color matrix tag converts as BT.601, which misreads BT.709 content.
-
-- Serves: `corpus-provenance` -- [Corpus
-  identity](../design/spec.md#41-corpus-identity-and-input-handling)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: An operator can declare a missing color tag, recorded as declared and used
-  in conversion.
-- Scope boundary: Absent tags only. A declared value never overrides a stored tag, and nothing is
-  guessed from resolution.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`.
-- Execution path: Add an optional `color` declaration, record its origin, and pass it to
-  `PixelConverter`.
-- Acceptance gates: A declared BT.709 source converts pure red within two levels of its true value.
-  A declaration that disagrees with a stored tag is refused, and an undeclared source behaves as
-  before.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
-#### decode-interruption-safety (optional)
-
-Ctrl-C ends a long run with a traceback, and a pathological file can decode with no limit.
-
-- Serves: `corpus-provenance` -- [Corpus
-  identity](../design/spec.md#41-corpus-identity-and-input-handling)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: An interrupted or over-limit import or stage ends with a structured refusal
-  and leaves nothing partial.
-- Scope boundary: SIGINT and a declared decode time limit. A hung native call stays a known limit if
-  it never returns to Python.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`.
-- Execution path: Report `KeyboardInterrupt` through the command path and check a deadline in the
-  decode loop, with an injected clock.
-- Acceptance gates: SIGINT exits 1 with one JSON record and no traceback, leaving no scratch behind.
-  A fixture past its limit is refused with the elapsed time.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
-#### compression-and-timing-cases (optional)
-
-Field video also fails through heavy compression and uneven frame timing, which no generated case
-covers.
-
-- Serves: `corpus-provenance` -- [Deterministic
-  cases](../design/spec.md#43-deterministic-cases-and-negative-evidence)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: Recipes generate compression artifacts and variable frame timing from a
-  parent and seed.
-- Scope boundary: The spec section 4.3 further cases that need no labels. Sensor loss belongs to
-  `fusion-generated-fixtures`.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`.
-- Execution path: Add versioned transforms, pinning the encoder in the compression revision, and
-  declare what a timing change does to `timestamp_quality`.
-- Acceptance gates: A rerun with one seed is byte-identical, golden hashes pin each revision, and a
-  changed PTS never stays `measured`.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
-#### label-driven-cases (optional)
-
-One static rectangle cannot follow a moving target, and an occluder that appears in one frame is
-unlike a real crossing.
-
-- Serves: `corpus-provenance` -- [Deterministic
-  cases](../design/spec.md#43-deterministic-cases-and-negative-evidence)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: generated-case-labels.
-- User-visible outcome: Recipes take a target's frozen track to generate a crossing occluder, a
-  moving removal, a similar distractor and out-of-view and re-entry intervals.
-- Scope boundary: Per-frame boxes from one frozen label revision, in a new transform revision. No
-  realism claim.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`.
-- Execution path: Add a track input to the region transforms and derive labels through
-  `generated-case-labels`.
-- Acceptance gates: A rerun with one seed is byte-identical, and the case's bundle hash covers the
-  label revision. A hand-audited occluder covers the target exactly in its declared frames, and a
-  frame with no scorable box stays `unknown`.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
-#### near-duplicate-detection (optional)
-
-A re-encoded copy of a recording shares no bytes or frame hashes, so it can still cross a split.
-
-- Serves: `corpus-provenance` -- [Corpus
-  identity](../design/spec.md#41-corpus-identity-and-input-handling)
+- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: RUN NEEDED
 - Research: yes
-- Milestone: M2
-- Dependencies: none.
-- User-visible outcome: A corpus build reports likely near-duplicates across groups for an
-  operator's decision.
-- Scope boundary: A perceptual comparison at a measured threshold. It reports and does not refuse
-  until its false-match rate is known.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`.
-- Execution path: Compare a small perceptual fingerprint on re-encoded fixtures across codecs and
-  bitrates, in a declared run over the development corpus.
-- Acceptance gates: The threshold states measured recall and false-match rate. If no threshold
-  separates copies from independent clips, that negative result is recorded and grouping stays
-  manual.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
+- Dependencies: corpus-review-and-freeze, corpus-selection-evaluation,
+  authorize-video-corpus-sources, review-video-corpus-sample.
+- User-visible outcome: An authorized pilot produces a measured, reproducible corpus or explains why
+  available video, quality, cost or resources do not support it.
+- Scope boundary: Only approved sources, processing and storage budgets; no acquisition beyond the
+  agreed list or unattended spend.
+- Data and artifact paths: `$DATA_DIR/self-supervised-corpus/<run-id>/`, `$DATA_DIR/corpus/<corpus-id>/`.
+- Execution path: Use the approved corpus-size and diversity targets, candidate sampling, human
+  review and baseline protocol; measure ingest, storage, compute and completeness; retain run pins.
+- Acceptance gates: Corpus verification, rights and grouping checks pass; the report states selection
+  recall, uncertainty, negative coverage and matched-budget baseline results, including missing
+  evidence. Insufficient resources or a negative selection result is a valid negative; `make ci` passes.
+- Documentation target: [Corpus](current/corpus.md).
 
-#### bundle-reuse-across-versions (optional)
+#### self-supervised-corpus-audit (optional)
 
-A new corpus version that keeps a source decodes and stores identical frames again, though its
-`bundle_sha256` is unchanged, so any new version costs hours and terabytes.
+The full corpus formation path needs one review across sibling integrations and reviewer decisions.
 
-- Serves: `corpus-provenance` -- [Corpus
-  identity](../design/spec.md#41-corpus-identity-and-input-handling)
+- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: `corpus stage` reuses a linked version's frames by hard link when the bundle
-  hash matches, and reports which streams it reused.
-- Scope boundary: Bundles of the same hash on one data root, inside a declared chain. The new version
-  still writes its own bundle record and frame set. A host that cannot link decodes, and nothing is
-  shared across decode policies.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/corpus/<corpus-id>/`.
-- Execution path: Predict the bundle hash from the sealed index and the source and policy hashes before
-  decoding, verify every frame hash of the candidate, then link and write the record.
-- Acceptance gates: A kept source gives the same `bundle_sha256` and identical bytes as a fresh stage,
-  with no decode and no added frame storage. A damaged candidate is refused by name and never linked.
-  A stream with another window or policy decodes. Removing one version leaves the other readable.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
-#### corpus-provenance-audit (optional)
-
-The corpus pipeline grew one task at a time, so one rule can live in two places and no check reads
-import, build, stage and verify as one path.
-
-- Serves: `corpus-provenance` -- [Corpus
-  identity](../design/spec.md#41-corpus-identity-and-input-handling)
-- Agent status: CLEAR
-- Milestone: M2
 - Effort: high
 - Dependencies: every other agent task in this group.
-- User-visible outcome: Import, build, stage and verify read as one pipeline with one route for each
-  rule, and every record they wrote stays valid.
-- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
-  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
-  score or refusal code.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`,
-  `$DATA_DIR/import/<source-sha256>/`, `$DATA_DIR/corpus/`, `$DATA_DIR/corpus/<corpus-id>/`.
-- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from what
-  is already known to repeat: the `flock` routines and their scratch clearing in `staging.py`,
-  `amendment.py` and `descriptor_publish.py`, the `.incoming-` literal in `importer.py` beside
-  `SCRATCH_PREFIX`, the two `PermissionError` handlers for one source read, and the `_rights` test
-  helpers beside `_record` in `tests/test_cli.py`. Then compare the refusal table with the codes
-  raised.
-- Acceptance gates: Each named repetition is merged or kept for a stated reason. The fixed corpus
-  keeps its `bundle_sha256` and `frame_set_sha256`, and every refusal code keeps its meaning. Every
-  finding is fixed, routed to a task or dropped with its reason, and `make quality` passes. Finding
-  nothing is a valid result when the record states what was reviewed.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
+- User-visible outcome: The complete workflow preserves source rights, frame identity, sampling
+  evidence, review authority and split isolation across its seams.
+- Scope boundary: Group audit over this group's paths, contracts, external version pins, tests and
+  limitations; no new acquisition or claimed field performance.
+- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `contracts/`, `$DATA_DIR/self-supervised-corpus/`.
+- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits), including
+  stopped runs, unavailable models, unselected negatives and duplicate or revoked source terms.
+- Acceptance gates: Each finding is fixed, routed or dropped with its reason, verified evidence is
+  reproducible and `make quality` passes; finding nothing is valid when scope is recorded.
+- Documentation target: [Corpus](current/corpus.md).
 
 ### Annotation and selection -- `annotation-selection`
 
@@ -421,16 +254,28 @@ create a false negative.
 - Milestone: M1
 - Dependencies: annotation-review-tools.
 - User-visible outcome: `ss-track annotate derive` gives each generated case a hashed label revision
-  from its parent's frozen labels and stored label transform.
+  from its parent's frozen labels and stored label transform, including a `track_status` case.
 - Scope boundary: Every stored label transform: region status, translation with clipping and
-  `out_of_view`, and frame maps. Derived labels are never edited by hand.
+  `out_of_view`, frame maps, `compression`, `timing` and `track_status`. `compression` and `timing`
+  do not move geometry. `timing` records that presentation time is `derived`. `track_status` lists
+  one role per case-window frame: `unknown` when that frame has no box, `region` for a painted
+  rectangle, `shift` when the frame leaves the view, `reentry` when the box is back, and
+  `unchanged` when the box stays. `unknown` stays `unknown` and is never `absent`. A `shift` frame
+  is `out_of_view`. A `reentry` frame records re-entry. A `region` role names the painted
+  rectangle: the occluder, the removed box, or the distractor copy. The target box on a distractor
+  frame is not that rectangle and stays as the parent labeled it. The plate check applies to each
+  box `moving_removal` replaces. A track case whose boxes or `label_revision` do not match that
+  instance in the parent's frozen revision is refused. Derived labels are never edited by hand.
 - Data and artifact paths: `src/ss_track/annotate/`, `tests/annotate/`,
   `$DATA_DIR/corpus/<corpus-id>/labels/`.
 - Execution path: Apply each label-transform kind to hand-built parent labels, then check plates and
-  regions against those labels.
-- Acceptance gates: Hand-computed labels match for all seven transforms. A plate showing a target
-  inside its region is refused, and a target the region does not fully cover stays `unknown`. A
-  parent with no frozen labels leaves its cases unscorable, never scored as zero.
+  regions against those labels. Apply each `track_status` role to the frame it names.
+- Acceptance gates: Hand-computed labels match for every transform, including `compression`,
+  `timing` and `track_status`. A plate showing a target inside its region is refused, and a target
+  the region does not fully cover stays `unknown`. A frame with no scorable box stays `unknown`.
+  The same plate check applies to each box `moving_removal` replaces. A track case whose boxes or
+  `label_revision` do not match that instance in the parent's frozen revision is refused. A parent
+  with no frozen labels leaves its cases unscorable, never scored as zero.
 - Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
 
 #### annotation-selection-audit (optional)
@@ -1328,6 +1173,28 @@ Recorded front ends alone cannot run the installed reference mesh or collect its
   inputs cannot yield a calibrated latency; interruption preserves raw evidence and releases devices.
 - Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
 
+#### extended-non-camera-front-ends (optional)
+
+Section 16.5's minimum mesh is one non-camera source; a second or third one is only worth its
+installed cost if it is measured to add evidence the first did not.
+
+- Serves: `sensor-adapter-frontends` -- [Reference sensor mesh](../design/spec.md#165-reference-sensor-mesh)
+- Agent status: CLEAR
+- Milestone: M3
+- Research: yes
+- Dependencies: non-camera-front-end, select-mesh-sensors.
+- User-visible outcome: Each additional selected non-camera source, beyond the Stand C minimum, emits
+  typed observations through its own adapter.
+- Scope boundary: One adapter per additionally selected, measured source. An unselected or unmeasured
+  candidate stays out of scope, and this task adds no new evidence role beyond spec section 7.6.
+- Data and artifact paths: `src/ss_track/frontends/`, `tests/frontends/`.
+- Execution path: Repeat the `non-camera-front-end` pattern per added source, with raw-format
+  provenance and recorded fixtures for each.
+- Acceptance gates: Conformance fixtures pass per source, and the section 16.5 valid-negative-result
+  rule applies: a source that adds no measured evidence over the installed set is documented and
+  removed from the active configuration, not hidden.
+- Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
+
 #### sensor-adapter-frontends-audit (optional)
 
 Front ends, capture and fake drivers each implement one observation contract, and a fault handled in
@@ -1452,6 +1319,53 @@ A fusion change must be judged on identical inputs.
 - Acceptance gates: A changed front end forces a new cohort, and raw data access fails conformance.
 - Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
 
+#### imm-motion-model-bank (optional)
+
+A constant-velocity-only prediction loses hovering, perching and banking small targets, the largest
+measured error source in the paper this design adapts.
+
+- Serves: `fusion-analysis` -- [Multi-sensor fusion](../design/spec.md#76-multi-sensor-fusion-and-uncertainty)
+- Agent status: CLEAR
+- Milestone: M3
+- Research: yes
+- Dependencies: late-fusion-baseline, fusion-calibration-suite.
+- User-visible outcome: A four-model IMM (near-stationary, constant-velocity, constant-acceleration,
+  coordinated-turn) is available as a declared alternative to the single-model prediction.
+- Scope boundary: The filter bank and its Markov mode matrix, tuned on development encounters only.
+  Association, track existence and classification stay in their own tasks.
+- Data and artifact paths: `src/ss_track/fusion/`, `tests/fusion/`.
+- Execution path: Add the four-model bank behind the existing motion-model interface, with a
+  dwell-time-derived Markov matrix. Add hand-audited fixtures for a hovering, a circling and a banking
+  target alongside the existing continuity fixtures.
+- Acceptance gates: Paired development comparison against the single-model baseline on identical
+  bundles reports `improved_on_development_corpus`, `regressed_on_development_corpus` or
+  `inconclusive` per [section 6.3](../design/spec.md#63-comparisons-and-decision-status); an
+  insufficient encounter count reports `insufficient_data` instead of a claim.
+- Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
+
+#### jipda-track-existence (optional)
+
+A fixed miss-count drop rule throws a track away on a run of weak returns that a probability would
+have survived.
+
+- Serves: `fusion-analysis` -- [Multi-sensor fusion](../design/spec.md#76-multi-sensor-fusion-and-uncertainty)
+- Agent status: CLEAR
+- Milestone: M3
+- Research: yes
+- Dependencies: late-fusion-baseline, imm-motion-model-bank.
+- User-visible outcome: Each track carries an existence probability, confirmed above and deleted below
+  declared thresholds, instead of a hit/miss counter.
+- Scope boundary: Joint integrated probabilistic data association (JIPDA) over the existing gated
+  association. A PMBM path for denser clutter stays the unscheduled alternative in spec section 7.6.
+- Data and artifact paths: `src/ss_track/fusion/`, `tests/fusion/`.
+- Execution path: Add existence-probability update and confirm/delete thresholds behind the
+  `late-fusion-baseline` association step, with hand-audited fixtures for a weak-return run that
+  should survive and a run that should not.
+- Acceptance gates: A rerun with one seed is byte-identical. Paired development comparison against the
+  fixed-drop-rule baseline on identical bundles reports its status per section 6.3; a correlated-source
+  or overlapping-gate fixture never inflates existence.
+- Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
+
 #### fusion-analysis-audit (optional)
 
 Fusion can look better by seeing what had not yet arrived, and each of its tasks can let that in
@@ -1540,6 +1454,30 @@ This is the project's reference implementation.
   update is marked as such, and uninstalled sensors supply no evidence.
 - Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
 
+#### imm-jipda-mesh-variant (optional)
+
+The single constant-velocity reference is deliberately simple; a maneuvering small target is where a
+richer model should earn its keep, if it does.
+
+- Serves: `multi-source-reference-tracker` -- [Reference sensor mesh](../design/spec.md#165-reference-sensor-mesh)
+- Agent status: CLEAR
+- Milestone: M3
+- Research: yes
+- Dependencies: mesh-reference-tracker, jipda-track-existence.
+- User-visible outcome: A declared IMM-JIPDA variant of the mesh tracker runs beside the simple
+  reference on identical frozen bundles.
+- Scope boundary: Wiring the spec section 7.6 IMM/JIPDA candidates into the existing track-maintenance
+  interface. It is a measured alternative, never a replacement default, and filters beyond the
+  four-model bank stay out of scope.
+- Data and artifact paths: `src/ss_track/reference/`, `tests/reference/`, `modules/reference-mesh/`.
+- Execution path: Add the variant behind the same contract as `mesh-reference-tracker`, and run the
+  spec section 7.8 TDD fixture list plus the hovering/circling/banking fixtures from
+  `imm-motion-model-bank`.
+- Acceptance gates: `FIXED_OBSERVATION_TRACKER` scores the variant and the reference on byte-identical
+  bundles; the comparison reports `improved_on_development_corpus`, `regressed_on_development_corpus`
+  or `inconclusive` per section 6.3, never an assumed win.
+- Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
+
 #### multi-source-reference-tracker-audit (optional)
 
 This is the project's reference implementation, and it will have grown from the single-camera
@@ -1563,6 +1501,135 @@ baseline.
   observation bundles. Every finding is fixed, routed to a task or dropped with its reason, and
   `make quality` passes. Finding nothing is a valid result when the record states what was reviewed.
 - Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
+
+### Track classification -- `track-classification`
+
+#### track-cue-fusion
+
+A confirmed track with no class says nothing about whether it is the target class this scenario
+cares about.
+
+- Serves: `track-classification` -- [Track-level classification](../design/spec.md#167-track-level-classification)
+- Agent status: CLEAR
+- Milestone: M3
+- Research: yes
+- Dependencies: mesh-reference-tracker, fusion-calibration-suite.
+- User-visible outcome: A confirmed mesh track carries a calibrated class posterior fused from
+  whichever of motion-mode history, radar micro-Doppler and camera-crop classification are installed.
+- Scope boundary: Fusing already-available per-cue evidence into one posterior. A new camera-crop
+  model, species/subtype recognition and any actuation stay out of scope.
+- Data and artifact paths: `src/ss_track/classification/`, `tests/classification/`.
+- Execution path: Add a Bayesian cue-fusion step reading `TrackState` mode history,
+  `SensorObservation` micro-Doppler features where radar is installed, and a camera-crop classifier
+  output; fit each cue and the fused posterior on the disjoint calibration split.
+- Acceptance gates: Known-class, unknown-subtype, too-small-object and confident-wrong-class fixtures
+  from the G2 recognition/state row of the
+  [acceptance matrix](../design/spec.md#13-acceptance-and-negative-result-matrix) pass. An uninstalled
+  or uncalibrated cue abstains rather than inventing a class, and a cue that adds no measured gain is
+  a valid, documented negative result.
+- Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
+
+#### track-classification-audit (optional)
+
+A class label fused from several cues can look confident while no single cue backs it, and only a
+review across the whole group catches that.
+
+- Serves: `track-classification` -- [Track-level classification](../design/spec.md#167-track-level-classification)
+- Agent status: CLEAR
+- Milestone: M3
+- Effort: high
+- Dependencies: every other agent task in this group.
+- User-visible outcome: Every class posterior traces to the specific installed, calibrated cues that
+  produced it.
+- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
+  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
+  score or refusal code.
+- Data and artifact paths: `src/ss_track/classification/`, `tests/classification/`.
+- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from each
+  cue's calibration population and from what happens when every cue is absent at once.
+- Acceptance gates: Known-class, unknown-subtype and confident-wrong-class fixtures pass, and
+  coverage/calibration are reported beside tracking quality, never as a hidden composite score. Every
+  finding is fixed, routed to a task or dropped with its reason, and `make quality` passes. Finding
+  nothing is a valid result when the record states what was reviewed.
+- Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
+
+### Pointing guidance and quality measurement -- `pointing-guidance-evaluation`
+
+#### sensor-pointing-guidance-law
+
+A tracker that only reports where a target was says nothing about how well a camera or beam could
+have stayed on it.
+
+- Serves: `pointing-guidance-evaluation` -- [Guidance pointing law](../design/spec.md#168-guidance-pointing-law-and-quality-measurement)
+- Agent status: CLEAR
+- Milestone: M3
+- Research: yes
+- Dependencies: reference-sot-tracker.
+- User-visible outcome: A declared pointing law computes a sensor-pointing angular command from the
+  current track prediction, with a fixed-stare null and a plain-PN variant as required comparators.
+- Scope boundary: The pointing command only, for a camera, gimbal or electronically-steered antenna.
+  No vehicle, effector, munition or interceptor output exists in this module, and an output of that
+  type fails conformance.
+- Data and artifact paths: `src/ss_track/guidance/`, `tests/guidance/`.
+- Execution path: Implement the feedforward-plus-pure-pursuit blend in angle domain, a plain-PN
+  variant and the fixed-stare null, behind one pointing-law interface. Add hand-audited fixtures for
+  a near-zero line-of-sight-rate case (where the feedforward term matters) and a lost-track case
+  producing a declared search/coast state instead of a stale command.
+- Acceptance gates: Deterministic fixtures reproduce hand-computed angles for each law variant. A lost
+  or unavailable track yields an explicit abstain/search state, never a stale command presented as
+  fresh. A conformance fixture asserts the output type is a sensor-pointing command and rejects any
+  attempt to emit a vehicle or effector command.
+- Documentation target: [Current implementation](current.md#areas), new page `current/guidance.md`.
+
+#### pointing-guidance-quality-suite
+
+A guidance law that was never scored on held frames is a demonstration, not evidence.
+
+- Serves: `pointing-guidance-evaluation` -- [Guidance pointing law](../design/spec.md#168-guidance-pointing-law-and-quality-measurement)
+- Agent status: CLEAR
+- Milestone: M3
+- Research: yes
+- Dependencies: sensor-pointing-guidance-law, plugin-evaluator-core.
+- User-visible outcome: A local report scores pointing coverage, angular lead error, reacquisition
+  delay and latency sensitivity for each law variant against the required comparators, on identical
+  bundles.
+- Scope boundary: The section 9/16.8 action-dependent image-plane simulator and its four reported
+  quantities. No physical gimbal, PTZ head or antenna is actuated or characterized; that stays future
+  hardware work under spec section 16.4.
+- Data and artifact paths: `src/ss_track/suites/`, `tests/suites/`.
+- Execution path: Extend the G0 reference-tracker fixtures with a declared high-resolution wide source
+  and an action-dependent IFoV hook; add hand-audited within-envelope cruise, sudden-turn,
+  near-stationary and induced-loss fixtures; compute the four quantities with their denominators and
+  exclusions.
+- Acceptance gates: Hand-audited fixtures reproduce expected coverage, angular-error and reacquisition
+  values. A target leaving the source recording's own field of view is a failure or `ABORT`, never an
+  exclusion. The paired comparison against the fixed-stare null and the plain-PN baseline reports its
+  status per section 6.3.
+- Documentation target: [Current implementation](current.md#areas), page `current/guidance.md`.
+
+#### pointing-guidance-evaluation-audit (optional)
+
+A guidance law judged only by its own report can hide a command type it should never emit.
+
+- Serves: `pointing-guidance-evaluation` -- [Guidance pointing law](../design/spec.md#168-guidance-pointing-law-and-quality-measurement)
+- Agent status: CLEAR
+- Milestone: M3
+- Effort: high
+- Dependencies: every other agent task in this group.
+- User-visible outcome: Every pointing command traces to a declared law variant and a scored fixture,
+  with no path to a vehicle or effector output.
+- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
+  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
+  score or refusal code.
+- Data and artifact paths: `src/ss_track/guidance/`, `tests/guidance/`, `src/ss_track/suites/`,
+  `tests/suites/`.
+- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from the
+  pointing-command output type on every path, and from what the suite repeats from the shared G3
+  simulator and `plugin-evaluator-core`.
+- Acceptance gates: No path emits a vehicle, munition or effector command. Coverage, angular-error and
+  reacquisition fixtures pass, and `make quality` passes. Finding nothing is a valid result when the
+  record states what was reviewed.
+- Documentation target: [Current implementation](current.md#areas), page `current/guidance.md`.
 
 ### Sensor-set evaluation -- `g2-sensor-set-evaluation`
 
@@ -1918,9 +1985,9 @@ Telemetry has nowhere to live as evidence, because import takes only video.
   store, and a declared CSV reader as the first format. No profiles, analysis or live capture.
 - Data and artifact paths: `src/ss_track/telemetry/`, `tests/telemetry/`, `contracts/`,
   `$DATA_DIR/import/<source-sha256>/`, `$DATA_DIR/telemetry/<bundle-sha256>/`.
-- Execution path: Reuse `sealing.py` and `sealed.py`, publish-by-rename and the source-terms checks
-  by generalizing them, with no parallel copy. Store one little-endian file per field under a sealed
-  index.
+- Execution path: Reuse `sealing.py` and `sealed.py`, the locks, scratch and publish-by-rename of
+  `corpus/storage/`, and the source-terms checks by generalizing them, with no parallel copy. Store
+  one little-endian file per field under a sealed index.
 - Acceptance gates: Two stagings across data roots, and on x86-64 and arm64, give one hash. A float
   column round-trips bit-exact, including NaN payloads. A flipped column byte fails `verify` by name.
   Rights and retention refuse as they do for a recording.
@@ -2235,26 +2302,6 @@ prepares protocols, analyzes evidence and produces reviewable selection records.
 
 ### Corpus provenance -- `corpus-provenance`
 
-#### select-development-workload
-
-Software development needs authorized footage with a declared task and useful negative cases.
-
-- Serves: `corpus-provenance` -- [Corpus identity](../design/spec.md#41-corpus-identity-and-input-handling)
-- Agent status: HUMAN-GATED
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: One candidate workload has recorded terms, and the owner knows how close it
-  is to the small-target stress case.
-- Scope boundary: Authorized private or public development sources, benchmarking rights, retention and
-  access restrictions. Public redistribution is a separate permission, never a G0a prerequisite.
-- Data and artifact paths: `$DATA_DIR/corpus/<corpus-id>/`, with source terms and hashes.
-- Execution path: The owner checks source terms and selects positive/negative encounters; original
-  controlled recordings are an alternative when no existing source fits.
-- Acceptance gates: Every source has recorded rights, a retention date, a derived-frame permission and
-  task suitability. With no authorized source,
-  real-data claims remain unavailable while fixture implementation continues.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
 #### define-locked-test-policy (optional)
 
 A locked test needs a named custodian and access rules that no software can supply.
@@ -2263,7 +2310,7 @@ A locked test needs a named custodian and access rules that no software can supp
   identity](../design/spec.md#41-corpus-identity-and-input-handling)
 - Agent status: HUMAN-GATED
 - Milestone: M4
-- Dependencies: select-development-workload.
+- Dependencies: none.
 - User-visible outcome: A named custodian holds a written access policy, so a locked split can
   support a held-out claim.
 - Scope boundary: The spec section 15 custodian and access inputs. Runner enforcement belongs to
@@ -2275,6 +2322,46 @@ A locked test needs a named custodian and access rules that no software can supp
   `locked` split stays membership only and no held-out claim is made.
 - Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
 
+### Self-supervised video corpus -- `self-supervised-corpus`
+
+#### authorize-video-corpus-sources
+
+A large candidate pool needs source permissions, available storage and a spending envelope a tool
+cannot grant itself.
+
+- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
+- Agent status: HUMAN-GATED
+- Dependencies: none.
+- User-visible outcome: The owner approves a source list, corpus size and diversity targets, permitted
+  processing, compute and storage budgets, and a baseline review budget.
+- Scope boundary: Authorized public or private sources, benchmarking, model processing and derived
+  artifacts, retention and access; public redistribution is a separate permission.
+- Data and artifact paths: `$DATA_DIR/self-supervised-corpus/<run-id>/`, `$DATA_DIR/import/`.
+- Execution path: Record each source's terms, allowed uses, retention and handling, and select an
+  explicit resource envelope before acquiring or running over the sources.
+- Acceptance gates: Every selected source has verifiable rights and retention, a named owner of the
+  approval, approved model use and cost limits, and target coverage and negative cases. No eligible
+  source or inadequate budget is a recorded valid negative and authorizes no acquisition.
+- Documentation target: [Corpus](current/corpus.md).
+
+#### review-video-corpus-sample
+
+The usefulness and missed cases of self-supervised selection require independent human judgment.
+
+- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
+- Agent status: HUMAN-GATED
+- Dependencies: authorize-video-corpus-sources, corpus-selection-evaluation, corpus-review-and-freeze.
+- User-visible outcome: Reviewers adjudicate selected and independently sampled unselected material,
+  including negative windows, confusers and small or uncertain birds.
+- Scope boundary: A predeclared independent audit sample, grouping decisions and reviewer time; the
+  existing annotation authority owns final labels and a locked set needs its custodian.
+- Data and artifact paths: `$DATA_DIR/self-supervised-corpus/<run-id>/`, `$DATA_DIR/corpus/<corpus-id>/labels/`.
+- Execution path: Freeze the baseline and sampling plan before review; reviewers record source and
+  frame decisions, uncertainty, disagreements and time, and settle them under named authority.
+- Acceptance gates: Reviewed samples and exclusions are frozen and hashed; absent or uncertain labels
+  stay unknown, unreviewed exposure is reported, and insufficient sample size is inconclusive.
+- Documentation target: [Corpus](current/corpus.md).
+
 ### Annotation and selection -- `annotation-selection`
 
 #### label-pilot-encounters
@@ -2284,10 +2371,11 @@ G0a needs only one positive and one negative encounter, so it should not wait fo
 - Serves: `annotation-selection` -- [Annotation contract](../design/spec.md#42-annotation-contract)
 - Agent status: HUMAN-GATED
 - Milestone: M1
-- Dependencies: select-development-workload, annotation-review-tools.
+- Dependencies: annotation-review-tools.
 - User-visible outcome: Two encounters have frozen labels, selections and masks.
 - Scope boundary: The pilot encounters, including motion events. The pass also measures labelling
-  time per encounter.
+  time per encounter. Review every frame of the selected negative window for target absence, and
+  leave any uncertain frames unknown; the initial selection used a one-frame-per-second survey.
 - Data and artifact paths: `$DATA_DIR/corpus/<corpus-id>/labels/`.
 - Execution path: Two reviewers label and settle disagreements under a named authority.
 - Acceptance gates: Validation passes and the revision is frozen and hashed. Unresolved labels remain
@@ -2374,7 +2462,8 @@ Benchmark and reference-tracker measurements need a host chosen from evidence.
   Optional thermal-rig compatibility is recorded separately from core benchmark suitability.
 - Data and artifact paths: `$DATA_DIR/selection/<selection-id>/`, `$DATA_DIR/run/<run-id>/`,
   `scenarios/stands/`.
-- Execution path: A person obtains approved candidates; an agent runs probe, null-module and
+- Execution path: A person obtains approved candidates, starting from the compute-host options in the
+  [mesh hardware shortlist](../design/mesh-hardware-shortlist.md); an agent runs probe, null-module and
   reference-tracker trials on each under the same declared workload and limits, then stages the fixed
   corpus on each from sources carried from x86-64 and compares them with `ss-track corpus compare`.
 - Acceptance gates: Each measured candidate has traceable evidence, rejection reasons and a staged-hash
@@ -2398,8 +2487,10 @@ A characterization stand needs candidate interfaces before any final sensor choi
 - Scope boundary: Candidate availability, evidence roles, task coverage, geometry/clock tolerances, sustained
   modes and resource budgets. No candidate is yet selected as measured.
 - Data and artifact paths: `scenarios/stands/`, `$DATA_DIR/selection/<selection-id>/`.
-- Execution path: A person obtains approved candidates and documents raw formats, drivers, access conditions,
-  independent reference needs and a minimum test for each required quantity.
+- Execution path: A person obtains approved candidates, starting from the datasheet-sourced candidates
+  in the [mesh hardware shortlist](../design/mesh-hardware-shortlist.md), and documents raw formats,
+  drivers, access conditions, independent reference needs and a minimum test for each required
+  quantity.
 - Acceptance gates: Every candidate has an executable measurement plan and a supported software need.
   Missing references or unaffordable candidates remain unmeasured with the limitation recorded.
 - Documentation target: [Current implementation](current.md#areas), page `current/hardware-selection.md`.

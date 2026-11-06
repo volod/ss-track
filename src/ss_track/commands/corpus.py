@@ -9,11 +9,13 @@ from ss_track.corpus import (
     amend_source_terms,
     compare_staged_hashes,
     record_staged_hashes,
+    redecode_source,
     stage_corpus,
     verify_corpus_frames,
 )
 from ss_track.corpus import build_corpus as run_corpus_build
 from ss_track.corpus import import_source as run_import
+from ss_track.corpus.cases.preview import preview_stream
 from ss_track.corpus.descriptors.descriptor import RESTRICTED, VISIBILITIES, describe_corpus
 
 
@@ -24,7 +26,15 @@ def add_corpus_commands(subcommands: Subcommands) -> None:
     source.add_argument(
         "--amend-terms",
         action="store_true",
-        help="record new rights and sensitivity for an imported source",
+        help=("record new rights and sensitivity, listing versions that pin the replaced record"),
+    )
+    source.add_argument(
+        "--redecode",
+        action="store_true",
+        help=(
+            "decode stored bytes again under the installed policy, "
+            "listing versions that pin the old record"
+        ),
     )
     source.set_defaults(handler=_run_import)
 
@@ -59,9 +69,21 @@ def add_corpus_commands(subcommands: Subcommands) -> None:
     compare.add_argument("--right", type=Path, required=True, help="the other staged-hashes.json")
     compare.add_argument("--run-id", required=True, help="run that keeps the comparison")
     compare.set_defaults(handler=_run_corpus_compare)
+    preview = corpus_commands.add_parser(
+        "preview", help="write a contact sheet of one parent frame and its generated cases"
+    )
+    preview.add_argument("--corpus", required=True, help="built corpus_id")
+    preview.add_argument("--stream", required=True, help="parent stream_id")
+    preview.add_argument("--frame", type=int, required=True, help="zero-based source frame index")
+    preview.add_argument("--out", type=Path, required=True, help="PNG file to write")
+    preview.set_defaults(handler=_run_corpus_preview)
 
 
 def _run_import(args: argparse.Namespace) -> int:
+    if args.redecode:
+        return reported_on_data_root(
+            lambda data_root: redecode_source(args.source, data_root, amend_terms=args.amend_terms)
+        )
     action = amend_source_terms if args.amend_terms else run_import
     return reported_on_data_root(lambda data_root: action(args.source, data_root))
 
@@ -93,4 +115,10 @@ def _run_corpus_hashes(args: argparse.Namespace) -> int:
 def _run_corpus_compare(args: argparse.Namespace) -> int:
     return reported_on_data_root(
         lambda data_root: compare_staged_hashes(args.left, args.right, args.run_id, data_root)
+    )
+
+
+def _run_corpus_preview(args: argparse.Namespace) -> int:
+    return reported_on_data_root(
+        lambda data_root: preview_stream(args.corpus, args.stream, args.frame, args.out, data_root)
     )

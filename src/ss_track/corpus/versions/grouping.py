@@ -19,6 +19,7 @@ from ss_track.corpus.declarations.declaration import (
     ScenarioRights,
 )
 from ss_track.corpus.declarations.fields import invalid
+from ss_track.corpus.sources.identity import recording_sha256
 
 type StreamRecord = dict[str, Any]
 
@@ -85,10 +86,15 @@ def require_separate_sources(streams: Sequence[StreamRecord]) -> None:
     for source_sha256, sharing in sorted(users.items()):
         _require_one_group(source_sha256, sharing)
         _require_disjoint_windows(source_sha256, sharing)
+    recordings: dict[str, list[StreamRecord]] = defaultdict(list)
+    for stream in streams:
+        recordings[recording_sha256(stream)].append(stream)
+    for content_sha256, sharing in sorted(recordings.items()):
+        _require_one_recording(content_sha256, sharing)
 
 
 def _require_one_group(source_sha256: str, streams: Sequence[StreamRecord]) -> None:
-    """Two groups that share a recording are not independent, whichever splits hold them."""
+    """Two groups that share one source identity are not independent, whichever splits hold them."""
     groups = sorted({stream["group_id"] for stream in streams})
     if len(groups) > 1:
         raise CorpusRefusal(
@@ -100,6 +106,30 @@ def _require_one_group(source_sha256: str, streams: Sequence[StreamRecord]) -> N
                 "splits": sorted({stream["split"] for stream in streams}),
             },
         )
+
+
+def _require_one_recording(content_sha256: str, streams: Sequence[StreamRecord]) -> None:
+    """Two groups that share a file are not independent, whichever source identities name it.
+
+    Windows are not compared here. A second video stream is its own decode, not a second window
+    of the first, so the same frame indexes are different pictures.
+    """
+    identities = sorted({stream["source_sha256"] for stream in streams})
+    if len(identities) < 2:
+        return
+    groups = sorted({stream["group_id"] for stream in streams})
+    if len(groups) == 1:
+        return
+    raise CorpusRefusal(
+        RefusalCode.SPLIT_LEAKAGE,
+        "one recording is used by more than one encounter group",
+        {
+            "content_sha256": content_sha256,
+            "sources": identities,
+            "groups": groups,
+            "splits": sorted({stream["split"] for stream in streams}),
+        },
+    )
 
 
 def _require_disjoint_windows(source_sha256: str, streams: Sequence[StreamRecord]) -> None:

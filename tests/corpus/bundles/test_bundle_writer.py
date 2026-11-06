@@ -14,7 +14,7 @@ from ss_track.corpus import (
     open_frame_bundle,
     stage_corpus,
 )
-from ss_track.corpus.bundles.frames import FRAME_BUNDLE
+from ss_track.corpus.records.kinds import FRAME_BUNDLE
 from ss_track.corpus.records.sealed import read_sealed
 from tests.corpus._media import FRAME_COUNT, HEIGHT, WIDTH, expected_rgb, write_clip
 from tests.corpus.bundles._bundle_writing import CORPUS, bundle_dir
@@ -168,7 +168,29 @@ def test_a_deep_source_is_staged_and_flagged_as_reduced(
     manifest = _manifest(data_root)
     assert manifest["source_bits_per_component"] == 10
     assert manifest["precision_reduced"] is True
-    assert "10-bit source staged at 8 bits" in caplog.text
+    assert "stream one: 10-bit source staged at 8 bits" in caplog.text
+
+
+def test_a_deep_source_cut_into_streams_is_flagged_once(
+    media: Path,
+    write_recording: WriteRecording,
+    write_corpus: WriteCorpus,
+    data_root: Path,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    write_clip(media / "clip.mkv", "ffv1", "yuv420p10le", frames=3)
+    imported = import_source(write_recording(), data_root)
+    streams = [
+        stream_of(imported, stream_id="head", selection={"start_frame": 0, "end_frame": 1}),
+        stream_of(imported, stream_id="tail", selection={"start_frame": 1, "end_frame": 3}),
+    ]
+    build_corpus(write_corpus(streams), data_root)
+
+    with caplog.at_level(logging.WARNING, _WRITER_MODULE):
+        stage_corpus(CORPUS, data_root)
+
+    warnings = [record.getMessage() for record in caplog.records if "8 bits" in record.getMessage()]
+    assert warnings == ["streams head, tail: 10-bit source staged at 8 bits"]
 
 
 @pytest.mark.parametrize(

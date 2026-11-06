@@ -11,7 +11,14 @@ import yaml
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
 from ss_track.corpus import build_corpus, import_source, stage_corpus
 from ss_track.corpus.descriptors.descriptor import describe_corpus
-from tests.corpus.conftest import WriteCorpus, WriteRecording, case_of, reseal, stream_of
+from tests.corpus.conftest import (
+    WriteCorpus,
+    WriteRecording,
+    case_of,
+    last_record,
+    reseal,
+    stream_of,
+)
 
 
 @pytest.fixture
@@ -69,7 +76,7 @@ def test_descriptor_contains_sealed_facts_and_is_deterministic(
     from ss_track.schema.registry.store import load_contract_set
 
     copied = load_contract_set(directory / "contracts")
-    assert copied.named("record/frame-bundle").versions[-1].version == "3.1.0"
+    assert copied.named("record/frame-bundle").versions[-1].version == "3.4.0"
     assert (copied.root / "meta/standards/odcs-3.2.0.json").is_file()
     assert (copied.root / "meta/standards/ODCS-LICENSE.txt").is_file()
     streams = _rows(directory / "streams.csv")
@@ -166,7 +173,7 @@ def test_cli_describe_and_refusal(
     assert (
         main(["corpus", "describe", "--corpus", "pilot-v1", "--declaration", str(declaration)]) == 0
     )
-    assert json.loads(caplog.records[-1].getMessage())["status"] == "recorded"
+    assert last_record(caplog)["status"] == "recorded"
     caplog.clear()
     assert (
         main(
@@ -183,7 +190,7 @@ def test_cli_describe_and_refusal(
         )
         == 1
     )
-    refusal = json.loads(caplog.records[-1].getMessage())
+    refusal = last_record(caplog)
     assert refusal["code"] == "RIGHTS_CONFLICT"
     assert "pilot-v1" not in caplog.records[-1].getMessage()
 

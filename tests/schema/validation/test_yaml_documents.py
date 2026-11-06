@@ -54,7 +54,7 @@ def test_yaml_corpus_and_json_corpus_follow_the_same_contract(tmp_path: Path) ->
         "  - encounter_id: encounter\n    streams:\n"
         f"    - stream_id: camera\n      source_sha256: {'a' * 64}\n"
     )
-    assert validate_file(path, contract_name="declaration/corpus").version == "3.0.0"
+    assert validate_file(path, contract_name="declaration/corpus").version == "3.2.0"
     path.write_text(path.read_text().replace("schema_version: 3", "schema_version: 3.0"))
     with pytest.raises(CorpusRefusal) as caught:
         validate_file(path, contract_name="declaration/corpus")
@@ -82,7 +82,7 @@ def test_real_recording_preserves_descriptions_numbers_and_dates(tmp_path: Path)
         "range: {status: estimated, value_m: 'about 3', method: visual}}\n"
     )
     path.write_text(text)
-    assert validate_file(path, contract_name="declaration/recording").version == "2.1.0"
+    assert validate_file(path, contract_name="declaration/recording").version == "2.3.0"
     assert path.read_text() == text
     path.write_text(text.replace("camera: 42", "camera: null"))
     with pytest.raises(CorpusRefusal) as caught:

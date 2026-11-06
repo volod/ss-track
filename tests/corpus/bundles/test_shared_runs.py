@@ -162,11 +162,31 @@ def test_a_looped_predecessor_names_its_first_showing() -> None:
     assert _firsts(run) == {"a": 0, "b": 0}
 
 
-def test_streams_of_one_group_are_not_compared() -> None:
-    assert find_shared_runs([_stream("a", "g", _MINIMUM), _stream("b", "g", _MINIMUM)], []) == []
+def test_streams_of_one_group_in_one_version_share_a_run() -> None:
+    runs = find_shared_runs([_stream("a", "g", _MINIMUM), _stream("b", "g", _MINIMUM)], [])
+
+    assert [run["frame_count"] for run in runs] == [MIN_SHARED_FRAMES]
+    assert _firsts(runs[0]) == {"a": 0, "b": 0}
+
+
+def test_a_stream_does_not_overlap_itself() -> None:
+    """A loop meets the stream's own earlier window. That is one showing, not two streams."""
+    looped = _stream("a", "g", [*_MINIMUM, "x", *_MINIMUM])
+
+    assert find_shared_runs([looped], []) == []
+    require_unshared_runs("pilot-v2", [looped], [])
+
+
+def test_one_frame_short_inside_one_group_is_not_a_run() -> None:
+    short = _MINIMUM[:-1]
+    one = _stream("a", "g", ["before-a", *short, "after-a"])
+    two = _stream("b", "g", ["before-b", *short, "after-b"])
+
+    assert find_shared_runs([one, two], []) == []
 
 
 def test_a_group_is_the_same_group_across_versions() -> None:
+    """A copy that replaces its original counts in neither version twice."""
     earlier = _stream("a", "g", _MINIMUM, corpus_id="pilot-v1")
 
     assert find_shared_runs([_stream("b", "g", _MINIMUM)], [earlier]) == []

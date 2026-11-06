@@ -13,16 +13,44 @@ baseline scope and evidence. The installed set contains these document contracts
 
 | Contract | Frozen version |
 | --- | --- |
-| `declaration/corpus` | `3.0.0` |
+| `declaration/corpus` | `3.0.0`, `3.1.0`, `3.2.0` |
 | `declaration/dataset` | `1.0.0`, `1.1.0` |
-| `declaration/recording` | `2.0.0`, `2.1.0` |
-| `record/corpus-manifest` | `3.0.0`, `3.1.0` |
-| `record/frame-bundle` | `3.0.0`, `3.1.0` |
+| `declaration/recording` | `2.0.0`, `2.1.0`, `2.2.0`, `2.3.0` |
+| `record/corpus-manifest` | `3.0.0`, `3.1.0`, `3.2.0`, `3.3.0`, `3.4.0` |
+| `record/frame-bundle` | `3.0.0`, `3.1.0`, `3.2.0`, `3.3.0`, `3.4.0` |
 | `record/frame-set` | `1.0.0` |
 | `record/staged-hashes` | `1.0.0` |
 | `record/hash-comparison` | `1.0.0` |
-| `record/source-manifest` | `2.0.0`, `2.1.0` |
-| `result/command` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0`, `1.4.0` |
+| `record/source-manifest` | `2.0.0`, `2.1.0`, `2.2.0`, `2.3.0` |
+| `result/command` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0`, `1.4.0`, `1.5.0`, `1.6.0`, `1.7.0`, `1.8.0`, `1.9.0`, `1.9.1`, `1.10.0`, `1.11.0`, `1.12.0`, `1.13.0`, `1.14.0` |
+
+`result/command` `1.5.0` adds `redecoded`. `1.6.0` adds optional `unlinked` on a corpus build,
+present only when that data root has something to report. `1.7.0` adds optional `impact` when an
+amendment or a redecode replaces a record, and optional `scan` when the corpus directory could not
+be listed. `1.8.0` adds optional `preview` on `corpus preview`. `1.9.0` adds
+`VIDEO_STREAM_UNSPECIFIED`. `1.9.1` names `source_sha256` as the source identity, which is the
+file hash when the recording names its first video stream. `record/corpus-manifest` 3.2.0 adds
+optional `content_sha256` on a stream, present only when that stream's source identity is not the
+file hash. `declaration/recording` 2.2.0 adds optional
+`source.video_stream_index`. `record/source-manifest` 2.2.0 adds optional
+`sequence.video_stream_index`, absent when the decoded stream is the first.
+`declaration/recording` 2.3.0 adds optional `color.matrix`. `record/source-manifest` 2.3.0 and
+`record/frame-bundle` 3.2.0 add optional `declared_color`, present only when conversion used that
+declaration. `result/command` 1.10.0 adds `COLOR_TAG_CONFLICT`. `1.11.0` adds
+`DECODE_TIME_EXCEEDED` and `INTERRUPTED`. `1.12.0` adds optional `near_duplicates` on a corpus
+build, present only when a likely re-encode crosses groups or a window could not be read.
+`1.13.0` adds bundle status `reused` and optional `reused_from` on a staged bundle, present only
+when that bundle's frames were hard-linked from a linked corpus version. `1.14.0` adds reason
+`unreadable` on `near_duplicates.not_compared` and optional `scan` when the corpus directory could
+not be listed. A missing or unreadable version outside the declared chain is named, and the report
+still does not refuse.
+`declaration/corpus` 3.1.0 adds `compression` and `variable_timing` recipes.
+`record/corpus-manifest` 3.3.0 and `record/frame-bundle` 3.3.0 add those
+recipes and the label kinds `compression` and `timing`. `declaration/corpus` 3.2.0 adds
+`crossing_occluder`, `moving_removal`, `similar_distractor` and `out_of_view`.
+`record/corpus-manifest` 3.4.0 and `record/frame-bundle` 3.4.0 add those recipes and the label kind
+`track_status`. Writers still stamp the major. A declaration stamped schema 3 validates under
+`declaration/corpus` 3.2.0, and a dataset descriptor copies that newest minor.
 
 `declaration/dataset` states the operator-supplied title, description, license, citation, address
 and publication date. It can be checked with `ss-track contracts validate` and is consumed by the
@@ -44,9 +72,8 @@ operator descriptions and numbers: the dialect allows exactly `["string", "numbe
 form. Numeric descriptive metadata has no physical-unit claim; declared range retains metres.
 The extension does not allow arbitrary scalar unions or change a recording's accepted values.
 
-Each sealed format's kind and major have one statement, its `RecordFormat` beside its writer
-(`corpus/sources/importer.py`, `builder.py`, `frames.py`, `frame_set.py`, `host_hashes.py`,
-`hash_comparison.py`), with every kind and the `RecordFormat` class in `corpus/records/kinds.py`.
+Each sealed format's kind and major have one statement, its `RecordFormat` in
+`corpus/records/kinds.py`, beside every kind and the `RecordFormat` class.
 The writer stamps a record with `RecordFormat.stamp()` and the read path reads with the same value.
 Declaration majors are constants in `corpus/declarations/declaration.py` and
 `corpus/descriptors/descriptor.py`. Declaration and record majors stay independent, and their

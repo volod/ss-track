@@ -17,8 +17,8 @@ from ss_track.corpus import (
     verify_corpus_frames,
 )
 from ss_track.corpus.decoding.decode_policy import DecodePolicy
+from ss_track.corpus.records.kinds import CORPUS_MANIFEST
 from ss_track.corpus.records.sealed import read_sealed
-from ss_track.corpus.versions.builder import CORPUS_MANIFEST
 from tests.corpus._amending import (
     CORPUS,
     evidence,

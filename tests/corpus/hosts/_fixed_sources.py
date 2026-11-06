@@ -15,6 +15,13 @@ WIDTH = 96
 HEIGHT = 64
 _BOX = (230, 40, 60)
 _REGION = {"x": 8, "y": 6, "width": 40, "height": 30}
+_TRACK_BOX = {"x": 12, "y": 10, "width": 20, "height": 16}
+_TRACK_SPAN = {"start_frame": 4, "end_frame": 8}
+_TRACK = {
+    "label_revision": "ab" * 32,
+    "instance_id": "target",
+    "track": [{"frame_index": index, "box": _TRACK_BOX} for index in (4, 5, 6, 7, 8)],
+}
 _BT709 = "colormatrix=bt709:colorprim=bt709:transfer=bt709"
 _FAST = {"preset": "fast"}
 _X265 = {"preset": "fast", "x265-params": "log-level=error"}
@@ -147,6 +154,12 @@ CASES = (
     ("dropped_frames", {"count": 2}),
     ("duplicated_frames", {"count": 2}),
     ("short_occlusion", {"region": _REGION}),
+    ("compression", {"max_step": 8}),
+    ("variable_timing", {"max_scale": 4}),
+    ("crossing_occluder", _TRACK | {"cover": _TRACK_SPAN}),
+    ("moving_removal", _TRACK | {"plate_frame": 0, "noise": 4}),
+    ("similar_distractor", _TRACK | {}),
+    ("out_of_view", _TRACK | {"outside": _TRACK_SPAN}),
 )
 
 

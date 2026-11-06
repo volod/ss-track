@@ -2,11 +2,13 @@
 
 from typing import Any
 
-from ss_track.corpus.bundles.frames import FRAME_BUNDLE
 from ss_track.corpus.descriptors.descriptor_rows import frame_rows
-from ss_track.corpus.records.kinds import RecordFormat
-from ss_track.corpus.sources.importer import SOURCE_MANIFEST
-from ss_track.corpus.versions.builder import CORPUS_MANIFEST
+from ss_track.corpus.records.kinds import (
+    CORPUS_MANIFEST,
+    FRAME_BUNDLE,
+    SOURCE_MANIFEST,
+    RecordFormat,
+)
 from ss_track.schema.registry.store import ContractSet, damaged
 from ss_track.schema.views.disclosure import project_public
 

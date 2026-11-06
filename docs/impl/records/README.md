@@ -35,5 +35,24 @@ Copy the [template](template.md) using the
 | 0028 | `pattern-reshaped-inclusion` | [0028-data-contracts-pattern-reshaped-inclusion](0028-data-contracts-pattern-reshaped-inclusion.md) |
 | 0029 | `oracle-coordinated-witnesses` | [0029-data-contracts-oracle-coordinated-witnesses](0029-data-contracts-oracle-coordinated-witnesses.md) |
 | 0030 | `data-contracts-audit` | [0030-data-contracts-data-contracts-audit](0030-data-contracts-data-contracts-audit.md) |
+| 0031 | `decode-policy-reimport` | [0031-corpus-provenance-decode-policy-reimport](0031-corpus-provenance-decode-policy-reimport.md) |
+| 0032 | `group-repeated-frames` | [0032-corpus-provenance-group-repeated-frames](0032-corpus-provenance-group-repeated-frames.md) |
+| 0033 | `unlinked-version-report` | [0033-corpus-provenance-unlinked-version-report](0033-corpus-provenance-unlinked-version-report.md) |
+| 0034 | `amendment-impact-report` | [0034-corpus-provenance-amendment-impact-report](0034-corpus-provenance-amendment-impact-report.md) |
+| 0035 | `case-preview` | [0035-corpus-provenance-case-preview](0035-corpus-provenance-case-preview.md) |
+| 0036 | `staging-single-pass` | [0036-corpus-provenance-staging-single-pass](0036-corpus-provenance-staging-single-pass.md) |
+| 0037 | `select-development-workload` | [0037-corpus-provenance-select-development-workload](0037-corpus-provenance-select-development-workload.md) |
+| 0038 | `self-supervised-corpus-plan` | [0038-adhoc-self-supervised-corpus-plan](0038-adhoc-self-supervised-corpus-plan.md) |
+| 0039 | `bundle-frame-sharing` | [0039-corpus-provenance-bundle-frame-sharing](0039-corpus-provenance-bundle-frame-sharing.md) |
+| 0040 | `import-stream-selection` | [0040-corpus-provenance-import-stream-selection](0040-corpus-provenance-import-stream-selection.md) |
+| 0041 | `dual-camera-file-identity` | [0041-corpus-provenance-dual-camera-file-identity](0041-corpus-provenance-dual-camera-file-identity.md) |
+| 0042 | `declared-color-tags` | [0042-corpus-provenance-declared-color-tags](0042-corpus-provenance-declared-color-tags.md) |
+| 0043 | `decode-interruption-safety` | [0043-corpus-provenance-decode-interruption-safety](0043-corpus-provenance-decode-interruption-safety.md) |
+| 0044 | `compression-and-timing-cases` | [0044-corpus-provenance-compression-and-timing-cases](0044-corpus-provenance-compression-and-timing-cases.md) |
+| 0045 | `label-driven-cases` | [0045-corpus-provenance-label-driven-cases](0045-corpus-provenance-label-driven-cases.md) |
+| 0046 | `near-duplicate-detection` | [0046-corpus-provenance-near-duplicate-detection](0046-corpus-provenance-near-duplicate-detection.md) |
+| 0047 | `bundle-reuse-across-versions` | [0047-corpus-provenance-bundle-reuse-across-versions](0047-corpus-provenance-bundle-reuse-across-versions.md) |
+| 0048 | `near-duplicates-outside-the-chain` | [0048-corpus-provenance-near-duplicates-outside-the-chain](0048-corpus-provenance-near-duplicates-outside-the-chain.md) |
+| 0049 | `corpus-provenance-audit` | [0049-corpus-provenance-corpus-provenance-audit](0049-corpus-provenance-corpus-provenance-audit.md) |
 
-Next unused sequence: `0031`.
+Next unused sequence: `0050`.

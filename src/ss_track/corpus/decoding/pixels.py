@@ -9,7 +9,7 @@ from functools import reduce
 from operator import or_
 
 import av
-from av.video.reformatter import Interpolation, VideoReformatter
+from av.video.reformatter import Colorspace, Interpolation, VideoReformatter
 
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
 
@@ -67,12 +67,17 @@ def frame_size_bytes(width: int, height: int) -> int:
 
 
 class PixelConverter:
-    """Turns decoded frames into tightly packed output pixels. Reuses one scaler context."""
+    """Turns decoded frames into tightly packed output pixels. Reuses one scaler context.
 
-    def __init__(self, flags: str, threads: int) -> None:
+    ``matrix`` is a swscale colorspace for a frame whose own matrix tag is unspecified. A frame
+    that already carries a matrix keeps that tag.
+    """
+
+    def __init__(self, flags: str, threads: int, *, matrix: Colorspace | None = None) -> None:
         names = flags.split(_FLAG_SEPARATOR)
         self._interpolation = reduce(or_, (Interpolation[name] for name in names))
         self._threads = threads
+        self._matrix = matrix
         self._reformatter = VideoReformatter()
 
     def pixels(self, frame: av.VideoFrame) -> bytes:
@@ -81,9 +86,15 @@ class PixelConverter:
             frame,
             format=OUTPUT_PIXEL_FORMAT,
             interpolation=self._interpolation,
+            src_colorspace=self._source_matrix(frame),
             threads=self._threads,
         )
         return packed_rows(converted)
+
+    def _source_matrix(self, frame: av.VideoFrame) -> Colorspace | None:
+        if self._matrix is None or int(frame.colorspace) != UNSPECIFIED_COLOR_MATRIX:
+            return None
+        return self._matrix
 
 
 def packed_rows(frame: av.VideoFrame) -> bytes:

@@ -1,11 +1,13 @@
-"""Comparison projections: the facts a leak guard reads, from a record of any major that holds them.
+"""Comparison projections: the facts a later version or an amendment report reads.
 
-Lineage reads a corpus version's source hashes, groups and splits, and the shared-frame rule reads a
-bundle's frame hashes. A projection yields only those, from a record as it was written, and stays for
-as long as records of its major may exist: a record's disposition decides whether it may serve as
-evidence, never whether a successor is compared with it. Corpus major 1 held no group or split, so
-it has no projection and a successor reports it as not compared. Bundle major 1 has none either:
-only a corpus version of major 1 staged one.
+Lineage reads a corpus version's source hashes, groups and splits. The near-duplicate report also
+reads each stream's frame window. A later video stream also carries `content_sha256`, the file
+hash, when its identity is not that hash. The amendment report reads each stream's source-record
+pin. The shared-frame rule reads a bundle's frame hashes. A projection yields only those, from a
+record as it was written, and stays for as long as records of its major may exist: a record's
+disposition decides whether it may serve as evidence, never whether a successor is compared with
+it. Corpus major 1 held no group or split, so it has no projection and a successor reports it as
+not compared. Bundle major 1 has none either: only a corpus version of major 1 staged one.
 """
 
 from collections.abc import Callable, Iterator, Mapping
@@ -19,6 +21,8 @@ from ss_track.corpus.records.kinds import CORPUS_MANIFEST_KIND, FRAME_BUNDLE_KIN
 OTHER_SCHEMA = "other_schema"
 SUPERSEDES_FIELD = "supersedes"
 PLACEMENT_KEYS = ("stream_id", "source_sha256", "group_id", "split")
+SOURCE_PIN = "source_manifest_sha256"
+_STREAM_KEYS = (*PLACEMENT_KEYS, SOURCE_PIN)
 FRAMES_FIELD = "frames"
 
 type Projection = Callable[[Mapping[str, Any]], dict[str, JsonValue]]
@@ -54,17 +58,38 @@ class Unprojected:
 
 
 def _corpus(record: Mapping[str, Any]) -> dict[str, JsonValue]:
-    """Project a corpus version that names its streams' groups and splits."""
+    """Project a corpus version's placement and the source record each stream pins."""
     projected: dict[str, JsonValue] = {
         key: record[key] for key in ("kind", "schema_version", SEAL_FIELD, "corpus_id")
     }
     projected["decode_policy_sha256"] = record["decode_policy_sha256"]
-    projected["streams"] = [
-        {key: stream[key] for key in PLACEMENT_KEYS} for stream in record["streams"]
-    ]
+    projected["streams"] = [_project_stream(stream) for stream in record["streams"]]
     if SUPERSEDES_FIELD in record:
         projected[SUPERSEDES_FIELD] = record[SUPERSEDES_FIELD]
     return projected
+
+
+def _project_stream(stream: Mapping[str, Any]) -> dict[str, JsonValue]:
+    """Project one stream. A later camera keeps the file hash beside its own identity."""
+    projected = {key: stream[key] for key in _STREAM_KEYS}
+    content = stream.get("content_sha256")
+    if isinstance(content, str):
+        projected["content_sha256"] = content
+    selection = _projected_window(stream.get("selection"))
+    if selection is not None:
+        projected["selection"] = selection
+    return projected
+
+
+def _projected_window(selection: object) -> dict[str, JsonValue] | None:
+    """Return a stream's frame window, or nothing when the record does not carry one."""
+    if not isinstance(selection, dict):
+        return None
+    start = selection.get("start_frame")
+    end = selection.get("end_frame")
+    if type(start) is not int or type(end) is not int:
+        return None
+    return {"start_frame": start, "end_frame": end}
 
 
 def _bundle(record: Mapping[str, Any]) -> dict[str, JsonValue]:

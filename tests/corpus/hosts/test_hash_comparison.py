@@ -12,7 +12,7 @@ from ss_track.commands.report import EXIT_OK, EXIT_REFUSED
 from ss_track.corpus import RefusalCode, compare_staged_hashes, record_staged_hashes
 from ss_track.corpus.hosts.hash_comparison import HASH_COMPARISON_NAME
 from tests.corpus._media import FRAME_COUNT
-from tests.corpus.conftest import WriteCorpus, WriteRecording
+from tests.corpus.conftest import WriteCorpus, WriteRecording, last_record
 from tests.corpus.hosts._host_hashes import (
     CORPUS,
     OTHER_HASH,
@@ -187,8 +187,8 @@ def test_the_commands_exit_zero_when_identical_and_one_when_different(
     compare = ["corpus", "compare", "--left", str(left), "--run-id", RUN, "--right"]
 
     assert main(["corpus", "hashes", "--corpus", CORPUS, "--run-id", "run-two"]) == EXIT_OK
-    assert json.loads(caplog.records[-1].getMessage())["status"] == "recorded"
+    assert last_record(caplog)["status"] == "recorded"
     assert main([*compare, str(left)]) == EXIT_OK
-    assert json.loads(caplog.records[-1].getMessage())["status"] == "identical"
+    assert last_record(caplog)["status"] == "identical"
     assert main([*compare, str(different)]) == EXIT_REFUSED
-    assert json.loads(caplog.records[-1].getMessage())["code"] == "STAGED_HASHES_DIFFER"
+    assert last_record(caplog)["code"] == "STAGED_HASHES_DIFFER"

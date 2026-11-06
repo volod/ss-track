@@ -32,8 +32,21 @@ def test_minimal_recording_keeps_unknown_capture_facts_explicit(
     assert declaration.source_path == tmp_path / "clip.mkv"
     assert declaration.expected_sha256 is None
     assert declaration.capture_clock_evidence is None
+    assert declaration.color_matrix is None
     assert declaration.capture["camera"] is None
     assert declaration.capture["range"] == {"status": "unknown", "value_m": None, "method": None}
+
+
+def test_a_declared_color_matrix_is_read_as_its_ffmpeg_code(
+    declare: Callable[[str], Path],
+) -> None:
+    declaration = load_recording_declaration(declare(RECORDING + "color: {matrix: bt709}\n"))
+
+    assert declaration.color_matrix == 1
+
+
+def test_an_unknown_color_matrix_is_refused(declare: Callable[[str], Path]) -> None:
+    assert "matrix" in refused_recording(declare(RECORDING + "color: {matrix: guessed}\n"))
 
 
 def test_full_recording_is_read(declare: Callable[[str], Path]) -> None:

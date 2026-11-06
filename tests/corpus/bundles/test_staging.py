@@ -14,7 +14,7 @@ from ss_track.corpus import (
     import_source,
     stage_corpus,
 )
-from tests.corpus._media import FRAME_COUNT, write_clip
+from tests.corpus._media import FRAME_COUNT, expected_rgb, write_clip
 from tests.corpus.conftest import WriteCorpus, WriteRecording, reseal, stream_of
 
 _CORPUS = "pilot-v1"
@@ -79,9 +79,14 @@ def test_a_second_process_stages_identical_bytes(
 def test_a_different_source_gives_a_different_bundle_hash(
     media: Path, write_recording: WriteRecording, write_corpus: WriteCorpus, data_root: Path
 ) -> None:
+    """The second clip starts later in the same pattern, so the two share no run."""
     write_clip(media / "clip.mkv")
     first = import_source(write_recording(), data_root)
-    write_clip(media / "other.mkv", frames=FRAME_COUNT - 1)
+    write_clip(
+        media / "other.mkv",
+        frames=FRAME_COUNT - 1,
+        content=lambda index, width, height: expected_rgb(index + FRAME_COUNT, width, height),
+    )
     second = import_source(write_recording("other.mkv"), data_root)
     streams = [
         stream_of(first, stream_id="one"),

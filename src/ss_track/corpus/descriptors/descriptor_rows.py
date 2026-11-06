@@ -10,7 +10,8 @@ from typing import Any
 
 from ss_track.core.refusal import JsonValue
 from ss_track.corpus.bundles.bundle_reader import content_frame_index
-from ss_track.corpus.bundles.frames import FRAMES_DIRECTORY, frame_name
+from ss_track.corpus.bundles.frames import frame_name
+from ss_track.corpus.storage.layout import FRAMES_DIRECTORY
 
 STREAM_KEY = "stream_id"
 LAYOUT_KEYS = ("width", "height", "pixel_format", "bytes_per_frame", "time_base")

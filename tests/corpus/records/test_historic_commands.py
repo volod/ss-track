@@ -21,11 +21,13 @@ from ss_track.corpus import (
     import_source,
     open_frame_bundle,
 )
-from ss_track.corpus.bundles.frames import FRAME_BUNDLE
-from ss_track.corpus.records.kinds import RecordFormat
+from ss_track.corpus.records.kinds import (
+    CORPUS_MANIFEST,
+    FRAME_BUNDLE,
+    SOURCE_MANIFEST,
+    RecordFormat,
+)
 from ss_track.corpus.records.sealed import read_comparable, read_sealed
-from ss_track.corpus.sources.importer import SOURCE_MANIFEST
-from ss_track.corpus.versions.builder import CORPUS_MANIFEST
 from ss_track.schema.validation.enforce import older_remedy
 from tests.corpus._amending import read_source, rights_with
 from tests.corpus._historic import RECORDS, major_of, place_record

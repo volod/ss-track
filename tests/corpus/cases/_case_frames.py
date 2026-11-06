@@ -32,8 +32,12 @@ def case_record(
     } | fields
 
 
-def prepare(record: dict[str, object], selection: range = range(FRAMES)) -> Rendering:
-    return prepare_case(record, selection, WIDTH, HEIGHT, frame)
+def prepare(
+    record: dict[str, object],
+    selection: range = range(FRAMES),
+    timestamp_quality: str = "derived",
+) -> Rendering:
+    return prepare_case(record, selection, WIDTH, HEIGHT, frame, timestamp_quality)
 
 
 def painted(rendering: Rendering, index: int) -> Pixels:
@@ -46,6 +50,18 @@ def window(start: int, end: int) -> dict[str, int]:
 
 
 REGION = {"x": 4, "y": 2, "width": 6, "height": 5}
+LABEL_REVISION = "ab" * 32
+OTHER_REVISION = "cd" * 32
+INSTANCE_ID = "target"
+
+
+def track_parameters(indexes: list[int], box: dict[str, int], **extra: object) -> dict[str, object]:
+    """Return a track recipe: one frozen revision, one instance, and that instance's boxes."""
+    return {
+        "label_revision": LABEL_REVISION,
+        "instance_id": INSTANCE_ID,
+        "track": [{"frame_index": index, "box": dict(box)} for index in indexes],
+    } | extra
 
 
 def inside(pixels: Pixels) -> Pixels:

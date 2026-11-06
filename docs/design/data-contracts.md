@@ -166,13 +166,16 @@ and an amended later record is byte-identical to one the first schema 2 code wri
 | Re-import over an older source | `RECORD_SCHEMA_UNSUPPORTED`, naming `--amend-terms`, before any decode |
 | Source moved to `locked`, predecessor at the current major | `SPLIT_LEAKAGE`, as designed |
 | Same move, predecessor at another major | `RECORD_SCHEMA_UNSUPPORTED`, and no version can link to it |
-| Same move, `supersedes` dropped | **Builds and stages as `no_lineage`.** The guard's only exit goes around it |
+| Same move, `supersedes` dropped | **Builds and stages as `no_lineage`, and the build lists the other version.** It does not refuse an undeclared reuse |
 | Successor whose predecessor holds another major's bundle | Stages, naming that bundle under `other_schema`, because section 4.1 says such a predecessor is reported |
-| Same source as a new corpus version | `bundle_sha256` equal across all four eras, while corpus seal, frame set and bundle seal differ and every frame is stored again |
+| Same source as a new corpus version, predecessor at another major | `bundle_sha256` equal across all four eras, while corpus seal, frame set and bundle seal differ and every frame is stored again |
 
-The last row sets the price: a million 1080p frames is 6 TB and about four hours of staging. A decode
-policy revision blocks records the same way with no schema change. That one is correct, because new
-pixels need new evidence, and `decode-policy-reimport` owns it.
+The last row sets the price of a predecessor this code cannot read as evidence: a million 1080p
+frames is 6 TB and about four hours of staging. A successor at the current major hard-links a
+matching bundle of a linked version and decodes nothing. A bundle of another major is not a reuse
+candidate, so the row above still stores every frame. A decode policy revision blocks records the
+same way with no schema change. That one is correct, because new pixels need new evidence, and
+`decode-policy-reimport` owns it.
 
 Root cause: one exact integer answers whether a tool can parse a record, whether the record may serve
 as evidence, and what changed, so every change gets one response. Reading and checking are two calls

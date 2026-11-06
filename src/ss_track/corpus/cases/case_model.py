@@ -37,6 +37,14 @@ def add_noise(pixels: Pixels, amplitude: int, raw: bytes) -> Pixels:
     return noisy
 
 
+def shift_frame(pixels: Pixels, dx: int, dy: int) -> Pixels:
+    """Move content by whole pixels. An exposed edge repeats the nearest pixel."""
+    height, width = pixels.shape[:2]
+    rows = np.clip(np.arange(height) - dy, 0, height - 1)
+    columns = np.clip(np.arange(width) - dx, 0, width - 1)
+    return pixels[rows][:, columns]
+
+
 @dataclass(frozen=True, slots=True)
 class Region:
     """A pixel rectangle of the parent frames, in stored orientation."""
@@ -59,6 +67,15 @@ class Region:
         """Return the JSON-compatible form."""
         return {"x": self.x, "y": self.y, "width": self.width, "height": self.height}
 
+    def fits(self, width: int, height: int) -> bool:
+        """Return whether this rectangle lies inside a frame of the given size."""
+        return (
+            self.x >= 0
+            and self.y >= 0
+            and self.x + self.width <= width
+            and self.y + self.height <= height
+        )
+
 
 @dataclass(frozen=True, slots=True)
 class Slot:
@@ -70,11 +87,16 @@ class Slot:
 
 @dataclass(frozen=True, slots=True)
 class Rendering:
-    """Everything a recipe does to its parent."""
+    """Everything a recipe does to its parent.
+
+    `gap_scale` is empty unless the case retimes frames. Each pair is a frame and the integer
+    scale of the presentation gap from the previous frame. `None` keeps the parent's PTS.
+    """
 
     slots: tuple[Slot, ...]
     paint: Paint | None
     label_transform: dict[str, JsonValue]
+    gap_scale: tuple[tuple[int, int], ...] | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -90,6 +112,7 @@ class CaseContext:
     height: int
     draws: SeededDraws
     read: ReadFrame
+    timestamp_quality: str = "derived"
 
     def require(self, condition: bool, message: str) -> None:
         """Refuse a recipe that its parent cannot satisfy."""
@@ -103,9 +126,45 @@ class CaseContext:
     def region(self) -> Region:
         """Return the declared rectangle, which must lie inside the frame."""
         region = Region(**self.parameters["region"])
-        inside = region.x + region.width <= self.width and region.y + region.height <= self.height
-        self.require(inside, "region runs past the frame")
+        self.require(region.fits(self.width, self.height), "region runs past the frame")
         return region
+
+    def track(self) -> dict[int, Region]:
+        """Return one target's boxes, in frame order, each inside the window and the frame.
+
+        A window frame with no entry has no scorable box. The boxes belong to the frozen label
+        revision named in the recipe.
+        """
+        found: dict[int, Region] = {}
+        previous = -1
+        for entry in self.parameters["track"]:
+            index = int(entry["frame_index"])
+            self.require(index > previous, "track frame indexes are not strictly increasing")
+            self.require(
+                self.window.start <= index < self.window.stop,
+                "track frame is outside the window",
+            )
+            box = Region(
+                x=int(entry["box"]["x"]),
+                y=int(entry["box"]["y"]),
+                width=int(entry["box"]["width"]),
+                height=int(entry["box"]["height"]),
+            )
+            self.require(box.fits(self.width, self.height), "track box runs past the frame")
+            found[index] = box
+            previous = index
+        return found
+
+    def parameter_range(self, name: str) -> range:
+        """Return a non-empty half-open interval that lies inside the case window."""
+        raw = self.parameters[name]
+        start, stop = int(raw["start_frame"]), int(raw["end_frame"])
+        self.require(start < stop, f"{name} is empty")
+        self.require(
+            start >= self.window.start and stop <= self.window.stop,
+            f"{name} runs past the window",
+        )
+        return range(start, stop)
 
     def unchanged_slots(self) -> tuple[Slot, ...]:
         """Return one slot per parent frame, each showing its own pixels."""

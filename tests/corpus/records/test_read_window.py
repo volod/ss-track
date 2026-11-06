@@ -19,10 +19,10 @@ from ss_track.corpus import (
     verify_corpus_frames,
 )
 from ss_track.corpus.records import read_window
-from ss_track.corpus.records.kinds import RecordFormat
+from ss_track.corpus.records.kinds import CORPUS_MANIFEST, RecordFormat
 from ss_track.corpus.records.read_window import View, check_view, view_findings
 from ss_track.corpus.records.sealed import read_stated
-from ss_track.corpus.versions.builder import CORPUS_MANIFEST, load_corpus_manifest
+from ss_track.corpus.versions.manifests import load_corpus_manifest
 from tests.corpus._historic import kept_record
 from tests.corpus.conftest import (
     WriteCorpus,

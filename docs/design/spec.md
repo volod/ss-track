@@ -163,16 +163,44 @@ stores no PTS. Import records these states and never fills in a timestamp.
 The corpus declares a canonical decoder, its version/options and output pixel format. The canonical
 decode is strict: a source is refused when decoding shows truncation or corruption that a tolerant
 decoder would conceal, and a source whose completeness cannot be established says so in its record.
+Import, redecode and staging refuse a decode that runs past the declared time limit, 24 hours for
+one source. The limit is not part of the decode policy, so it does not change a pixel or a hash.
+The refusal names how long the decode ran. An operator interrupt is a refusal as well: one record,
+and no partial source or bundle. The limit is checked while the decode loop is in Python. A
+decoder call that never returns is outside it. The next run that holds the same lock removes
+scratch that such a run left: the next stage of that version, and the next import that finds no
+other import running.
+
 G0 modules consume one staged, immutable decoded-frame bundle. This makes their actual input
 identical without requiring cross-platform decoders to produce identical pixels. The bundle hash
 covers the source hash, decode policy, pixel layout and per-frame hashes, and no corpus or sequence
-name, so two stagings of one source under one policy give one hash. The decode policy includes the
+name, so two stagings of one source under one policy give one hash. Staging decodes each source
+once, in full, and writes every stream that source feeds. Seeking to a window would skip the proof
+that the stored source still matches its import. The decode policy includes the
 conversion to the output pixel format, and a bundle records the stored color tags that conversion
-used, without inventing a tag the source lacks. Later external
+used, without inventing a tag the source lacks. An operator may declare a matrix the file does not
+store. Conversion uses that declaration, and the bundle records it with origin `declared`, while
+the stored tag stays unspecified. A declaration never overrides a stored tag. A disagreement is
+refused. Nothing is guessed from resolution. Later external
 modules may consume the same bundle or original packets. The latter path matches source hash,
 packet/frame identity and PTS, and validates a declared sample of decoded pixels under a measured
 tolerance. If exact input correspondence cannot be established, `EXTERNAL_EVENTS` reports contract
 conformance only.
+
+A recording names one video stream of its file. `source.video_stream_index` is that stream's
+zero-based position among video streams, not among every stream in the container. A file with one
+video stream may omit the index, and that stream is decoded. A file with more than one is refused
+until the declaration names one, and the refusal lists every video stream; an index that names none
+of them is refused the same way. Audio and other non-video streams are not imported. The named
+stream is the sequence later decodes read, including staging and redecode. The index is a fact of
+the source and is absent from the record when it is the first video stream. It is not part of the
+shared decode policy, because a corpus pins one policy for every source. One source record holds
+one video stream of one file. The first video stream's source identity is the file hash, so a
+one-stream import keeps that hash and its manifest bytes. A later stream's identity is a hash of
+the file hash and its index, and a one-stream import does not use that form. Both records can sit
+in one data root and one encounter. Each is its own decode, not a second window of the first. The
+file hash is still one recording: two groups cannot share it, and a later version cannot place
+that recording in another group or split.
 
 A canonical decode names everything that can choose a pixel, including the inverse transform of codecs
 whose standards leave it open, so one pinned decoder gives one set of bytes on x86-64 and arm64 Linux
@@ -196,10 +224,11 @@ module outputs and remains scorable when a policy elects not to use a sensor.
 
 Split by **independent encounter group**, not frame: related sequences from the same capture
 session, site, time, operator, camera trajectory and likely object instance remain together. Manual
-grouping is sufficient for the first small corpus; near-duplicate detection is added when volume
-justifies it. Generated perturbations inherit the parent's split. A locked set cannot be used for
-threshold tuning or module selection; accesses and re-scoring are audited. A public-space or
-protected-habitat capture is never solicited merely to fill a benchmark bin.
+grouping is sufficient for the first small corpus. A build reports a likely re-encoded copy that
+crosses groups, at a threshold whose recall and false-match rate were measured, and that report
+assigns no group and refuses nothing. Generated perturbations inherit the parent's split. A locked
+set cannot be used for threshold tuning or module selection; accesses and re-scoring are audited. A
+public-space or protected-habitat capture is never solicited merely to fill a benchmark bin.
 
 All synchronized modalities, derived streams, simulated dropouts and sensor-subset views of one
 encounter inherit the **same split and encounter ID**. Development, probability/cost calibration and
@@ -212,20 +241,27 @@ A corpus version declares this structure directly. An independent encounter grou
 stream is one sensor's frames of one encounter, taken from one source and frame window, and its
 `stream_id` is unique in the corpus. A source belongs to one group, because groups that share a
 recording are not independent, and a source frame belongs to one stream, because a frame counted
-twice distorts anything aggregated by encounter. Sharing a source is detected by byte hash, and a
-remux is detected after staging: two groups holding a run of identical decoded frames are refused,
+twice distorts anything aggregated by encounter. Sharing a recording is detected by file hash,
+including two video streams of one file whose source identities differ, and a remux is detected
+after staging: two groups holding a run of identical decoded frames are refused,
 within one version or across linked versions, because a different container does not make different
 evidence. A run is a named number of different frames in a row, so a uniform, held or blinking frame
 shared by independent clips is not one. A predecessor that cannot be compared is reported, because it
 is unknown rather than clear, and verification repeats the check because a predecessor can be staged
 after its successor. A version that never finished staging was never evidence, so it cannot refuse
-the version that repairs it. A remux inside one group repeats
-frames without crossing a group, so it stays accepted until that is refused as a frame counted twice.
-A re-encoded copy stays a different source until near-duplicate detection exists, and a copy cut to
-windows sharing no frame stays invisible to frame hashes. Declaring `locked` records membership
-only: it creates no locked test and grants no held-out claim. A development scenario that names a
-locked stream is refused, and a locked evaluation needs the section 15 custodian and access policy,
-with each read recorded.
+the version that repairs it. A remux inside one group of one version is the same frame counted
+twice, so stage and verify refuse it, in one encounter or two. A copy that replaces its original in
+that group of a linked version stays accepted, because no version counts the frame twice. A
+re-encoded copy stays a different source. The build names it when its windows cross groups, and
+leaves a copy that stays in one group unnamed. The operator decides the grouping. The comparison
+reads the version being built, the chain its declaration links, and every other built version on
+the same data root whose group differs from one already in that comparison. A missing or unreadable
+version is named rather than skipped. The report assigns no group, refuses nothing, and is not
+sealed, so the corpus hash does not change. It does not scan another data root. Windows that
+share no frame, and a window of uniform frames, are not evidence of a copy. Declaring `locked`
+records membership only: it creates no locked test and grants no held-out claim. A development
+scenario that names a locked stream is refused, and a locked evaluation needs the section 15
+custodian and access policy, with each read recorded.
 
 A corpus version may name the version it supersedes. Material already evaluated in one split has been
 seen, so a source that a new version places in another split is refused, as is one moved to another
@@ -241,10 +277,16 @@ version's manifest therefore outlives its frames. This comparison reads only ver
 declaration, so a version that names no predecessor says so in its result, and a locked evaluation of
 such a version repeats it, because nothing has shown its locked material to be unseen. A predecessor's
 format version is no reason to lose this comparison, and
-[reading older records](#reading-older-records) keeps it across majors. An unlinked
-version or a sibling branch cannot be refused, since independent work may reuse a recording, but a
-build lists every other version on its data root that places one of its sources elsewhere, for the
-operator's decision.
+[reading older records](#reading-older-records) keeps it across majors. An unlinked version or a
+sibling branch cannot be refused, since independent work may reuse a recording, but a build lists
+every other version on its data root that places one of its sources in
+another group or split, for the operator's decision. A manifest on that data root that cannot be
+read, or whose major keeps no comparison, is named rather than skipped, as is a version directory
+that cannot be read. When the corpus directory itself cannot be listed, the build names that and
+still succeeds. A version in the declared chain is not listed again. The listing compares source
+hashes only, so a group's split is not applied to an undeclared version, and it is not sealed: it
+describes one data root at the time of the build. The perceptual report is a separate reading of
+those versions and does not turn a match into a refusal.
 
 Staging ends with one sealed frame-set record that names every stream and generated-case bundle hash
 of a corpus version and the source records they rest on. A scenario pins that one hash rather than a
@@ -257,10 +299,13 @@ only against a hash held elsewhere, which is why a scenario pins it and why it d
 a process opening a bundle directly.
 
 A new corpus version that keeps a source keeps its pixels, and an equal `bundle_sha256` shows it.
-Staging may reuse a bundle of a linked version with that hash by hard link, after checking every frame
-hash, and writes the new version's own bundle record. The frame set still changes with its corpus
-manifest. The decode policy is part of that hash, so reuse crosses no policy, and a host that cannot
-link decodes instead.
+Staging reuses a bundle of a linked version with that hash by hard link, after checking every frame
+hash, and writes the new version's own bundle record. The stage result names each reused stream and
+the corpus and stream the frames came from. A candidate whose frames do not match its sealed index
+is refused by name and is not linked, and that stream is not decoded from an older copy. A different
+window does not match, so that stream is decoded. The decode policy is part of the hash, so reuse
+crosses no policy. A host that cannot link decodes instead. Removing either version leaves the other
+readable. The frame set still changes with its corpus manifest.
 
 A corpus also declares its **scenario rights**: the widest sharing it intends and the highest
 sensitivity it accepts. A build that asks more of any source than its recorded rights allow is
@@ -287,8 +332,11 @@ An imported record is immutable, so an ordinary import that declares other terms
 the terms that differ and records nothing. Changed terms are recorded by an explicit amendment, which
 replaces only the rights and sensitivity of a record, keeps the stored bytes untouched and retains the
 replaced record. Every corpus version that pins the old record then refuses at staging and
-verification, and the amendment lists the versions on its data root that do. An amendment deletes no
-frames and reaches one data root.
+verification. The amendment lists every version on its data root that pins the replaced record, each
+with the directory that holds its frames. A manifest or version directory the listing cannot read,
+or whose major keeps no projection, is named. The listing refuses nothing, deletes nothing, and is
+not part of the source record. A repeat that replaces nothing lists no version. An amendment
+reaches one data root.
 
 A withdrawal must stay recordable after the material is removed and must never need a decode of the
 material it withdraws. An amendment therefore finds its source by the bytes or by a declared hash,
@@ -299,9 +347,53 @@ that also lacks decoded facts of the current major cannot, because no declaratio
 it needs both routes at once.
 
 A record states the decode policy that produced it, so a new policy needs the stored bytes decoded
-again under an explicit re-import, which carries the record's terms over, keeps the replaced record and
-has the same effect on corpus versions pinning it. A record with no terms to carry is refused and names
-the amendment, and no term is invented. Until that exists, a new policy needs a fresh data root.
+again under `ss-track import --redecode`, which carries the record's terms over, keeps the replaced
+record and has the same effect on corpus versions pinning it as an amendment, including that
+listing. A record with no terms to carry is refused and names `--amend-terms`, and no term is
+invented; a record too old for
+`--amend-terms` alone reaches the current major only through `--redecode --amend-terms` together,
+which takes its terms from the declaration instead of carrying them.
+
+### 4.1a Self-supervised video corpus formation
+
+Operators need a larger and more varied collection of authorized video encounters, including rare
+birds of prey, other birds, confusing moving objects, and target-absent footage. Manual inspection of
+every long recording does not scale, while selecting only frames that a model already recognizes
+misses small or unfamiliar targets. This capability forms a reviewable, versioned development corpus
+from approved sources using self-supervised visual representations for discovery, diversity and
+similarity. It retains independently sampled material so selection bias and missed candidates can be
+measured rather than hidden.
+
+The [ss-video](https://github.com/volod/ss-video) video ingest and search service provides frame
+sampling, CLIP/DINO embeddings and vector search; [ss-fusion](https://github.com/volod/ss-fusion)
+provides perception packages and a research pipeline with SSL adaptation. Their actual export
+interfaces, versions, model licenses, reproducibility and operational requirements must be evaluated
+before choosing an integration. ss-track owns rights decisions, candidate and corpus provenance,
+encounter grouping, split membership, audit samples and immutable benchmark inputs. A candidate
+proposal is not a verified species, ground-truth label, or proof that a negative segment has no
+bird. Existing annotation and reviewer authority remain the route to frozen labels. Integrations do
+not grant download, processing, model-weight, redistribution or storage rights.
+
+Each source and derivative must have authorized uses and retention; jobs are limited by an approved
+source list, resource envelope and access rules. Evidence retains source and time/frame identity,
+model and preprocessing versions, score provenance, selection method, deterministic seeds and
+sampling probabilities where applicable. Group related and duplicate footage before assigning
+splits; never train or tune on a locked test. Discovery-only model data remains distinct from
+reviewed labels and frozen corpus membership. An unavailable external service, model, permission or
+insufficient budget must be visible, not silently replaced by invented results. No arbitrary video
+acquisition, autonomous approval of sources, field-safety claim, or promotion of pseudo-labels to
+truth is implied.
+
+Evaluation: on an independently reviewed, grouped reference sample with target-present,
+target-absent, small-target and confuser cases, compare model-assisted selection with a
+predeclared random or uniform baseline under equal review cost. Report candidate yield, missed
+positives with uncertainty, diversity and duplication, reviewed negative coverage, time, compute,
+storage and unprocessed exposure; retain both selected and non-selected audit samples. Fixture
+checks prove deterministic membership, source/rights lineage, leakage refusal and resume behavior.
+A useful result meets owner-declared corpus size and coverage targets without violating rights or
+split isolation. A valid negative states when selection misses targets, is no better than the
+baseline, available sources or resources are insufficient, or the sibling projects cannot integrate;
+it retains the evidence and makes no unsupported improvement or large-corpus claim.
 
 ### 4.2 Annotation contract
 
@@ -339,7 +431,9 @@ label that declares any other orientation is refused.
 A generated case takes its labels from its parent's frozen revision through the stored label
 transform, as a hashed revision of its own that nobody edits by hand. Frozen labels also check the
 rectangle a case rests on: a plate frame that shows a target inside that rectangle is refused, and a
-target the rectangle does not cover stays `unknown` rather than becoming `absent`.
+target the rectangle does not cover stays `unknown` rather than becoming `absent`. A track-following
+case names that revision and the instance its boxes came from. A frame of the case with no scorable
+box stays `unknown`.
 
 Fusion labels distinguish the object/event's **scene-level identity** from visibility or
 detectability in each sensor. A camera may see an object while a microphone has no attributable
@@ -355,11 +449,12 @@ fused truth.
 
 ### 4.3 Deterministic cases and negative evidence
 
-Initial generated fixtures cover target absence, moving background (for example vegetation, crowds
-or traffic), camera shake, blur, dropped/duplicated frames and short occlusion. Further cases
-(compression, variable frame rate, multiple similar objects, out-of-view/re-entry, sensor loss)
-enter with their owning capability. Each case stores parent sequence, transform, seed and label
-transform. Geometry-changing cases update geometry/calibration or invalidate dependent labels.
+Generated fixtures cover target absence, moving background (for example vegetation, crowds
+or traffic), camera shake, blur, dropped/duplicated frames, short occlusion, heavy compression,
+variable frame timing, a crossing occluder, a moving removal, a similar distractor, and out-of-view
+and re-entry. Sensor loss enters with its owning capability. Each case stores parent sequence,
+transform, seed and label transform. Geometry-changing cases update geometry/calibration or
+invalidate dependent labels.
 Synthetic cases test failure mechanisms and are never counted as independent field encounters.
 
 A corpus version declares each generated case under its parent stream, so a case states no split,
@@ -368,22 +463,52 @@ It is staged as a frame bundle derived from its parent's staged frames, and modu
 read a stream. Its hash covers the parent bundle, transform revision, seed, parameters, label
 transform and frames, and no corpus or case name, so one recipe over one parent gives identical
 bytes. A transform that would produce other bytes takes a new revision, and a stored case of another
-revision is refused rather than regenerated. A case that changes no frame of its parent is refused,
-because it would test nothing while claiming to.
+revision is refused rather than regenerated. A case that changes neither pixels nor presentation
+time is refused, because it would test nothing while claiming to. A frame a case stores with the
+same bytes as one of its parent frames is a hard link to that parent frame when both are on one
+filesystem, so frames the case leaves untouched take no extra disk. A filesystem that cannot link
+stores a copy of those bytes. The bundle hash, the frame index and every read path are
+unchanged, because they name bytes.
+Verification of a changed inode names every bundle that links it, and removing one name leaves the
+others.
 
 Labels follow pixels. A case keeps each frame's source index, so a shifted frame translates its
 labels, a removed frame takes no label, and a repeated frame takes the labels of the frame it shows.
 A repeated frame keeps its own presentation time, which stops being a measured capture time, so such
-a case is at best `derived`. Absence, occlusion and moving-background cases act on a declared
+a case is at best `derived`. Heavy compression replaces each block with the quantized average of
+that block. The encoder name and block size belong to that transform's revision, so another encoder
+is another revision, and a stored case of the old revision is refused. Compression does not move
+labels or presentation time. Variable frame timing keeps every pixel and multiplies presentation
+intervals inside its window by a seed-chosen integer of at least two. The first frame keeps its
+presentation time. A later frame keeps its own parent interval and starts from the new time, so the
+sequence stays strictly increasing, including frames outside the window. A presentation time this
+changes is not a measured capture time: the case is `derived` and keeps no capture-clock evidence.
+A parent that does not store a presentation time on every frame cannot take this case. A changed
+presentation time is a real change even when the pixels stay. Neither of these cases needs a label
+or a rectangle. Absence, occlusion and moving-background cases act on a declared
 rectangle. That rectangle is the operator's claim: a label inside it takes the case's status, and a
 label that only overlaps it loses its geometry rather than keeping a box that may be wrong.
+`corpus preview` shows one staged frame of a parent stream beside each generated case of that
+stream, so the rectangle can be checked before labels exist. The rectangle is outlined on the case
+frame when that frame lies in the case window. A frame the case removed stays in the sheet and is
+marked, rather than left out.
 
 A case does not claim realism and does not chain from another case. A section 4.1 source term decides
 whether derived frames may exist at all.
 
-With frozen labels, a case can follow a target's own track instead of one rectangle: an occluder that
-crosses the target, a removal that follows it, a similar object beside it, and out-of-view and
-re-entry intervals. These cases need no operator rectangle, so they carry no such claim.
+With frozen labels, a case can follow one target's boxes from one frozen label revision. The recipe
+names that revision, the instance, and the box on each frame that has one. A window frame with no
+box stays `unknown` and keeps its pixels. These cases carry no operator rectangle, and preview does
+not outline them.
+
+A crossing occluder covers the box exactly on a declared interval that sits strictly inside the case
+window, and stands one pixel off that box on the frames around the interval, along one seed-chosen
+axis. A moving removal replaces each box with the same rectangle of a plate frame plus seeded noise,
+and marks the box absent. A similar distractor copies the box onto a seed-chosen side that shares an
+edge and does not cover the target. The copy is a distractor and the target stays. Out of view
+shifts each frame of a declared interval until the whole box lies outside the frame, then marks a
+later frame that still has a box as re-entry. The label transform is `track_status`, one entry per
+window frame. None of these cases claims the motion is realistic.
 
 A recipe may declare a graded list of one parameter, which expands to one case per level. The local
 report then shows each module's quality against that severity, so a comparison shows where a module
@@ -967,8 +1092,8 @@ compact payload. The following roles determine which G2 suites may be opened:
 | Event camera (asynchronous brightness change) | Time-surface or event-cluster motion proposals with background/ego-motion compensation | Candidate for fast moving targets; moving background, texture, lighting and event rate can dominate. [EV-Flying](https://openaccess.thecvf.com/content/CVPR2025W/EventVision/html/Magrini_EV-Flying_an_Event-based_Dataset_for_In-The-Wild_Recognition_of_Flying_Objects_CVPRW_2025_paper.html) includes bird events but does not establish this system's range or energy |
 | NIR/SWIR, multispectral or polarimetric imaging (reflected light) | Registered per-band contrast/feature proposals, then a separately scored multimodal detector | Candidate when spectral contrast is validated. Active illumination, filters and extra optics add mass, power and alignment cost; NIR/SWIR are not passive thermal measurements. Cross-band matching needs measured timing/geometry. A [field comparison of spectral imagers](https://www.osti.gov/servlets/purl/1342469) illustrates modality-dependent visibility and false returns |
 | Thermal LWIR/MWIR imager or coarse thermopile array (emitted heat) | Contrast/background and temporal proposals, with temperature/scene quality flags | Candidate for low-light observation, but thermal pixels, optics, sky/ground contrast and weather govern small-target visibility. Coarse thermopiles are local occupancy triggers, not assumed 100 m trackers; thermal appearance alone does not establish species. A [field thermal study of small songbirds](https://pmc.ncbi.nlm.nih.gov/articles/PMC4705634/) used specialised narrow-FOV equipment, not a compact-payload validation |
-| Microphone or synchronized acoustic array (sound emission) | Band-limited event detection; with calibrated geometry, beamforming/GCC-PHAT or time-difference-of-arrival bearing/location | Only a **calling or otherwise audible** object supplies direct evidence; silence is not absence. A single microphone has no justified range or bearing. [Flight-call localization](https://pmc.ncbi.nlm.nih.gov/articles/PMC5513243/) used a distributed array; propeller/wind noise and acoustic association must be measured separately for an onboard array |
-| Radar, including CW/FMCW, scanning or passive radar (RF scatter) | Mode-specific detection/CFAR, range-Doppler and angle estimation; wingbeat micro-Doppler only if actually resolved | Candidate range/radial-velocity cue. Cross section, beamwidth, clutter, false returns, transmit/receive mode, antenna and full-system power dominate feasibility; W-band names a frequency region, not a performance guarantee. [24/94 GHz bird measurements](https://pmc.ncbi.nlm.nih.gov/articles/PMC6255807/) do not establish 100 m performance for a smaller bird or the proposed payload |
+| Microphone or synchronized acoustic array (sound emission) | Band-limited event detection; with calibrated geometry, beamforming/GCC-PHAT or time-difference-of-arrival bearing/location | Only a **calling or otherwise audible** object supplies direct evidence; silence is not absence. A single microphone has no justified range or bearing. [Flight-call localization](https://pmc.ncbi.nlm.nih.gov/articles/PMC5513243/) used a distributed array; propeller/wind noise and acoustic association must be measured separately for an onboard array. A [representative digital MEMS microphone](https://www.infineon.cn/content/dam/infineon/row/public/documents/24/49/infineon-im69d130-datasheet-en.pdf) datasheet acoustic-overload point and SNR describe the part, not a measured detection range or bearing accuracy for an installed array |
+| Radar, including CW/FMCW, scanning or passive radar (RF scatter) | Mode-specific detection/CFAR, range-Doppler and angle estimation; wingbeat micro-Doppler only if actually resolved | Candidate range/radial-velocity cue. Cross section, beamwidth, clutter, false returns, transmit/receive mode, antenna and full-system power dominate feasibility; W-band names a frequency region, not a performance guarantee. [24/94 GHz bird measurements](https://pmc.ncbi.nlm.nih.gov/articles/PMC6255807/) do not establish 100 m performance for a smaller bird or the proposed payload. A [representative 60 GHz FMCW radar module](https://infineon.com/cms/en/product/sensor/radar-sensors/radar-sensors-for-iot/60ghz-radar/bgt60utr11aip/) datasheet presence-detection range is a different task and antenna geometry from a 100 m small-target claim |
 | Lidar/scanning laser and ToF/depth camera (active optical range) | Return clustering, temporal background subtraction and geometric association | Potential 3D cue only where a sufficiently dense return hits the small target. Commodity compact ToF modules are predominantly near-field; [a representative ToF module](https://ai.benewake.com/en/resources/technical-documents/tfmini-s-datasheet/) cannot be treated as a 100 m bird sensor. Specialised long-range lidar is a different equipment class. Account for active-emitter operation and power |
 | PIR, passive thermal-motion, microwave Doppler presence or IR break-beam (zone crossing) | Debounced threshold/change event, with mapped coverage zone and refractory period | **Local trigger/flight corridor or perch**, not an identity, range or 100 m free-flight track. PIR requires usable thermal contrast and can miss small/fast animals; a [wild-bird camera-trap study](https://pmc.ncbi.nlm.nih.gov/articles/PMC6065333/) shows that size and distance matter. Microwave presence and break-beam signals likewise need a bounded observed zone |
 | Ultrasonic/sonar range (active acoustic echo) | Thresholded echo/range with multipath and temperature flags | Near-field obstacle or instrumented corridor cue, not an assumed 100 m bird detector. A [representative weather-resistant ultrasonic sensor](https://maxbotix.com/products/mb7566) is specified for metre-scale operation; flight noise and small-object echo strength need direct testing |
@@ -1004,9 +1129,12 @@ independent probabilities. A class posterior is updated only from calibrated cla
 kept separate from existence and geometry.
 
 Replaceable algorithms may include Kalman filtering for a linear common-state model; EKF/UKF for
-nonlinear bearing/range geometry; particle filtering for multimodal states; JPDA or multi-hypothesis
-tracking for ambiguous multi-object associations; and feature-level or learned fusion when a
-governed training split supports it. Covariance intersection is permitted only for **same-state
+nonlinear bearing/range geometry, optionally mixed by an interacting multiple model (IMM) across
+near-stationary, constant-velocity, constant-acceleration and coordinated-turn motion models when
+hovering, perching, cruising and banking targets share a scenario; particle filtering for multimodal
+states; JPDA with a track-existence probability in place of a fixed hit/miss-count drop rule, or
+multi-hypothesis tracking, for ambiguous multi-object associations; and feature-level or learned
+fusion when a governed training split supports it. Covariance intersection is permitted only for **same-state
 estimates with unknown cross-correlation and defensible input covariance**, not for arbitrary class
 scores or all mixed-sensor measurements. A random-finite-set/labeled multi-Bernoulli path is
 optional for uncertain object count. All candidates use the same event-time, availability,
@@ -1377,7 +1505,9 @@ response or other road-user reactions. It must reproduce the recorded path under
 actions within a stated tolerance, model delay and actuator constraints, and mark trajectories that
 leave supported source view as failures or `ABORT`, not exclusions. More complete simulators need
 versioned vehicle/camera/environment and energy models. Simulation scores do not establish
-real-world safety without independent field evidence.
+real-world safety without independent field evidence. The first scheduled instance of this simulator
+is the guidance pointing-quality measurement in
+[section 16.8](#168-guidance-pointing-law-and-quality-measurement).
 
 ## 10. Run artifacts and comparison dashboard
 
@@ -1519,7 +1649,12 @@ declared object pixel extent and does not reward closest approach.
 
 ss-track measures detection, tracking and energy for monitoring, warning and situational awareness.
 It does not evaluate or tune a system whose tracker output steers, cues or triggers a weapon,
-interceptor or other effector, and it publishes no engagement metrics. A **sensitive device** is any
+interceptor or other effector, and it publishes no engagement metrics. A tracking or pointing law
+adapted from interceptor or capture-guidance literature, such as a proportional-navigation-derived law
+for steering toward a target, stays in scope only as a camera- or sensor-pointing study under
+[section 9](#9-offline-advisory-actions-and-later-closed-loop); using it to steer an interceptor, net
+or other effector toward a target is out of scope regardless of the algorithm's published origin. A
+**sensitive device** is any
 system sold for defense, security, counter-drone or law-enforcement use, or subject to export
 control. Results on a sensitive device stay restricted unless the project owner releases them.
 
@@ -1534,7 +1669,6 @@ These candidates are design input, not implementation commitments. Scheduling on
 | `tensor-compute-backends` | Pinned CPU reference and optional accelerated graph pass support, partition/fallback, precision, task-quality and end-to-end cost fixtures |
 | `external-event-ingest` | Second-host contract tests, frame match and clock-validity cases |
 | `advisory-diagnostics` | Recorded-path and operator-agreement diagnostics remain separate; no G0/G1 actuation path |
-| `recognition-state` | Scenario-specific class/state labels, class probability and abstention coverage with negative-result tests |
 | `resource-aware-sensing` | Causal policy decisions, fixed-configuration and VOI/event-trigger comparators, task quality at energy/deadline budgets and measured sensor-plus-compute cost |
 | `stereo-range` | Independent distance reference, calibration/synchronization uncertainty, range error and unsupported-mode coverage |
 | `closed-loop-simulation` | Action changes the next supported observation; out-of-support action fails or aborts; energy model declared |
@@ -1893,6 +2027,85 @@ Evaluation: simulated device fixtures verify event adaptation, unsupported outpu
 of unmatched stimulus/reference/boundary. Live cases retain raw events, reference and energy traces.
 No accessible device, no usable output path or an unmeasurable quantity is a valid negative result.
 
+### 16.7 Track-level classification
+
+`track-classification` assigns each confirmed mesh track a class posterior over a scenario-declared
+set, for example drone, bird, person, vehicle, animal and clutter, fused from cues already available
+at the section 6.6 boundaries: motion-model mode-probability history and speed profile from the
+tracker stage, a micro-Doppler signature where an installed radar source resolves one, and a
+camera-crop classifier run only on confirmed-track regions of interest. Track existence and class
+probability stay distinct quantities under section 6.5; neither alone raises an alarm, and a confirmed
+track with low class confidence remains a confirmed track. Only an installed, available cue
+contributes: an uninstalled or infeasible source yields no class evidence from that cue, not a default
+class, and a camera crop with no usable pixels yields an explicit abstention rather than a confident
+guess. Calibration fits each cue and the fused posterior on a disjoint split against independent class
+labels; a species- or subtype-level claim needs expert-labelled, visually identifiable material, per
+[section 6.4](#64-later-metric-suites).
+
+Boundary: classification reads only the confirmed-track state and the typed observations already
+permitted at its declared evaluation boundary; it adds no new sensor access, raw-pixel reach or
+actuation. A class label is diagnostic context for an operator, never a safety or engagement
+determination, and the [measurement-only scope](#measurement-only-scope) applies to it unchanged.
+
+Evaluation: the G2 recognition/state row of the
+[acceptance matrix](#13-acceptance-and-negative-result-matrix), with class-probability calibration and
+coverage reported alongside tracking quality rather than as a separate unlabelled score. A valid
+negative result is a cue, such as micro-Doppler on an uninstalled radar or a mode-probability feature
+with no measured separation, that adds no measured gain over the cues already installed.
+
+### 16.8 Guidance pointing law and quality measurement
+
+`pointing-guidance-evaluation` scores a **sensor-pointing** guidance law the way
+[section 6.1](#61-operator-selected-tracking-sot-v2-dev) scores tracking: a declared law, a frozen
+input, and a reproducible quality number, not a demonstration. The law reads the tracker's current
+state and a lead-time prediction and emits an angular rate or set point for a camera, gimbal or
+electronically-steered antenna; a feedforward line-of-sight-rate term plus a bounded pure-pursuit
+correction, in the structure of the paper this design adapts, is the reference variant, with a plain
+proportional-navigation law and a fixed-stare null as required comparators. **The law's output type is
+a sensor-pointing command only.** It is never a vehicle, munition, net or other effector command, and
+an implementation that emits one fails conformance regardless of its internal mathematics; the
+[measurement-only scope](#measurement-only-scope) applies unchanged, and the adapted paper's
+net-capture application stays explicitly out of scope -- this capability exists to measure pointing
+quality instead of it.
+
+Quality is measured with the [section 9](#9-offline-advisory-actions-and-later-closed-loop)
+action-dependent image-plane simulator: a simulated instantaneous field of view (IFoV) is steered
+across a frozen high-resolution wide recording by the law's own prior commands, while the reviewed
+target position stays available outside that IFoV because the source frame is never cropped before
+scoring. Four quantities are reported per scorable encounter, each with its denominator and exclusions
+stated the way section 6.1 states them for lock coverage:
+
+- **Pointing coverage**, the fraction of scorable target time the IFoV contains the target, computed
+  with the same media-time weighting as `C_j`.
+- **Angular lead error**, the angle between the IFoV center and the target's true position at each
+  scored instant, reported as a distribution, not a mean alone.
+- **Reacquisition delay**, the time from an induced loss (a maneuver the declared slew-rate limit
+  cannot follow, or a coasted/lost track) to recovered coverage, scored the way section 6.1 scores
+  time to first sustained loss.
+- **Latency sensitivity**, the coverage and angular-error change between the feedforward law and a
+  pure-pursuit-only variant under a declared total system latency, isolating what the feedforward term
+  buys.
+
+Boundary: this is G3 by [section 3](#3-scope-and-delivery-gates)'s own definition, because the
+simulated IFoV is an action-dependent observation; it carries no field, safety or mechanical claim. No
+physical gimbal, PTZ head or antenna is actuated or characterized here; a later, separately-scheduled
+capability would add measured slew rate, settling time and mechanical latency from real hardware under
+[section 16.4](#164-hardware-selection), and only then would a software pointing-coverage result
+combine with a measured mechanical response. A target leaving the source recording's own field of view
+is a failure or `ABORT` per section 9, never an exclusion. The broader energy-aware closed-loop
+candidate in [section 12](#12-unscheduled-design-candidates) stays unscheduled; this capability is
+narrower and carries no energy claim.
+
+Evaluation: the G3 closed loop row of the
+[acceptance matrix](#13-acceptance-and-negative-result-matrix), with hand-audited fixtures for a
+within-envelope cruise, a sudden-turn maneuver that tests lead and overshoot, a near-stationary target,
+and an induced-loss case. A paired comparison of the reference law against the fixed-stare null and the
+plain-PN baseline, on identical bundles, reports `improved_on_development_corpus`,
+`regressed_on_development_corpus` or `inconclusive` per
+[section 6.3](#63-comparisons-and-decision-status). A valid negative result is a law variant that does
+not improve pointing coverage over the fixed-stare null, or a feedforward term that shows no measured
+benefit at the declared latency.
+
 ## 17. Data contracts and schema evolution
 
 An operator, a consumer or another system holds a record of this product and needs to know what it
@@ -2086,12 +2299,13 @@ A format that entered a major without a version of its own, as source terms ente
 has one stated test on the read path that tells it apart, and its own disposition. It is read no more
 freely than its major, and a view never serves it.
 
-A comparison rule reads every major. Lineage and shared-frame checks need only source hashes, groups,
-splits and frame hashes, so each major that holds those facts keeps a projection of them for as long
-as records of it may exist, and its disposition does not end that: a retired major is refused as
-evidence and still compared. A leak guard must not expire, and a format change
-must not be a way around one. A predecessor that yields no projection is `not_compared` under its own
-reason, named in the result as section 4.1 requires, and it never fails a successor by format alone.
+A comparison rule reads every major. Lineage and shared-frame checks need source hashes, groups,
+splits and frame hashes, and the near-duplicate report needs each stream's frame window, so each
+major that holds those facts keeps a projection of them for as long as records of it may exist,
+and its disposition does not end that: a retired major is refused as evidence and still compared.
+A leak guard must not expire, and a format change must not be a way around one. A predecessor
+that yields no projection is `not_compared` under its own reason, named in the result as section
+4.1 requires, and it never fails a successor by format alone.
 
 `RECORD_SCHEMA_UNSUPPORTED` names the contract, the found and accepted majors, whether the record is
 older or newer, its disposition and the remedy from the change log. A newer record is refused, because
@@ -2320,30 +2534,33 @@ Group order alone never establishes readiness.
 | --- | --- | --- | --- | --- |
 | 1 | `reproducible-environment` | shipped | A fresh locked environment reaches the complete CI gate without manual repair | [Developer tooling](../impl/current/developer-tooling.md) |
 | 2 | `project-identity` | shipped | Import, CLI, and distribution-build tests agree on the project identity | [Product core](../impl/current/product-core.md) |
-| 3 | `corpus-provenance` | planned | Import/hash/canonical-decode, staged frame bundles, synchronized multi-stream grouping, generated cases, version lineage, duplicate-frame and source-term refusals and scenario-rights/split fixtures; malformed source yields structured failure | - |
-| 4 | `data-contracts` | shipped | Every shipped record and declaration conforms unchanged to its frozen contract; every section 17.3 change classifies as declared, with an independent checker agreeing on structure; real records of every historic major read under their disposition with no byte or hash moved; a consumer with only the contracts validates a record; optional descriptors validate and leak nothing | [Contracts](../impl/current/contracts.md) |
-| 5 | `annotation-selection` | planned | Two-reviewer G0 labels, stable class/instance IDs, frozen mask and identical seed replay | - |
-| 6 | `module-contract-runner` | planned | Oracle, null, dropper, crash, schema and class-identity fixtures pass with exact frame accounting | - |
-| 7 | `motion-sot-evaluation` | planned | Hand-computed fixture metrics, denominators and time weights match evaluator output | - |
-| 8 | `reference-tracker` | planned | Deterministic seeded SOT and proposal front end pass continuity, lost/re-entry, identity and deadline fixtures; optional load setting preserves lockstep outputs | - |
-| 9 | `comparison-report` | planned | Compatible-cohort report exposes errors; incompatible runs are refused with reason | - |
-| 10 | `hardware-probe-adaptive-launch` | planned | Recorded and live host probes report CPU, memory, storage, scheduler, frequency and throttle evidence, and select a supported profile, `UNSUPPORTED` or `MEASURE_REQUIRED` | - |
-| 11 | `controlled-bench-timing-energy` | planned | section 7.9 versioned trials retain instrument/calibration and raw-trace hashes and compute timing, resource, thermal and energy estimates with uncertainty and explicit validity | - |
-| 12 | `hardware-selection` | planned | Fixture configurations against a stated budget; only measured configurations are chosen; a selection record states rejected and unmeasured options; none qualifying is stated | - |
-| 13 | `sensor-joint-mode-probe` | planned | Every installed sensor's modes and simultaneous joint modes are probed under sustained load and yield a supported profile or explicit fallback | - |
-| 14 | `camera-bench-characterization` | planned | Independent stimulus, capture, optics and vibration trials retain raw evidence and report estimates with uncertainty and explicit validity | - |
-| 15 | `sensor-adapter-frontends` | planned | Typed observations, mixed-modality bundles and four scenario boundaries pass conformance; fake-driver capture covers skew, overflow, outage and recovery before live acceptance | - |
-| 16 | `fusion-analysis` | planned | Fixed hashed observation bundles isolate event-time association, deduplication, calibrated existence/class evidence, abstention and degraded-source behavior | - |
-| 17 | `fixed-input-tracker-evaluation` | planned | Fixed hashed observations and schedule isolate SOT/MOT identity, re-entry, prediction, confidence and tracker-stage cost | - |
-| 18 | `multi-source-reference-tracker` | planned | The staged reference tracker consumes frozen observation bundles and passes hand-audited provenance, identity and deadline fixtures | - |
-| 19 | `g2-sensor-set-evaluation` | planned | Feasible single, paired, all-installed and leave-one-out sets run through one frozen reference fusion rule; achieved quality and oracle observability ceiling remain distinct | - |
-| 20 | `installed-system-evaluation` | planned | Same-trial raw-to-output quality, timing and installed-boundary energy retain validity; four local report panels distinguish component from whole-system results | - |
-| 21 | `mot-trackeval` | planned | Byte-exact per-class export fixtures, pinned environment and hand-audited MOT results | - |
-| 22 | `paced-thermal-trial` | planned | Hand-audited cool, hot and capped fixtures on identical frames, then a live baseline run; a hot run with no throttling is `not_tested`, and a failed bet is published | - |
-| 23 | `benchmark-ranking` | planned | Optional matched-cohort fixtures yield rank, tier, inconclusive or refusal; scores recompute exactly; below the minimum every row stays unranked | - |
-| 24 | `device-bench-evaluation` | planned | Optional same-stimulus fixtures validate unranked cross-host cases; incompatible references are refused and missing device output is UNSUPPORTED | - |
-| 25 | `telemetry-ingest` | planned | Optional readers match an independent reader on generated logs; bundles hash identically across hosts; drift, loss and truncation are reported and never filled; a declared layout needs no new code; live fixtures account for all loss | - |
-| 26 | `documentation-integrity` | shipped | Link, registry-plan, task-lane, metadata, ordering, and forward-language checks pass over fixtures and the repository tree | [Governance](../impl/current/governance.md) |
+| 3 | `corpus-provenance` | planned | Import/hash/canonical-decode, staged frame bundles, a kept source reuses a linked version's frames by hard link, synchronized multi-stream grouping, generated cases, version lineage, duplicate-frame and source-term refusals and scenario-rights/split fixtures; malformed source yields structured failure; a likely re-encode across groups, including one outside the declared chain on the same data root, is reported and not refused | - |
+| 4 | `self-supervised-corpus` | planned | Pinned sibling integrations and deterministic fixtures preserve authorized provenance and split isolation; reviewed audit samples compare recall, candidate yield, diversity and cost against a declared baseline, or report a valid negative | - |
+| 5 | `data-contracts` | shipped | Every shipped record and declaration conforms unchanged to its frozen contract; every section 17.3 change classifies as declared, with an independent checker agreeing on structure; real records of every historic major read under their disposition with no byte or hash moved; a consumer with only the contracts validates a record; optional descriptors validate and leak nothing | [Contracts](../impl/current/contracts.md) |
+| 6 | `annotation-selection` | planned | Two-reviewer G0 labels, stable class/instance IDs, frozen mask and identical seed replay | - |
+| 7 | `module-contract-runner` | planned | Oracle, null, dropper, crash, schema and class-identity fixtures pass with exact frame accounting | - |
+| 8 | `motion-sot-evaluation` | planned | Hand-computed fixture metrics, denominators and time weights match evaluator output | - |
+| 9 | `reference-tracker` | planned | Deterministic seeded SOT and proposal front end pass continuity, lost/re-entry, identity and deadline fixtures; optional load setting preserves lockstep outputs | - |
+| 10 | `comparison-report` | planned | Compatible-cohort report exposes errors; incompatible runs are refused with reason | - |
+| 11 | `hardware-probe-adaptive-launch` | planned | Recorded and live host probes report CPU, memory, storage, scheduler, frequency and throttle evidence, and select a supported profile, `UNSUPPORTED` or `MEASURE_REQUIRED` | - |
+| 12 | `controlled-bench-timing-energy` | planned | section 7.9 versioned trials retain instrument/calibration and raw-trace hashes and compute timing, resource, thermal and energy estimates with uncertainty and explicit validity | - |
+| 13 | `hardware-selection` | planned | Fixture configurations against a stated budget; only measured configurations are chosen; a selection record states rejected and unmeasured options; none qualifying is stated | - |
+| 14 | `sensor-joint-mode-probe` | planned | Every installed sensor's modes and simultaneous joint modes are probed under sustained load and yield a supported profile or explicit fallback | - |
+| 15 | `camera-bench-characterization` | planned | Independent stimulus, capture, optics and vibration trials retain raw evidence and report estimates with uncertainty and explicit validity | - |
+| 16 | `sensor-adapter-frontends` | planned | Typed observations, mixed-modality bundles and four scenario boundaries pass conformance; fake-driver capture covers skew, overflow, outage and recovery before live acceptance | - |
+| 17 | `fusion-analysis` | planned | Fixed hashed observation bundles isolate event-time association, deduplication, calibrated existence/class evidence, abstention and degraded-source behavior | - |
+| 18 | `fixed-input-tracker-evaluation` | planned | Fixed hashed observations and schedule isolate SOT/MOT identity, re-entry, prediction, confidence and tracker-stage cost | - |
+| 19 | `multi-source-reference-tracker` | planned | The staged reference tracker consumes frozen observation bundles and passes hand-audited provenance, identity and deadline fixtures | - |
+| 20 | `track-classification` | planned | Known-class, unknown-subtype, too-small-object and confident-wrong-class fixtures pass with coverage and class-probability calibration; an uninstalled or uncalibrated cue abstains rather than inventing a class | - |
+| 21 | `pointing-guidance-evaluation` | planned | Hand-audited cruise, sudden-turn, near-stationary and induced-loss fixtures reproduce expected pointing coverage, angular error and reacquisition delay; a law never emits a vehicle or effector command | - |
+| 22 | `g2-sensor-set-evaluation` | planned | Feasible single, paired, all-installed and leave-one-out sets run through one frozen reference fusion rule; achieved quality and oracle observability ceiling remain distinct | - |
+| 23 | `installed-system-evaluation` | planned | Same-trial raw-to-output quality, timing and installed-boundary energy retain validity; four local report panels distinguish component from whole-system results | - |
+| 24 | `mot-trackeval` | planned | Byte-exact per-class export fixtures, pinned environment and hand-audited MOT results | - |
+| 25 | `paced-thermal-trial` | planned | Hand-audited cool, hot and capped fixtures on identical frames, then a live baseline run; a hot run with no throttling is `not_tested`, and a failed bet is published | - |
+| 26 | `benchmark-ranking` | planned | Optional matched-cohort fixtures yield rank, tier, inconclusive or refusal; scores recompute exactly; below the minimum every row stays unranked | - |
+| 27 | `device-bench-evaluation` | planned | Optional same-stimulus fixtures validate unranked cross-host cases; incompatible references are refused and missing device output is UNSUPPORTED | - |
+| 28 | `telemetry-ingest` | planned | Optional readers match an independent reader on generated logs; bundles hash identically across hosts; drift, loss and truncation are reported and never filled; a declared layout needs no new code; live fixtures account for all loss | - |
+| 29 | `documentation-integrity` | shipped | Link, registry-plan, task-lane, metadata, ordering, and forward-language checks pass over fixtures and the repository tree | [Governance](../impl/current/governance.md) |
 
 Every task declares its outcome, scope, evidence, execution and acceptance. Only tested and
 documented implementation changes a capability to `shipped`. Optional branches cannot gate

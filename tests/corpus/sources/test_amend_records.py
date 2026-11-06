@@ -11,8 +11,8 @@ from pathlib import Path
 import pytest
 
 from ss_track.corpus import ImportResult, RefusalCode, amend_source_terms, verify_corpus_frames
-from ss_track.corpus.sources.amendment import replaced_record_path
-from ss_track.corpus.sources.importer import SOURCE_MANIFEST
+from ss_track.corpus.records.kinds import SOURCE_MANIFEST
+from ss_track.corpus.storage.layout import replaced_record_path
 from tests.corpus._amending import CORPUS, evidence, read_source, refused, rights_with, staged
 from tests.corpus._historic import kept_record
 from tests.corpus.conftest import WriteCorpus, WriteRecording
@@ -180,6 +180,6 @@ def test_a_real_record_short_of_the_current_major_is_refused_by_name(
     assert refusal.details["age"] == "older"
     assert refusal.details["found_schema_version"] == 1
     assert refusal.details["kind"] == SOURCE_MANIFEST.kind
-    assert "import it again" in str(refusal.details["remedy"])
+    assert "--redecode --amend-terms" in str(refusal.details["remedy"])
     assert path.read_bytes() == before
     assert not (path.parent / "replaced").exists()

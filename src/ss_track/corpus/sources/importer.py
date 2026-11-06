@@ -1,13 +1,17 @@
-"""`ss-track import`: turn one declared recording into an immutable, hashed source record."""
+"""`ss-track import`: turn one declared recording into an immutable, hashed source record.
+
+Imports take one shared lock on the data root's imports while their scratch exists. An import that
+finds no other holder first removes the scratch a killed import left, so a copy of a source that
+never reached its record does not stay on disk.
+"""
 
 import logging
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from tempfile import TemporaryDirectory
 from typing import Any
 
-from ss_track.core.canonical import SEAL_FIELD, canonical_json, sha256_bytes
+from ss_track.core.canonical import SEAL_FIELD
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.declarations.declaration import (
     RecordingDeclaration,
@@ -15,22 +19,25 @@ from ss_track.corpus.declarations.declaration import (
 )
 from ss_track.corpus.decoding.decode import MediaInspection, inspect_media
 from ss_track.corpus.decoding.decode_policy import DecodePolicy, current_decode_policy
-from ss_track.corpus.records.kinds import SOURCE_MANIFEST_KIND, RecordFormat
+from ss_track.corpus.records.kinds import SOURCE_MANIFEST
 from ss_track.corpus.records.sealed import read_sealed
-from ss_track.corpus.records.sealing import (
-    READ_ONLY_FILE_MODE,
-    copy_with_sha256,
-    seal,
-    sha256_file,
-    write_sealed,
+from ss_track.corpus.records.sealing import seal, write_sealed
+from ss_track.corpus.sources.identity import (
+    addressed_identity,
+    require_stored_source,
+    source_identity,
 )
+from ss_track.corpus.sources.source_file import copy_declared_source, require_regular_file
+from ss_track.corpus.sources.source_record import changed_facts, declared_terms, decoded_sequence
 from ss_track.corpus.sources.terms import AMEND_COMMAND, changed_terms
-from ss_track.corpus.sources.timestamps import assess_timestamps
+from ss_track.corpus.sources.timestamps import TimestampQuality, assess_timestamps
+from ss_track.corpus.storage.layout import MANIFEST_NAME, import_root, source_directory
+from ss_track.corpus.storage.scratch import READ_ONLY_FILE_MODE, scratch_directory, shared_lock
 
-IMPORT_DIRECTORY = "import"
-MANIFEST_NAME = "manifest.json"
-SOURCE_MANIFEST = RecordFormat(SOURCE_MANIFEST_KIND, major=2)
+IMPORTED = "imported"
+UNCHANGED = "unchanged"
 _SOURCE_STEM = "source"
+_LOCK_NAME = ".import.lock"
 
 _LOG = logging.getLogger(__name__)
 
@@ -54,43 +61,6 @@ class ImportResult:
         return record
 
 
-def source_directory(data_root: Path, source_sha256: str) -> Path:
-    """Return the content-addressed home of one imported source."""
-    return data_root / IMPORT_DIRECTORY / source_sha256
-
-
-def decode_policy_sha256(policy_record: dict[str, JsonValue]) -> str:
-    """Return the hash that identifies a decode policy."""
-    return sha256_bytes(canonical_json(policy_record))
-
-
-def decoded_facts(inspection: MediaInspection) -> dict[str, JsonValue]:
-    """Return what a decode established, in the form a source manifest stores it."""
-    facts: dict[str, JsonValue] = asdict(inspection)
-    facts["pts"] = list(inspection.pts)
-    facts["completeness_checks"] = list(inspection.completeness_checks)
-    return facts
-
-
-def declared_terms(declaration: RecordingDeclaration) -> dict[str, JsonValue]:
-    """Return the only sections of a source record that an operator may change later."""
-    return {
-        "rights": dict(asdict(declaration.rights)),
-        "sensitivity": dict(asdict(declaration.sensitivity)),
-    }
-
-
-def changed_facts(record: Mapping[str, Any], declaration: RecordingDeclaration) -> list[str]:
-    """Name each declared fact, other than the terms, that differs from a source record."""
-    sequence = record.get("sequence", {})
-    changed: list[str] = []
-    if record.get("capture") != declaration.capture:
-        changed.append("capture")
-    if sequence.get("capture_clock_evidence") != declaration.capture_clock_evidence:
-        changed.append("sequence.capture_clock_evidence")
-    return changed
-
-
 def import_source(declaration_path: Path, data_root: Path) -> ImportResult:
     """Import one recording, leaving a complete record or nothing."""
     declaration = load_recording_declaration(declaration_path)
@@ -98,56 +68,30 @@ def import_source(declaration_path: Path, data_root: Path) -> ImportResult:
     if declaration.source_path.stat().st_size == 0:
         raise CorpusRefusal(RefusalCode.SOURCE_EMPTY, "source file has zero length")
     policy = current_decode_policy()
-    imports = data_root / IMPORT_DIRECTORY
-    imports.mkdir(parents=True, exist_ok=True)
-    with TemporaryDirectory(prefix=".incoming-", dir=imports) as scratch:
-        staged = Path(scratch) / "staged"
-        staged.mkdir()
+    imports = import_root(data_root)
+    with shared_lock(imports, _LOCK_NAME, clear=(imports,)), scratch_directory(imports) as staged:
         return _import_into(declaration, policy, staged, data_root)
-
-
-def require_regular_file(path: Path) -> None:
-    """Refuse a declared source that is absent or cannot be read as one file."""
-    if not path.exists():
-        raise CorpusRefusal(RefusalCode.SOURCE_NOT_FOUND, f"source file not found: {path.name}")
-    if not path.is_file():
-        raise CorpusRefusal(RefusalCode.SOURCE_UNREADABLE, f"not a regular file: {path.name}")
-
-
-def _copy_source(declaration: RecordingDeclaration, stored: Path) -> tuple[str, int]:
-    """Copy first, so the hash and the decode describe exactly the bytes that are retained."""
-    try:
-        return copy_with_sha256(declaration.source_path, stored)
-    except PermissionError as error:
-        raise CorpusRefusal(RefusalCode.SOURCE_UNREADABLE, str(error.strerror)) from error
 
 
 def _import_into(
     declaration: RecordingDeclaration, policy: DecodePolicy, staged: Path, data_root: Path
 ) -> ImportResult:
     stored = staged / f"{_SOURCE_STEM}{declaration.source_path.suffix.lower()}"
-    sha256, size = _copy_source(declaration, stored)
-    expected = declaration.expected_sha256
-    if expected is not None and expected != sha256:
-        raise CorpusRefusal(
-            RefusalCode.SOURCE_HASH_MISMATCH,
-            "source bytes do not match the declared hash",
-            {"expected_sha256": expected, "actual_sha256": sha256},
-        )
-    target = source_directory(data_root, sha256)
-    if target.exists():  # a record no import can replace must not cost a whole decode first
-        read_sealed(target / MANIFEST_NAME, SOURCE_MANIFEST)
-    inspection = inspect_media(stored, policy)
+    sha256, size = copy_declared_source(declaration, stored)
+    _read_if_present(data_root, sha256, declaration.video_stream_index)
+    inspection = inspect_media(stored, policy, video_stream_index=declaration.video_stream_index)
     quality = assess_timestamps(inspection.pts, declaration.capture_clock_evidence)
+    identity = source_identity(sha256, inspection.video_stream_index)
     if not inspection.completeness_checks:
-        _LOG.warning("source %s has no container-level completeness evidence", sha256)
+        _LOG.warning("source %s has no container-level completeness evidence", identity)
     sealed = seal(_manifest_body(declaration, policy, inspection, quality, sha256, size, stored))
     write_sealed(staged / MANIFEST_NAME, sealed)
     stored.chmod(READ_ONLY_FILE_MODE)
+    target = source_directory(data_root, identity)
     status = _commit(staged, target, sealed, declaration)
     return ImportResult(
         status=status,
-        source_sha256=sha256,
+        source_sha256=identity,
         manifest_sha256=str(sealed[SEAL_FIELD]),
         manifest_path=target / MANIFEST_NAME,
         timestamp_quality=quality.value,
@@ -160,17 +104,13 @@ def _manifest_body(
     declaration: RecordingDeclaration,
     policy: DecodePolicy,
     inspection: MediaInspection,
-    quality: str,
+    quality: TimestampQuality,
     sha256: str,
     size: int,
     stored: Path,
 ) -> dict[str, JsonValue]:
     """Build the hashed record. It holds no clock time or path, so an import can be repeated."""
-    policy_record = policy.as_record()
-    sequence = decoded_facts(inspection)
-    sequence["frame_count"] = len(inspection.pts)
-    sequence["timestamp_quality"] = quality
-    sequence["capture_clock_evidence"] = declaration.capture_clock_evidence
+    evidence = declaration.capture_clock_evidence
     return {
         **SOURCE_MANIFEST.stamp(),
         "source": {
@@ -181,10 +121,20 @@ def _manifest_body(
         },
         **declared_terms(declaration),
         "capture": declaration.capture,
-        "sequence": sequence,
-        "decode_policy": policy_record,
-        "decode_policy_sha256": decode_policy_sha256(policy_record),
+        "sequence": decoded_sequence(inspection, quality, evidence, declaration.color_matrix),
+        **policy.record_fields(),
     }
+
+
+def _read_if_present(data_root: Path, content_sha256: str, index: int | None) -> None:
+    """Refuse a damaged record of this identity before spending a decode on it.
+
+    Inspection still refuses a container that has more than one video stream and names none,
+    before anything is published.
+    """
+    target = source_directory(data_root, addressed_identity(content_sha256, index))
+    if target.exists():
+        read_sealed(target / MANIFEST_NAME, SOURCE_MANIFEST)
 
 
 def _commit(
@@ -193,17 +143,12 @@ def _commit(
     """Publish a finished directory in one rename, or confirm the one already there."""
     if not target.exists():
         staged.rename(target)
-        return "imported"
+        return IMPORTED
     existing = read_sealed(target / MANIFEST_NAME, SOURCE_MANIFEST)
     if existing != sealed:
         raise _import_conflict(existing, sealed, declaration)
-    if sha256_file(target / sealed["source"]["stored_name"]) != target.name:
-        raise CorpusRefusal(
-            RefusalCode.RECORD_TAMPERED,
-            "the stored source no longer matches its hash",
-            {"source_sha256": target.name},
-        )
-    return "unchanged"
+    require_stored_source(target, sealed, mismatch=RefusalCode.RECORD_TAMPERED)
+    return UNCHANGED
 
 
 def _import_conflict(
@@ -211,18 +156,18 @@ def _import_conflict(
 ) -> CorpusRefusal:
     """Name the terms that differ, and the command only when it can record the change."""
     terms = changed_terms(existing, sealed)
-    amendable = terms and not changed_facts(existing, declaration)
+    facts = changed_facts(existing, declaration)
+    amendable = terms and not facts
     message = (
         f"this source was already imported under other terms; record them with {AMEND_COMMAND}"
         if amendable
         else "this source was already imported with a different declaration or decoder"
     )
-    return CorpusRefusal(
-        RefusalCode.IMPORT_CONFLICT,
-        message,
-        {
-            "existing_manifest_sha256": existing[SEAL_FIELD],
-            "new_manifest_sha256": sealed[SEAL_FIELD],
-            "changed_terms": list(terms),
-        },
-    )
+    details: dict[str, JsonValue] = {
+        "existing_manifest_sha256": existing[SEAL_FIELD],
+        "new_manifest_sha256": sealed[SEAL_FIELD],
+        "changed_terms": list(terms),
+    }
+    if facts:
+        details["changed_facts"] = list(facts)
+    return CorpusRefusal(RefusalCode.IMPORT_CONFLICT, message, details)

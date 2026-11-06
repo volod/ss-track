@@ -1,3 +1,4 @@
+import fcntl
 import json
 import stat
 import subprocess
@@ -8,11 +9,11 @@ import pytest
 
 from ss_track.corpus import CorpusRefusal, RefusalCode, import_source
 from ss_track.corpus.decoding.decode_policy import DecodePolicy
+from ss_track.corpus.records.kinds import SOURCE_MANIFEST
 from ss_track.corpus.records.sealed import read_sealed
 from ss_track.corpus.records.sealing import sha256_file
-from ss_track.corpus.sources.importer import SOURCE_MANIFEST
 from tests.corpus._media import FRAME_COUNT, write_clip
-from tests.corpus.conftest import WriteRecording
+from tests.corpus.conftest import WriteRecording, imported_names
 
 
 def test_import_writes_a_hashed_manifest_with_every_required_field(
@@ -132,7 +133,26 @@ def test_repeating_an_import_changes_nothing(
     assert (first.status, second.status) == ("imported", "unchanged")
     assert second.manifest_sha256 == first.manifest_sha256
     assert first.manifest_path.read_bytes() == before
-    assert [path.name for path in (data_root / "import").iterdir()] == [first.source_sha256]
+    assert imported_names(data_root) == [first.source_sha256]
+
+
+def test_an_import_removes_a_killed_import_scratch_unless_another_import_runs(
+    clip: Path, write_recording: WriteRecording, data_root: Path
+) -> None:
+    imports = data_root / "import"
+    killed = imports / ".incoming-killed"
+    (killed / "staged").mkdir(parents=True)
+    (killed / "staged" / "source.mkv").write_bytes(clip.read_bytes()[:100])
+    with (imports / ".import.lock").open("w") as running:
+        fcntl.flock(running, fcntl.LOCK_SH)
+        first = import_source(write_recording(), data_root)
+        assert killed.is_dir()
+
+    second = import_source(write_recording(), data_root)
+
+    assert (first.status, second.status) == ("imported", "unchanged")
+    assert not killed.exists()
+    assert imported_names(data_root) == [first.source_sha256]
 
 
 def test_same_bytes_with_changed_rights_are_refused(

@@ -4,11 +4,13 @@ import json
 import logging
 from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 import pytest
 import yaml
 
 from ss_track.corpus import import_source
+from ss_track.corpus.bundles.frames import bundle_hash
 from ss_track.corpus.records.sealing import sha256_file
 from ss_track.corpus.sources.importer import ImportResult
 from tests._sealing import self_sealed
@@ -98,6 +100,27 @@ def reseal(path: Path, **changes: object) -> None:
     path.write_text(json.dumps(self_sealed(record | changes)), encoding="ascii")
 
 
+def bundle_identity(directory: Path) -> dict[str, Any]:
+    """Return a staged bundle's identity block, as its record holds it."""
+    record = json.loads((directory / "manifest.json").read_text(encoding="ascii"))
+    identity: dict[str, Any] = record["identity"]
+    return identity
+
+
+def reseal_bundle(directory: Path, identity: dict[str, Any]) -> None:
+    """Give a bundle another identity and repair its bundle hash and seal, as a reseal by hand."""
+    directory.chmod(0o755)
+    reseal(directory / "manifest.json", identity=identity, bundle_sha256=bundle_hash(identity))
+
+
+def imported_names(data_root: Path) -> list[str]:
+    """Return what the data root's imports hold, beside the lock files that writers share."""
+    imports = data_root / "import"
+    if not imports.exists():
+        return []
+    return sorted(path.name for path in imports.iterdir() if path.suffix != ".lock")
+
+
 def last_record(caplog: pytest.LogCaptureFixture) -> dict[str, object]:
     """Return the one JSON record a command reported last."""
     record: dict[str, object] = json.loads(caplog.records[-1].getMessage())
@@ -132,10 +155,24 @@ def clip(media: Path) -> Path:
 
 @pytest.fixture
 def write_recording(media: Path) -> WriteRecording:
-    def write(source: str = "clip.mkv", sha256: str | None = None, **overrides: object) -> Path:
+    def write(
+        source: str = "clip.mkv",
+        sha256: str | None = None,
+        video_stream_index: int | None = None,
+        **overrides: object,
+    ) -> Path:
         declaration = recording_declaration(source) | overrides
-        if sha256 is not None:
-            declaration["source"] = {"path": source, "sha256": sha256}
+        if sha256 is not None or video_stream_index is not None:
+            raw = declaration["source"]
+            if not isinstance(raw, dict):
+                raise TypeError("recording source must be a mapping")
+            fields = dict(raw)
+            if sha256 is not None:
+                fields["path"] = source
+                fields["sha256"] = sha256
+            if video_stream_index is not None:
+                fields["video_stream_index"] = video_stream_index
+            declaration["source"] = fields
         path = media / "recording.yaml"
         path.write_text(yaml.safe_dump(declaration), encoding="utf-8")
         return path

@@ -7,6 +7,7 @@ from pathlib import Path
 from ss_track.core.refusal import JsonValue
 from ss_track.corpus.cases.recipes import CaseRecipe, read_recipe
 from ss_track.corpus.declarations.fields import Fields, Selection, invalid
+from ss_track.corpus.decoding.declared_color import matrix_code
 from ss_track.schema.validation.enforce import read_declaration
 
 RECORDING_CONTRACT = "declaration/recording"
@@ -57,6 +58,8 @@ class RecordingDeclaration:
 
     source_path: Path
     expected_sha256: str | None
+    video_stream_index: int | None
+    color_matrix: int | None
     rights: Rights
     sensitivity: Sensitivity
     capture_clock_evidence: str | None
@@ -133,6 +136,10 @@ def load_recording_declaration(path: Path) -> RecordingDeclaration:
     return RecordingDeclaration(
         source_path=path.resolve().parent / source.text("path"),
         expected_sha256=expected_sha256,
+        video_stream_index=(
+            source.index("video_stream_index") if source.has("video_stream_index") else None
+        ),
+        color_matrix=_color_matrix(fields),
         rights=_read_rights(fields.child("rights")),
         sensitivity=_read_sensitivity(fields.child("sensitivity")),
         capture_clock_evidence=timestamps.optional_text("capture_clock_evidence"),
@@ -158,6 +165,12 @@ def load_corpus_declaration(path: Path) -> CorpusDeclaration:
         _read_scenario_rights(fields.child("scenario_rights")),
         groups,
     )
+
+
+def _color_matrix(fields: Fields) -> int | None:
+    if not fields.has("color"):
+        return None
+    return matrix_code(fields.child("color").text("matrix"))
 
 
 def _read_rights(fields: Fields) -> Rights:

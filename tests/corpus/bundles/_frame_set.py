@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from ss_track.corpus import CorpusRefusal, ImportResult, RefusalCode, build_corpus, stage_corpus
-from ss_track.corpus.bundles.staging import FramesResult
+from ss_track.corpus.bundles.stage_report import FramesResult
 from tests.corpus.conftest import (
     WriteCorpus,
     case_of,

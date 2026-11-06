@@ -1,10 +1,11 @@
-"""The rule that one recording stays in one group, however it was packaged.
+"""The rule that one recording stays in one group, and one frame in one stream.
 
 Sources are compared by byte hash, so a remux of a recording is a new source with the same frames.
-Decoded frames are what a module reads, so a run of them held by two groups is one recording in two
-groups. Frame hashes can show only that frames are equal, not what they show, so a run has to rule
-out what independent clips really share: black, a test signal, a screen that blinks. Everything here
-reads records it is given and touches no disk.
+Decoded frames are what a module reads. A run of them held by two groups is one recording in two
+groups, and a run held by two streams of one group counts each frame twice. Frame hashes can show
+only that frames are equal, not what they show, so a run has to rule out what independent clips
+really share: black, a test signal, a screen that blinks. Everything here reads records it is given
+and touches no disk.
 """
 
 from collections import defaultdict
@@ -86,15 +87,32 @@ def _shared_run(
     }
 
 
-def find_shared_runs(
-    current: Sequence[StreamFrames], earlier: Sequence[StreamFrames]
-) -> list[JsonValue]:
-    """Find the first run that each stream of a version shares with a stream of another group.
+@dataclass(frozen=True, slots=True)
+class _Pair:
+    """One reported run, and whether both streams sit in one group."""
 
-    Every stream of `current` is compared with the rest of `current` and with `earlier`. Streams of
-    `earlier` are not compared with each other, because a version answers for itself and for what
-    it adds to its chain, not for a conflict its predecessors already held.
+    run: dict[str, JsonValue]
+    same_group: bool
+
+
+def _reported(stream: StreamFrames, other: StreamFrames, version: set[int]) -> bool:
+    """Report a different group, and the same group when both streams are this version's.
+
+    A stream meets its own earlier window when a recording loops. That is one showing, not two
+    streams, so it is not a pair.
     """
+    if other is stream:
+        return False
+    return other.group_id != stream.group_id or id(other) in version
+
+
+def _pairs(current: Sequence[StreamFrames], earlier: Sequence[StreamFrames]) -> list[_Pair]:
+    """Find each pair once, in the order the streams were given.
+
+    Streams of `earlier` are not compared with each other. A version answers for itself and for
+    what it adds to its chain, not for a conflict its predecessors already held.
+    """
+    version = {id(stream) for stream in current}
     holders: dict[_Window, dict[StreamFrames, int]] = defaultdict(dict)
     for stream in earlier:
         for start, window in _windows(stream):
@@ -103,21 +121,67 @@ def find_shared_runs(
     for stream in current:
         for start, window in _windows(stream):
             for other, other_start in holders[window].items():
-                if other.group_id != stream.group_id:
+                if _reported(stream, other, version):
                     found.setdefault((other, stream), (other_start, start))
             holders[window].setdefault(stream, start)
-    return [_shared_run(a, a_at, b, b_at) for (a, b), (a_at, b_at) in found.items()]
+    return [
+        _Pair(_shared_run(first, first_at, second, second_at), first.group_id == second.group_id)
+        for (first, second), (first_at, second_at) in found.items()
+    ]
+
+
+def find_shared_runs(
+    current: Sequence[StreamFrames], earlier: Sequence[StreamFrames]
+) -> list[JsonValue]:
+    """Find the first run each stream of a version shares with another stream.
+
+    Every stream of `current` is compared with the rest of `current` and with `earlier`. A
+    same-group pair is reported only inside `current`: one version that holds a recording twice
+    counts each frame twice. A copy that replaces its original in that group of a linked version
+    is not a pair, because no version counts the frame twice.
+    """
+    return [pair.run for pair in _pairs(current, earlier)]
+
+
+def _refuse(corpus_id: str, code: RefusalCode, message: str, runs: Sequence[JsonValue]) -> None:
+    raise CorpusRefusal(
+        code,
+        message,
+        {
+            "corpus_id": corpus_id,
+            "min_shared_frames": MIN_SHARED_FRAMES,
+            "shared_runs": list(runs),
+        },
+    )
 
 
 def require_unshared_runs(
     corpus_id: str, current: Sequence[StreamFrames], earlier: Sequence[StreamFrames]
 ) -> None:
-    """Refuse groups that hold one recording, because a new container is not new evidence."""
-    runs = find_shared_runs(current, earlier)
-    if runs:
-        raise CorpusRefusal(
+    """Refuse one recording held by two groups, or twice by one group of this version.
+
+    A version that does both is `SPLIT_LEAKAGE`, and that refusal names only the pairs in
+    different groups. The same-group pairs are named once those are gone, so one refusal states
+    one problem.
+    """
+    pairs = _pairs(current, earlier)
+    leaked = [pair.run for pair in pairs if not pair.same_group]
+    if leaked:
+        count = len(leaked)
+        _refuse(
+            corpus_id,
             RefusalCode.SPLIT_LEAKAGE,
-            f"{len(runs)} pair(s) of streams in different groups share a run of identical frames; "
+            f"{count} pair(s) of streams in different groups share a run of identical frames; "
             "keep one recording in one group, in a new corpus version",
-            {"corpus_id": corpus_id, "min_shared_frames": MIN_SHARED_FRAMES, "shared_runs": runs},
+            leaked,
+        )
+    overlapped = [pair.run for pair in pairs if pair.same_group]
+    if overlapped:
+        count = len(overlapped)
+        _refuse(
+            corpus_id,
+            RefusalCode.STREAM_OVERLAP,
+            f"{count} pair(s) of streams in one group share a run of identical frames; "
+            "a frame in two streams counts twice in anything aggregated by encounter",
+            overlapped,
         )

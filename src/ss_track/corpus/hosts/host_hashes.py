@@ -17,18 +17,16 @@ from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.bundles.bundle_reader import open_corpus_bundle
 from ss_track.corpus.bundles.frame_set import read_frame_set
 from ss_track.corpus.bundles.frames import FrameBundle
-from ss_track.corpus.bundles.frames import frames_root as bundles_root
-from ss_track.corpus.bundles.staging import verify_corpus_frames
-from ss_track.corpus.records.kinds import STAGED_HASHES_KIND, RecordFormat
+from ss_track.corpus.bundles.verification import verify_corpus_frames
+from ss_track.corpus.records.kinds import STAGED_HASHES
 from ss_track.corpus.records.sealed import read_sealed
 from ss_track.corpus.records.sealing import seal, write_sealed
 from ss_track.corpus.sources.stored import load_source_record
-from ss_track.corpus.versions.builder import load_corpus_manifest
+from ss_track.corpus.storage.layout import frames_root, run_root
+from ss_track.corpus.versions.manifests import load_corpus_manifest
 from ss_track.schema.validation.enforce import is_shared_type
 
-RUN_DIRECTORY = "run"
 STAGED_HASHES_NAME = "staged-hashes.json"
-STAGED_HASHES = RecordFormat(STAGED_HASHES_KIND, major=1)
 
 
 @dataclass(frozen=True, slots=True)
@@ -61,7 +59,7 @@ def run_directory(data_root: Path, run_id: str) -> Path:
             "run id must be a shared/types identifier",
             {"run_id": run_id},
         )
-    return data_root / RUN_DIRECTORY / run_id
+    return run_root(data_root) / run_id
 
 
 def _host() -> dict[str, JsonValue]:
@@ -97,7 +95,7 @@ def record_staged_hashes(corpus_id: str, run_id: str, data_root: Path) -> Staged
     verified = verify_corpus_frames(corpus_id, data_root)
     corpus = load_corpus_manifest(corpus_id, data_root)
     frame_set: dict[str, Any] = read_frame_set(data_root, corpus_id)
-    root = bundles_root(data_root, corpus_id)
+    root = frames_root(data_root, corpus_id)
     bundles: list[JsonValue] = [
         dict(line) | {"frames": _frames(open_corpus_bundle(line["stream_id"], corpus, root))}
         for line in frame_set["bundles"]

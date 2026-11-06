@@ -10,10 +10,10 @@ import pytest
 import yaml
 
 from ss_track.corpus import build_corpus, import_source, stage_corpus
-from ss_track.corpus.bundles.frame_set import frame_set_path
 from ss_track.corpus.descriptors.descriptor import describe_corpus
 from ss_track.corpus.sources.importer import ImportResult
 from ss_track.corpus.sources.stored import load_source_record
+from ss_track.corpus.storage.layout import frame_set_path
 from ss_track.schema.registry.store import load_contract_set
 from tests.corpus.conftest import (
     WriteCorpus,
@@ -223,9 +223,9 @@ def _bundle_hashes(frame_set: dict[str, Any]) -> list[str]:
 
 def _assert_contracts(directory: Path) -> None:
     copied = load_contract_set(directory / "contracts")
-    assert copied.named("record/corpus-manifest").versions[-1].version == "3.1.0"
-    assert copied.named("record/source-manifest").versions[-1].version == "2.1.0"
-    assert copied.named("record/frame-bundle").versions[-1].version == "3.1.0"
+    assert copied.named("record/corpus-manifest").versions[-1].version == "3.4.0"
+    assert copied.named("record/source-manifest").versions[-1].version == "2.3.0"
+    assert copied.named("record/frame-bundle").versions[-1].version == "3.4.0"
 
 
 def _assert_croissant(manifest: Path) -> None:

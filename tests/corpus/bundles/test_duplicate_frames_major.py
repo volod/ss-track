@@ -12,7 +12,7 @@ from ss_track.corpus import (
     stage_corpus,
     verify_corpus_frames,
 )
-from ss_track.corpus.bundles.frame_set import frame_set_path
+from ss_track.corpus.storage.layout import frame_set_path
 from tests.corpus._historic import place_record
 from tests.corpus._shared_frames import V1, V2, check_of, named, not_compared, stage_refused
 from tests.corpus.conftest import WriteCorpus, reseal, single_group, stream_of

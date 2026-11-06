@@ -11,6 +11,9 @@ from tests.corpus.conftest import case_of, encounter_of, group_of, write_groups
 
 _SHA256 = "a" * 64
 _REGION = {"x": 0, "y": 0, "width": 4, "height": 4}
+_REVISION = "ab" * 32
+_TRACK = [{"frame_index": 1, "box": _REGION}]
+_SPAN = {"start_frame": 1, "end_frame": 2}
 # The bounds the corpus declaration contract states, one past each.
 _SEED_BEYOND = 2**63
 _SPRITES_BEYOND = 257
@@ -40,6 +43,40 @@ def _refused(media: Path, recipe: object) -> CorpusRefusal:
         ("dropped_frames", {"count": 1}),
         ("duplicated_frames", {"count": 1}),
         ("short_occlusion", {"region": _REGION}),
+        ("compression", {"max_step": 4}),
+        ("variable_timing", {"max_scale": 2}),
+        (
+            "crossing_occluder",
+            {
+                "label_revision": _REVISION,
+                "instance_id": "target",
+                "track": _TRACK,
+                "cover": _SPAN,
+            },
+        ),
+        (
+            "moving_removal",
+            {
+                "label_revision": _REVISION,
+                "instance_id": "target",
+                "track": _TRACK,
+                "plate_frame": 0,
+                "noise": 0,
+            },
+        ),
+        (
+            "similar_distractor",
+            {"label_revision": _REVISION, "instance_id": "target", "track": _TRACK},
+        ),
+        (
+            "out_of_view",
+            {
+                "label_revision": _REVISION,
+                "instance_id": "target",
+                "track": _TRACK,
+                "outside": _SPAN,
+            },
+        ),
     ],
 )
 def test_every_transform_reads_its_own_parameters(
@@ -136,6 +173,28 @@ def test_nothing_in_a_recipe_has_a_default(media: Path, missing: str) -> None:
         ),
         pytest.param(
             "short_occlusion", {"region": {"x": 0, "y": 0, "width": 4}}, "height", id="open-region"
+        ),
+        pytest.param("compression", {"max_step": 0}, "max_step", id="step-below-one"),
+        pytest.param("compression", {"max_step": 256}, "max_step", id="step-above-a-component"),
+        pytest.param("variable_timing", {"max_scale": 1}, "max_scale", id="scale-below-two"),
+        pytest.param("variable_timing", {"max_scale": 17}, "max_scale", id="scale-above-sixteen"),
+        pytest.param(
+            "similar_distractor",
+            {"label_revision": "AB" * 32, "instance_id": "target", "track": _TRACK},
+            "label_revision",
+            id="label-revision-not-a-hash",
+        ),
+        pytest.param(
+            "similar_distractor",
+            {"label_revision": _REVISION, "instance_id": "Target", "track": _TRACK},
+            "instance_id",
+            id="instance-not-an-identifier",
+        ),
+        pytest.param(
+            "similar_distractor",
+            {"label_revision": _REVISION, "instance_id": "target", "track": []},
+            "track",
+            id="empty-track",
         ),
     ],
 )

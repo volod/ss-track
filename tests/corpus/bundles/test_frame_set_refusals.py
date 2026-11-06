@@ -11,7 +11,7 @@ from ss_track.corpus import (
     stage_corpus,
     verify_corpus_frames,
 )
-from ss_track.corpus.bundles.staging import FramesResult
+from ss_track.corpus.bundles.stage_report import FramesResult
 from tests.corpus.bundles._frame_set import (
     CORPUS,
     Refused,
@@ -213,10 +213,20 @@ def test_a_malformed_list_of_bundles_is_refused(
 def test_a_damaged_frame_is_still_named(
     staged: FramesResult, data_root: Path, verify_refuses: Refused
 ) -> None:
-    frame = bundle_path(data_root, "one") / "00000000.rgb24"
+    parent = bundle_path(data_root, "one")
+    case = bundle_path(data_root, "shaken")
+    # A frame the case left unchanged is one inode with two names, so it would be named twice.
+    frame = next(
+        path
+        for path in sorted(parent.glob("*.rgb24"))
+        if path.stat().st_ino != (case / path.name).stat().st_ino
+    )
     frame.chmod(0o644)
     frame.write_bytes(b"x" * frame.stat().st_size)
 
     refusal = verify_refuses(RefusalCode.FRAME_CORRUPTED)
 
-    assert refusal.details["damaged_count"] == 1
+    assert refusal.details == {
+        "damaged_count": 1,
+        "frames": [{"stream_id": "one", "frame": frame.name, "reason": "hash_mismatch"}],
+    }

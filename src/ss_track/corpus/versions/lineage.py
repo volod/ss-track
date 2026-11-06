@@ -4,7 +4,9 @@ Material already evaluated in one split has been seen, so it cannot reappear in 
 can drop a source and the next bring it back, so a new version answers to its whole declared chain,
 not only to its nearest predecessor. Everything here reads records it is given and touches no disk,
 and it reads only source hashes, groups and splits: a source's rights or frame window can change
-between versions without moving the source. Reading the chain itself is `corpus.versions.predecessors`.
+between versions without moving the source. Reading the chain itself is
+`corpus.versions.predecessors`. The same comparison lists versions no declaration links, in
+`corpus.versions.unlinked`, and that report refuses nothing.
 """
 
 from collections.abc import Iterable, Mapping, Sequence
@@ -13,6 +15,7 @@ from typing import Any
 
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.records.projections import NotCompared, Unprojected
+from ss_track.corpus.sources.identity import recording_sha256
 from ss_track.corpus.versions.predecessors import (
     Manifest,
     Predecessor,
@@ -99,18 +102,62 @@ def require_same_places(
         )
 
 
+def sources_placed_elsewhere(
+    corpus_id: str, streams: Sequence[StreamRecord], other: Manifest
+) -> tuple[dict[str, JsonValue], ...]:
+    """Return sources this version places in another group or split than `other`, by hash.
+
+    Each record matches a split-leakage move: `from` is `other` and `to` is this version. Callers
+    that refuse keep the nearest version; a report keeps every one.
+    """
+    places = _placements(streams)
+    found = [
+        _move(other, earlier, corpus_id, places[earlier.source_sha256])
+        | {"source_sha256": earlier.source_sha256}
+        for earlier in _placements(other["streams"]).values()
+        if earlier.source_sha256 in places and _differs(places[earlier.source_sha256], earlier)
+    ]
+    seen = {str(item["source_sha256"]) for item in found}
+    found.extend(_recording_moves(corpus_id, streams, other, seen))
+    return tuple(sorted(found, key=lambda item: str(item["source_sha256"])))
+
+
+def _recording_moves(
+    corpus_id: str,
+    streams: Sequence[StreamRecord],
+    other: Manifest,
+    seen: set[str],
+) -> list[dict[str, JsonValue]]:
+    """Return file-hash moves that a source-identity comparison cannot see.
+
+    A later video stream's identity is not the file hash. The move is reported under the file hash,
+    and a move already reported for that hash is left as it is.
+    """
+    current: dict[str, Placement] = {}
+    for stream in streams:
+        key = recording_sha256(stream)
+        current.setdefault(key, Placement(key, str(stream["group_id"]), str(stream["split"])))
+    found: list[dict[str, JsonValue]] = []
+    for stream in other["streams"]:
+        key = recording_sha256(stream)
+        if key in seen or key not in current:
+            continue
+        earlier = Placement(key, str(stream["group_id"]), str(stream["split"]))
+        if _differs(current[key], earlier):
+            found.append(_move(other, earlier, corpus_id, current[key]) | {"source_sha256": key})
+            seen.add(key)
+    return found
+
+
 def _moved_sources(
     corpus_id: str, streams: Sequence[StreamRecord], predecessors: Sequence[Manifest]
 ) -> dict[str, JsonValue]:
     """Map each moved source to its move. The nearest version comes last, so it is the one named."""
-    places = _placements(streams)
-    return {
-        earlier.source_sha256: _move(version, earlier, corpus_id, places[earlier.source_sha256])
-        | {"source_sha256": earlier.source_sha256}
-        for version in reversed(predecessors)
-        for earlier in _placements(version["streams"]).values()
-        if earlier.source_sha256 in places and _differs(places[earlier.source_sha256], earlier)
-    }
+    moved: dict[str, JsonValue] = {}
+    for version in reversed(predecessors):
+        for item in sources_placed_elsewhere(corpus_id, streams, version):
+            moved[str(item["source_sha256"])] = item
+    return moved
 
 
 def _moved_groups(

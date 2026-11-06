@@ -18,10 +18,9 @@ import pytest
 from ss_track.core.refusal import JsonValue
 from ss_track.corpus.records import projections as projection_table
 from ss_track.corpus.records import read_window
-from ss_track.corpus.records.kinds import RecordFormat
+from ss_track.corpus.records.kinds import CORPUS_MANIFEST, RecordFormat
 from ss_track.corpus.records.read_window import View
-from ss_track.corpus.versions import builder
-from ss_track.corpus.versions.builder import CORPUS_MANIFEST
+from ss_track.corpus.versions import builder, manifests
 from ss_track.quality.project_root import discover_project_root
 from ss_track.schema.compatibility.freeze import freeze_contract
 from ss_track.schema.registry import contract, store
@@ -90,7 +89,8 @@ def read_as_next(
 ) -> None:
     """Have the corpus readers read the next major, with a view of today's one when given."""
     kind = CORPUS_MANIFEST.kind
-    monkeypatch.setattr(builder, "CORPUS_MANIFEST", RecordFormat(kind, NEXT))
+    for reader in (builder, manifests):
+        monkeypatch.setattr(reader, "CORPUS_MANIFEST", RecordFormat(kind, NEXT))
     projected = projection_table.installed_projections()[(kind, CURRENT)]
     monkeypatch.setitem(projection_table.INSTALLED_PROJECTIONS, (kind, NEXT), projected)
     if upcast is not None:

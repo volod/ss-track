@@ -1,0 +1,19 @@
+schema_version: 3
+corpus_id: hawk-drone-pilot-v1
+scenario_rights:
+  sharing: restricted
+  max_sensitivity: low
+groups:
+  - group_id: hawk-drone-session
+    split: development
+    encounters:
+      - encounter_id: negative-candidate
+        streams:
+          - stream_id: negative-candidate-cam0
+            source_sha256: 85534498c6a3422f13e17a02042e47ac3df414cbc8df58050a92bc62f3394e6c
+            selection: {start_frame: 0, end_frame: 168}
+      - encounter_id: hawk-candidate
+        streams:
+          - stream_id: hawk-candidate-cam0
+            source_sha256: 85534498c6a3422f13e17a02042e47ac3df414cbc8df58050a92bc62f3394e6c
+            selection: {start_frame: 432, end_frame: 552}

@@ -7,15 +7,15 @@ import pytest
 
 from ss_track.core.refusal import JsonValue
 from ss_track.corpus import (
-    AmendmentResult,
     CorpusRefusal,
     ImportResult,
     RefusalCode,
+    ReplacementResult,
     build_corpus,
     stage_corpus,
 )
+from ss_track.corpus.records.kinds import SOURCE_MANIFEST
 from ss_track.corpus.records.sealed import read_stated
-from ss_track.corpus.sources.importer import SOURCE_MANIFEST
 from tests.corpus.conftest import WriteCorpus, recording_declaration, stream_of
 
 CORPUS = "pilot-v1"
@@ -39,7 +39,7 @@ def refused(run: Callable[[], object], code: RefusalCode) -> CorpusRefusal:
     return caught.value
 
 
-def stored_source(source: ImportResult | AmendmentResult) -> Path:
+def stored_source(source: ImportResult | ReplacementResult) -> Path:
     return next(source.manifest_path.parent.glob("source.*"))
 
 

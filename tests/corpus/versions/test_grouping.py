@@ -5,8 +5,8 @@ from pathlib import Path
 import pytest
 
 from ss_track.corpus import ImportResult, RefusalCode, build_corpus
+from ss_track.corpus.records.kinds import CORPUS_MANIFEST
 from ss_track.corpus.records.sealed import read_sealed
-from ss_track.corpus.versions.builder import CORPUS_MANIFEST
 from tests.corpus.conftest import HEAD, TAIL, WriteCorpus, encounter_of, group_of, stream_of
 from tests.corpus.versions._grouping import encounter_group, refused_grouping
 

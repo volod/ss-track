@@ -57,6 +57,7 @@ makes it fail, and what it does not prove. A case with no task left is listed as
   Value: protects=a verified corpus means valid rights; fails_when=verify passes on withdrawn rights;
   no_claim=the truth of a declaration.
 - `amendment-impact-report`: a source pinned by two versions, and an unreadable manifest.
+  `tests/corpus/` covers them.
   Value: protects=a withdrawal that reaches every copy on a data root; fails_when=a pinning version
   goes unlisted or a listing fails a recorded amendment; no_claim=other hosts.
 - `corpus-version-lineage`: a source moved between splits or groups, a source dropped and brought back
@@ -64,9 +65,11 @@ makes it fail, and what it does not prove. A case with no task left is listed as
   Value: protects=split isolation over time; fails_when=a moved source builds, or a replaced
   predecessor is compared; no_claim=versions that declare no predecessor.
 - `unlinked-version-report`: a source placed in `locked` by an unlinked version and by a sibling
-  branch.
-  Value: protects=an operator's sight of reuse no declaration links; fails_when=either goes unlisted
-  or an independent reuse is refused; no_claim=that a listed reuse is leakage.
+  branch, one listing order, a declared predecessor left out, and a manifest that cannot be read or
+  whose major keeps no projection. `tests/corpus/` covers them.
+  Value: protects=an operator's sight of reuse no declaration links; fails_when=either goes
+  unlisted, an independent reuse is refused, or an unreadable manifest is skipped; no_claim=that
+  a listed reuse is leakage, or that versions on another data root were seen.
 - `staged-frame-set`: two stagings of one corpus across data roots, a replaced, missing and undeclared
   bundle, and a stage killed at each step of writing the record.
   Value: protects=one pin for all staged input; fails_when=a changed bundle keeps its frame set, or a
@@ -77,22 +80,39 @@ makes it fail, and what it does not prove. A case with no task left is listed as
   compared. `tests/corpus/` covers them.
   Value: protects=split isolation for remuxed copies; fails_when=identical frames cross a group, a
   shared lead-in is refused, or a version not compared goes unnamed; no_claim=re-encoded copies, a
-  version whose bundles are gone, windows sharing no frame, or copies inside one group.
+  version whose bundles are gone, or windows sharing no frame.
+- `near-duplicate-detection`: a re-encode across groups, an independent pair, the same group, a
+  linked predecessor, a missing source, and an unprojected predecessor. `tests/corpus/versions/`
+  covers them.
+  Value: protects=an operator's sight of a re-encoded copy that crosses groups;
+  fails_when=a copy at or above the measured threshold is silent, an independent clip is reported,
+  or a match refuses the build; no_claim=a copy that stays in one group, windows that share no
+  frame, or heavy quantization of high-frequency noise.
+- `near-duplicates-outside-the-chain`: an unlinked re-encode across groups, an unlinked independent
+  clip, a missing version, and an unreadable version. `tests/corpus/versions/` covers them.
+  Value: protects=an operator's sight of a re-encoded copy outside the declared chain;
+  fails_when=that copy is silent, an independent clip is reported, a missing or unreadable version
+  is skipped, or the corpus hash changes; no_claim=another data root, a group assignment, or a
+  refusal.
 - `bundle-reuse-across-versions`: a kept source, a damaged candidate, another window, and a removed
-  version. Value: protects=identical frames at no decode or storage cost; fails_when=a damaged
+  version. `tests/corpus/bundles/test_bundle_reuse.py` and `test_bundle_reuse_bounds.py` cover them.
+  Value: protects=identical frames at no decode or storage cost; fails_when=a damaged
   bundle links or a reused bundle differs from a fresh stage; no_claim=a filesystem without hard
   links.
 - `decode-policy-reimport`: a record of an older policy re-decoded from its stored bytes, a corpus
   version pinning the old record, a damaged stored source, a repeat and an interrupted run.
   Value: protects=a decoder change without losing a stored source; fails_when=terms change, stored
   bytes change, or a pinned corpus keeps verifying; no_claim=that new pixels equal old ones.
-- `group-repeated-frames`: a remux in two encounters of one group, and in one encounter, and a copy
-  replacing its original across linked versions.
-  Value: protects=each frame counted once; fails_when=a frame counts twice in one version;
-  no_claim=re-encoded copies.
-- `generated-case-labels`: hand-built labels through each transform, and a plate showing a target.
-  Value: protects=labels that follow pixels; fails_when=a covered target stays visible or a wrong
-  region yields `absent`; no_claim=parent label quality.
+- `group-repeated-frames`: a remux in two encounters of one group and in one encounter, a cut copy,
+  adjacent windows, a cross-group pair, and a copy replacing its original across linked versions.
+  `tests/corpus/` covers them.
+  Value: protects=each frame counted once in one version; fails_when=a frame counts twice, or a
+  cross-group pair is no longer leakage; no_claim=re-encoded copies, or a copy that replaces its
+  original in a linked version.
+- `generated-case-labels`: hand-built labels through each transform, including `track_status` roles
+  `unknown`, `region`, `shift`, `reentry` and `unchanged`, and a plate showing a target.
+  Value: protects=labels that follow pixels; fails_when=a covered target stays visible, a wrong
+  region yields `absent`, or a frame with no box becomes `absent`; no_claim=parent label quality.
 - `event-schema-contract`: golden fixtures, unknown fields, malformed payloads and regenerated
   bindings.
   Value: protects=one meaning for every event; fails_when=generated code drifts from `.proto`;

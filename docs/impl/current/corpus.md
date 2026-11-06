@@ -2,13 +2,16 @@
 
 `ss-track import` turns one declared recording into an immutable, hashed source record.
 `ss-track corpus build` groups imported sources into encounters and splits in one immutable corpus
-version. `ss-track corpus stage` decodes each stream into one immutable frame bundle that every
-module reads, plus one derived bundle for each declared generated case, and seals them into one
-frame set whose hash a scenario can pin. `ss-track corpus verify` proves those frames are intact, are
-the ones the frame set names, and that the source records they rest on still hold. Both refuse one
-recording held by two groups under different source hashes. `ss-track corpus hashes` and
-`ss-track corpus compare` show whether two hosts staged the same bytes. Each command produces a
-complete record or a structured refusal, and none invents a value it could not establish.
+version. `ss-track corpus stage` decodes each new source once into one immutable frame bundle per
+stream that every module reads. When a linked version already staged that source under the same
+bundle hash, the frames are hard-linked instead of decoded. The command also writes one derived
+bundle for each declared generated case, and seals them into one frame set a scenario can pin.
+`ss-track corpus verify` proves those frames are intact, are the ones the frame set names, and
+that the source records they rest on still hold. Both refuse one recording held by two groups,
+or twice in one group, under different source hashes.
+`ss-track corpus hashes` and `ss-track corpus compare` show whether two hosts staged the same
+bytes. Each command produces a complete record or a structured refusal, and none invents a value
+it could not establish.
 Annotation does not exist yet; the [plan](../plan.md) schedules it. The task records keep the accepted
 tasks, their decisions and their acceptance evidence:
 [import and corpus build](../records/0001-corpus-provenance-corpus-manifest-import.md),
@@ -18,11 +21,53 @@ tasks, their decisions and their acceptance evidence:
 [source terms](../records/0006-corpus-provenance-source-terms-enforcement.md),
 [rights verification](../records/0007-corpus-provenance-corpus-verify-rights.md),
 [version lineage](../records/0008-corpus-provenance-corpus-version-lineage.md),
+[unlinked versions](../records/0033-corpus-provenance-unlinked-version-report.md),
 [frame sets](../records/0009-corpus-provenance-staged-frame-set.md),
 [shared frames](../records/0010-corpus-provenance-duplicate-frame-detection.md),
+[repeated frames in one group](../records/0032-corpus-provenance-group-repeated-frames.md),
 [arm64 reproducibility](../records/0011-corpus-provenance-arm64-reproducibility.md),
-[source terms amendment](../records/0014-corpus-provenance-source-terms-amendment.md) and
-[record read gate](../records/0016-data-contracts-record-read-gate.md).
+[source terms amendment](../records/0014-corpus-provenance-source-terms-amendment.md),
+[amendment impact](../records/0034-corpus-provenance-amendment-impact-report.md),
+[record read gate](../records/0016-data-contracts-record-read-gate.md) and the
+[corpus provenance group audit](../records/0049-corpus-provenance-corpus-provenance-audit.md).
+
+The available corpus path imports declared sources and stages reviewed selections; it does not yet
+form a large corpus from sibling video indexes or self-supervised selection. The specification and
+plan define that future work, including source permissions and independent review. See the
+[corpus formation planning record](../records/0038-adhoc-self-supervised-corpus-plan.md).
+
+## Selected development workload
+
+The owner-selected pilot is [Hawk attacks drone](https://commons.wikimedia.org/wiki/File:Hawk_attacks_drone.webm),
+by Michael deAgonia, under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). Credit the
+creator, link the license and identify any changes when using the footage. The source description
+suggests Swainson's hawk but marks the species uncertain; the task class is bird of prey. This edited,
+aerial video has a moving landscape and an approaching bird that grows large in frame. Its unknown
+range and target extent mean it does not establish sustained small-target performance.
+
+After `make bootstrap`, run `make development-workload-prepare`. It downloads the pinned source,
+checks its SHA-256, and prepares the source, contact sheet and declarations under
+`$DATA_DIR/workload-selection/hawk-drone-pilot/`. The command needs network access and `ffmpeg`,
+uses the configured data root, and refuses to replace a conflicting source or declaration. Re-running
+it reuses matching files. Source terms, including no fixed retention end and permission for derived
+frames, are in the recording declaration. Corpus sharing is restricted.
+
+Import, build, stage and verify the prepared corpus from the project root:
+
+```bash
+SST_WORKLOAD_ROOT="$(.venv/bin/python -c 'from ss_track.core.paths import resolve_data_root; print(resolve_data_root())')/workload-selection/hawk-drone-pilot"
+.venv/bin/ss-track import --source "$SST_WORKLOAD_ROOT/recording.yaml"
+.venv/bin/ss-track corpus build --manifest "$SST_WORKLOAD_ROOT/corpus.yaml"
+.venv/bin/ss-track corpus stage --corpus hawk-drone-pilot-v1
+.venv/bin/ss-track corpus verify --corpus hawk-drone-pilot-v1
+```
+
+The half-open source windows are
+`[0, 168)` for the candidate negative and `[432, 552)` for the positive. They belong to one
+`development` group because they come from the same recording. The one-frame-per-second survey does
+not prove negative absence in every frame: the pilot-labeling task reviews all frames and keeps
+uncertainty visible. These are not frozen labels or held-out evidence. See the
+[selection record](../records/0037-corpus-provenance-select-development-workload.md).
 
 ## Commands
 
@@ -34,13 +79,20 @@ ss-track corpus stage --corpus pilot-v1
 ss-track corpus verify --corpus pilot-v1
 ss-track corpus hashes --corpus pilot-v1 --run-id host-a
 ss-track corpus compare --left a/staged-hashes.json --right b/staged-hashes.json --run-id compare-1
+ss-track corpus preview --corpus pilot-v1 --stream enc01-cam0 --frame 0 --out sheet.png
 ```
 
-Each command logs one JSON record. A result has a `status`, its hashes and its manifest path, and
-exits 0. A refusal exits 1 and has this form:
+Each command logs one JSON record and exits 0. A refusal exits 1 and has this form:
 
 ```json
 {"status": "refused", "code": "PTS_NON_INCREASING", "message": "...", "details": {"frame_index": 3}}
+```
+
+SIGINT is a refusal of the same shape. The command exits 1, logs one JSON record and prints no
+traceback. Import and stage remove their scratch before that record is written:
+
+```json
+{"status": "refused", "code": "INTERRUPTED", "message": "interrupted by SIGINT", "details": {}}
 ```
 
 `src/ss_track/core/paths.py` resolves the data root: `DATA_DIR` from the environment, then from
@@ -48,8 +100,8 @@ exits 0. A refusal exits 1 and has this form:
 
 ## Declarations
 
-Each file is checked in full against its contract on read, `declaration/recording` 2.0.0 and
-`declaration/corpus` 3.0.0, before any reader takes a value from it. Both reject unknown fields,
+Each file is checked in full against its contract on read, `declaration/recording` 2.3.0 and
+`declaration/corpus` 3.2.0, before any reader takes a value from it. Both reject unknown fields,
 repeated keys, non-finite numbers and any other schema version, so a misspelled key cannot silently
 drop a fact. A recording is schema 2 and a corpus is schema 3. There are no defaults for rights,
 sensitivity, split or scenario rights: a declaration without them is refused, and `basis` has no
@@ -61,7 +113,9 @@ sensitivity, split or scenario rights: a declaration without them is refused, an
 `src/ss_track/corpus/declarations/fields.py` then gives the readers typed access. The readers keep
 only rules the contract states as `x-rules`: a range status needs its value and method, a corpus
 cannot supersede itself, a frame window must be non-empty, an absent range status means `unknown`,
-and free text that is only whitespace is refused (`text`). A value YAML read as a date is refused
+and free text that is only whitespace is refused (`text`). The video-stream rule and the
+color-matrix rule are not among these: each needs the file, so import enforces them. A value YAML
+read as a date is refused
 where text belongs, such as an unquoted `holder: 2024-01-05` or `lens: 2024-01-05`, by the validator
 itself, so `contracts validate` refuses it too. A date field such as `retain_until` takes an
 unquoted date as its ISO text.
@@ -72,6 +126,7 @@ schema_version: 2
 source:
   path: clip.mkv             # relative to this file
   sha256: "<64 hex>"         # optional; declare it at capture, see Integrity limits
+  # video_stream_index: 1    # video streams only; required when more than one
 rights:
   holder: Project Contributors
   basis: owned               # owned, licensed, consented or public_domain
@@ -90,6 +145,8 @@ capture:                     # optional; every absent fact is stored as unknown
     status: measured         # measured, estimated or unknown
     value_m: 12.5
     method: laser rangefinder
+color:                       # optional; fills a missing matrix tag only
+  matrix: bt709              # bt709, bt601, bt2020, fcc or smpte240m
 ```
 
 ```yaml
@@ -119,14 +176,53 @@ groups:
             source_sha256: "<64 hex>"
 ```
 
+### Video stream selection
+
+`source.video_stream_index` is the zero-based position among video streams, not among every stream
+in the container. Omit it when the file has one video stream. A file with more than one is
+`VIDEO_STREAM_UNSPECIFIED` until the declaration names one, and the refusal lists each stream's
+index, container index, codec, width and height before any frame is decoded. An index that is not
+one of those streams is refused the same way. Naming index 0 selects the first video stream and
+leaves the field off the source record, so a one-stream import keeps its previous manifest bytes.
+A later stream stores `sequence.video_stream_index`. Staging and redecode read that stream. The
+index is not part of the shared decode policy, because a corpus pins one policy for every source.
+Audio is not imported. `src/ss_track/corpus/decoding/streams.py` chooses the stream, and
+`tests/corpus/sources/test_stream_selection.py` covers the refusal, each index and staging. The
+[task record](../records/0040-corpus-provenance-import-stream-selection.md) holds the acceptance.
+
+### Two cameras of one file
+
+Each video stream is its own source record and its own decode. The first stream's source identity
+is the file hash, so its directory and `source.sha256` stay that hash. A later stream's identity is
+the SHA-256 of the canonical JSON object
+`{"content_sha256", "kind": "video-stream", "video_stream_index"}`, computed by
+`src/ss_track/corpus/sources/identity.py`. A one-stream import never uses that form. The manifest
+still stores the file hash as `source.sha256`, and `import` reports the identity as
+`source_sha256`: that is the value a corpus names. Repeating either index reports `unchanged`.
+
+Both identities can sit in one encounter. Their frame bundles differ because each decode is that
+stream, not a window of the other. A corpus stream stores `content_sha256`, the file hash, only
+when the identity is not that hash. Two groups that share the file are `SPLIT_LEAKAGE`, and so is
+a later version that places the file in another group or split. The move and an unlinked listing
+name the file hash. Adding the other camera in the same group is an added source, not a move.
+
+An amendment addresses the named index and does not open the container. After the file is gone, a
+declared `source.sha256` plus the index still finds a later stream. An omitted index addresses the
+first stream. A redecode with an omitted index opens the container first, so a multi-stream file is
+`VIDEO_STREAM_UNSPECIFIED` and lists both streams instead of rewriting one of them. Each identity
+directory keeps its own copy of the file. `tests/corpus/sources/test_dual_camera_identity.py` covers
+the import, the encounter, the repeated import, the group and lineage refusals. The
+[task record](../records/0041-corpus-provenance-dual-camera-file-identity.md) holds the acceptance.
+
 ## Stored evidence
 
 | Path | Content |
 | --- | --- |
-| `$DATA_DIR/import/<source-sha256>/source<ext>` | Read-only copy of the source bytes |
+| `$DATA_DIR/import/<source-sha256>/source<ext>` | Read-only copy of the source bytes. The directory name is the source identity, which is the file hash for the first video stream |
 | `$DATA_DIR/import/<source-sha256>/manifest.json` | Sealed source manifest |
 | `$DATA_DIR/import/<source-sha256>/replaced/<manifest-sha256>.json` | Each record an amendment replaced, under its own seal |
-| `$DATA_DIR/import/.amendment.lock` | Empty lock that serializes amendments |
+| `$DATA_DIR/import/.amendment.lock` | Empty lock that serializes amendments and redecodes |
+| `$DATA_DIR/import/.import.lock` | Empty lock that imports share while their scratch exists |
 | `$DATA_DIR/corpus/<corpus-id>/manifest.json` | Sealed corpus manifest |
 | `$DATA_DIR/corpus/<corpus-id>/frame-set.json` | Sealed record of every staged bundle |
 | `$DATA_DIR/corpus/<corpus-id>/frames/<stream-id>/` | One read-only frame bundle |
@@ -138,6 +234,15 @@ Import copies the source first, then hashes and decodes that copy, so the record
 the bytes retained. The finished directory is published by one rename, so a failure leaves nothing
 that looks complete.
 
+`src/ss_track/corpus/storage/layout.py` composes every path in the table, and
+`src/ss_track/corpus/storage/scratch.py` is the one way a command writes there. A writer works in a
+name that starts with `.incoming-` and publishes by rename, and the next run that holds the same
+lock removes scratch that a killed run left: staging under `.staging.lock`, amendments and redecodes
+under `.amendment.lock`, descriptor publication under `.describe.lock`, and imports under
+`.import.lock`. Imports take that lock shared, so they run side by side, and an import that finds no
+other import running removes what a killed import left under `import/`. A single record file is
+replaced through the same scratch prefix, with its bytes on disk before the rename.
+
 A sealed manifest carries `manifest_sha256`, a SHA-256 of its canonical JSON. It holds no clock time
 or filesystem path, so the same source, declaration and decoder give identical bytes in any process.
 Repeating an import or a build reports `unchanged`. Changing the declaration or the decoder for an
@@ -146,9 +251,10 @@ new corpus version. Changed terms alone are [recorded by an amendment](#withdraw
 
 A source manifest records the hash and size, whether the hash was declared, rights, sensitivity,
 capture facts, the decode policy and the sequence: container, codec, original and decoded dimensions,
-source pixel format and bit depth, stored color tags, display rotation, interlaced frame count, time
-base, one PTS per presented frame, discarded sample count, video stream count, timestamp quality and
-completeness checks.
+source pixel format and bit depth, stored color tags, `declared_color` when a declared matrix was
+used, display rotation, interlaced frame count, time base, one PTS per presented frame, discarded
+sample count, video stream count, the video stream index when it is not the first, timestamp quality
+and completeness checks.
 
 `corpus build` trusts nothing from import time. It re-reads every source manifest, re-hashes every
 stored source, requires each source's decode policy to be the installed one, and checks each
@@ -174,7 +280,8 @@ are in fact related. `src/ss_track/corpus/versions/grouping.py` owns the rules t
   recording are not independent.
 - One group may cut several encounters from one long recording, with adjacent windows. A source frame
   in two streams is `STREAM_OVERLAP`, because it would count twice in anything aggregated by
-  encounter.
+  encounter. A remux is a different source, so build cannot see it; stage and verify refuse that
+  run inside the group with the same code.
 
 Each entry of the manifest's `streams` list carries `stream_id`, `modality`, `encounter_id`,
 `group_id`, `split`, `width` and `height`, and a build result counts each split's groups, encounters
@@ -199,11 +306,14 @@ it held-out. Changing any membership needs a new corpus version, and
 A version may name the one it supersedes with `supersedes`. Material already evaluated has been seen,
 so `corpus build` compares the new version with that version and with every older version linked
 behind it. `src/ss_track/corpus/versions/lineage.py` owns these rules, `predecessors.py` reads the declared
-chain link by pinned link, and both read only source hashes, groups and splits:
+chain link by pinned link, and both read only source hashes, groups and splits. A later video
+stream's file hash is `content_sha256` on the corpus stream when its identity is not that hash, and
+the comparison treats that file hash as the recording:
 
 | Across the declared chain | Result |
 | --- | --- |
 | A source in another split or another group | `SPLIT_LEAKAGE` |
+| The file hash of one camera placed where another version held the other camera of that file | `SPLIT_LEAKAGE`, naming the file hash |
 | A group in another split, even holding only new sources | `SPLIT_LEAKAGE` |
 | A new source, or a new group in any split | Accepted, and listed as `added` |
 | A source a version dropped, back in the place it left | Accepted |
@@ -251,9 +361,37 @@ and `added`, `removed` and `kept` are empty when it is the named version:
 `not_compared` appears only when a version in the chain was not compared, so a fully compared
 chain reports what it did before.
 
-A version that names nothing reports `{"status": "no_lineage"}`, and nothing compared it with anything:
-the same source can sit in `locked` there, and so can it in a sibling that branches from one
-predecessor. `unlinked-version-report` in the [plan](../plan.md) schedules a listing of those.
+A version that names nothing reports `{"status": "no_lineage"}`. That status is only the declared
+chain. Another version on the same data root can place one of its sources in another group or split,
+including `locked`, and the build still succeeds. The result then carries `unlinked`. `from` is the
+other version and `to` is the one being built, the same shape as a move, and it is not a refusal:
+
+```json
+{"status": "built", "lineage": {"status": "no_lineage"}, "unlinked": {"placements": [
+ {"source_sha256": "...",
+  "from": {"corpus_id": "pilot-v1", "group_id": "site-a", "split": "development"},
+  "to": {"corpus_id": "pilot-v2", "group_id": "held-out", "split": "locked"}}]}}
+```
+
+Placements are ordered by source hash, then by the other version's directory name. A manifest that
+cannot be read, or whose major keeps no projection, is named under `not_compared` with reason
+`unreadable` or `other_schema`, ordered by directory name. A version directory that cannot be read
+is `unreadable` as well, and a name with a leading dot is not a version. When the corpus directory
+itself cannot be listed, the result carries `{"scan": "unreadable"}` and the build still succeeds.
+A version in the declared chain is never
+listed: a move against that chain is still `SPLIT_LEAKAGE`, and an unprojected predecessor stays in
+`lineage.not_compared`. The same source in the same group and split is not listed. A group's split
+is not applied to an undeclared version, because this listing compares source hashes only.
+
+The field is absent when there is nothing to report. It is not sealed, so a corpus hash does not
+change when another version appears, and `unchanged` can still carry a new listing. Repeating the
+build reports the data root as it is. `src/ss_track/corpus/versions/unlinked.py` reads
+`$DATA_DIR/corpus/*/manifest.json` through the walk in `scan.py`, which reads each one with
+`read_comparable` and also serves the amendment impact and the near-duplicate scan, and
+`lineage.py` compares placements.
+One data root only. Versions outside `corpus/` are not listed. The
+[unlinked-versions record](../records/0033-corpus-provenance-unlinked-version-report.md) holds the
+accepted task.
 
 The manifest seals `supersedes` as `{"corpus_id", "manifest_sha256"}`, and only when one was named, so
 a version that names none keeps its hash and corpus manifests stay schema 3. Naming a predecessor on
@@ -278,8 +416,9 @@ indexes, which needs no decode. `src/ss_track/corpus/bundles/shared_runs.py` own
 | Two streams | Result |
 | --- | --- |
 | In two groups, sharing a run, in any splits | `SPLIT_LEAKAGE` |
-| In one group, in one version or across linked versions | Not compared. A group may hold a copy |
-| In two groups, sharing a shorter or uniform stretch | Accepted |
+| In one group of one version, sharing a run, in one encounter or two | `STREAM_OVERLAP` |
+| In one group across linked versions, a copy replacing its original | Accepted. No version counts the frame twice |
+| Sharing a shorter or uniform stretch, in one group or two | Accepted |
 
 A run is `MIN_SHARED_FRAMES`, eight, different frames in a row and in the same order. A frame held in
 place counts once, so a clip that repeats each frame still matches, and a copy holding frames for
@@ -289,10 +428,13 @@ generated case stays in its parent's group and holds its parent's frames or new 
 compared with its parent.
 
 Every stream is compared with the rest of its version and with every stream of the versions linked
-behind it, by `group_id`, so a version that keeps only the copy of a recording, in another group, is
-refused by the version behind it. Predecessors are not compared with each other: a version answers
-for itself. A refusal names every pair at once, widened to all the two streams share from the first
-run found:
+behind it. The same group is reported only inside the version being checked, so a copy that replaces
+its original there is accepted. A different group is reported either way, so a version that keeps
+only the copy, in another group, is refused by the version behind it. Predecessors are not compared
+with each other: a version answers for itself. A version that both repeats a recording inside a
+group and shares it with another group is `SPLIT_LEAKAGE`, and that refusal names only the pairs in
+different groups. A refusal names every pair of one kind at once, widened to all the two streams
+share from the first run found:
 
 ```json
 {"status": "refused", "code": "SPLIT_LEAKAGE", "message": "...", "details": {"corpus_id": "pilot-v2",
@@ -303,12 +445,26 @@ run found:
    "first_shared_frame": 0}]}]}}
 ```
 
+The same details name a run held twice inside one group. Each stream carries the frame it shows
+first:
+
+```json
+{"status": "refused", "code": "STREAM_OVERLAP", "message": "...",
+ "details": {"corpus_id": "pilot-v2", "min_shared_frames": 8,
+ "shared_runs": [{"frame_sha256": "...", "frame_count": 100, "streams": [
+  {"corpus_id": "pilot-v2", "stream_id": "enc01-cam0", "group_id": "site-a", "split": "development",
+   "first_shared_frame": 0},
+  {"corpus_id": "pilot-v2", "stream_id": "enc02-cam0", "group_id": "site-a", "split": "development",
+   "first_shared_frame": 9}]}]}}
+```
+
 `frame_sha256` is the first shared frame, and `frame_count` counts a held frame once. Frame hashes
 exist only after staging, so a stage checks them once its streams are staged and before its cases.
-A refusal leaves those streams staged, with no case and no frame set, and that version needs replacing:
-keep one copy, or hold every copy in one group, in a new version. Independent clips that truly share
-eight frames, such as a camera's start-up animation, are refused the same way, and a `selection` that
-starts after them is the way past it. No flag overrides the rule.
+A refusal leaves those streams staged, with no case and no frame set, and that version needs
+replacing: keep one copy of the recording. A later version may put the other copy in that group in
+its place, and adjacent windows of one recording still share no frame. Independent clips that truly
+share eight frames, such as a camera's start-up animation, are refused the same way, and a
+`selection` that starts after them is the way past it. No flag overrides the rule.
 
 Both commands report what they compared, because a version not compared is unknown, not clear:
 
@@ -329,25 +485,104 @@ A rebuilt predecessor is `CORPUS_CONFLICT`, a damaged record `RECORD_TAMPERED`, 
 another stream or version `BUNDLE_CONFLICT`: those are refused rather than compared. A predecessor
 and its bundles are read through their majors' projections, so one of another major is compared
 when its major holds the facts, and named under `other_schema` when it does not; a predecessor
-manifest with no projection ends the chain there. `corpus verify` repeats the
-check because a predecessor staged after its successor was not there to compare with, and that
-successor's frame set stays as it was. The result is never sealed: it depends on what a data root
-holds, and a frame set must not.
+manifest with no projection ends the chain there. `corpus verify` repeats the check because a
+predecessor staged after its successor was not there to compare with, and that successor's frame set
+stays as it was. Stage and verify match a frame set that exists before the run, so a replaced
+bundle stays `FRAME_SET_MISMATCH`. A first stage refuses a repeated run before writing cases or a
+frame set. When verify finds no frame set, it names a repeated run before reporting that staging
+has not finished. A generated case is not written after a refusal, so verify then names the missing
+bundle. The result is never sealed: it depends on what a data root holds, and a frame set must not.
 
 What this cannot see:
 
-- A re-encoded copy shares no frame hash. `near-duplicate-detection` in the [plan](../plan.md) covers
-  it.
+- A re-encoded copy shares no frame hash. A build reports one that crosses groups; see
+  [Near-duplicates](#near-duplicates).
 - Windows of a copy that share no frame, such as `[0, 12)` of one and `[12, 24)` of the other. A
   stream with fewer than eight different frames cannot hold a run at all.
-- Copies inside one group, which count a frame twice in anything aggregated by encounter.
-  `group-repeated-frames` in the [plan](../plan.md#group-repeated-frames-optional) schedules them.
-- A version no chain links to, which `unlinked-version-report` in the [plan](../plan.md) lists only by
-  source hash.
+- A copy that replaces its original in the same group of a linked version. No version holds both,
+  so none counts a frame twice.
+- A version no chain links to. [Version lineage](#version-lineage) lists a shared source hash.
+  This check still does not read that version's frames. The perceptual report does; see
+  [Near-duplicates](#near-duplicates).
 
 On the development host, reading a sealed index of a million frames takes about 2 s, and searching
 ten million hashes across 100 streams took 11 s, so the check costs about 3 s and 600 MB per million
-frames compared. A million 1080p frames is 6 TB of bundles.
+frames compared. A million 1080p frames is 6 TB of bundles. The same-group check adds a membership
+test per candidate stream, not per frame. The
+[repeated-frames record](../records/0032-corpus-provenance-group-repeated-frames.md) holds the
+accepted task.
+
+### Near-duplicates
+
+`corpus build` compares a perceptual fingerprint across encounter groups and reports a likely
+re-encoded copy. It does not refuse, and it does not assign a group. The report is not sealed, so
+repeating a build of the same declaration keeps the corpus hash when another version appears on the
+data root as well as when it does not.
+`src/ss_track/corpus/versions/fingerprint.py` owns the fingerprint, `near_duplicates.py` the report,
+and `near_duplicate_scan.py` the versions the declaration does not link.
+`near_duplicate_samples.py` reads the sampled frames.
+
+Method `luma-grid-16` takes 16 frames, spread through the declared window, and reduces each to a
+16 by 16 grid of box-averaged luma. The score is the normalized correlation of the two grids. A
+flat window, or two windows with different sample counts, scores 0. The threshold is 0.90.
+
+The threshold was measured on 2026-11-06 with PyAV 19.0.2, whose FFmpeg libraries are 9.0.2.
+The development corpus is the hawk recording, windows `[0, 168)` and `[432, 552)`, re-encoded,
+plus synthetic clips. The summary is `$DATA_DIR/near-duplicates/luma-grid-16/summary.json`. The
+stock corpus has one group, so a build of it has no cross-group pair; the measurement is the
+declared run.
+
+| Set | Pairs | At or above 0.90 |
+| --- | --- | --- |
+| Hawk windows, 13 encodes | 26 | 26, lowest 0.969 |
+| Structured synthetic clips | 48 | 48, lowest 0.969 |
+| High-frequency noise | 16 | 10 |
+| Independent windows | 36 | 0, highest 0.733 |
+
+Recall on the measured copies is 84/90. The six misses are heavy quantization of high-frequency
+noise: x264 CRF 40, CRF 40 medium, 80 kbps and 300 kbps, x265 CRF 40, and VP8 CRF 30. Natural and
+structured copies were 74/74. No independent pair reached 0.90. On the hawk recording the copies
+stayed at or above 0.969 and the independent windows at or below 0.733, so 0.90 sits in that gap.
+Lowering the threshold to recover the noise copies would enter that independent range.
+
+The field is `near_duplicates` on the build record, present only when a pair crosses the threshold,
+a window or version could not be read, or the corpus directory could not be listed. It carries
+`method`, `samples`, `grid` and `threshold`. `pairs` names both streams, each with `corpus_id`,
+`stream_id`, `group_id` and `split`, and the `similarity`. `not_compared` uses `source_unreadable`,
+`window_unknown`, `other_schema` or `unreadable`. `scan` is `unreadable` when the corpus directory
+could not be listed.
+
+Comparison covers the version being built, the predecessors its declaration links, and every other
+built version on the same data root. One strict decode runs per source that takes part, and it
+stops after the last sampled frame. A version whose groups cannot meet another group is not
+fingerprinted: the same group is not a pair. A source that is missing or a window that cannot
+be decoded is named `source_unreadable`. A predecessor of another schema, and an unlinked version
+whose major keeps no projection, are `other_schema`. A window the record does not carry, in a group
+this version does not hold, is `window_unknown`. A version directory or manifest that is missing or
+cannot be read is `unreadable`. A name with a leading dot is not a version. A directory with no
+manifest is not a version for the source-hash listing, and it is `unreadable` here, because a
+missing manifest is not a clear comparison. When the corpus directory itself cannot be listed,
+`scan` is `unreadable` and the declared chain is still compared. The build still succeeds. A
+same-group predecessor that cannot be read is not named, because it is not a near-duplicate
+question. A retired major that still carries a window is fingerprinted through its comparison
+projection; corpus major 2 is one.
+[Shared frames](#shared-frames) still refuses an exact remux.
+
+What this cannot see:
+
+- A re-encode that stays in one group.
+- Windows that share no frame, and a window of uniform frames. Both score 0.
+- High-frequency noise after heavy quantization. Six of sixteen such copies fell below 0.90.
+- A version on another data root.
+
+Verification: `tests/corpus/versions/test_fingerprint.py`,
+`tests/corpus/versions/test_near_duplicates.py`,
+`tests/corpus/versions/test_near_duplicate_report.py`,
+`tests/corpus/versions/test_near_duplicate_outside.py` and
+`tests/corpus/versions/test_near_duplicate_outside_gaps.py`. The
+[near-duplicate record](../records/0046-corpus-provenance-near-duplicate-detection.md) and the
+[outside-chain record](../records/0048-corpus-provenance-near-duplicates-outside-the-chain.md) hold
+the accepted tasks.
 
 ### Scenario rights
 
@@ -406,8 +641,8 @@ terms match and something else in the record changed, such as a capture fact or 
 refuses all the same, because the pin covers the whole record, and so does a wider right. A
 re-import of the original declaration gives the original seal, so the corpus verifies again.
 
-`_require_sources_hold` in `src/ss_track/corpus/bundles/staging.py` is this one check for both
-commands, and each stream is checked, which covers every generated case because a case holds its
+`require_sources_hold` in `src/ss_track/corpus/bundles/version_bundles.py` is this one check for
+both commands, and each stream is checked, which covers every generated case because a case holds its
 parent's rights. Retention comes first and reads only the corpus, so an expired source stays
 `RETENTION_EXPIRED` after its directory is removed. Otherwise a missing record is
 `SOURCE_NOT_IMPORTED`, an unreadable one is `RECORD_TAMPERED`, and one of another schema is
@@ -431,11 +666,12 @@ ss-track import --source recording.yaml --amend-terms      # now declaring the n
 
 `src/ss_track/corpus/sources/amendment.py` replaces `rights` and `sensitivity` and writes the
 current schema. Every other section is carried from the existing record, so an amended record equals
-a fresh import of the same declaration under the same decoder. It keeps the old record in
-`replaced/` first and then replaces the manifest by one rename, so a run killed at any point leaves
-one whole record and a rerun finishes it. A repeat reports `unchanged`. Restoring the old terms
-restores the old seal, so a version pinning it verifies again. Amendments carry no date, so the kept
-records have no recorded order.
+a fresh import of the same declaration under the same decoder. `replacement.py`, which `--redecode`
+shares, keeps the old record in `replaced/` first, as written and under its own seal even when its
+major is read through a view, and then replaces the manifest by one rename, so a run killed at any
+point leaves one whole record and a rerun finishes it. A repeat reports `unchanged`. Restoring the
+old terms restores the old seal, so a version pinning it verifies again. Amendments carry no date,
+so the kept records have no recorded order.
 
 An amendment finds its source by the bytes at `source.path`, or by a declared `source.sha256` once the
 original has gone. With the file present the two must agree, as in a plain import. It does not read
@@ -454,14 +690,38 @@ until it is decoded again.
 | File that contradicts its declared hash | `SOURCE_HASH_MISMATCH` |
 | File gone and no declared hash | `SOURCE_NOT_FOUND` |
 | Schema 1 record holding every current decoded fact | Gains the terms and schema 2. Schema 1 is a `facts` major, read as written through `read_stated` |
-| Schema 1 record short of a decoded fact | `RECORD_SCHEMA_UNSUPPORTED`, naming each `violations` entry of the current source contract the carried record breaks, with the only remedy today: remove the import directory and import again |
+| Schema 1 record short of a decoded fact | `RECORD_SCHEMA_UNSUPPORTED`, naming each `violations` entry of the current source contract the carried record breaks, with the remedy: [`--redecode --amend-terms`](#redecoding-under-a-new-policy) together |
 | Any newer record | `RECORD_SCHEMA_UNSUPPORTED` |
 
 Every corpus version that pinned the old record then refuses at `corpus stage` and `corpus verify`.
+The amendment lists those versions on this data root. `impact` is absent when nothing needs
+reporting, including a repeat that reports `unchanged`. Versions are ordered by directory name, and
+each names the frames directory where that version's bundles are stored, whether or not it currently
+holds files. A version is listed once however many of its streams pin the record. A manifest that
+cannot be read, a version directory that cannot be read, and a major that keeps no projection are
+named under `not_compared`, ordered by directory name, and are not skipped. A name with a leading
+dot is not a version. When the corpus directory itself cannot be listed, `impact` is
+`{"scan": "unreadable"}` and the amendment is still recorded. The listing deletes nothing and is
+not part of the source record. Its frames stay on disk until an operator removes them.
+
+```json
+{"status": "amended", "impact": {"versions": [
+ {"corpus_id": "alpha", "frames_directory": ".../corpus/alpha/frames"}],
+ "not_compared": [
+ {"corpus_id": "broken", "reason": "unreadable"},
+ {"corpus_id": "legacy", "reason": "other_schema"}]}}
+```
+
+`src/ss_track/corpus/versions/impact.py` reads `$DATA_DIR/corpus/*/manifest.json` through
+`scan_versions` in `scan.py` and matches `source_manifest_sha256` on each major's comparison projection.
+Corpus majors 2 and 3 carry that pin. Corpus major 1 keeps no projection, so a version of that
+major is named `other_schema` rather than matched on its sequences. `--redecode` lists the same
+way when it replaces a record. The
+[amendment-impact record](../records/0034-corpus-provenance-amendment-impact-report.md) holds the
+accepted task.
+
 Rebuilding it is `RIGHTS_CONFLICT` if its scenario now asks too much, or `CORPUS_CONFLICT`, so
-continuing needs a new corpus version, which may supersede the refused one. Its frames stay on disk
-until an operator removes them, and `amendment-impact-report` in the
-[plan](../plan.md#amendment-impact-report-optional) schedules a listing of the versions that hold them.
+continuing needs a new corpus version, which may supersede the refused one.
 An amendment reaches one data root: another host keeps its record until it is amended there, and
 `corpus compare` reports the difference.
 
@@ -485,6 +745,10 @@ is `rgb24`. The policy hash covers all of these options:
 | `ACCURATE_RND`, `BITEXACT` conversion | Without them FFmpeg's SIMD and C paths round differently, so pixels depend on the CPU |
 | `FULL_CHR_H_INT`, `FULL_CHR_H_INP` conversion | Without them chroma is repeated instead of interpolated and lands in the wrong place |
 
+That inspection reads the video stream named under
+[Video stream selection](#video-stream-selection).
+The shared policy hash does not include the index.
+
 Exit status alone is not enough evidence, so `inspect_media` also refuses on a demuxer corrupt-packet
 flag, a decoder corrupt-frame flag, and any FFmpeg ERROR log. The log is the only signal for an FFV1
 CRC mismatch and for most truncated Matroska files. FFmpeg's repeat filter stays off while reading,
@@ -497,11 +761,59 @@ that honors rotation must map its coordinates back to the stored orientation.
 `src/ss_track/corpus/decoding/pixels.py` owns the conversion to `rgb24`. It honors the stored color matrix,
 range and chroma location, and converts neither primaries nor transfer function, so an HDR source
 keeps its gamut and curve in 8-bit values. A source with no matrix tag is converted as BT.601, which
-misreads BT.709 content: a pure BT.709 red becomes `(233, 0, 2)`. Staging warns, and nothing guesses
-a tag the source lacks. Unspecified chroma location means center. Sources deeper than 8 bits lose
+misreads BT.709 content: a pure BT.709 red becomes `(233, 0, 2)`. Staging warns. An operator may
+declare that missing matrix; see [Declared color matrix](#declared-color-matrix). Nothing is guessed
+from resolution. Unspecified chroma location means center. Sources deeper than 8 bits lose
 precision and alpha is dropped. Interlaced frames stay woven and convert as progressive, so they are
 counted in `interlaced_frames`. Changing any stored color tag within a stream is
 `SOURCE_FORMAT_CHANGED`, which keeps one recorded description true of every frame.
+
+### Declared color matrix
+
+`color.matrix` on a recording declaration fills a matrix tag the file does not store.
+`src/ss_track/corpus/decoding/declared_color.py` checks it after the decode. The stored
+`color.matrix` stays unspecified (`2`). The source sequence and each bundle gain `declared_color`,
+holding that matrix's FFmpeg code and `origin` `declared`, only when conversion used the
+declaration. `PixelConverter` passes the matrix only when the frame's own tag is unspecified, so a
+stored tag stays the one conversion uses.
+
+A declaration that disagrees with a stored tag, and one on a pixel format that uses no matrix, are
+`COLOR_TAG_CONFLICT` and leave nothing imported. A declaration that matches a stored tag is accepted
+and omitted from the record, because the file's tag is already the one conversion uses. An
+undeclared source keeps its previous manifest bytes, and an untagged matrix still converts as
+BT.601. Adding, dropping or changing the declaration later is `IMPORT_CONFLICT` on import,
+amendment and redecode, as with any other capture fact.
+
+The names are the matrices conversion can apply: `bt709` (1), `bt601` (6, SMPTE 170M), `bt2020`
+(9), `fcc` (4) and `smpte240m` (7). `bt601` is applied with swscale's ITU 601 coefficients. Range,
+primaries, transfer and chroma location stay the stored tags. A generated case inherits
+`declared_color` with the rest of its parent record.
+`tests/corpus/decoding/test_pixels.py` and `tests/corpus/sources/test_declared_color.py` cover the
+conversion, the refusal and the record. The
+[task record](../records/0042-corpus-provenance-declared-color-tags.md) holds the acceptance.
+
+### Decode time limit
+
+`src/ss_track/corpus/decoding/deadline.py` bounds one strict decode to `DECODE_LIMIT_SECONDS`,
+24 hours. The bound is not part of the decode policy and does not change a hash. The loop checks
+a monotonic clock before each packet is decoded, before each frame is written and after the
+consumer returns. A caller may pass another clock. Past the limit the refusal is
+`DECODE_TIME_EXCEEDED` and names `limit_seconds`, `elapsed_seconds` and `frames_decoded`. A whole
+number of seconds is stored as an integer.
+
+Import, redecode and staging publish only after that decode returns, so the refusal leaves no
+source, replacement or bundle. SIGINT during those commands is `INTERRUPTED` and removes the same
+scratch before the record is written. A second SIGINT while the record is being written still
+exits 1.
+
+A decoder call that never returns to Python is not stopped. Staging removes that run's scratch
+the next time it takes the lock. An import that dies inside the decoder leaves an `.incoming-`
+directory under `import/`, and the next import that finds no other import running removes it.
+`tests/corpus/decoding/test_decode_limit.py` covers the bound, including a decode that lands on
+it. `tests/corpus/test_interruption.py` covers SIGINT and a command past the limit for import and
+stage. The
+[task record](../records/0043-corpus-provenance-decode-interruption-safety.md) holds the
+acceptance.
 
 The decoder runs in process, not through the `ffmpeg` binary that `ss-video` and `ss-fusion` call.
 This corpus needs a decoder version fixed by `uv.lock`, its behavior covered by `make ci`, and frame
@@ -512,47 +824,147 @@ killed recording with no `moov` as `SOURCE_UNREADABLE`.
 A record states the policy that produced it. A new policy revision therefore refuses every earlier
 record: `corpus build` and `corpus stage` with `DECODE_POLICY_MISMATCH`, and `import` of the same
 source with `IMPORT_CONFLICT`. An [amendment](#withdrawing-rights) still records new terms, and the
-record keeps its policy. A new policy needs a fresh data root today, and `decode-policy-reimport` in
-the [plan](../plan.md#decode-policy-reimport-optional) schedules a route that keeps the stored source.
+record keeps its policy.
+
+### Redecoding under a new policy
+
+```bash
+ss-track import --source recording.yaml --redecode                   # carries its terms over
+ss-track import --source recording.yaml --redecode --amend-terms     # takes terms from this file too
+```
+
+```json
+{"status": "redecoded", "source_sha256": "...", "manifest_sha256": "...",
+ "replaced_manifest_sha256": "...", "replaced_path": "...", "changed_terms": [],
+ "decode_policy_current": true, "manifest_path": "..."}
+```
+
+`src/ss_track/corpus/sources/redecode.py` decodes the one stored copy again under the policy
+installed today, and writes the result the same way an amendment does, through
+`replacement.py`: under the shared `.amendment.lock`, keeping the replaced record in `replaced/`
+first and then replacing the manifest by one rename, so a run killed at any point leaves one whole
+record and a rerun finishes it. Import and redecode build the record's `sequence` with the one
+function in `source_record.py`, so a redecode writes what an import of those bytes would. A repeat
+reports `unchanged`. The stored source is read, decoded and left byte-identical; its hash is checked
+again first, and a source that no longer matches it is `SOURCE_HASH_MISMATCH`.
+
+A plain `--redecode` carries the existing `rights` and `sensitivity` forward unchanged, exactly as
+recorded, because terms are never invented. A record whose carried terms then fall short of the
+current major, such as a schema 1 record still missing `retain_until` and `derived_frames`, is
+`RECORD_SCHEMA_UNSUPPORTED` naming `--amend-terms`. Adding `--amend-terms` takes the terms from the
+declaration instead, exactly as a plain amendment does, so a record too old for `--amend-terms`
+alone -- one still short a decoded fact too -- reaches the current major only this way, because the
+decode and the declared term arrive together. `successor_of` in `replacement.py` raises this
+refusal from either path.
+
+Every corpus version that pinned the old record then refuses at `corpus stage` and `corpus verify`
+with `SOURCE_RECORD_CHANGED`, exactly as after an amendment, and the result lists them in `impact`
+the same way. A new corpus version built after the redecode accepts the source. `capture` and
+capture-clock evidence cannot change through a redecode either, so a declaration that disagrees
+with the carried record is `IMPORT_CONFLICT`.
 
 ## Frame bundles
 
 `corpus stage` writes one bundle per stream of a built corpus, with the same strict decode as
-import. `src/ss_track/corpus/bundles/bundle_writer.py` writes a bundle and `src/ss_track/corpus/bundles/staging.py`
-runs the command.
+import. Pending streams of one source share that decode. `src/ss_track/corpus/bundles/staging.py`
+groups them, `src/ss_track/corpus/bundles/bundle_writer.py` fans the frames out, and
+`src/ss_track/corpus/bundles/publish.py` publishes that pass together.
 
 | Path | Content |
 | --- | --- |
 | `00000012.rgb24` | One frame: tightly packed RGB rows, `width * height * 3` bytes, no padding |
 | `manifest.json` | Sealed record with the frame index, per-frame SHA-256 and `bundle_sha256` |
 
+The decode reads every frame, including frames no stream stores. Seeking to a window would skip the
+proof that the stored source still matches its import. Only a frame inside a pending selection is
+converted. Each stream keeps its own converter and sees only its own frames, so its pixels match a
+stage of that stream alone. A build refuses a frame named by two selections. The writer still stores
+that frame in each selection, which keeps the bundle hash equal to a stage of that stream alone.
+
 Frame names and `frame_index` are positions in the source sequence, so a selection keeps them: a
-window `[5, 9)` holds frames 5 to 8, and labels stay aligned with any window. A bundle holds only its
-selection, even though staging decodes the whole source to prove it still matches its import.
+window `[5, 9)` holds frames 5 to 8, and labels stay aligned with any window. A bundle holds only
+its selection.
 
 `bundle_sha256` covers the `identity` block: source hash, decode policy hash, pixel format, width,
 height, bytes per frame, time base, selection and the ordered index of frame index, PTS and frame
 hash. Nothing else enters it, so two stagings of one source and window under one policy give one
 hash, whatever the corpus or stream is called. The record separately holds the source pixel format
-and bit depth, `precision_reduced`, stored color tags, display rotation, interlaced frame count,
+and bit depth, `precision_reduced`, stored color tags, `declared_color` when conversion used a
+declared matrix, display rotation, interlaced frame count,
 timestamp quality, its `stream_id` and the links to its corpus and source manifests.
 
-Staging trusts nothing from before it ran. It re-hashes the stored source, requires the installed
-decode policy, requires the source record the corpus pinned, and refuses with `DECODE_DRIFT` if this
-decode disagrees with the import record in any field. It checks free space first, because raw frames
-dwarf their source: 14 MB of H.264 became 3.5 GB at 1080p. On the development host that clip staged
-at 74 frames per second with an 87 MB peak.
+Staging trusts nothing from before it ran. It re-hashes each stored source once on a pass, requires
+the installed decode policy, requires the source record the corpus pinned, and refuses with
+`DECODE_DRIFT` if this decode disagrees with the import record in any field. One stream is named
+`stream_id`. Several are named `stream_ids`, in corpus order. It checks free space for the frames
+those pending streams will store before decoding, because raw frames dwarf their source: 14 MB of
+H.264 became 3.5 GB at 1080p. On the development host that clip staged at 74 frames per second with
+an 87 MB peak.
 
-Frames are written to a scratch directory and published by one rename, so a failure leaves no bundle.
-One staging runs per corpus, under a lock the kernel releases however a run ends. A second run gets
-`STAGING_IN_PROGRESS`, and the next run to take the lock removes what a killed run left behind.
-Streams finished before a refusal stay staged, and repeating the command skips them.
+Each new bundle is written in a scratch directory. The pass renames them into place only after the
+source has decoded and every manifest is sealed, so a failure before that leaves none of them. A
+rename that fails, or an interruption while they are moving, removes the ones already renamed.
+Scratch that never moved is removed with its temporary directory. A decode past its
+[time limit](#decode-time-limit), or a SIGINT during the decode, is refused before publication, so
+that pass leaves no bundle. A source published before the
+failure stays staged, including a stream listed after the one that failed, and repeating the command
+decodes only a source that still has a missing bundle. One staging runs per corpus, under a lock
+the kernel releases however a run ends. A second run gets `STAGING_IN_PROGRESS`, and the next run
+to take the lock removes what a killed run left behind. A kill that the process cannot catch can
+leave a complete bundle of that pass; the next stage keeps it and decodes the source again only for
+what is still missing.
 
-Repeating `corpus stage` re-hashes each existing bundle and reports `unchanged`. A bundle staged from
+Repeating `corpus stage` re-hashes each existing bundle and reports `unchanged`. A source whose
+streams are all present is left unread. A reduced-precision or untagged-matrix warning is logged
+once for the source, naming every stream of the pass. A bundle staged from
 another corpus version, or one sitting under another stream's path, is `BUNDLE_CONFLICT`, so moving a
 bundle cannot carry frames into another split. A bundle is immutable: frames are mode `0444`, the
 directory is `0555`, and a damaged one is never repaired in place. Remove it with
-`chmod -R u+w <bundle> && rm -rf <bundle>`, then stage again; the hash comes back the same.
+`chmod u+w <bundle> && rm -rf <bundle>`, then stage again; the hash comes back the same. `chmod`
+applies to the directory only. A generated case may hard-link a parent frame, and a reused bundle
+may hard-link every frame. Changing that file's mode would change every name of the inode.
+`tests/corpus/bundles/test_single_pass.py` checks one decode per source, hashes that match a
+per-stream stage, and a failure that publishes nothing from the pass. The
+[task record](../records/0036-corpus-provenance-staging-single-pass.md) holds the acceptance.
+
+### Reusing a linked version
+
+A later version that keeps a source does not decode it again when a linked version on the same
+data root already sealed the same bundle. `src/ss_track/corpus/bundles/reuse_offers.py` walks the
+declared chain, nearest first, and keeps a candidate whose layout matches: source hash, decode
+policy hash, pixel layout and selection. `src/ss_track/corpus/bundles/reuse.py` then re-reads that
+candidate's frame index, predicts `bundle_sha256`, and checks every frame file. The new version
+hard-links those files and writes its own bundle record, with its own corpus id, stream id and
+seals, over the same identity. The command status stays `staged` when the frame set is written.
+Each reused bundle reports status `reused` and `reused_from`, naming the corpus and stream the
+frames came from. A repeat of that version reports `unchanged` and does not name an origin again.
+
+The prediction uses the sealed index, so a different window or policy never matches and that
+stream is decoded. A version the declaration does not link is not a candidate. A missing
+predecessor manifest ends the chain, so versions behind it are not candidates. One bundle that
+is missing, whose schema this code does not read, or whose hash does not cover its identity is
+skipped. `BUNDLE_CONFLICT` still refuses. A candidate whose files differ from its index is
+`FRAME_CORRUPTED`. The refusal names the stream being staged and the candidate corpus and stream.
+That source is not linked and not decoded, and an older intact copy is not tried. Repair or
+remove the named bundle, then stage again.
+
+`src/ss_track/corpus/bundles/frame_store.py` links each frame. A host that cannot link, including
+a link across devices, abandons that stream's scratch and decodes it. Other errors still refuse.
+Linked frames stay mode `0444`; the new directory is `0555`. The stored source is hashed before
+any link, so a damaged source is `SOURCE_HASH_MISMATCH` and nothing is linked.
+
+A generated case is not reused from another version. A case of a reused parent is still written,
+and frames it leaves unchanged hard-link to that parent. Removing one version removes only its
+directory names. Change the mode of the directories, not the frame files, then delete the tree.
+The other version stays readable, and `corpus verify` of it succeeds. Two names of one inode
+share damage: a changed frame is named for every bundle that holds it.
+
+`tests/corpus/bundles/test_bundle_reuse.py` and `test_bundle_reuse_bounds.py` cover a kept source,
+a damaged candidate, a removed version, another window or policy, an unlinked copy, a host that
+cannot link, a match further back in the chain, one source with two windows, a damaged source,
+and a case of a reused parent. The
+[task record](../records/0047-corpus-provenance-bundle-reuse-across-versions.md) holds the
+acceptance.
 
 ### Frame set
 
@@ -666,10 +1078,13 @@ A record is sealed against accidents, not against a person, like every seal here
 
 `tests/corpus/hosts/_fixed_sources.py` holds the fixed corpus, `arch-fixed-v1`: 71 sources through 20
 decoders and 28 pixel formats, with odd and short-row sizes, several color matrices and chroma
-sitings, plus all seven transforms, and `tests/corpus/hosts/_fixed_corpus.py` holds the commands that
-write and stage it. Each row states the format it must decode as. Its sources are written by one
-host and carried to the other, so no binary enters the repository, and the [developer tooling
-page](developer-tooling.md#quality-gates) describes the job that does this.
+sitings, plus every generated-case transform, and `tests/corpus/hosts/_fixed_corpus.py` holds the
+commands that write and stage it. Each row states the format it must decode as. Its sources are
+written by one host and carried to the other, so no binary enters the repository, and the
+[developer tooling page](developer-tooling.md#quality-gates) describes the job that does this. The
+host rows below were measured when the fixture held seven transforms (78 bundles, 879 frames).
+Compression, variable timing and the track-following cases are integer transforms. Their bytes are
+pinned by the golden hashes, which that job runs with the rest of the fixture.
 
 | Host pair | Result |
 | --- | --- |
@@ -770,7 +1185,17 @@ every frame of every stream and names each damaged file with its stream:
 
 The reason is `hash_mismatch`, `missing` or `unexpected_file`. `damaged_count` is always complete; the
 list names the first 32. A stage over a damaged bundle and a read of a damaged frame refuse the same
-way, so a changed frame cannot reach a module.
+way, so a changed frame cannot reach a module. A case frame that is a hard link of its parent is the
+same inode, as is a frame reused from a linked version. Damage is named once for every bundle that
+holds that file, and removing one name leaves the others. A frame the case copied is named alone.
+
+`src/ss_track/corpus/bundles/verification.py` holds `corpus verify`, and `staging.py` holds
+`corpus stage`. Verify opens each bundle record once. Stage opens a parent once for a run of its
+cases, holding one parent's index at a time. Both hash a file with more than one name once per
+command (`FileDigests` in `src/ss_track/corpus/bundles/frames.py`), because every name of one inode
+reads the same bytes. A check therefore costs the frames that
+differ, not the names. On one 20,000-frame stream with eight cases, three of them only repeating or
+dropping frames, `corpus verify` fell from 4.5 s to 3.6 s and a repeated stage from 4.4 s to 3.6 s.
 
 A `verified` result covers source records and frames, not stored source bytes. Only `corpus build`
 and staging a new bundle read those, so `corpus verify` and a repeated `corpus stage` do not notice a
@@ -800,16 +1225,48 @@ parent stream and has no other home:
 | `dropped_frames` | `count` | Which frames | `frame_map`, listing `removed` |
 | `duplicated_frames` | `count` | Which frames | `frame_map`, listing `repeated` |
 | `short_occlusion` | `region` | One rigid noise texture | `region_status`: `fully_occluded` inside, `partially_occluded` overlapping |
+| `compression` | `max_step` (1 to 255) | Each frame's quantization step, from 1 | `compression`: encoder, block and each step |
+| `variable_timing` | `max_scale` (2 to 16) | Each scaled gap's integer multiple, from 2 | `timing`: `timestamp_quality: derived` and the scaled gaps |
+| `crossing_occluder` | `label_revision`, `instance_id`, `track`, `cover` | One of four axis directions, and one texture | `track_status`: the box fully occluded on `cover`, then one pixel farther each frame |
+| `moving_removal` | `label_revision`, `instance_id`, `track`, `plate_frame`, `noise` (0 to 255) | Per-frame noise | `track_status`: `absent` inside each box, `unknown` on its boundary |
+| `similar_distractor` | `label_revision`, `instance_id`, `track` | Which side receives the copy | `track_status`: the copy is a distractor, and the target stays |
+| `out_of_view` | `label_revision`, `instance_id`, `track`, `outside` | Which edge the box leaves through | `track_status`: `out_of_view` on `outside`, then `reentry` |
 
 `region` is `{x, y, width, height}` in stored orientation, and each `region_status` also carries
 `frames`, `region` and `overlap_geometry: unlocalizable`. Pixels outside a case's window keep their
-parent's exact bytes. `short_occlusion` needs parent frames on both sides of its window, so a window
+parent's exact bytes and, on one filesystem, that frame's disk space. `short_occlusion` needs parent
+frames on both sides of its window, so a window
 is required in practice. One `blur` draw is an edge-repeating box filter of `2 * radius + 1`, applied
-per axis. `camera_shake` repeats the nearest pixel at an exposed edge.
+per axis. `camera_shake` repeats the nearest pixel at an exposed edge. `compression` revision 1 is
+the encoder `block-quant-rgb24-v1`. Each 8x8 block, and any leftover edge rectangle, becomes its
+average, rounded half-up to a multiple of that frame's step and clamped to 0..255. Step 1 already
+flattens a block to its average. The encoder name and the block size are part of the revision, so
+another encoder is another revision. `variable_timing` multiplies the presentation gap that ends at
+each selected frame inside the window. It does not change pixels. The
+[compression and timing record](../records/0044-corpus-provenance-compression-and-timing-cases.md)
+holds the acceptance.
 
-Nothing here knows where a target is. A `region` must cover the target for the whole window, and for
-`target_absence` the plate frame must not show it there. Both are the operator's claims, and a wrong
-one makes a false negative interval. A moving target needs a rectangle covering its whole path.
+The region transforms do not know where a target is. A `region` must cover the target for the whole
+window, and for `target_absence` the plate frame must not show it there. Both are the operator's
+claims, and a wrong one makes a false negative interval. A region case that follows a moving
+target needs a rectangle covering its whole path.
+[Case preview](#case-preview) draws that rectangle on one staged frame.
+
+A track case names `label_revision`, `instance_id` and `track`. `track` lists a `frame_index` and a
+`box` for each frame that has a scorable box. `cover` and `outside` are half-open intervals that
+sit strictly inside the case window, with at least one window frame on either side.
+`crossing_occluder` revision 1 draws one of four axis directions and paints one full-frame texture.
+On `cover` the painted rectangle is the box. On the other window frames it stands one pixel farther
+from the nearest covered frame. A rectangle that lies fully outside the frame leaves that frame
+unchanged. `moving_removal` copies each box from `plate_frame` and adds noise of at most `noise`.
+`similar_distractor` copies the box to the first seed-ranked side that fits, sharing an edge and
+leaving the target uncovered. If no side fits, the case is `CASE_INVALID`. `out_of_view` draws one
+edge and shifts by the smallest whole-pixel amount that puts the box outside that edge. A later
+frame that still has a box is re-entry and keeps its pixels. A frame with no box is `unknown` in
+every one of these cases and keeps its pixels. The label kind is `track_status`: one entry per
+window frame, with role `unknown`, `region`, `shift`, `reentry` or `unchanged`. The
+[track-following record](../records/0045-corpus-provenance-label-driven-cases.md) holds the
+acceptance.
 
 ### Membership
 
@@ -839,33 +1296,104 @@ stage reports it `unchanged`. A case is an ordinary bundle, read through `open_f
 
 `bundle_sha256` covers that identity, so one recipe over one parent gives one hash whatever the
 corpus or case is called. A case whose `parent_bundle_sha256` is not its parent's current bundle is
-`BUNDLE_CONFLICT`. A case that changes no frame, such as a blur over a uniform clip, is `CASE_INVALID`
-at staging, and that corpus version then needs replacing. Streams and cases finished before a refusal
-stay staged.
+`BUNDLE_CONFLICT`. A case that changes neither pixels nor presentation time, such as a blur or a
+block compression of a uniform clip, is `CASE_INVALID` at staging, and that corpus version
+then needs replacing. A change of presentation time counts, so variable timing of a uniform
+clip is staged.
+Streams and cases finished before a refusal stay staged.
 
-A case keeps each frame's source index and PTS. `dropped_frames` leaves a gap in both, and reading a
-removed frame is `FRAME_NOT_IN_BUNDLE`, so a removed operator seed frame needs a window that avoids
-it. `duplicated_frames` repeats the previous frame's pixels at a frame's own index and PTS, with
-`content_frame_index` naming the frame shown; a run of repeats all show the last real frame, and the
-first frame of a selection is never repeated. Labels follow pixels, so a repeated frame takes the
-labels of the frame it shows. Such a frame's PTS is no longer a capture time, so a `measured` parent
-gives a `derived` case with no capture-clock evidence. A `missing` parent stays `missing`.
+A case keeps each frame's source index. `dropped_frames` leaves a gap in the index and in PTS, and
+reading a removed frame is `FRAME_NOT_IN_BUNDLE`, so a removed operator seed frame needs a window
+that avoids it. `duplicated_frames` repeats the previous frame's pixels at a frame's own index
+and PTS, with `content_frame_index` naming the frame shown. A run of repeats all show the last
+real frame, and the first frame of a selection is never repeated. Labels follow pixels, so a
+repeated frame takes the labels of the frame it shows. Such a frame's PTS is no longer a capture
+time, so a `measured` parent gives a `derived` case with no capture-clock evidence. A
+`missing` parent stays `missing`.
+`compression` keeps each frame's PTS and the parent's timestamp quality, and it hard-links frames
+outside its window. `variable_timing` keeps every pixel, so every frame hard-links. It multiplies
+the gap ending at each frame inside the window by an integer from 2 to `max_scale`. Frames before
+the window keep their PTS. Every later frame, including frames outside the window, keeps its parent
+interval and starts from the new time, so PTS stays strictly increasing. The case is `derived` and
+stores no capture-clock evidence: a changed PTS never stays `measured`. A parent whose timestamp
+quality is `missing` is refused at build, because the case does not invent a presentation time.
+
+`src/ss_track/corpus/bundles/frame_store.py` writes each frame. When the bytes hash to the parent
+frame they were read from, the name in scratch is a hard link to that file, and publishing the
+scratch directory keeps the link. A filesystem that refuses the link, including a link across
+devices, stores a copy of the same bytes. The sealed index and `bundle_sha256` are the same either
+way. Free space is reserved for frames the case may change. A case that only drops or repeats
+frames, or that only changes presentation time, reserves none for pixels, because every stored frame
+is one of the parent's. If a filesystem shares
+a device and then refuses the link, the copy can still run out of space: the command reports
+`STORAGE_FAILED` and leaves that case unstaged.
 
 On the development host, on tmpfs, four cases of 300 1080p frames took 37 s on top of staging their
 parent, about 33 frames per second, with a 227 MB peak. A blur of radius 9 costs about 65 ms per
-frame. Each case holds a full copy of its raw frames: 1.8 GB here, the same as its parent.
+frame. A case that changes every frame still stores about 1.8 GB of new pixels. Frames it leaves
+untouched add none. The [task record](../records/0039-corpus-provenance-bundle-frame-sharing.md)
+holds the acceptance.
 
 ### Reproducibility
 
-`src/ss_track/corpus/cases/transforms.py` and `region_transforms.py` hold the transforms. Each is a pure
-function of frames, parameters and seed, in integer arithmetic only, and `seeded.py` derives every
-random value with SHAKE-256 rather than a library generator whose stream may change.
+`src/ss_track/corpus/cases/transforms.py`, `field_transforms.py`, `region_transforms.py` and
+`track_transforms.py` hold the transforms. `track_labels.py` holds the `track_status` record.
+Each transform is a pure function of frames, parameters and seed, in integer arithmetic only, and
+`seeded.py` derives every random value with SHAKE-256 rather than a library generator whose stream
+may change.
 
 `TRANSFORM_REVISIONS` versions each transform. A change to what one produces must raise its
 revision, and `tests/corpus/cases/test_transform_golden.py` fails until it does. The installed
 revision is stored in each case, and a stored case of another revision, or of a transform that no
 longer exists, is `TRANSFORM_REVISION_MISMATCH` before anything is written. A case is never silently
-regenerated as different evidence.
+regenerated as different evidence. `compression` revision 1 names the encoder
+`block-quant-rgb24-v1` and an 8x8 block. Changing that encoder, or what it writes, raises the
+revision.
+
+## Case preview
+
+`corpus preview` writes one PNG of a single staged frame so an operator can check a declared
+region by eye. The left panel is the parent frame. Each generated case of that stream follows, in
+`case_id` order, with no gap. The command reads the bundles and writes only `--out`, which must
+sit outside the corpus directory. It draws no label boxes and it does not change a bundle.
+
+A case whose label transform is `region_status`, and whose window contains the frame, has that
+rectangle's perimeter replaced with RGB (255, 0, 0). The outline uses the region's own pixels,
+including a rectangle that touches the frame edge. Pixels inside and outside that perimeter stay
+as the case stored them. The parent panel is not outlined. A case with no operator rectangle on
+that frame, such as blur, compression, variable timing, a `track_status` case, or a frame outside
+the window, is shown unchanged. A track case names per-frame boxes, and preview does not draw them.
+
+A frame the case does not hold, which is how `dropped_frames` leaves a gap, is a panel of RGB
+(255, 0, 255) in that case's place. The case is not dropped from the sheet. This is not
+`FRAME_NOT_IN_BUNDLE`: that refusal is for a frame the parent itself does not hold. The result
+names each panel `parent`, `case` or `removed`. A `case` panel includes `region` only when an
+outline was drawn.
+
+The encoder is `stored-deflate-rgb24-v1`: RGB rows, a none filter, and uncompressed deflate
+blocks. The same frame therefore has the same bytes on every zlib build. The file holds the raw
+rows plus one filter byte per row and a short header, because the pixels are not compressed.
+`png_sha256` covers those bytes. A repeated command writes the same bytes. A refusal leaves an
+existing `--out` untouched. An interrupt while the PNG is being written removes the scratch file
+and leaves `--out` untouched.
+
+Passing a case id is `CASE_INVALID` and names the parent. An unknown stream, or a case that was
+not staged, is `BUNDLE_NOT_STAGED`. A missing output directory, or an `--out` inside the corpus
+directory, is `STORAGE_FAILED`.
+
+```json
+{"status": "written", "corpus_id": "pilot-v1", "files": ["sheet.png"],
+ "preview": {"encoder": "stored-deflate-rgb24-v1", "stream_id": "enc01-cam0",
+  "frame_index": 0, "width": 1280, "height": 720, "frame_width": 640,
+  "frame_height": 720, "png_sha256": "...",
+  "panels": [{"role": "parent", "stream_id": "enc01-cam0"}]}}
+```
+
+`src/ss_track/corpus/cases/preview.py` builds the sheet and
+`src/ss_track/corpus/cases/preview_png.py` paints and encodes it.
+`tests/corpus/cases/test_preview_png.py` checks a hand-listed perimeter.
+`tests/corpus/cases/test_preview.py` and `test_preview_limits.py` check a staged stream. The
+[task record](../records/0035-corpus-provenance-case-preview.md) holds the acceptance.
 
 ## Timestamp quality
 
@@ -876,6 +1404,9 @@ regenerated as different evidence.
 | `measured` | Every frame stores a PTS, and the operator declared capture-clock evidence |
 | `derived` | Every frame stores a PTS, with no evidence of where it came from |
 | `missing` | At least one frame stores no PTS. Stored values are kept and absent ones stay `null` |
+
+A `variable_timing` case is always `derived` and stores no capture-clock evidence. A `compression`
+case does not change presentation time, so it keeps the parent's quality.
 
 Duplicate or decreasing PTS is `PTS_NON_INCREASING`, naming the first offending frame. Capture-clock
 evidence for a stream with missing PTS is `TIMESTAMP_CLAIM_UNSUPPORTED`. Under `nofillin`, AVI and
@@ -896,8 +1427,8 @@ read path has three entries:
 | Entry | Returns | Used by |
 | --- | --- | --- |
 | `read_sealed` | Evidence: a record of the current major as written, or of a `view` major as the current major, in memory | Every command that uses a record |
-| `read_stated` | A record of the current major, or a `facts` or `view` major, as written, with its disposition | `ss-track import --amend-terms` only |
-| `read_comparable` | The seal, the major and the major's comparison projection, or none, for a record of any major | Lineage and shared-frame checks on predecessors |
+| `read_stated` | A record of the current major, or a `facts` or `view` major, as written, with its disposition | `ss-track import --amend-terms` and `--redecode` only |
+| `read_comparable` | The seal, the major and the major's comparison projection, or none, for a record of any major | Lineage, shared-frame checks and the near-duplicate report |
 
 A record of an earlier major takes the strictest disposition of each major it steps through, from the
 contract's change log (see [contracts](contracts.md#runtime-enforcement)). `read_sealed` serves only
@@ -957,9 +1488,12 @@ and `read_stated` returns it. A shape is read no more freely than its major, so 
 it. This replaced the key check `corpus/sources/terms.py` held.
 
 **Comparison projections.** `src/ss_track/corpus/records/projections.py` holds, per kind and major,
-the facts a leak guard reads from a record as written: a corpus version's `corpus_id`, seal, decode
+the facts a comparison reads from a record as written: a corpus version's `corpus_id`, seal, decode
 policy hash, `supersedes` and each stream's `stream_id`, `source_sha256`, `group_id` and `split`,
-and a bundle's pins and `(frame_index, sha256)` pairs. Corpus majors 2 and 3 and bundle majors 2 and
+plus `content_sha256` when the source identity is not the file hash,
+`source_manifest_sha256`, which the amendment listing matches, and `selection` (`start_frame`,
+`end_frame`) when the record carries a frame window, and a bundle's pins and
+`(frame_index, sha256)` pairs. Corpus majors 2 and 3 and bundle majors 2 and
 3 have one, whatever their disposition. Corpus major 1 states no group or split, so it has none, and
 nor does bundle major 1, which only a major-1 version staged. A record lacking a fact its projection
 reads is `RECORD_TAMPERED`, as is any sealed record a reader walks and finds short of a fact:
@@ -991,43 +1525,47 @@ accepted task, its decisions and its evidence.
 
 | Code | Raised when |
 | --- | --- |
-| `MANIFEST_INVALID` | A declaration is unreadable, breaks its contract, or breaks a reader rule above |
+| `MANIFEST_INVALID` | A declaration is unreadable, breaks its contract, or breaks a reader rule above, or a `--run-id` is not an identifier |
 | `SOURCE_NOT_FOUND` | The declared source does not exist |
 | `SOURCE_UNREADABLE` | The source is not a readable file, cannot be opened, or has no usable video stream |
 | `SOURCE_EMPTY` | The source has zero length |
 | `SOURCE_HASH_MISMATCH` | Bytes differ from the declared or imported hash, or the stored source is gone |
 | `SOURCE_DAMAGED` | Decoding or a completeness check shows truncation or corruption |
+| `DECODE_TIME_EXCEEDED` | A strict decode ran longer than the declared time limit. Details name the limit, the elapsed time and the frames decoded |
 | `SOURCE_NO_FRAMES` | The media opened but decoded to no frames |
 | `SOURCE_FORMAT_CHANGED` | Resolution, pixel format or display rotation changes within the stream |
+| `VIDEO_STREAM_UNSPECIFIED` | The declaration does not name a video stream this container holds. Details list every video stream |
+| `COLOR_TAG_CONFLICT` | A declared color matrix disagrees with a stored tag, or the pixel format has no matrix to fill |
 | `PTS_NON_INCREASING` | Stored PTS repeats or goes backward |
 | `TIMESTAMP_CLAIM_UNSUPPORTED` | Capture-clock evidence was declared without complete PTS |
 | `SELECTION_OUT_OF_RANGE` | A selection runs past the end of its sequence |
 | `SOURCE_NOT_IMPORTED` | A corpus names a source with no import record |
 | `SOURCE_RECORD_CHANGED` | A source's record differs from the one its corpus pinned, at stage or verify |
-| `SPLIT_LEAKAGE` | A group, encounter, stream or case name is declared in two splits, two groups share a source or a run of identical frames, or a source or group sits elsewhere than a declared predecessor placed it |
-| `STREAM_OVERLAP` | Two streams use the same frames of one source |
+| `SPLIT_LEAKAGE` | A group, encounter, stream or case name is declared in two splits, two groups share a source, a file, or a run of identical frames, or a source, file or group sits elsewhere than a declared predecessor placed it |
+| `STREAM_OVERLAP` | Two streams use the same frames of one source, or two streams of one group share a run of identical frames |
 | `RIGHTS_CONFLICT` | Scenario sharing/sensitivity conflicts or a generated case lacks derivation permission |
 | `RETENTION_EXPIRED` | The evaluation day is after a source's inclusive retention deadline |
-| `CASE_INVALID` | A generated case does not fit its parent, or changes no frame of it |
+| `CASE_INVALID` | A generated case does not fit its parent, changes no frame of it, does not match its parent's frame shape, or is named where preview expects the parent stream |
 | `TRANSFORM_REVISION_MISMATCH` | A stored case needs a transform revision this code does not provide |
-| `RECORD_TAMPERED` | A sealed record is missing, malformed, of another kind or fails its seal, or a re-import finds changed stored bytes |
-| `RECORD_INVALID` | A writer produced a record its contract refuses; nothing is sealed or written. This is a defect of ss-track, not of the input |
-| `RECORD_SCHEMA_UNSUPPORTED` | [Any sealed record](#reading-sealed-records) is of a major or stated shape this code does not serve as evidence, including at a re-import or rebuild over it and a corpus without source terms, or an amendment finds a record it cannot write forward |
+| `RECORD_TAMPERED` | A sealed record is missing, malformed, of another kind or fails its seal, states a value its contract forbids, such as a declared color matrix no conversion applies or a bundle pixel format other than `rgb24`, or a re-import finds changed stored bytes |
+| `RECORD_INVALID` | A writer produced a record its contract refuses, a reused bundle hashed other than its candidate, or a preview sheet does not fit its own layout; nothing is sealed or written. This is a defect of ss-track, not of the input |
+| `RECORD_SCHEMA_UNSUPPORTED` | [Any sealed record](#reading-sealed-records) is of a major or stated shape this code does not serve as evidence, including at a re-import or rebuild over it and a corpus without source terms, or an amendment or a [redecode](#redecoding-under-a-new-policy) finds a record it cannot write forward |
 | `DECODE_POLICY_MISMATCH` | A source or pin uses a decode policy other than the installed one |
-| `IMPORT_CONFLICT` | The same source was imported at the current major with another declaration or decoder, or an amendment names bytes with no record or changes more than terms |
+| `IMPORT_CONFLICT` | The same source was imported at the current major with another declaration or decoder, or an amendment or a redecode names bytes with no record or changes more than terms |
 | `CORPUS_CONFLICT` | The `corpus_id` already exists with different content, or a superseded version differs from the seal its successor pinned, at build, stage or verify |
 | `CORPUS_NOT_BUILT` | The named corpus version or a version of its declared chain does not exist, or the identifier cannot name one |
 | `DECODE_DRIFT` | A staging decode disagrees with the import record of its source |
-| `BUNDLE_NOT_STAGED` | A stream has no staged frame bundle |
+| `BUNDLE_NOT_STAGED` | A stream has no staged frame bundle, or preview names a stream the corpus does not declare |
 | `BUNDLE_CONFLICT` | A bundle was staged from a different corpus version, for a different stream, or from other parent frames |
 | `FRAME_SET_NOT_STAGED` | Every bundle is staged but no frame set exists, so staging has not finished |
 | `FRAME_SET_MISMATCH` | Staged bundles differ from the frame set, or something undeclared sits among them |
 | `HASHES_NOT_COMPARABLE` | Two staged-hash records state different corpora, decode policies, sources or bundles |
 | `STAGED_HASHES_DIFFER` | Two hosts staged different bytes. The comparison is kept and names each source |
 | `STAGING_IN_PROGRESS` | Another run is staging this corpus version |
-| `FRAME_CORRUPTED` | A staged file differs from the sealed index, is gone, or is not in it |
+| `FRAME_CORRUPTED` | A staged file differs from the sealed index, is gone, or is not in it. A reuse candidate that differs is named and not linked |
 | `FRAME_NOT_IN_BUNDLE` | A bundle does not hold a frame index, including a frame a case dropped |
-| `STORAGE_FAILED` | The data root cannot be written, or lacks the space for raw frames |
+| `INTERRUPTED` | SIGINT stopped the command. Import and stage leave no scratch |
+| `STORAGE_FAILED` | The data root cannot be written, lacks the space for raw frames, or a preview PNG cannot be written outside the corpus directory |
 
 ## Integrity limits
 
@@ -1075,8 +1613,9 @@ Decoding cannot detect all corruption, because most video bitstreams carry no ch
 Only a hash taken at capture excludes this, so declare `source.sha256` when one exists. The manifest
 records this as `sha256_declared`; without it the hash proves only what bytes were imported.
 
-Import reads the first video stream, records how many there are and ignores audio. A strict decode
-can refuse a healthy-looking file that logs an FFmpeg error, such as a capture that starts mid-GOP;
+Import reads the named video stream, records how many there are and ignores audio. A file with one
+video stream may omit the index; a file with more than one must name one. A strict decode can
+refuse a healthy-looking file that logs an FFmpeg error, such as a capture that starts mid-GOP;
 the refusal carries FFmpeg's message.
 
 PyAV is BSD-3-Clause, but its wheels bundle FFmpeg libraries, including libx264 and libx265 whose
@@ -1086,12 +1625,17 @@ carries their notices.
 ## Verification
 
 `tests/corpus/` generates its media at test time through the pinned library, so no binary enters the
-repository. `tests/corpus/decoding/test_decode.py` covers the strict inspection,
-`test_decode_policy.py` the policy and its hash, and `test_decode_damage.py` the truncation sweep
+repository. `tests/corpus/test_commands.py` covers each command's one JSON record and failing status,
+and `tests/corpus/storage/test_scratch.py` the locks, scratch removal and atomic replacement every
+writer shares. `tests/corpus/decoding/test_decode.py` covers the strict inspection,
+`test_decode_limit.py` the time limit, `test_decode_policy.py` the policy and its hash, and
+`test_decode_damage.py` the truncation sweep
 over small H.264 Matroska and MP4 clips and the damage default decoding hides and the policy
 refuses. `tests/corpus/bundles/test_bundle_writer.py`, `test_bundle_writer_refusals.py`,
-`test_staging.py`, `test_frames.py`, `test_bundle_reader.py`, `test_frame_verification.py` and
-`test_pixels.py` cover staging, reading and verifying bundles, and `test_pixels.py` includes the
+`test_staging.py`, `test_single_pass.py`, `test_bundle_reuse.py`, `test_bundle_reuse_bounds.py`,
+`test_frame_store.py`, `test_frames.py`, `test_bundle_reader.py`, `test_frame_verification.py` and
+`test_pixels.py` cover staging, reuse, reading and verifying bundles, and
+`test_pixels.py` includes the
 comparison with FFmpeg's SIMD disabled. `tests/corpus/bundles/test_frame_set.py` covers the frame
 set across data roots, `test_frame_set_runs.py` an interrupted, failed or concurrent stage and the
 staging lock, and `test_frame_set_refusals.py` each refusal by name.
@@ -1103,30 +1647,43 @@ format. `tests/corpus/versions/test_grouping.py`, `test_grouping_manifest.py`,
 identity from build to `FrameRef`. `tests/corpus/versions/test_lineage.py` compares hand-built
 versions, and `test_lineage_build.py`, `test_lineage_leakage.py` and `test_lineage_chain.py` cover
 linked builds, leakage and broken chains from the declaration to the exit status.
+`test_unlinked_versions.py` and `test_unlinked_scan.py` cover sources placed elsewhere by a version
+no declaration links, and manifests the scan cannot read.
 `tests/corpus/bundles/test_shared_runs.py` covers the run rule on hand-written indexes, and
-`test_duplicate_frames.py`, `test_duplicate_frames_allowed.py`, `test_duplicate_frames_chain.py` and
-`test_duplicate_frames_unread.py` cover remuxed media from staging to the exit status, in one
-version, across a chain and where a chain cannot be read.
+`test_shared_runs_group.py` a run inside one group. `test_duplicate_frames.py`,
+`test_duplicate_frames_allowed.py`, `test_duplicate_frames_chain.py`,
+`test_duplicate_frames_unread.py` and `test_group_repeated_frames.py` cover remuxed media from
+staging to the exit status, in one version, across a chain, inside one group and where a chain
+cannot be read.
 `tests/corpus/sources/test_source_terms.py` covers retention boundaries at every entrypoint,
 unchanged evidence across evaluation dates, explicit permission, strict declarations and legacy
 records. `tests/corpus/sources/test_verify_rights.py` changes source terms through the real
 amendment and `test_verify_records.py` changes source records through the real importer, and both
 cover verification from the command's exit status to what each refusal names.
 `tests/corpus/declarations/test_declaration.py` and `test_declaration_values.py` cover the
-declaration readers. `tests/corpus/sources/test_amend_terms.py`, `test_amend_refusals.py` and
-`test_amend_records.py` cover the amendment from the command to the kept records, including a
-subprocess killed at each write and real schema 1 records from `tests/corpus/kept_records/`, each
-written by the code of the commit in its name. `tests/corpus/records/test_sealed.py` covers the
-read path itself, `test_sealing.py` the seal, the write and hashed copies, and
-`test_sealed_reads.py` scans for reads around the read path. `test_historic_records.py` reads every
-kept record through the read path and `test_historic_commands.py` runs each through the commands
+declaration readers. `tests/corpus/sources/test_amend_terms.py`, `test_amend_refusals.py`,
+`test_amend_records.py` and `test_amend_impact.py` cover the amendment from the command to the
+kept records and the versions that pin a replaced record, including a subprocess killed at each
+write and real schema 1 records from `tests/corpus/kept_records/`, each written by the code of
+the commit in its name. `tests/corpus/sources/test_redecode.py` covers
+`--redecode` and `--redecode --amend-terms` the same way: a simulated policy upgrade, a tampered
+stored source, a repeat, a subprocess killed at each write, and both kept schema 1 records, one
+through the sequential route and one that needs both flags together.
+`tests/corpus/sources/test_replacement.py` covers the record a successor keeps when the existing
+major is read through a view.
+`tests/corpus/records/test_sealed.py` covers the read path itself, `test_sealing.py` the seal, the
+write and hashed copies, and `test_sealed_reads.py` scans for reads around the read path.
+`test_historic_records.py` reads every kept record through the read path and
+`test_historic_commands.py` runs each through the commands
 that can reach it, `test_duplicate_frames_major.py` covers a predecessor's bundles of another major,
 real and unprojected, and `test_read_window.py` covers a synthetic next major read as a view and as
 `facts`, a view deriving a rights field, a decode policy mismatch through a view and the stated
-shape. `tests/corpus/cases/test_transforms.py`, `test_transform_recipes.py` and
-`test_transform_golden.py` cover each transform on hand-checkable frames and pin its bytes, and
-`test_recipes.py`, `test_generated_cases.py`, `test_case_membership.py`, `test_case_frames.py` and
-`test_case_refusals.py` cover recipes and cases from declaration to staged frames.
+shape. `tests/corpus/cases/test_transforms.py`, `test_transform_recipes.py`,
+`test_field_cases.py` and `test_transform_golden.py` cover each transform on hand-checkable
+frames and pin its bytes, and
+`test_recipes.py`, `test_generated_cases.py`, `test_case_membership.py`, `test_case_frames.py`,
+`test_frame_sharing.py` and `test_case_refusals.py` cover recipes and cases from declaration to
+staged frames.
 
 ```bash
 make test
