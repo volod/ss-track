@@ -224,10 +224,11 @@ module outputs and remains scorable when a policy elects not to use a sensor.
 
 Split by **independent encounter group**, not frame: related sequences from the same capture
 session, site, time, operator, camera trajectory and likely object instance remain together. Manual
-grouping is sufficient for the first small corpus; near-duplicate detection is added when volume
-justifies it. Generated perturbations inherit the parent's split. A locked set cannot be used for
-threshold tuning or module selection; accesses and re-scoring are audited. A public-space or
-protected-habitat capture is never solicited merely to fill a benchmark bin.
+grouping is sufficient for the first small corpus. A build reports a likely re-encoded copy that
+crosses groups, at a threshold whose recall and false-match rate were measured, and that report
+assigns no group and refuses nothing. Generated perturbations inherit the parent's split. A locked
+set cannot be used for threshold tuning or module selection; accesses and re-scoring are audited. A
+public-space or protected-habitat capture is never solicited merely to fill a benchmark bin.
 
 All synchronized modalities, derived streams, simulated dropouts and sensor-subset views of one
 encounter inherit the **same split and encounter ID**. Development, probability/cost calibration and
@@ -251,11 +252,12 @@ after its successor. A version that never finished staging was never evidence, s
 the version that repairs it. A remux inside one group of one version is the same frame counted
 twice, so stage and verify refuse it, in one encounter or two. A copy that replaces its original in
 that group of a linked version stays accepted, because no version counts the frame twice. A
-re-encoded copy stays a different source until near-duplicate detection exists, and a copy cut to
-windows sharing no frame stays invisible to frame hashes. Declaring `locked` records membership
-only: it creates no locked test and grants no held-out claim. A development scenario that names a
-locked stream is refused, and a locked evaluation needs the section 15 custodian and access policy,
-with each read recorded.
+re-encoded copy stays a different source. The build names it when its windows cross groups, and
+leaves a copy that stays in one group unnamed. The operator decides the grouping. Windows that
+share no frame, and a window of uniform frames, are not evidence of a copy. Declaring `locked`
+records membership only: it creates no locked test and grants no held-out claim. A development
+scenario that names a locked stream is refused, and a locked evaluation needs the section 15
+custodian and access policy, with each read recorded.
 
 A corpus version may name the version it supersedes. Material already evaluated in one split has been
 seen, so a source that a new version places in another split is refused, as is one moved to another
@@ -2523,7 +2525,7 @@ Group order alone never establishes readiness.
 | --- | --- | --- | --- | --- |
 | 1 | `reproducible-environment` | shipped | A fresh locked environment reaches the complete CI gate without manual repair | [Developer tooling](../impl/current/developer-tooling.md) |
 | 2 | `project-identity` | shipped | Import, CLI, and distribution-build tests agree on the project identity | [Product core](../impl/current/product-core.md) |
-| 3 | `corpus-provenance` | planned | Import/hash/canonical-decode, staged frame bundles, synchronized multi-stream grouping, generated cases, version lineage, duplicate-frame and source-term refusals and scenario-rights/split fixtures; malformed source yields structured failure | - |
+| 3 | `corpus-provenance` | planned | Import/hash/canonical-decode, staged frame bundles, synchronized multi-stream grouping, generated cases, version lineage, duplicate-frame and source-term refusals and scenario-rights/split fixtures; malformed source yields structured failure; a likely re-encode across groups is reported and not refused | - |
 | 4 | `self-supervised-corpus` | planned | Pinned sibling integrations and deterministic fixtures preserve authorized provenance and split isolation; reviewed audit samples compare recall, candidate yield, diversity and cost against a declared baseline, or report a valid negative | - |
 | 5 | `data-contracts` | shipped | Every shipped record and declaration conforms unchanged to its frozen contract; every section 17.3 change classifies as declared, with an independent checker agreeing on structure; real records of every historic major read under their disposition with no byte or hash moved; a consumer with only the contracts validates a record; optional descriptors validate and leak nothing | [Contracts](../impl/current/contracts.md) |
 | 6 | `annotation-selection` | planned | Two-reviewer G0 labels, stable class/instance IDs, frozen mask and identical seed replay | - |

@@ -481,8 +481,8 @@ bundle. The result is never sealed: it depends on what a data root holds, and a 
 
 What this cannot see:
 
-- A re-encoded copy shares no frame hash. `near-duplicate-detection` in the [plan](../plan.md) covers
-  it.
+- A re-encoded copy shares no frame hash. A build reports one that crosses groups; see
+  [Near-duplicates](#near-duplicates).
 - Windows of a copy that share no frame, such as `[0, 12)` of one and `[12, 24)` of the other. A
   stream with fewer than eight different frames cannot hold a run at all.
 - A copy that replaces its original in the same group of a linked version. No version holds both,
@@ -495,6 +495,64 @@ ten million hashes across 100 streams took 11 s, so the check costs about 3 s an
 frames compared. A million 1080p frames is 6 TB of bundles. The same-group check adds a membership
 test per candidate stream, not per frame. The
 [repeated-frames record](../records/0032-corpus-provenance-group-repeated-frames.md) holds the
+accepted task.
+
+### Near-duplicates
+
+`corpus build` compares a perceptual fingerprint across encounter groups and reports a likely
+re-encoded copy. It does not refuse, and it does not assign a group. The report is not sealed, so
+repeating a build of the same declaration keeps the corpus hash.
+`src/ss_track/corpus/versions/fingerprint.py` owns the fingerprint and `near_duplicates.py` the
+report. `near_duplicate_samples.py` reads the sampled frames.
+
+Method `luma-grid-16` takes 16 frames, spread through the declared window, and reduces each to a
+16 by 16 grid of box-averaged luma. The score is the normalized correlation of the two grids. A
+flat window, or two windows with different sample counts, scores 0. The threshold is 0.90.
+
+The threshold was measured on 2026-11-06 with PyAV 19.0.2, whose FFmpeg libraries are 9.0.2.
+The development corpus is the hawk recording, windows `[0, 168)` and `[432, 552)`, re-encoded,
+plus synthetic clips. The summary is `$DATA_DIR/near-duplicates/luma-grid-16/summary.json`. The
+stock corpus has one group, so a build of it has no cross-group pair; the measurement is the
+declared run.
+
+| Set | Pairs | At or above 0.90 |
+| --- | --- | --- |
+| Hawk windows, 13 encodes | 26 | 26, lowest 0.969 |
+| Structured synthetic clips | 48 | 48, lowest 0.969 |
+| High-frequency noise | 16 | 10 |
+| Independent windows | 36 | 0, highest 0.733 |
+
+Recall on the measured copies is 84/90. The six misses are heavy quantization of high-frequency
+noise: x264 CRF 40, CRF 40 medium, 80 kbps and 300 kbps, x265 CRF 40, and VP8 CRF 30. Natural and
+structured copies were 74/74. No independent pair reached 0.90. On the hawk recording the copies
+stayed at or above 0.969 and the independent windows at or below 0.733, so 0.90 sits in that gap.
+Lowering the threshold to recover the noise copies would enter that independent range.
+
+The field is `near_duplicates` on the build record, present only when a pair crosses the threshold
+or a window could not be read. It carries `method`, `samples`, `grid` and `threshold`. `pairs`
+names both streams, each with `corpus_id`, `stream_id`, `group_id` and `split`, and the
+`similarity`. `not_compared` uses `source_unreadable`, `window_unknown` or `other_schema`.
+
+Comparison covers the version being built and the predecessors its declaration links. One strict
+decode runs per source that takes part, and it stops after the last sampled frame. A source that
+is missing or a window that cannot be decoded is named `source_unreadable`. A predecessor of
+another schema is `other_schema`. One whose window the record does not carry, in a group this
+version does not hold, is `window_unknown`. The same group is not a pair. A same-group predecessor
+that cannot be read is not named, because it is not a near-duplicate question.
+[Shared frames](#shared-frames) still refuses an exact remux.
+
+What this cannot see:
+
+- A re-encode in a version the declaration does not link.
+  `near-duplicates-outside-the-chain` in the [plan](../plan.md) covers it.
+- A re-encode that stays in one group.
+- Windows that share no frame, and a window of uniform frames. Both score 0.
+- High-frequency noise after heavy quantization. Six of sixteen such copies fell below 0.90.
+
+Verification: `tests/corpus/versions/test_fingerprint.py`,
+`tests/corpus/versions/test_near_duplicates.py` and
+`tests/corpus/versions/test_near_duplicate_report.py`. The
+[near-duplicate record](../records/0046-corpus-provenance-near-duplicate-detection.md) holds the
 accepted task.
 
 ### Scenario rights

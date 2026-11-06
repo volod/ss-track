@@ -450,6 +450,15 @@ contracts:
       class: minor
       summary: Add DECODE_TIME_EXCEEDED and INTERRUPTED when a decode passes its time
         limit or a command is interrupted.
+  - version: 1.12.0
+    file_sha256: 6a9767df765cc49fb4335c59f8727efdee6971242f1687b287c2de6954b1622b
+    fingerprints:
+      structure: da2318eac9b12b975f4e7c3c1996951580e09d7d9196db2506472fd72001c05d
+      meaning: 6639a7d653570f3e772d28d255123240f552f66003387223779885c4e8ec53e4
+    change:
+      class: minor
+      summary: Report likely re-encoded copies across groups on a corpus build, without
+        refusing.
 - family: shared
   id: types
   owner: data-contracts

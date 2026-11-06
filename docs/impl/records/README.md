@@ -50,5 +50,6 @@ Copy the [template](template.md) using the
 | 0043 | `decode-interruption-safety` | [0043-corpus-provenance-decode-interruption-safety](0043-corpus-provenance-decode-interruption-safety.md) |
 | 0044 | `compression-and-timing-cases` | [0044-corpus-provenance-compression-and-timing-cases](0044-corpus-provenance-compression-and-timing-cases.md) |
 | 0045 | `label-driven-cases` | [0045-corpus-provenance-label-driven-cases](0045-corpus-provenance-label-driven-cases.md) |
+| 0046 | `near-duplicate-detection` | [0046-corpus-provenance-near-duplicate-detection](0046-corpus-provenance-near-duplicate-detection.md) |
 
-Next unused sequence: `0046`.
+Next unused sequence: `0047`.

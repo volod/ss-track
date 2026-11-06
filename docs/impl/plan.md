@@ -30,28 +30,6 @@ extensions; none blocks M3. Fixture implementation proceeds without physical har
 
 ### Corpus provenance -- `corpus-provenance`
 
-#### near-duplicate-detection (optional)
-
-A re-encoded copy of a recording shares no bytes or frame hashes, so it can still cross a split.
-
-- Serves: `corpus-provenance` -- [Corpus
-  identity](../design/spec.md#41-corpus-identity-and-input-handling)
-- Agent status: RUN NEEDED
-- Research: yes
-- Milestone: M2
-- Dependencies: none.
-- User-visible outcome: A corpus build reports likely near-duplicates across groups for an
-  operator's decision.
-- Scope boundary: A perceptual comparison at a measured threshold. It reports and does not refuse
-  until its false-match rate is known.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`.
-- Execution path: Compare a small perceptual fingerprint on re-encoded fixtures across codecs and
-  bitrates, in a declared run over the development corpus.
-- Acceptance gates: The threshold states measured recall and false-match rate. If no threshold
-  separates copies from independent clips, that negative result is recorded and grouping stays
-  manual.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
 #### bundle-reuse-across-versions (optional)
 
 A new corpus version that keeps a source decodes and stores identical frames again, though its
@@ -73,6 +51,28 @@ A new corpus version that keeps a source decodes and stores identical frames aga
 - Acceptance gates: A kept source gives the same `bundle_sha256` and identical bytes as a fresh stage,
   with no decode and no added frame storage. A damaged candidate is refused by name and never linked.
   A stream with another window or policy decodes. Removing one version leaves the other readable.
+- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
+
+#### near-duplicates-outside-the-chain (optional)
+
+A re-encoded copy in a corpus version the declaration does not link still crosses a split, and the
+build report never reads that version.
+
+- Serves: `corpus-provenance` -- [Corpus
+  identity](../design/spec.md#41-corpus-identity-and-input-handling)
+- Agent status: CLEAR
+- Milestone: M2
+- Dependencies: none.
+- User-visible outcome: A corpus build also reports a likely re-encode that sits in a version on the
+  same data root and outside the declared chain.
+- Scope boundary: The same fingerprint and threshold. It still reports and does not refuse. It does
+  not scan another data root, and it does not assign a group.
+- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/corpus/`.
+- Execution path: After the declared chain, compare the same fingerprint with every other built
+  version on the data root whose group differs.
+- Acceptance gates: An unlinked re-encode across groups is named, with both corpus ids. An unlinked
+  independent clip is not. A missing or unreadable version is named rather than skipped. The corpus
+  hash is unchanged.
 - Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
 
 #### corpus-provenance-audit (optional)

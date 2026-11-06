@@ -42,6 +42,7 @@ from ss_track.corpus.versions.lineage import (
     require_same_places,
     trace_lineage,
 )
+from ss_track.corpus.versions.near_duplicates import NearDuplicates, report_near_duplicates
 from ss_track.corpus.versions.predecessors import Predecessor, link_field, read_predecessors
 from ss_track.corpus.versions.unlinked import UnlinkedVersions, report_unlinked
 from ss_track.schema.validation.enforce import is_shared_type
@@ -64,6 +65,7 @@ class BuildResult:
     splits: dict[str, SplitSummary]
     lineage: Lineage | None
     unlinked: UnlinkedVersions
+    near_duplicates: NearDuplicates
 
     def to_record(self) -> dict[str, JsonValue]:
         """Return the JSON-compatible result shown to the operator."""
@@ -78,6 +80,7 @@ class BuildResult:
             "lineage": lineage_record(self.lineage),
         }
         record.update(self.unlinked.when_present())
+        record.update(self.near_duplicates.when_present())
         return record
 
 
@@ -137,6 +140,13 @@ def build_corpus(
         CORPUS_MANIFEST,
     )
     cases = case_records(list(declaration.recipes()), streams)
+    near_duplicates = report_near_duplicates(
+        declaration.corpus_id,
+        streams,
+        predecessors,
+        data_root,
+        lambda corpus_id: load_corpus_manifest(corpus_id, data_root),
+    )
     body = _corpus_body(declaration, policy_record, policy_sha256, streams, cases)
     sealed = seal(body | link_field(predecessors))
     target = data_root / CORPUS_DIRECTORY / declaration.corpus_id / MANIFEST_NAME
@@ -151,6 +161,7 @@ def build_corpus(
         splits=summarize_splits(streams, cases),
         lineage=trace_lineage(streams, predecessors),
         unlinked=unlinked,
+        near_duplicates=near_duplicates,
     )
 
 

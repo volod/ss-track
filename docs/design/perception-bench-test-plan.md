@@ -81,6 +81,13 @@ makes it fail, and what it does not prove. A case with no task left is listed as
   Value: protects=split isolation for remuxed copies; fails_when=identical frames cross a group, a
   shared lead-in is refused, or a version not compared goes unnamed; no_claim=re-encoded copies, a
   version whose bundles are gone, or windows sharing no frame.
+- `near-duplicate-detection`: a re-encode across groups, an independent pair, the same group, a
+  linked predecessor, a missing source, and an unprojected predecessor. `tests/corpus/versions/`
+  covers them.
+  Value: protects=an operator's sight of a re-encoded copy that crosses groups;
+  fails_when=a copy at or above the measured threshold is silent, an independent clip is reported,
+  or a match refuses the build; no_claim=a version the declaration does not link, a copy that stays
+  in one group, windows that share no frame, or heavy quantization of high-frequency noise.
 - `bundle-reuse-across-versions`: a kept source, a damaged candidate, another window, and a removed
   version. Value: protects=identical frames at no decode or storage cost; fails_when=a damaged
   bundle links or a reused bundle differs from a fresh stage; no_claim=a filesystem without hard
