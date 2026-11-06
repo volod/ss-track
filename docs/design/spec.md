@@ -253,7 +253,11 @@ the version that repairs it. A remux inside one group of one version is the same
 twice, so stage and verify refuse it, in one encounter or two. A copy that replaces its original in
 that group of a linked version stays accepted, because no version counts the frame twice. A
 re-encoded copy stays a different source. The build names it when its windows cross groups, and
-leaves a copy that stays in one group unnamed. The operator decides the grouping. Windows that
+leaves a copy that stays in one group unnamed. The operator decides the grouping. The comparison
+reads the version being built, the chain its declaration links, and every other built version on
+the same data root whose group differs from one already in that comparison. A missing or unreadable
+version is named rather than skipped. The report assigns no group, refuses nothing, and is not
+sealed, so the corpus hash does not change. It does not scan another data root. Windows that
 share no frame, and a window of uniform frames, are not evidence of a copy. Declaring `locked`
 records membership only: it creates no locked test and grants no held-out claim. A development
 scenario that names a locked stream is refused, and a locked evaluation needs the section 15
@@ -281,7 +285,8 @@ read, or whose major keeps no comparison, is named rather than skipped, as is a 
 that cannot be read. When the corpus directory itself cannot be listed, the build names that and
 still succeeds. A version in the declared chain is not listed again. The listing compares source
 hashes only, so a group's split is not applied to an undeclared version, and it is not sealed: it
-describes one data root at the time of the build.
+describes one data root at the time of the build. The perceptual report is a separate reading of
+those versions and does not turn a match into a refusal.
 
 Staging ends with one sealed frame-set record that names every stream and generated-case bundle hash
 of a corpus version and the source records they rest on. A scenario pins that one hash rather than a
@@ -2294,12 +2299,13 @@ A format that entered a major without a version of its own, as source terms ente
 has one stated test on the read path that tells it apart, and its own disposition. It is read no more
 freely than its major, and a view never serves it.
 
-A comparison rule reads every major. Lineage and shared-frame checks need only source hashes, groups,
-splits and frame hashes, so each major that holds those facts keeps a projection of them for as long
-as records of it may exist, and its disposition does not end that: a retired major is refused as
-evidence and still compared. A leak guard must not expire, and a format change
-must not be a way around one. A predecessor that yields no projection is `not_compared` under its own
-reason, named in the result as section 4.1 requires, and it never fails a successor by format alone.
+A comparison rule reads every major. Lineage and shared-frame checks need source hashes, groups,
+splits and frame hashes, and the near-duplicate report needs each stream's frame window, so each
+major that holds those facts keeps a projection of them for as long as records of it may exist,
+and its disposition does not end that: a retired major is refused as evidence and still compared.
+A leak guard must not expire, and a format change must not be a way around one. A predecessor
+that yields no projection is `not_compared` under its own reason, named in the result as section
+4.1 requires, and it never fails a successor by format alone.
 
 `RECORD_SCHEMA_UNSUPPORTED` names the contract, the found and accepted majors, whether the record is
 older or newer, its disposition and the remedy from the change log. A newer record is refused, because
@@ -2528,7 +2534,7 @@ Group order alone never establishes readiness.
 | --- | --- | --- | --- | --- |
 | 1 | `reproducible-environment` | shipped | A fresh locked environment reaches the complete CI gate without manual repair | [Developer tooling](../impl/current/developer-tooling.md) |
 | 2 | `project-identity` | shipped | Import, CLI, and distribution-build tests agree on the project identity | [Product core](../impl/current/product-core.md) |
-| 3 | `corpus-provenance` | planned | Import/hash/canonical-decode, staged frame bundles, a kept source reuses a linked version's frames by hard link, synchronized multi-stream grouping, generated cases, version lineage, duplicate-frame and source-term refusals and scenario-rights/split fixtures; malformed source yields structured failure; a likely re-encode across groups is reported and not refused | - |
+| 3 | `corpus-provenance` | planned | Import/hash/canonical-decode, staged frame bundles, a kept source reuses a linked version's frames by hard link, synchronized multi-stream grouping, generated cases, version lineage, duplicate-frame and source-term refusals and scenario-rights/split fixtures; malformed source yields structured failure; a likely re-encode across groups, including one outside the declared chain on the same data root, is reported and not refused | - |
 | 4 | `self-supervised-corpus` | planned | Pinned sibling integrations and deterministic fixtures preserve authorized provenance and split isolation; reviewed audit samples compare recall, candidate yield, diversity and cost against a declared baseline, or report a valid negative | - |
 | 5 | `data-contracts` | shipped | Every shipped record and declaration conforms unchanged to its frozen contract; every section 17.3 change classifies as declared, with an independent checker agreeing on structure; real records of every historic major read under their disposition with no byte or hash moved; a consumer with only the contracts validates a record; optional descriptors validate and leak nothing | [Contracts](../impl/current/contracts.md) |
 | 6 | `annotation-selection` | planned | Two-reviewer G0 labels, stable class/instance IDs, frozen mask and identical seed replay | - |

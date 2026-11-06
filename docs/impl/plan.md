@@ -30,28 +30,6 @@ extensions; none blocks M3. Fixture implementation proceeds without physical har
 
 ### Corpus provenance -- `corpus-provenance`
 
-#### near-duplicates-outside-the-chain (optional)
-
-A re-encoded copy in a corpus version the declaration does not link still crosses a split, and the
-build report never reads that version.
-
-- Serves: `corpus-provenance` -- [Corpus
-  identity](../design/spec.md#41-corpus-identity-and-input-handling)
-- Agent status: CLEAR
-- Milestone: M2
-- Dependencies: none.
-- User-visible outcome: A corpus build also reports a likely re-encode that sits in a version on the
-  same data root and outside the declared chain.
-- Scope boundary: The same fingerprint and threshold. It still reports and does not refuse. It does
-  not scan another data root, and it does not assign a group.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/corpus/`.
-- Execution path: After the declared chain, compare the same fingerprint with every other built
-  version on the data root whose group differs.
-- Acceptance gates: An unlinked re-encode across groups is named, with both corpus ids. An unlinked
-  independent clip is not. A missing or unreadable version is named rather than skipped. The corpus
-  hash is unchanged.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
 #### corpus-provenance-audit (optional)
 
 The corpus pipeline grew one task at a time, so one rule can live in two places and no check reads

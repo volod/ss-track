@@ -468,6 +468,15 @@ contracts:
       class: minor
       summary: A staged bundle may report status reused and name the linked version
         its frames came from.
+  - version: 1.14.0
+    file_sha256: 654329ec79d3a1c745e8b4f85608c0a76046a82bc586e73ad4fbe12fa50891a9
+    fingerprints:
+      structure: 416a5f85b5c1aad0e3d7864349ca839c9aba7a160ec6357239ba530b123d38c3
+      meaning: 4e511dbcd2360ff6727cc10c39f70cb01e50209b69b3497964640bceab868985
+    change:
+      class: minor
+      summary: Name a missing or unreadable corpus version in the near-duplicate report,
+        and name a corpus directory that could not be listed.
 - family: shared
   id: types
   owner: data-contracts

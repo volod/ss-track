@@ -86,8 +86,14 @@ makes it fail, and what it does not prove. A case with no task left is listed as
   covers them.
   Value: protects=an operator's sight of a re-encoded copy that crosses groups;
   fails_when=a copy at or above the measured threshold is silent, an independent clip is reported,
-  or a match refuses the build; no_claim=a version the declaration does not link, a copy that stays
-  in one group, windows that share no frame, or heavy quantization of high-frequency noise.
+  or a match refuses the build; no_claim=a copy that stays in one group, windows that share no
+  frame, or heavy quantization of high-frequency noise.
+- `near-duplicates-outside-the-chain`: an unlinked re-encode across groups, an unlinked independent
+  clip, a missing version, and an unreadable version. `tests/corpus/versions/` covers them.
+  Value: protects=an operator's sight of a re-encoded copy outside the declared chain;
+  fails_when=that copy is silent, an independent clip is reported, a missing or unreadable version
+  is skipped, or the corpus hash changes; no_claim=another data root, a group assignment, or a
+  refusal.
 - `bundle-reuse-across-versions`: a kept source, a damaged candidate, another window, and a removed
   version. `tests/corpus/bundles/test_bundle_reuse.py` and `test_bundle_reuse_bounds.py` cover them.
   Value: protects=identical frames at no decode or storage cost; fails_when=a damaged

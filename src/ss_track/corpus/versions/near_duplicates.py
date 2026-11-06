@@ -1,9 +1,6 @@
-"""Likely re-encoded copies that sit in different groups.
+"""Likely re-encoded copies across groups.
 
-Exact frame hashes cannot see a re-encode. This report compares the perceptual fingerprint
-in `fingerprint` and refuses nothing. It is not sealed: a corpus hash does not change when
-the report does. Versions linked by the declaration are included. A version this build
-does not link is not read.
+Not sealed: a corpus hash does not change when the report does, and a match refuses nothing.
 """
 
 from collections.abc import Callable, Mapping, Sequence
@@ -23,9 +20,9 @@ from ss_track.corpus.versions.fingerprint import (
     similarity,
 )
 from ss_track.corpus.versions.near_duplicate_samples import sampled_frames
+from ss_track.corpus.versions.near_duplicate_scan import WINDOW_UNKNOWN, outside_chain
 from ss_track.corpus.versions.predecessors import Predecessor
 
-_WINDOW_UNKNOWN = "window_unknown"
 _SOURCE_UNREADABLE = "source_unreadable"
 _SIMILARITY_DIGITS = 4
 
@@ -70,6 +67,7 @@ class NearDuplicates:
 
     pairs: tuple[_Pair, ...]
     not_compared: tuple[NotCompared, ...]
+    scan: str | None = None
 
     def to_record(self) -> dict[str, JsonValue]:
         """Return the JSON-compatible form. Each list is absent when it is empty."""
@@ -83,11 +81,13 @@ class NearDuplicates:
             record["pairs"] = [pair.to_record() for pair in self.pairs]
         if self.not_compared:
             record["not_compared"] = [gap.to_record() for gap in self.not_compared]
+        if self.scan is not None:
+            record["scan"] = self.scan
         return record
 
     def when_present(self) -> dict[str, JsonValue]:
         """Return the `near_duplicates` field, or nothing when this report is empty."""
-        if not self.pairs and not self.not_compared:
+        if not self.pairs and not self.not_compared and self.scan is None:
             return {}
         return {"near_duplicates": self.to_record()}
 
@@ -99,17 +99,23 @@ def report_near_duplicates(
     data_root: Path,
     load_manifest: ManifestLoader,
 ) -> NearDuplicates:
-    """Compare stream windows in different groups and report pairs at the measured threshold.
+    """Compare windows in different groups and report pairs at the measured threshold.
 
-    `streams` are the version being built. `predecessors` are the linked versions, nearest
-    first. `load_manifest` reads one of those versions in full, which is where its frame
-    window is kept. A failure to read a window or a source is named and does not refuse.
+    `streams` are this version. `predecessors` are the linked versions, nearest first.
+    `load_manifest` reads a linked version's frame window. Other built versions on
+    `data_root` follow that chain. A window, source, or version that cannot be read is named.
     """
     windows, gaps = _windows(corpus_id, streams, predecessors, load_manifest)
+    outside = outside_chain(
+        corpus_id, predecessors, {window.group_id for window in windows}, data_root
+    )
+    for version in outside.versions:
+        windows.extend(_window(version.corpus_id, stream) for stream in version.streams)
+    gaps.extend(outside.not_compared)
     if len({window.group_id for window in windows}) < 2:
-        return NearDuplicates((), tuple(gaps))
+        return NearDuplicates((), tuple(gaps), outside.scan)
     codes, unread = _codes(windows, data_root)
-    return NearDuplicates(_pairs(windows, codes), tuple(gaps) + tuple(unread))
+    return NearDuplicates(_pairs(windows, codes), tuple(gaps) + tuple(unread), outside.scan)
 
 
 def _windows(
@@ -146,7 +152,7 @@ def _add_predecessor(
         if isinstance(stream, dict) and isinstance(stream.get("selection"), dict):
             windows.append(_window(corpus_id, stream))
         else:
-            gaps.append(NotCompared(corpus_id, _WINDOW_UNKNOWN, (str(stream["stream_id"]),)))
+            gaps.append(NotCompared(corpus_id, WINDOW_UNKNOWN, (str(stream["stream_id"]),)))
 
 
 def _gap_for_unreadable_window(
@@ -159,7 +165,7 @@ def _gap_for_unreadable_window(
     """
     streams = version.get("streams", ())
     if not isinstance(streams, list):
-        gaps.append(NotCompared(str(version["corpus_id"]), _WINDOW_UNKNOWN, ()))
+        gaps.append(NotCompared(str(version["corpus_id"]), WINDOW_UNKNOWN, ()))
         return
     elsewhere = tuple(
         str(stream["stream_id"])
@@ -167,7 +173,7 @@ def _gap_for_unreadable_window(
         if isinstance(stream, dict) and stream.get("group_id") not in groups
     )
     if elsewhere:
-        gaps.append(NotCompared(str(version["corpus_id"]), _WINDOW_UNKNOWN, elsewhere))
+        gaps.append(NotCompared(str(version["corpus_id"]), WINDOW_UNKNOWN, elsewhere))
 
 
 def _window(corpus_id: str, stream: Mapping[str, Any]) -> _Window:

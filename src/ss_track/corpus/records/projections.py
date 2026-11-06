@@ -1,11 +1,12 @@
 """Comparison projections: the facts a later version or an amendment report reads.
 
-Lineage reads a corpus version's source hashes, groups and splits. A later video stream also
-carries `content_sha256`, the file hash, when its identity is not that hash. The amendment report reads each
-stream's source-record pin. The shared-frame rule reads a bundle's frame hashes. A projection yields
-only those, from a record as it was written, and stays for as long as records of its major may exist:
-a record's disposition decides whether it may serve as evidence, never whether a successor is compared
-with it. Corpus major 1 held no group or split, so it has no projection and a successor reports it as
+Lineage reads a corpus version's source hashes, groups and splits. The near-duplicate report also
+reads each stream's frame window. A later video stream also carries `content_sha256`, the file
+hash, when its identity is not that hash. The amendment report reads each stream's source-record
+pin. The shared-frame rule reads a bundle's frame hashes. A projection yields only those, from a
+record as it was written, and stays for as long as records of its major may exist: a record's
+disposition decides whether it may serve as evidence, never whether a successor is compared with
+it. Corpus major 1 held no group or split, so it has no projection and a successor reports it as
 not compared. Bundle major 1 has none either: only a corpus version of major 1 staged one.
 """
 
@@ -74,7 +75,21 @@ def _project_stream(stream: Mapping[str, Any]) -> dict[str, JsonValue]:
     content = stream.get("content_sha256")
     if isinstance(content, str):
         projected["content_sha256"] = content
+    selection = _projected_window(stream.get("selection"))
+    if selection is not None:
+        projected["selection"] = selection
     return projected
+
+
+def _projected_window(selection: object) -> dict[str, JsonValue] | None:
+    """Return a stream's frame window, or nothing when the record does not carry one."""
+    if not isinstance(selection, dict):
+        return None
+    start = selection.get("start_frame")
+    end = selection.get("end_frame")
+    if type(start) is not int or type(end) is not int:
+        return None
+    return {"start_frame": start, "end_frame": end}
 
 
 def _bundle(record: Mapping[str, Any]) -> dict[str, JsonValue]:

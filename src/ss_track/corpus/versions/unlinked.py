@@ -85,13 +85,17 @@ def compared_record(scanned: ScannedManifest) -> dict[str, JsonValue] | UnreadCo
     return comparable.projected
 
 
-def scan_corpus_manifests(root: Path, record_format: RecordFormat) -> tuple[ScannedManifest, ...]:
+def scan_corpus_manifests(
+    root: Path, record_format: RecordFormat, *, name_missing: bool = False
+) -> tuple[ScannedManifest, ...]:
     """Read one manifest per version directory, in directory-name order.
 
     A manifest or version directory that cannot be read is returned with no comparable record, so
     a caller can name it instead of treating that version as absent. The walk stops at one
     directory level: bundle manifests live further down and are not corpus versions. A name with a
-    leading dot is not a version. Raises OSError when `root` itself cannot be listed.
+    leading dot is not a version. A directory with no manifest is not a version unless
+    `name_missing` is set, in which case it is returned with no comparable record. Raises OSError
+    when `root` itself cannot be listed.
     """
     if not root.is_dir():
         return ()
@@ -101,7 +105,9 @@ def scan_corpus_manifests(root: Path, record_format: RecordFormat) -> tuple[Scan
         try:
             comparable = _read_manifest(manifest, record_format)
         except FileNotFoundError:
-            continue
+            if not name_missing:
+                continue
+            comparable = None
         except OSError:
             comparable = None
         found.append(ScannedManifest(path.name, manifest, comparable))

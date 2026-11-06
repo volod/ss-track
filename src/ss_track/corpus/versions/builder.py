@@ -42,6 +42,7 @@ from ss_track.corpus.versions.lineage import (
     require_same_places,
     trace_lineage,
 )
+from ss_track.corpus.versions.near_duplicate_scan import fingerprint_manifest
 from ss_track.corpus.versions.near_duplicates import NearDuplicates, report_near_duplicates
 from ss_track.corpus.versions.predecessors import Predecessor, link_field, read_predecessors
 from ss_track.corpus.versions.unlinked import UnlinkedVersions, report_unlinked
@@ -145,7 +146,7 @@ def build_corpus(
         streams,
         predecessors,
         data_root,
-        lambda corpus_id: load_corpus_manifest(corpus_id, data_root),
+        lambda corpus_id: fingerprint_manifest(_corpus_path(corpus_id, data_root)),
     )
     body = _corpus_body(declaration, policy_record, policy_sha256, streams, cases)
     sealed = seal(body | link_field(predecessors))

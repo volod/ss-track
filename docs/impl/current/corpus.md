@@ -489,7 +489,8 @@ What this cannot see:
 - A copy that replaces its original in the same group of a linked version. No version holds both,
   so none counts a frame twice.
 - A version no chain links to. [Version lineage](#version-lineage) lists a shared source hash.
-  This check still does not read that version's frames.
+  This check still does not read that version's frames. The perceptual report does; see
+  [Near-duplicates](#near-duplicates).
 
 On the development host, reading a sealed index of a million frames takes about 2 s, and searching
 ten million hashes across 100 streams took 11 s, so the check costs about 3 s and 600 MB per million
@@ -502,9 +503,11 @@ accepted task.
 
 `corpus build` compares a perceptual fingerprint across encounter groups and reports a likely
 re-encoded copy. It does not refuse, and it does not assign a group. The report is not sealed, so
-repeating a build of the same declaration keeps the corpus hash.
-`src/ss_track/corpus/versions/fingerprint.py` owns the fingerprint and `near_duplicates.py` the
-report. `near_duplicate_samples.py` reads the sampled frames.
+repeating a build of the same declaration keeps the corpus hash when another version appears on the
+data root as well as when it does not.
+`src/ss_track/corpus/versions/fingerprint.py` owns the fingerprint, `near_duplicates.py` the report,
+and `near_duplicate_scan.py` the versions the declaration does not link.
+`near_duplicate_samples.py` reads the sampled frames.
 
 Method `luma-grid-16` takes 16 frames, spread through the declared window, and reduces each to a
 16 by 16 grid of box-averaged luma. The score is the normalized correlation of the two grids. A
@@ -529,32 +532,44 @@ structured copies were 74/74. No independent pair reached 0.90. On the hawk reco
 stayed at or above 0.969 and the independent windows at or below 0.733, so 0.90 sits in that gap.
 Lowering the threshold to recover the noise copies would enter that independent range.
 
-The field is `near_duplicates` on the build record, present only when a pair crosses the threshold
-or a window could not be read. It carries `method`, `samples`, `grid` and `threshold`. `pairs`
-names both streams, each with `corpus_id`, `stream_id`, `group_id` and `split`, and the
-`similarity`. `not_compared` uses `source_unreadable`, `window_unknown` or `other_schema`.
+The field is `near_duplicates` on the build record, present only when a pair crosses the threshold,
+a window or version could not be read, or the corpus directory could not be listed. It carries
+`method`, `samples`, `grid` and `threshold`. `pairs` names both streams, each with `corpus_id`,
+`stream_id`, `group_id` and `split`, and the `similarity`. `not_compared` uses `source_unreadable`,
+`window_unknown`, `other_schema` or `unreadable`. `scan` is `unreadable` when the corpus directory
+could not be listed.
 
-Comparison covers the version being built and the predecessors its declaration links. One strict
-decode runs per source that takes part, and it stops after the last sampled frame. A source that
-is missing or a window that cannot be decoded is named `source_unreadable`. A predecessor of
-another schema is `other_schema`. One whose window the record does not carry, in a group this
-version does not hold, is `window_unknown`. The same group is not a pair. A same-group predecessor
-that cannot be read is not named, because it is not a near-duplicate question.
+Comparison covers the version being built, the predecessors its declaration links, and every other
+built version on the same data root. One strict decode runs per source that takes part, and it
+stops after the last sampled frame. A version whose groups cannot meet another group is not
+fingerprinted: the same group is not a pair. A source that is missing or a window that cannot
+be decoded is named `source_unreadable`. A predecessor of another schema, and an unlinked version
+whose major keeps no projection, are `other_schema`. A window the record does not carry, in a group
+this version does not hold, is `window_unknown`. A version directory or manifest that is missing or
+cannot be read is `unreadable`. A name with a leading dot is not a version. A directory with no
+manifest is not a version for the source-hash listing, and it is `unreadable` here, because a
+missing manifest is not a clear comparison. When the corpus directory itself cannot be listed,
+`scan` is `unreadable` and the declared chain is still compared. The build still succeeds. A
+same-group predecessor that cannot be read is not named, because it is not a near-duplicate
+question. A retired major that still carries a window is fingerprinted through its comparison
+projection; corpus major 2 is one.
 [Shared frames](#shared-frames) still refuses an exact remux.
 
 What this cannot see:
 
-- A re-encode in a version the declaration does not link.
-  `near-duplicates-outside-the-chain` in the [plan](../plan.md) covers it.
 - A re-encode that stays in one group.
 - Windows that share no frame, and a window of uniform frames. Both score 0.
 - High-frequency noise after heavy quantization. Six of sixteen such copies fell below 0.90.
+- A version on another data root.
 
 Verification: `tests/corpus/versions/test_fingerprint.py`,
-`tests/corpus/versions/test_near_duplicates.py` and
-`tests/corpus/versions/test_near_duplicate_report.py`. The
-[near-duplicate record](../records/0046-corpus-provenance-near-duplicate-detection.md) holds the
-accepted task.
+`tests/corpus/versions/test_near_duplicates.py`,
+`tests/corpus/versions/test_near_duplicate_report.py`,
+`tests/corpus/versions/test_near_duplicate_outside.py` and
+`tests/corpus/versions/test_near_duplicate_outside_gaps.py`. The
+[near-duplicate record](../records/0046-corpus-provenance-near-duplicate-detection.md) and the
+[outside-chain record](../records/0048-corpus-provenance-near-duplicates-outside-the-chain.md) hold
+the accepted tasks.
 
 ### Scenario rights
 
@@ -1389,7 +1404,7 @@ read path has three entries:
 | --- | --- | --- |
 | `read_sealed` | Evidence: a record of the current major as written, or of a `view` major as the current major, in memory | Every command that uses a record |
 | `read_stated` | A record of the current major, or a `facts` or `view` major, as written, with its disposition | `ss-track import --amend-terms` and `--redecode` only |
-| `read_comparable` | The seal, the major and the major's comparison projection, or none, for a record of any major | Lineage and shared-frame checks on predecessors |
+| `read_comparable` | The seal, the major and the major's comparison projection, or none, for a record of any major | Lineage, shared-frame checks and the near-duplicate report |
 
 A record of an earlier major takes the strictest disposition of each major it steps through, from the
 contract's change log (see [contracts](contracts.md#runtime-enforcement)). `read_sealed` serves only
@@ -1451,8 +1466,9 @@ it. This replaced the key check `corpus/sources/terms.py` held.
 **Comparison projections.** `src/ss_track/corpus/records/projections.py` holds, per kind and major,
 the facts a comparison reads from a record as written: a corpus version's `corpus_id`, seal, decode
 policy hash, `supersedes` and each stream's `stream_id`, `source_sha256`, `group_id` and `split`,
-plus `content_sha256` when the source identity is not the file hash, and
-`source_manifest_sha256`, which the amendment listing matches, and a bundle's pins and
+plus `content_sha256` when the source identity is not the file hash,
+`source_manifest_sha256`, which the amendment listing matches, and `selection` (`start_frame`,
+`end_frame`) when the record carries a frame window, and a bundle's pins and
 `(frame_index, sha256)` pairs. Corpus majors 2 and 3 and bundle majors 2 and
 3 have one, whatever their disposition. Corpus major 1 states no group or split, so it has none, and
 nor does bundle major 1, which only a major-1 version staged. A record lacking a fact its projection

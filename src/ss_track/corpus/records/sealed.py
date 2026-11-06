@@ -1,9 +1,10 @@
 """The one read path for a sealed record: its seal, then its kind, then the disposition of its major.
 
 Three entries answer three questions, and no caller reads a sealed record any other way, as
-`tests/corpus/test_sealed_reads.py` holds. `read_sealed` serves evidence, `read_stated` serves an
-inspection or an amendment, and `read_comparable` serves a comparison rule through a projection.
-Writing a record is `corpus.records.sealing`; the refusals these reads raise are `corpus.records.read_refusals`.
+`tests/corpus/records/test_sealed_reads.py` holds. `read_sealed` serves evidence, `read_stated`
+serves an inspection or an amendment, and `read_comparable` serves a comparison rule through a
+projection. Writing a record is `corpus.records.sealing`; the refusals these reads raise are
+`corpus.records.read_refusals`.
 """
 
 import json

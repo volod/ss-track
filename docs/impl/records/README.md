@@ -52,5 +52,6 @@ Copy the [template](template.md) using the
 | 0045 | `label-driven-cases` | [0045-corpus-provenance-label-driven-cases](0045-corpus-provenance-label-driven-cases.md) |
 | 0046 | `near-duplicate-detection` | [0046-corpus-provenance-near-duplicate-detection](0046-corpus-provenance-near-duplicate-detection.md) |
 | 0047 | `bundle-reuse-across-versions` | [0047-corpus-provenance-bundle-reuse-across-versions](0047-corpus-provenance-bundle-reuse-across-versions.md) |
+| 0048 | `near-duplicates-outside-the-chain` | [0048-corpus-provenance-near-duplicates-outside-the-chain](0048-corpus-provenance-near-duplicates-outside-the-chain.md) |
 
-Next unused sequence: `0048`.
+Next unused sequence: `0049`.
