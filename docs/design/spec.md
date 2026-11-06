@@ -421,7 +421,9 @@ label that declares any other orientation is refused.
 A generated case takes its labels from its parent's frozen revision through the stored label
 transform, as a hashed revision of its own that nobody edits by hand. Frozen labels also check the
 rectangle a case rests on: a plate frame that shows a target inside that rectangle is refused, and a
-target the rectangle does not cover stays `unknown` rather than becoming `absent`.
+target the rectangle does not cover stays `unknown` rather than becoming `absent`. A track-following
+case names that revision and the instance its boxes came from. A frame of the case with no scorable
+box stays `unknown`.
 
 Fusion labels distinguish the object/event's **scene-level identity** from visibility or
 detectability in each sensor. A camera may see an object while a microphone has no attributable
@@ -438,10 +440,11 @@ fused truth.
 ### 4.3 Deterministic cases and negative evidence
 
 Generated fixtures cover target absence, moving background (for example vegetation, crowds
-or traffic), camera shake, blur, dropped/duplicated frames, short occlusion, heavy compression and
-variable frame timing. Further cases (multiple similar objects, out-of-view/re-entry, sensor loss)
-enter with their owning capability. Each case stores parent sequence, transform, seed and label
-transform. Geometry-changing cases update geometry/calibration or invalidate dependent labels.
+or traffic), camera shake, blur, dropped/duplicated frames, short occlusion, heavy compression,
+variable frame timing, a crossing occluder, a moving removal, a similar distractor, and out-of-view
+and re-entry. Sensor loss enters with its owning capability. Each case stores parent sequence,
+transform, seed and label transform. Geometry-changing cases update geometry/calibration or
+invalidate dependent labels.
 Synthetic cases test failure mechanisms and are never counted as independent field encounters.
 
 A corpus version declares each generated case under its parent stream, so a case states no split,
@@ -483,9 +486,19 @@ marked, rather than left out.
 A case does not claim realism and does not chain from another case. A section 4.1 source term decides
 whether derived frames may exist at all.
 
-With frozen labels, a case can follow a target's own track instead of one rectangle: an occluder that
-crosses the target, a removal that follows it, a similar object beside it, and out-of-view and
-re-entry intervals. These cases need no operator rectangle, so they carry no such claim.
+With frozen labels, a case can follow one target's boxes from one frozen label revision. The recipe
+names that revision, the instance, and the box on each frame that has one. A window frame with no
+box stays `unknown` and keeps its pixels. These cases carry no operator rectangle, and preview does
+not outline them.
+
+A crossing occluder covers the box exactly on a declared interval that sits strictly inside the case
+window, and stands one pixel off that box on the frames around the interval, along one seed-chosen
+axis. A moving removal replaces each box with the same rectangle of a plate frame plus seeded noise,
+and marks the box absent. A similar distractor copies the box onto a seed-chosen side that shares an
+edge and does not cover the target. The copy is a distractor and the target stays. Out of view
+shifts each frame of a declared interval until the whole box lies outside the frame, then marks a
+later frame that still has a box as re-entry. The label transform is `track_status`, one entry per
+window frame. None of these cases claims the motion is realistic.
 
 A recipe may declare a graded list of one parameter, which expands to one case per level. The local
 report then shows each module's quality against that severity, so a comparison shows where a module

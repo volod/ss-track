@@ -49,5 +49,6 @@ Copy the [template](template.md) using the
 | 0042 | `declared-color-tags` | [0042-corpus-provenance-declared-color-tags](0042-corpus-provenance-declared-color-tags.md) |
 | 0043 | `decode-interruption-safety` | [0043-corpus-provenance-decode-interruption-safety](0043-corpus-provenance-decode-interruption-safety.md) |
 | 0044 | `compression-and-timing-cases` | [0044-corpus-provenance-compression-and-timing-cases](0044-corpus-provenance-compression-and-timing-cases.md) |
+| 0045 | `label-driven-cases` | [0045-corpus-provenance-label-driven-cases](0045-corpus-provenance-label-driven-cases.md) |
 
-Next unused sequence: `0045`.
+Next unused sequence: `0046`.

@@ -22,6 +22,14 @@ contracts:
     change:
       class: minor
       summary: Add compression and variable timing generated-case recipes.
+  - version: 3.2.0
+    file_sha256: bbec031c5090a9a2ff73c07b4712beeaf29d1dacf2f2581dd6139d4d8a33658a
+    fingerprints:
+      structure: 49b45ca9493b1135ea60be311b798493f9f66a594e0cfa37f42d5336000da5ff
+      meaning: 28925e2afc9b7a73d33049a2de8a357ba73d26f133cdfd2c22045bf8ea8fd898
+    change:
+      class: minor
+      summary: Add track-following generated-case recipes.
   retired_majors:
   - major: 1
     status: retired
@@ -150,6 +158,14 @@ contracts:
     change:
       class: minor
       summary: Add compression and variable timing cases and their label transforms.
+  - version: 3.4.0
+    file_sha256: 4b6d36c0a10f9a1aa0eef581858223c02b7021a7972bde28ee30a8a217cac7a3
+    fingerprints:
+      structure: aa1a96a803b6eca8c79f99edd085edb0601a120481fa7a0425b5c93086e14b9a
+      meaning: ecfcc207e5bdf2899f49bb9944143c43fe94c787695d7b111d833d889e9d922e
+    change:
+      class: minor
+      summary: Add track-following recipes and the track_status label transform.
   retired_majors:
   - major: 1
     status: retired
@@ -205,6 +221,14 @@ contracts:
     change:
       class: minor
       summary: Add compression and variable timing recipes and their label transforms.
+  - version: 3.4.0
+    file_sha256: 971de9054c8d8c883dce0659103ea5ae689e3a69f0d551f3e46e432436067c0d
+    fingerprints:
+      structure: c4bea7c1d979f6f895080d011845c0b61c1de39bb96beca0e8a572635877b3ea
+      meaning: a9674db5c92ac0f0e50aabd223770221a98da73f0158fa26bb59b5246da410ef
+    change:
+      class: minor
+      summary: Add track-following recipes and the track_status label transform.
   retired_majors:
   - major: 1
     status: retired

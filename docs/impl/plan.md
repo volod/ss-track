@@ -30,28 +30,6 @@ extensions; none blocks M3. Fixture implementation proceeds without physical har
 
 ### Corpus provenance -- `corpus-provenance`
 
-#### label-driven-cases (optional)
-
-One static rectangle cannot follow a moving target, and an occluder that appears in one frame is
-unlike a real crossing.
-
-- Serves: `corpus-provenance` -- [Deterministic
-  cases](../design/spec.md#43-deterministic-cases-and-negative-evidence)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: generated-case-labels.
-- User-visible outcome: Recipes take a target's frozen track to generate a crossing occluder, a
-  moving removal, a similar distractor and out-of-view and re-entry intervals.
-- Scope boundary: Per-frame boxes from one frozen label revision, in a new transform revision. No
-  realism claim.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`.
-- Execution path: Add a track input to the region transforms and derive labels through
-  `generated-case-labels`.
-- Acceptance gates: A rerun with one seed is byte-identical, and the case's bundle hash covers the
-  label revision. A hand-audited occluder covers the target exactly in its declared frames, and a
-  frame with no scorable box stays `unknown`.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
 #### near-duplicate-detection (optional)
 
 A re-encoded copy of a recording shares no bytes or frame hashes, so it can still cross a split.
@@ -353,19 +331,28 @@ create a false negative.
 - Milestone: M1
 - Dependencies: annotation-review-tools.
 - User-visible outcome: `ss-track annotate derive` gives each generated case a hashed label revision
-  from its parent's frozen labels and stored label transform.
+  from its parent's frozen labels and stored label transform, including a `track_status` case.
 - Scope boundary: Every stored label transform: region status, translation with clipping and
-  `out_of_view`, frame maps, `compression` and `timing`. `compression` and `timing` do not move
-  geometry. `timing` records that presentation time is `derived`. Derived labels are never edited
-  by hand.
+  `out_of_view`, frame maps, `compression`, `timing` and `track_status`. `compression` and `timing`
+  do not move geometry. `timing` records that presentation time is `derived`. `track_status` lists
+  one role per case-window frame: `unknown` when that frame has no box, `region` for a painted
+  rectangle, `shift` when the frame leaves the view, `reentry` when the box is back, and
+  `unchanged` when the box stays. `unknown` stays `unknown` and is never `absent`. A `shift` frame
+  is `out_of_view`. A `reentry` frame records re-entry. A `region` role names the painted
+  rectangle: the occluder, the removed box, or the distractor copy. The target box on a distractor
+  frame is not that rectangle and stays as the parent labeled it. The plate check applies to each
+  box `moving_removal` replaces. A track case whose boxes or `label_revision` do not match that
+  instance in the parent's frozen revision is refused. Derived labels are never edited by hand.
 - Data and artifact paths: `src/ss_track/annotate/`, `tests/annotate/`,
   `$DATA_DIR/corpus/<corpus-id>/labels/`.
 - Execution path: Apply each label-transform kind to hand-built parent labels, then check plates and
-  regions against those labels.
-- Acceptance gates: Hand-computed labels match for every transform, including `compression` and
-  `timing`. A plate showing a target inside its region is refused, and a target the region does not
-  fully cover stays `unknown`. A parent with no frozen labels leaves its cases unscorable, never
-  scored as zero.
+  regions against those labels. Apply each `track_status` role to the frame it names.
+- Acceptance gates: Hand-computed labels match for every transform, including `compression`,
+  `timing` and `track_status`. A plate showing a target inside its region is refused, and a target
+  the region does not fully cover stays `unknown`. A frame with no scorable box stays `unknown`.
+  The same plate check applies to each box `moving_removal` replaces. A track case whose boxes or
+  `label_revision` do not match that instance in the parent's frozen revision is refused. A parent
+  with no frozen labels leaves its cases unscorable, never scored as zero.
 - Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
 
 #### annotation-selection-audit (optional)

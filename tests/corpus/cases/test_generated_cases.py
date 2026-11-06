@@ -27,6 +27,13 @@ from tests.corpus.conftest import WriteCorpus, WriteRecording, case_of, stream_o
 _CORPUS = "pilot-v1"
 _REGION = {"x": 8, "y": 6, "width": 24, "height": 20}
 _WINDOW = {"start_frame": 6, "end_frame": 16}
+_TRACK_BOX = {"x": 8, "y": 6, "width": 10, "height": 8}
+_TRACK_SPAN = {"start_frame": 8, "end_frame": 13}
+_TRACK = {
+    "label_revision": "ab" * 32,
+    "instance_id": "target",
+    "track": [{"frame_index": index, "box": _TRACK_BOX} for index in range(6, 16) if index != 7],
+}
 
 
 def every_case(seed: int = 5) -> list[dict[str, object]]:
@@ -48,6 +55,18 @@ def every_case(seed: int = 5) -> list[dict[str, object]]:
         case_of("occluded", "short_occlusion", seed, {"region": _REGION}, window=_WINDOW),
         case_of("compressed", "compression", seed, {"max_step": 8}, window=_WINDOW),
         case_of("timed", "variable_timing", seed, {"max_scale": 4}, window=_WINDOW),
+        case_of(
+            "crossing", "crossing_occluder", seed, _TRACK | {"cover": _TRACK_SPAN}, window=_WINDOW
+        ),
+        case_of(
+            "removal",
+            "moving_removal",
+            seed,
+            _TRACK | {"plate_frame": 0, "noise": 2},
+            window=_WINDOW,
+        ),
+        case_of("distractor", "similar_distractor", seed, _TRACK | {}, window=_WINDOW),
+        case_of("exited", "out_of_view", seed, _TRACK | {"outside": _TRACK_SPAN}, window=_WINDOW),
     ]
 
 
@@ -105,6 +124,10 @@ def test_a_second_process_stages_identical_case_bytes(staged: Path, tmp_path: Pa
         "repeated",
         "compressed",
         "timed",
+        "crossing",
+        "removal",
+        "distractor",
+        "exited",
     )
     for name in names:
         bundle = copy / "corpus" / _CORPUS / "frames" / name

@@ -128,6 +128,7 @@ def test_label_transform_kinds_are_tagged() -> None:
         "region_status",
         "compression",
         "timing",
+        "track_status",
     }
 
 

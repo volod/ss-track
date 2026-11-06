@@ -95,9 +95,10 @@ makes it fail, and what it does not prove. A case with no task left is listed as
   Value: protects=each frame counted once in one version; fails_when=a frame counts twice, or a
   cross-group pair is no longer leakage; no_claim=re-encoded copies, or a copy that replaces its
   original in a linked version.
-- `generated-case-labels`: hand-built labels through each transform, and a plate showing a target.
-  Value: protects=labels that follow pixels; fails_when=a covered target stays visible or a wrong
-  region yields `absent`; no_claim=parent label quality.
+- `generated-case-labels`: hand-built labels through each transform, including `track_status` roles
+  `unknown`, `region`, `shift`, `reentry` and `unchanged`, and a plate showing a target.
+  Value: protects=labels that follow pixels; fails_when=a covered target stays visible, a wrong
+  region yields `absent`, or a frame with no box becomes `absent`; no_claim=parent label quality.
 - `event-schema-contract`: golden fixtures, unknown fields, malformed payloads and regenerated
   bindings.
   Value: protects=one meaning for every event; fails_when=generated code drifts from `.proto`;

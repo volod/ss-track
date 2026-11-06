@@ -14,9 +14,12 @@ from tests.corpus.cases._case_frames import (
     case_record,
     painted,
     prepare,
+    track_parameters,
     window,
 )
 
+_BOX = {"x": 3, "y": 2, "width": 4, "height": 3}
+_TRACK_INDEXES = [1, 3, 4, 5, 6]
 _REFUSED = [
     pytest.param(
         "target_absence",
@@ -84,6 +87,83 @@ _REFUSED = [
     pytest.param(
         "blur", {"max_radius": 1}, {"window": window(0, FRAMES + 1)}, "window", id="window-past-end"
     ),
+    pytest.param(
+        "short_occlusion",
+        {"region": {"x": -1, "y": 0, "width": 4, "height": 4}},
+        {"window": window(1, 4)},
+        "region",
+        id="region-past-left",
+    ),
+    pytest.param(
+        "similar_distractor",
+        track_parameters([0], _BOX),
+        {"window": window(1, 9)},
+        "outside the window",
+        id="track-outside-window",
+    ),
+    pytest.param(
+        "similar_distractor",
+        track_parameters([4, 3], _BOX),
+        {"window": window(1, 9)},
+        "strictly increasing",
+        id="track-out-of-order",
+    ),
+    pytest.param(
+        "similar_distractor",
+        track_parameters([3], {"x": 14, "y": 0, "width": 4, "height": 2}),
+        {"window": window(1, 9)},
+        "track box",
+        id="track-box-past-the-frame",
+    ),
+    pytest.param(
+        "crossing_occluder",
+        track_parameters(_TRACK_INDEXES, _BOX, cover={"start_frame": 1, "end_frame": 4}),
+        {"window": window(1, 9)},
+        "before and after",
+        id="cover-touches-the-window",
+    ),
+    pytest.param(
+        "crossing_occluder",
+        track_parameters([1, 3, 5, 6], _BOX, cover={"start_frame": 3, "end_frame": 6}),
+        {"window": window(1, 9)},
+        "no scorable box",
+        id="covered-frame-without-a-box",
+    ),
+    pytest.param(
+        "crossing_occluder",
+        track_parameters(_TRACK_INDEXES, _BOX, cover={"start_frame": 4, "end_frame": 4}),
+        {"window": window(1, 9)},
+        "cover is empty",
+        id="empty-cover",
+    ),
+    pytest.param(
+        "moving_removal",
+        track_parameters(_TRACK_INDEXES, _BOX, plate_frame=FRAMES, noise=0),
+        {"window": window(1, 9)},
+        "plate_frame",
+        id="plate-outside-a-track",
+    ),
+    pytest.param(
+        "similar_distractor",
+        track_parameters([3], {"x": 0, "y": 0, "width": 9, "height": 7}),
+        {"window": window(1, 9)},
+        "does not fit",
+        id="distractor-does-not-fit",
+    ),
+    pytest.param(
+        "out_of_view",
+        track_parameters(_TRACK_INDEXES, _BOX, outside={"start_frame": 1, "end_frame": 9}),
+        {"window": window(1, 9)},
+        "before and after",
+        id="exit-covers-the-window",
+    ),
+    pytest.param(
+        "out_of_view",
+        track_parameters([1, 8], _BOX, outside={"start_frame": 3, "end_frame": 6}),
+        {"window": window(1, 9)},
+        "needs a box",
+        id="exit-without-a-box",
+    ),
 ]
 
 
@@ -123,6 +203,16 @@ _SEEDED: list[tuple[str, dict[str, object], Callable[[Rendering], object]]] = [
     ("duplicated_frames", {"count": 3}, lambda r: r.label_transform),
     ("compression", {"max_step": 8}, lambda r: painted(r, 4).tobytes()),
     ("variable_timing", {"max_scale": 4}, lambda r: r.label_transform),
+    (
+        "crossing_occluder",
+        track_parameters([1, 2, 3, 4, 5, 6], _BOX, cover={"start_frame": 2, "end_frame": 5}),
+        lambda r: painted(r, 3).tobytes(),
+    ),
+    (
+        "moving_removal",
+        track_parameters([1, 2, 3], _BOX, plate_frame=0, noise=3),
+        lambda r: painted(r, 2).tobytes(),
+    ),
 ]
 
 

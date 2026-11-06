@@ -11,7 +11,14 @@ from typing import Any
 import numpy as np
 
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
-from ss_track.corpus.cases.case_model import CaseContext, Pixels, ReadFrame, Rendering, Slot
+from ss_track.corpus.cases.case_model import (
+    CaseContext,
+    Pixels,
+    ReadFrame,
+    Rendering,
+    Slot,
+    shift_frame,
+)
 from ss_track.corpus.cases.field_transforms import compression, variable_timing
 from ss_track.corpus.cases.region_transforms import (
     moving_background,
@@ -19,6 +26,12 @@ from ss_track.corpus.cases.region_transforms import (
     target_absence,
 )
 from ss_track.corpus.cases.seeded import SeededDraws
+from ss_track.corpus.cases.track_transforms import (
+    crossing_occluder,
+    moving_removal,
+    out_of_view,
+    similar_distractor,
+)
 
 _SHAKE_AXES = 2
 
@@ -34,9 +47,7 @@ def _camera_shake(case: CaseContext) -> Rendering:
 
     def paint(pixels: Pixels, frame_index: int) -> Pixels:
         dx, dy = offsets[frame_index]
-        rows = np.clip(np.arange(case.height) - dy, 0, case.height - 1)
-        columns = np.clip(np.arange(case.width) - dx, 0, case.width - 1)
-        return pixels[rows][:, columns]
+        return shift_frame(pixels, dx, dy)
 
     labels: dict[str, JsonValue] = {
         "kind": "translate",
@@ -113,6 +124,10 @@ _TRANSFORMS: dict[str, tuple[int, Callable[[CaseContext], Rendering]]] = {
     "short_occlusion": (1, short_occlusion),
     "compression": (1, compression),
     "variable_timing": (1, variable_timing),
+    "crossing_occluder": (1, crossing_occluder),
+    "moving_removal": (1, moving_removal),
+    "similar_distractor": (1, similar_distractor),
+    "out_of_view": (1, out_of_view),
 }
 TRANSFORM_REVISIONS = {name: revision for name, (revision, _) in _TRANSFORMS.items()}
 

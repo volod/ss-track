@@ -99,7 +99,7 @@ traceback. Import and stage remove their scratch before that record is written:
 ## Declarations
 
 Each file is checked in full against its contract on read, `declaration/recording` 2.3.0 and
-`declaration/corpus` 3.1.0, before any reader takes a value from it. Both reject unknown fields,
+`declaration/corpus` 3.2.0, before any reader takes a value from it. Both reject unknown fields,
 repeated keys, non-finite numbers and any other schema version, so a misspelled key cannot silently
 drop a fact. A recording is schema 2 and a corpus is schema 3. There are no defaults for rights,
 sensitivity, split or scenario rights: a declaration without them is refused, and `basis` has no
@@ -954,8 +954,8 @@ commands that write and stage it. Each row states the format it must decode as. 
 written by one host and carried to the other, so no binary enters the repository, and the
 [developer tooling page](developer-tooling.md#quality-gates) describes the job that does this. The
 host rows below were measured when the fixture held seven transforms (78 bundles, 879 frames).
-Compression and variable timing are integer transforms. Their bytes are pinned by the golden
-hashes, which that job runs with the rest of the fixture.
+Compression, variable timing and the track-following cases are integer transforms. Their bytes are
+pinned by the golden hashes, which that job runs with the rest of the fixture.
 
 | Host pair | Result |
 | --- | --- |
@@ -1090,6 +1090,10 @@ parent stream and has no other home:
 | `short_occlusion` | `region` | One rigid noise texture | `region_status`: `fully_occluded` inside, `partially_occluded` overlapping |
 | `compression` | `max_step` (1 to 255) | Each frame's quantization step, from 1 | `compression`: encoder, block and each step |
 | `variable_timing` | `max_scale` (2 to 16) | Each scaled gap's integer multiple, from 2 | `timing`: `timestamp_quality: derived` and the scaled gaps |
+| `crossing_occluder` | `label_revision`, `instance_id`, `track`, `cover` | One of four axis directions, and one texture | `track_status`: the box fully occluded on `cover`, then one pixel farther each frame |
+| `moving_removal` | `label_revision`, `instance_id`, `track`, `plate_frame`, `noise` (0 to 255) | Per-frame noise | `track_status`: `absent` inside each box, `unknown` on its boundary |
+| `similar_distractor` | `label_revision`, `instance_id`, `track` | Which side receives the copy | `track_status`: the copy is a distractor, and the target stays |
+| `out_of_view` | `label_revision`, `instance_id`, `track`, `outside` | Which edge the box leaves through | `track_status`: `out_of_view` on `outside`, then `reentry` |
 
 `region` is `{x, y, width, height}` in stored orientation, and each `region_status` also carries
 `frames`, `region` and `overlap_geometry: unlocalizable`. Pixels outside a case's window keep their
@@ -1105,10 +1109,27 @@ each selected frame inside the window. It does not change pixels. The
 [compression and timing record](../records/0044-corpus-provenance-compression-and-timing-cases.md)
 holds the acceptance.
 
-Nothing here knows where a target is. A `region` must cover the target for the whole window, and for
-`target_absence` the plate frame must not show it there. Both are the operator's claims, and a wrong
-one makes a false negative interval. A moving target needs a rectangle covering its whole path.
+The region transforms do not know where a target is. A `region` must cover the target for the whole
+window, and for `target_absence` the plate frame must not show it there. Both are the operator's
+claims, and a wrong one makes a false negative interval. A region case that follows a moving
+target needs a rectangle covering its whole path.
 [Case preview](#case-preview) draws that rectangle on one staged frame.
+
+A track case names `label_revision`, `instance_id` and `track`. `track` lists a `frame_index` and a
+`box` for each frame that has a scorable box. `cover` and `outside` are half-open intervals that
+sit strictly inside the case window, with at least one window frame on either side.
+`crossing_occluder` revision 1 draws one of four axis directions and paints one full-frame texture.
+On `cover` the painted rectangle is the box. On the other window frames it stands one pixel farther
+from the nearest covered frame. A rectangle that lies fully outside the frame leaves that frame
+unchanged. `moving_removal` copies each box from `plate_frame` and adds noise of at most `noise`.
+`similar_distractor` copies the box to the first seed-ranked side that fits, sharing an edge and
+leaving the target uncovered. If no side fits, the case is `CASE_INVALID`. `out_of_view` draws one
+edge and shifts by the smallest whole-pixel amount that puts the box outside that edge. A later
+frame that still has a box is re-entry and keeps its pixels. A frame with no box is `unknown` in
+every one of these cases and keeps its pixels. The label kind is `track_status`: one entry per
+window frame, with role `unknown`, `region`, `shift`, `reentry` or `unchanged`. The
+[track-following record](../records/0045-corpus-provenance-label-driven-cases.md) holds the
+acceptance.
 
 ### Membership
 
@@ -1178,8 +1199,9 @@ holds the acceptance.
 
 ### Reproducibility
 
-`src/ss_track/corpus/cases/transforms.py`, `field_transforms.py` and `region_transforms.py` hold the
-transforms. Each is a pure function of frames, parameters and seed, in integer arithmetic only, and
+`src/ss_track/corpus/cases/transforms.py`, `field_transforms.py`, `region_transforms.py` and
+`track_transforms.py` hold the transforms. `track_labels.py` holds the `track_status` record.
+Each transform is a pure function of frames, parameters and seed, in integer arithmetic only, and
 `seeded.py` derives every random value with SHAKE-256 rather than a library generator whose stream
 may change.
 
@@ -1201,8 +1223,9 @@ sit outside the corpus directory. It draws no label boxes and it does not change
 A case whose label transform is `region_status`, and whose window contains the frame, has that
 rectangle's perimeter replaced with RGB (255, 0, 0). The outline uses the region's own pixels,
 including a rectangle that touches the frame edge. Pixels inside and outside that perimeter stay
-as the case stored them. The parent panel is not outlined. A case with no region on that frame,
-such as blur, compression, variable timing, or a frame outside the window, is shown unchanged.
+as the case stored them. The parent panel is not outlined. A case with no operator rectangle on
+that frame, such as blur, compression, variable timing, a `track_status` case, or a frame outside
+the window, is shown unchanged. A track case names per-frame boxes, and preview does not draw them.
 
 A frame the case does not hold, which is how `dropped_frames` leaves a gap, is a panel of RGB
 (255, 0, 255) in that case's place. The case is not dropped from the sheet. This is not
