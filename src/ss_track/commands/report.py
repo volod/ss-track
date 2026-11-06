@@ -34,6 +34,8 @@ def reported(action: Callable[[], Reportable]) -> int:
         return _refuse(refusal)
     except OSError as error:
         return _refuse(CorpusRefusal(RefusalCode.STORAGE_FAILED, f"storage failed: {error}"))
+    except KeyboardInterrupt:
+        return _refuse(CorpusRefusal(RefusalCode.INTERRUPTED, "interrupted by SIGINT"))
     log_json(logging.INFO, dict(result.to_record()))
     return EXIT_OK
 
@@ -44,5 +46,9 @@ def reported_on_data_root(action: Callable[[Path], Reportable]) -> int:
 
 
 def _refuse(refusal: CorpusRefusal) -> int:
-    log_json(logging.ERROR, dict(refusal.to_record()))
+    """Log one refusal. A second SIGINT while that line is written still exits refused."""
+    try:
+        log_json(logging.ERROR, dict(refusal.to_record()))
+    except KeyboardInterrupt:
+        return EXIT_REFUSED
     return EXIT_REFUSED

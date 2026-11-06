@@ -86,6 +86,13 @@ Each command logs one JSON record and exits 0. A refusal exits 1 and has this fo
 {"status": "refused", "code": "PTS_NON_INCREASING", "message": "...", "details": {"frame_index": 3}}
 ```
 
+SIGINT is a refusal of the same shape. The command exits 1, logs one JSON record and prints no
+traceback. Import and stage remove their scratch before that record is written:
+
+```json
+{"status": "refused", "code": "INTERRUPTED", "message": "interrupted by SIGINT", "details": {}}
+```
+
 `src/ss_track/core/paths.py` resolves the data root: `DATA_DIR` from the environment, then from
 `.env` at the project root, then `.data`. Relative values resolve against the project root.
 
@@ -697,6 +704,29 @@ primaries, transfer and chroma location stay the stored tags. A generated case i
 conversion, the refusal and the record. The
 [task record](../records/0042-corpus-provenance-declared-color-tags.md) holds the acceptance.
 
+### Decode time limit
+
+`src/ss_track/corpus/decoding/deadline.py` bounds one strict decode to `DECODE_LIMIT_SECONDS`,
+24 hours. The bound is not part of the decode policy and does not change a hash. The loop checks
+a monotonic clock before each packet is decoded, before each frame is written and after the
+consumer returns. A caller may pass another clock. Past the limit the refusal is
+`DECODE_TIME_EXCEEDED` and names `limit_seconds`, `elapsed_seconds` and `frames_decoded`. A whole
+number of seconds is stored as an integer.
+
+Import, redecode and staging publish only after that decode returns, so the refusal leaves no
+source, replacement or bundle. SIGINT during those commands is `INTERRUPTED` and removes the same
+scratch before the record is written. A second SIGINT while the record is being written still
+exits 1.
+
+A decoder call that never returns to Python is not stopped. Staging removes that run's scratch
+the next time it takes the lock. Import has no such sweep: a process that dies inside the decoder
+can leave an `.incoming-` directory under `import/`, which the operator removes.
+`tests/corpus/decoding/test_decode_limit.py` covers the bound, including a decode that lands on
+it. `tests/corpus/test_interruption.py` covers SIGINT and a command past the limit for import and
+stage. The
+[task record](../records/0043-corpus-provenance-decode-interruption-safety.md) holds the
+acceptance.
+
 The decoder runs in process, not through the `ffmpeg` binary that `ss-video` and `ss-fusion` call.
 This corpus needs a decoder version fixed by `uv.lock`, its behavior covered by `make ci`, and frame
 and packet corruption flags; a system binary provides none of these. Their `-c copy` recordings
@@ -784,7 +814,9 @@ an 87 MB peak.
 Each new bundle is written in a scratch directory. The pass renames them into place only after the
 source has decoded and every manifest is sealed, so a failure before that leaves none of them. A
 rename that fails, or an interruption while they are moving, removes the ones already renamed.
-Scratch that never moved is removed with its temporary directory. A source published before the
+Scratch that never moved is removed with its temporary directory. A decode past its
+[time limit](#decode-time-limit), or a SIGINT during the decode, is refused before publication, so
+that pass leaves no bundle. A source published before the
 failure stays staged, including a stream listed after the one that failed, and repeating the command
 decodes only a source that still has a missing bundle. One staging runs per corpus, under a lock
 the kernel releases however a run ends. A second run gets `STAGING_IN_PROGRESS`, and the next run
@@ -1156,7 +1188,8 @@ The encoder is `stored-deflate-rgb24-v1`: RGB rows, a none filter, and uncompres
 blocks. The same frame therefore has the same bytes on every zlib build. The file holds the raw
 rows plus one filter byte per row and a short header, because the pixels are not compressed.
 `png_sha256` covers those bytes. A repeated command writes the same bytes. A refusal leaves an
-existing `--out` untouched.
+existing `--out` untouched. An interrupt while the PNG is being written removes the scratch file
+and leaves `--out` untouched.
 
 Passing a case id is `CASE_INVALID` and names the parent. An unknown stream, or a case that was
 not staged, is `BUNDLE_NOT_STAGED`. A missing output directory, or an `--out` inside the corpus
@@ -1308,6 +1341,7 @@ accepted task, its decisions and its evidence.
 | `SOURCE_EMPTY` | The source has zero length |
 | `SOURCE_HASH_MISMATCH` | Bytes differ from the declared or imported hash, or the stored source is gone |
 | `SOURCE_DAMAGED` | Decoding or a completeness check shows truncation or corruption |
+| `DECODE_TIME_EXCEEDED` | A strict decode ran longer than the declared time limit. Details name the limit, the elapsed time and the frames decoded |
 | `SOURCE_NO_FRAMES` | The media opened but decoded to no frames |
 | `SOURCE_FORMAT_CHANGED` | Resolution, pixel format or display rotation changes within the stream |
 | `VIDEO_STREAM_UNSPECIFIED` | The declaration does not name a video stream this container holds. Details list every video stream |
@@ -1340,6 +1374,7 @@ accepted task, its decisions and its evidence.
 | `STAGING_IN_PROGRESS` | Another run is staging this corpus version |
 | `FRAME_CORRUPTED` | A staged file differs from the sealed index, is gone, or is not in it |
 | `FRAME_NOT_IN_BUNDLE` | A bundle does not hold a frame index, including a frame a case dropped |
+| `INTERRUPTED` | SIGINT stopped the command. Import and stage leave no scratch |
 | `STORAGE_FAILED` | The data root cannot be written, lacks the space for raw frames, or a preview PNG cannot be written outside the corpus directory |
 
 ## Integrity limits
@@ -1401,7 +1436,8 @@ carries their notices.
 
 `tests/corpus/` generates its media at test time through the pinned library, so no binary enters the
 repository. `tests/corpus/decoding/test_decode.py` covers the strict inspection,
-`test_decode_policy.py` the policy and its hash, and `test_decode_damage.py` the truncation sweep
+`test_decode_limit.py` the time limit, `test_decode_policy.py` the policy and its hash, and
+`test_decode_damage.py` the truncation sweep
 over small H.264 Matroska and MP4 clips and the damage default decoding hides and the policy
 refuses. `tests/corpus/bundles/test_bundle_writer.py`, `test_bundle_writer_refusals.py`,
 `test_staging.py`, `test_single_pass.py`, `test_frame_store.py`, `test_frames.py`,

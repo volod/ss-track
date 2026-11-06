@@ -393,6 +393,15 @@ contracts:
       class: minor
       summary: Add COLOR_TAG_CONFLICT when a declared color matrix disagrees with
         the source.
+  - version: 1.11.0
+    file_sha256: 671fcf4674e75384f233f9fbfe385cce46585b0a26596b40062482189fe3fdc9
+    fingerprints:
+      structure: 10ffd75d3e6de69b4e3930a63ae20fc4103be0937c9f530a9bf55fb1b41cde78
+      meaning: 6074c4b94f373c33aa78ddf0d39fe0f4c84c81f90f4545ccf569cb2c3c8d2a5e
+    change:
+      class: minor
+      summary: Add DECODE_TIME_EXCEEDED and INTERRUPTED when a decode passes its time
+        limit or a command is interrupted.
 - family: shared
   id: types
   owner: data-contracts

@@ -47,5 +47,6 @@ Copy the [template](template.md) using the
 | 0040 | `import-stream-selection` | [0040-corpus-provenance-import-stream-selection](0040-corpus-provenance-import-stream-selection.md) |
 | 0041 | `dual-camera-file-identity` | [0041-corpus-provenance-dual-camera-file-identity](0041-corpus-provenance-dual-camera-file-identity.md) |
 | 0042 | `declared-color-tags` | [0042-corpus-provenance-declared-color-tags](0042-corpus-provenance-declared-color-tags.md) |
+| 0043 | `decode-interruption-safety` | [0043-corpus-provenance-decode-interruption-safety](0043-corpus-provenance-decode-interruption-safety.md) |
 
-Next unused sequence: `0043`.
+Next unused sequence: `0044`.

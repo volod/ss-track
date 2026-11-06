@@ -30,26 +30,6 @@ extensions; none blocks M3. Fixture implementation proceeds without physical har
 
 ### Corpus provenance -- `corpus-provenance`
 
-#### decode-interruption-safety (optional)
-
-Ctrl-C ends a long run with a traceback, and a pathological file can decode with no limit.
-
-- Serves: `corpus-provenance` -- [Corpus
-  identity](../design/spec.md#41-corpus-identity-and-input-handling)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: An interrupted or over-limit import or stage ends with a structured refusal
-  and leaves nothing partial.
-- Scope boundary: SIGINT and a declared decode time limit. A hung native call stays a known limit if
-  it never returns to Python.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`.
-- Execution path: Report `KeyboardInterrupt` through the command path and check a deadline in the
-  decode loop, with an injected clock.
-- Acceptance gates: SIGINT exits 1 with one JSON record and no traceback, leaving no scratch behind.
-  A fixture past its limit is refused with the elapsed time.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
 #### compression-and-timing-cases (optional)
 
 Field video also fails through heavy compression and uneven frame timing, which no generated case

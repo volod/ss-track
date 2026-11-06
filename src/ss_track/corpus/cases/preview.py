@@ -237,11 +237,20 @@ def _write_bytes(path: Path, payload: bytes) -> None:
         raise CorpusRefusal(
             RefusalCode.STORAGE_FAILED, "preview cannot write its PNG", {"path": str(path)}
         ) from error
+    except BaseException:
+        temporary.unlink(missing_ok=True)
+        raise
 
 
 def _temporary(path: Path, payload: bytes) -> Path:
+    """Write the PNG aside. An interrupt removes that file before the error propagates."""
     with NamedTemporaryFile(dir=path.parent, prefix=SCRATCH_PREFIX, delete=False) as handle:
-        handle.write(payload)
-        handle.flush()
-        os.fsync(handle.fileno())
-        return Path(handle.name)
+        temporary = Path(handle.name)
+        try:
+            handle.write(payload)
+            handle.flush()
+            os.fsync(handle.fileno())
+        except BaseException:
+            temporary.unlink(missing_ok=True)
+            raise
+        return temporary

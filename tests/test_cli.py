@@ -6,7 +6,7 @@ import pytest
 import yaml
 
 from ss_track.cli import build_parser, main
-from ss_track.commands.report import EXIT_OK, EXIT_REFUSED
+from ss_track.commands.report import EXIT_OK, EXIT_REFUSED, reported
 from tests.corpus._media import write_clip
 from tests.corpus.conftest import recording_declaration
 
@@ -182,3 +182,29 @@ def test_unwritable_data_root_is_a_structured_refusal(
     assert main(["import", "--source", str(recording)]) == EXIT_REFUSED
 
     assert _record(caplog)["code"] == "STORAGE_FAILED"
+
+
+def _raise_interrupt(*_args: object, **_kwargs: object) -> None:
+    raise KeyboardInterrupt
+
+
+def test_sigint_is_one_json_refusal(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level(logging.INFO)
+
+    assert reported(_raise_interrupt) == EXIT_REFUSED
+
+    assert _record(caplog) == {
+        "status": "refused",
+        "code": "INTERRUPTED",
+        "message": "interrupted by SIGINT",
+        "details": {},
+    }
+
+
+def test_a_second_sigint_while_reporting_still_exits(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    caplog.set_level(logging.INFO)
+    monkeypatch.setattr("ss_track.commands.report.log_json", _raise_interrupt)
+
+    assert reported(_raise_interrupt) == EXIT_REFUSED

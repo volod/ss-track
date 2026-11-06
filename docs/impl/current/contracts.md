@@ -22,7 +22,7 @@ baseline scope and evidence. The installed set contains these document contracts
 | `record/staged-hashes` | `1.0.0` |
 | `record/hash-comparison` | `1.0.0` |
 | `record/source-manifest` | `2.0.0`, `2.1.0`, `2.2.0`, `2.3.0` |
-| `result/command` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0`, `1.4.0`, `1.5.0`, `1.6.0`, `1.7.0`, `1.8.0`, `1.9.0`, `1.9.1`, `1.10.0` |
+| `result/command` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0`, `1.4.0`, `1.5.0`, `1.6.0`, `1.7.0`, `1.8.0`, `1.9.0`, `1.9.1`, `1.10.0`, `1.11.0` |
 
 `result/command` `1.5.0` adds `redecoded`. `1.6.0` adds optional `unlinked` on a corpus build,
 present only when that data root has something to report. `1.7.0` adds optional `impact` when an
@@ -36,7 +36,8 @@ file hash. `declaration/recording` 2.2.0 adds optional
 `sequence.video_stream_index`, absent when the decoded stream is the first.
 `declaration/recording` 2.3.0 adds optional `color.matrix`. `record/source-manifest` 2.3.0 and
 `record/frame-bundle` 3.2.0 add optional `declared_color`, present only when conversion used that
-declaration. `result/command` 1.10.0 adds `COLOR_TAG_CONFLICT`.
+declaration. `result/command` 1.10.0 adds `COLOR_TAG_CONFLICT`. `1.11.0` adds
+`DECODE_TIME_EXCEEDED` and `INTERRUPTED`.
 
 `declaration/dataset` states the operator-supplied title, description, license, citation, address
 and publication date. It can be checked with `ss-track contracts validate` and is consumed by the

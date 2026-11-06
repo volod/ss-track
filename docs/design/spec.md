@@ -163,6 +163,14 @@ stores no PTS. Import records these states and never fills in a timestamp.
 The corpus declares a canonical decoder, its version/options and output pixel format. The canonical
 decode is strict: a source is refused when decoding shows truncation or corruption that a tolerant
 decoder would conceal, and a source whose completeness cannot be established says so in its record.
+Import, redecode and staging refuse a decode that runs past the declared time limit, 24 hours for
+one source. The limit is not part of the decode policy, so it does not change a pixel or a hash.
+The refusal names how long the decode ran. An operator interrupt is a refusal as well: one record,
+and no partial source or bundle. The limit is checked while the decode loop is in Python. A
+decoder call that never returns is outside it. Staging removes scratch that such a run left the
+next time it takes the lock. Import has no second run to do that, so a scratch directory left by
+a process that dies inside the decoder stays until the operator removes it.
+
 G0 modules consume one staged, immutable decoded-frame bundle. This makes their actual input
 identical without requiring cross-platform decoders to produce identical pixels. The bundle hash
 covers the source hash, decode policy, pixel layout and per-frame hashes, and no corpus or sequence

@@ -19,6 +19,7 @@ import av.video
 from av.video.codeccontext import VideoCodecContext
 
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
+from ss_track.corpus.decoding import deadline
 from ss_track.corpus.decoding.decode_policy import DecodePolicy
 from ss_track.corpus.decoding.integrity import matroska_segment_end
 from ss_track.corpus.decoding.pixels import ColorTags, bits_per_component, color_tags
@@ -112,13 +113,19 @@ def inspect_media(
     on_frame: FrameConsumer = _ignore_frame,
     *,
     video_stream_index: int | None = None,
+    clock: deadline.Clock | None = None,
+    decode_limit_seconds: float = deadline.DECODE_LIMIT_SECONDS,
 ) -> MediaInspection:
     """Decode one video stream strictly, or refuse with the evidence of why that failed.
 
     `video_stream_index` counts video streams from zero. Omit it only when the container has one.
     `on_frame` receives each accepted frame with its zero-based index. A refusal can come after
-    earlier frames were delivered, so a consumer must keep its output unpublished until this returns.
+    earlier frames were delivered, so a consumer must keep its output unpublished until this
+    returns.
+    The decode loop stops once `clock` runs past `decode_limit_seconds`. The default clock is
+    monotonic time and the default limit is the declared bound.
     """
+    chosen_clock = deadline.decode_clock if clock is None else clock
     with _ffmpeg_errors() as logs:
         try:
             container = av.open(os.fspath(path), options=dict(policy.format_options))
@@ -127,7 +134,16 @@ def inspect_media(
                 RefusalCode.SOURCE_UNREADABLE, f"cannot open media: {error.strerror}"
             ) from error
         with container:
-            return _inspect_container(path, container, policy, logs, on_frame, video_stream_index)
+            return _inspect_container(
+                path,
+                container,
+                policy,
+                logs,
+                on_frame,
+                video_stream_index,
+                chosen_clock,
+                decode_limit_seconds,
+            )
 
 
 def _configured_context(stream: av.video.VideoStream, policy: DecodePolicy) -> VideoCodecContext:
@@ -147,13 +163,15 @@ def _inspect_container(
     logs: FfmpegLog,
     on_frame: FrameConsumer,
     video_stream_index: int | None,
+    clock: deadline.Clock,
+    decode_limit_seconds: float,
 ) -> MediaInspection:
     streams = container.streams.video
     stream, selected = select_video_stream(streams, video_stream_index)
     context = _configured_context(stream, policy)
     decoded = _Decoded()
     try:
-        _decode_all(container, stream, logs, decoded, on_frame)
+        _decode_all(container, stream, logs, decoded, on_frame, clock, decode_limit_seconds)
     except av.FFmpegError as error:
         raise _damaged(_last_log(logs) or str(error.strerror), len(decoded.pts)) from error
     checks = _frame_count_checks(stream.frames, decoded)
@@ -189,21 +207,28 @@ def _decode_all(
     logs: FfmpegLog,
     decoded: _Decoded,
     on_frame: FrameConsumer,
+    clock: deadline.Clock,
+    decode_limit_seconds: float,
 ) -> None:
-    """Account for every packet, stopping at the first sign of damage."""
+    """Account for every packet, stopping at damage or the declared time limit."""
+    bound = deadline.DecodeDeadline(decode_limit_seconds, clock)
     for packet in container.demux(stream):
         if packet.is_corrupt:
             raise _damaged("demuxer flagged a corrupt packet", len(decoded.pts))
+        bound.check(len(decoded.pts))
         decoded.discarded += packet.is_discard
         for frame in packet.decode():
+            bound.check(len(decoded.pts))
             if frame.is_corrupt:
                 raise _damaged("decoder flagged a corrupt frame", len(decoded.pts))
             _require_one_shape(frame, decoded)
             decoded.interlaced += frame.interlaced_frame
             on_frame(len(decoded.pts), frame)
             decoded.pts.append(frame.pts)
+            bound.check(len(decoded.pts))
         if logs:
             raise _damaged(_last_log(logs), len(decoded.pts))
+    bound.check(len(decoded.pts))
     if logs:
         raise _damaged(_last_log(logs), len(decoded.pts))
 

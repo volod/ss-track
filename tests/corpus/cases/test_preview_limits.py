@@ -169,3 +169,19 @@ def test_a_failed_replace_leaves_no_scratch_file(
         _write_bytes(tmp_path / "sheet.png", b"png")
     assert caught.value.code is RefusalCode.STORAGE_FAILED
     assert list(tmp_path.glob(".incoming-*")) == []
+
+
+@pytest.mark.parametrize("where", ["fsync", "replace"])
+def test_an_interrupt_while_writing_a_preview_leaves_no_scratch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, where: str
+) -> None:
+    def stop(*_args: object, **_kwargs: object) -> None:
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(os, where, stop)
+
+    with pytest.raises(KeyboardInterrupt):
+        _write_bytes(tmp_path / "sheet.png", b"png")
+
+    assert list(tmp_path.glob(".incoming-*")) == []
+    assert not (tmp_path / "sheet.png").exists()
