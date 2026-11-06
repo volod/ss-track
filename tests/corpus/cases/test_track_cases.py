@@ -10,10 +10,11 @@ from pathlib import Path
 import numpy as np
 
 from ss_track.corpus import ImportResult, build_corpus, open_frame_bundle, stage_corpus
-from ss_track.corpus.bundles.frames import FRAME_BUNDLE, bundle_hash
+from ss_track.corpus.bundles.frames import bundle_hash
 from ss_track.corpus.cases.case_model import Rendering
 from ss_track.corpus.cases.seeded import SeededDraws
 from ss_track.corpus.cases.track_transforms import CROSS_DIRECTIONS, CROSS_STEP, EXIT_EDGES
+from ss_track.corpus.records.kinds import FRAME_BUNDLE
 from ss_track.corpus.records.sealed import read_sealed
 from tests.corpus.cases._case_frames import (
     HEIGHT,

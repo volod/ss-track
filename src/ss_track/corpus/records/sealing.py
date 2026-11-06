@@ -6,19 +6,15 @@ compares it with must come from one function. Reading a sealed record is `corpus
 
 import hashlib
 import json
-import os
 from collections.abc import Mapping
 from pathlib import Path
-from tempfile import NamedTemporaryFile
 
 from ss_track.core.canonical import SEAL_FIELD, seal_of
 from ss_track.core.refusal import JsonValue
+from ss_track.corpus.storage.scratch import READ_ONLY_FILE_MODE, write_atomically
 from ss_track.schema.validation.enforce import record_violations, require_record
 from ss_track.schema.validation.strict import Violation
 
-SCRATCH_PREFIX = ".incoming-"
-READ_ONLY_FILE_MODE = 0o444
-READ_ONLY_DIRECTORY_MODE = 0o555
 _CHUNK_BYTES = 1024 * 1024
 _UNSEALED = "0" * 64  # a well-formed stand-in, so validation needs no hash of an invalid body
 
@@ -69,13 +65,5 @@ def _unsealed(body: Mapping[str, JsonValue]) -> dict[str, JsonValue]:
 def write_sealed(path: Path, sealed: Mapping[str, JsonValue]) -> None:
     """Write a read-only record so that a crash cannot leave a partial file."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    payload = json.dumps(sealed, ensure_ascii=True, allow_nan=False, indent=2, sort_keys=True)
-    with NamedTemporaryFile(
-        "w", encoding="ascii", dir=path.parent, prefix=SCRATCH_PREFIX, delete=False
-    ) as handle:
-        handle.write(payload + "\n")
-        handle.flush()
-        os.fsync(handle.fileno())
-    temporary = Path(handle.name)
-    temporary.chmod(READ_ONLY_FILE_MODE)
-    temporary.replace(path)
+    text = json.dumps(sealed, ensure_ascii=True, allow_nan=False, indent=2, sort_keys=True)
+    write_atomically(path, f"{text}\n".encode("ascii"), mode=READ_ONLY_FILE_MODE)

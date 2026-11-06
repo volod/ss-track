@@ -1,6 +1,8 @@
-"""Corpus versions: the build, encounter grouping and splits, and lineage across versions.
+"""Corpus versions: the build, reading a built version, encounter grouping and splits, and lineage
+across versions.
 
-`unlinked` lists other versions on one data root that place a source elsewhere and refuses nothing.
-`near_duplicates` reports a likely re-encode across groups, including one in a version on
-the same data root that the declaration does not link, and refuses nothing.
+`scan` walks every version on one data root for the listings that refuse nothing: `unlinked`
+names other versions that place a source elsewhere, `impact` names versions that pin a replaced
+source record, and `near_duplicates` reports a likely re-encode across groups, including one in a
+version the declaration does not link.
 """

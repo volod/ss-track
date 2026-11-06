@@ -8,7 +8,7 @@ from ss_track.corpus import ImportResult, RefusalCode, amend_source_terms
 from ss_track.corpus.records.sealing import sha256_file
 from tests.corpus._amending import evidence, read_source, refused
 from tests.corpus._media import write_clip
-from tests.corpus.conftest import WriteRecording, reseal
+from tests.corpus.conftest import WriteRecording, imported_names, reseal
 
 
 @pytest.mark.parametrize(
@@ -47,7 +47,7 @@ def test_an_amendment_cannot_change_or_import_a_file(
     refusal = refused(lambda: amend_source_terms(other, data_root), RefusalCode.IMPORT_CONFLICT)
 
     assert refusal.details == {"source_sha256": sha256_file(media / "other.mkv")}
-    assert [path.name for path in (data_root / "import").iterdir()] == [imported.source_sha256]
+    assert imported_names(data_root) == [imported.source_sha256]
     assert evidence(directory) == before
 
 
@@ -100,7 +100,7 @@ def test_an_unreadable_source_is_refused(
     def deny(_: Path) -> None:
         raise PermissionError(13, "Permission denied")
 
-    monkeypatch.setattr("ss_track.corpus.sources.amendment.sha256_file", deny)
+    monkeypatch.setattr("ss_track.corpus.sources.source_file.sha256_file", deny)
     declared = write_recording()
 
     refused(lambda: amend_source_terms(declared, data_root), RefusalCode.SOURCE_UNREADABLE)

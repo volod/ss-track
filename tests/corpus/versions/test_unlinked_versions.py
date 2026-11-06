@@ -9,7 +9,7 @@ import pytest
 from ss_track.cli import main
 from ss_track.commands.report import EXIT_OK
 from ss_track.corpus import ImportResult, build_corpus
-from ss_track.corpus.versions.unlinked import UNREADABLE
+from ss_track.corpus.versions.scan import UNREADABLE
 from tests.corpus.conftest import (
     WriteCorpus,
     encounter_of,

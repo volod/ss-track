@@ -46,12 +46,16 @@ def matrix_code(name: str) -> int:
 
 
 def sws_colorspace(code: int) -> Colorspace:
-    """Return the swscale colorspace that applies one declared matrix code."""
+    """Return the swscale colorspace that applies one declared matrix code.
+
+    The code comes from a sealed record, whose contract states the five codes below, so another
+    code is a record resealed by hand.
+    """
     try:
         return _BY_CODE[code].colorspace
     except KeyError as error:
         raise CorpusRefusal(
-            RefusalCode.RECORD_INVALID,
+            RefusalCode.RECORD_TAMPERED,
             "declared color matrix is not one conversion applies",
             {"matrix": code},
         ) from error

@@ -3,8 +3,8 @@ from pathlib import Path
 import pytest
 
 from ss_track.corpus import CorpusRefusal, RefusalCode, build_corpus
+from ss_track.corpus.records.kinds import CORPUS_MANIFEST
 from ss_track.corpus.records.sealed import read_sealed
-from ss_track.corpus.versions.builder import CORPUS_MANIFEST
 from tests.corpus.conftest import (
     WriteCorpus,
     WriteRecording,

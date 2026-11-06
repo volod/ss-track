@@ -167,9 +167,9 @@ Import, redecode and staging refuse a decode that runs past the declared time li
 one source. The limit is not part of the decode policy, so it does not change a pixel or a hash.
 The refusal names how long the decode ran. An operator interrupt is a refusal as well: one record,
 and no partial source or bundle. The limit is checked while the decode loop is in Python. A
-decoder call that never returns is outside it. Staging removes scratch that such a run left the
-next time it takes the lock. Import has no second run to do that, so a scratch directory left by
-a process that dies inside the decoder stays until the operator removes it.
+decoder call that never returns is outside it. The next run that holds the same lock removes
+scratch that such a run left: the next stage of that version, and the next import that finds no
+other import running.
 
 G0 modules consume one staged, immutable decoded-frame bundle. This makes their actual input
 identical without requiring cross-platform decoders to produce identical pixels. The bundle hash

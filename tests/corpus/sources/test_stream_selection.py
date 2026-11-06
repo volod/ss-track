@@ -18,9 +18,10 @@ from ss_track.corpus import (
 )
 from ss_track.corpus.bundles.frames import frame_name
 from ss_track.corpus.decoding.pixels import OUTPUT_PIXEL_FORMAT
+from ss_track.corpus.records.kinds import SOURCE_MANIFEST
 from ss_track.corpus.records.sealed import read_sealed
 from ss_track.corpus.records.sealing import sha256_file
-from ss_track.corpus.sources.importer import SOURCE_MANIFEST, ImportResult
+from ss_track.corpus.sources.importer import ImportResult
 from ss_track.schema import validate_file
 from tests.corpus._media import (
     DUAL_FIRST_FRAMES,
@@ -29,7 +30,13 @@ from tests.corpus._media import (
     WIDTH,
     write_dual_video,
 )
-from tests.corpus.conftest import WriteCorpus, WriteRecording, last_record, stream_of
+from tests.corpus.conftest import (
+    WriteCorpus,
+    WriteRecording,
+    imported_names,
+    last_record,
+    stream_of,
+)
 
 _CORPUS = "pilot-v1"
 _LISTED = [
@@ -81,7 +88,7 @@ def test_an_unnamed_two_stream_file_is_refused_and_lists_both(
 
     assert "declare source.video_stream_index" in refusal.message
     assert refusal.details["video_streams"] == _LISTED
-    assert list((data_root / "import").iterdir()) == []
+    assert imported_names(data_root) == []
 
 
 def test_the_import_command_lists_both_streams(
@@ -100,7 +107,7 @@ def test_the_import_command_lists_both_streams(
     details = record["details"]
     assert isinstance(details, dict)
     assert details["video_streams"] == _LISTED
-    assert list((cli_root / "import").iterdir()) == []
+    assert imported_names(cli_root) == []
 
 
 def test_each_index_imports_and_stages_its_own_frames(

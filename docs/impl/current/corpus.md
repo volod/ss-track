@@ -27,8 +27,9 @@ tasks, their decisions and their acceptance evidence:
 [repeated frames in one group](../records/0032-corpus-provenance-group-repeated-frames.md),
 [arm64 reproducibility](../records/0011-corpus-provenance-arm64-reproducibility.md),
 [source terms amendment](../records/0014-corpus-provenance-source-terms-amendment.md),
-[amendment impact](../records/0034-corpus-provenance-amendment-impact-report.md) and
-[record read gate](../records/0016-data-contracts-record-read-gate.md).
+[amendment impact](../records/0034-corpus-provenance-amendment-impact-report.md),
+[record read gate](../records/0016-data-contracts-record-read-gate.md) and the
+[corpus provenance group audit](../records/0049-corpus-provenance-corpus-provenance-audit.md).
 
 The available corpus path imports declared sources and stages reviewed selections; it does not yet
 form a large corpus from sibling video indexes or self-supervised selection. The specification and
@@ -220,7 +221,8 @@ the import, the encounter, the repeated import, the group and lineage refusals. 
 | `$DATA_DIR/import/<source-sha256>/source<ext>` | Read-only copy of the source bytes. The directory name is the source identity, which is the file hash for the first video stream |
 | `$DATA_DIR/import/<source-sha256>/manifest.json` | Sealed source manifest |
 | `$DATA_DIR/import/<source-sha256>/replaced/<manifest-sha256>.json` | Each record an amendment replaced, under its own seal |
-| `$DATA_DIR/import/.amendment.lock` | Empty lock that serializes amendments |
+| `$DATA_DIR/import/.amendment.lock` | Empty lock that serializes amendments and redecodes |
+| `$DATA_DIR/import/.import.lock` | Empty lock that imports share while their scratch exists |
 | `$DATA_DIR/corpus/<corpus-id>/manifest.json` | Sealed corpus manifest |
 | `$DATA_DIR/corpus/<corpus-id>/frame-set.json` | Sealed record of every staged bundle |
 | `$DATA_DIR/corpus/<corpus-id>/frames/<stream-id>/` | One read-only frame bundle |
@@ -231,6 +233,15 @@ the import, the encounter, the repeated import, the group and lineage refusals. 
 Import copies the source first, then hashes and decodes that copy, so the record describes exactly
 the bytes retained. The finished directory is published by one rename, so a failure leaves nothing
 that looks complete.
+
+`src/ss_track/corpus/storage/layout.py` composes every path in the table, and
+`src/ss_track/corpus/storage/scratch.py` is the one way a command writes there. A writer works in a
+name that starts with `.incoming-` and publishes by rename, and the next run that holds the same
+lock removes scratch that a killed run left: staging under `.staging.lock`, amendments and redecodes
+under `.amendment.lock`, descriptor publication under `.describe.lock`, and imports under
+`.import.lock`. Imports take that lock shared, so they run side by side, and an import that finds no
+other import running removes what a killed import left under `import/`. A single record file is
+replaced through the same scratch prefix, with its bytes on disk before the rename.
 
 A sealed manifest carries `manifest_sha256`, a SHA-256 of its canonical JSON. It holds no clock time
 or filesystem path, so the same source, declaration and decoder give identical bytes in any process.
@@ -375,7 +386,9 @@ is not applied to an undeclared version, because this listing compares source ha
 The field is absent when there is nothing to report. It is not sealed, so a corpus hash does not
 change when another version appears, and `unchanged` can still carry a new listing. Repeating the
 build reports the data root as it is. `src/ss_track/corpus/versions/unlinked.py` reads
-`$DATA_DIR/corpus/*/manifest.json` through `read_comparable`, and `lineage.py` compares placements.
+`$DATA_DIR/corpus/*/manifest.json` through the walk in `scan.py`, which reads each one with
+`read_comparable` and also serves the amendment impact and the near-duplicate scan, and
+`lineage.py` compares placements.
 One data root only. Versions outside `corpus/` are not listed. The
 [unlinked-versions record](../records/0033-corpus-provenance-unlinked-version-report.md) holds the
 accepted task.
@@ -628,8 +641,8 @@ terms match and something else in the record changed, such as a capture fact or 
 refuses all the same, because the pin covers the whole record, and so does a wider right. A
 re-import of the original declaration gives the original seal, so the corpus verifies again.
 
-`_require_sources_hold` in `src/ss_track/corpus/bundles/staging.py` is this one check for both
-commands, and each stream is checked, which covers every generated case because a case holds its
+`require_sources_hold` in `src/ss_track/corpus/bundles/version_bundles.py` is this one check for
+both commands, and each stream is checked, which covers every generated case because a case holds its
 parent's rights. Retention comes first and reads only the corpus, so an expired source stays
 `RETENTION_EXPIRED` after its directory is removed. Otherwise a missing record is
 `SOURCE_NOT_IMPORTED`, an unreadable one is `RECORD_TAMPERED`, and one of another schema is
@@ -653,11 +666,12 @@ ss-track import --source recording.yaml --amend-terms      # now declaring the n
 
 `src/ss_track/corpus/sources/amendment.py` replaces `rights` and `sensitivity` and writes the
 current schema. Every other section is carried from the existing record, so an amended record equals
-a fresh import of the same declaration under the same decoder. It keeps the old record in
-`replaced/` first and then replaces the manifest by one rename, so a run killed at any point leaves
-one whole record and a rerun finishes it. A repeat reports `unchanged`. Restoring the old terms
-restores the old seal, so a version pinning it verifies again. Amendments carry no date, so the kept
-records have no recorded order.
+a fresh import of the same declaration under the same decoder. `replacement.py`, which `--redecode`
+shares, keeps the old record in `replaced/` first, as written and under its own seal even when its
+major is read through a view, and then replaces the manifest by one rename, so a run killed at any
+point leaves one whole record and a rerun finishes it. A repeat reports `unchanged`. Restoring the
+old terms restores the old seal, so a version pinning it verifies again. Amendments carry no date,
+so the kept records have no recorded order.
 
 An amendment finds its source by the bytes at `source.path`, or by a declared `source.sha256` once the
 original has gone. With the file present the two must agree, as in a plain import. It does not read
@@ -699,7 +713,7 @@ not part of the source record. Its frames stay on disk until an operator removes
 ```
 
 `src/ss_track/corpus/versions/impact.py` reads `$DATA_DIR/corpus/*/manifest.json` through
-`scan_corpus_manifests` and matches `source_manifest_sha256` on each major's comparison projection.
+`scan_versions` in `scan.py` and matches `source_manifest_sha256` on each major's comparison projection.
 Corpus majors 2 and 3 carry that pin. Corpus major 1 keeps no projection, so a version of that
 major is named `other_schema` rather than matched on its sequences. `--redecode` lists the same
 way when it replaces a record. The
@@ -793,8 +807,8 @@ scratch before the record is written. A second SIGINT while the record is being 
 exits 1.
 
 A decoder call that never returns to Python is not stopped. Staging removes that run's scratch
-the next time it takes the lock. Import has no such sweep: a process that dies inside the decoder
-can leave an `.incoming-` directory under `import/`, which the operator removes.
+the next time it takes the lock. An import that dies inside the decoder leaves an `.incoming-`
+directory under `import/`, and the next import that finds no other import running removes it.
 `tests/corpus/decoding/test_decode_limit.py` covers the bound, including a decode that lands on
 it. `tests/corpus/test_interruption.py` covers SIGINT and a command past the limit for import and
 stage. The
@@ -826,11 +840,13 @@ ss-track import --source recording.yaml --redecode --amend-terms     # takes ter
 ```
 
 `src/ss_track/corpus/sources/redecode.py` decodes the one stored copy again under the policy
-installed today, and writes the result the same way an amendment does: under the shared
-`exclusive_source_lock`, keeping the replaced record in `replaced/` first and then replacing the
-manifest by one rename, so a run killed at any point leaves one whole record and a rerun finishes
-it. A repeat reports `unchanged`. The stored source is read, decoded and left byte-identical; its
-hash is checked again first, and a source that no longer matches it is `SOURCE_HASH_MISMATCH`.
+installed today, and writes the result the same way an amendment does, through
+`replacement.py`: under the shared `.amendment.lock`, keeping the replaced record in `replaced/`
+first and then replacing the manifest by one rename, so a run killed at any point leaves one whole
+record and a rerun finishes it. Import and redecode build the record's `sequence` with the one
+function in `source_record.py`, so a redecode writes what an import of those bytes would. A repeat
+reports `unchanged`. The stored source is read, decoded and left byte-identical; its hash is checked
+again first, and a source that no longer matches it is `SOURCE_HASH_MISMATCH`.
 
 A plain `--redecode` carries the existing `rights` and `sensitivity` forward unchanged, exactly as
 recorded, because terms are never invented. A record whose carried terms then fall short of the
@@ -838,8 +854,8 @@ current major, such as a schema 1 record still missing `retain_until` and `deriv
 `RECORD_SCHEMA_UNSUPPORTED` naming `--amend-terms`. Adding `--amend-terms` takes the terms from the
 declaration instead, exactly as a plain amendment does, so a record too old for `--amend-terms`
 alone -- one still short a decoded fact too -- reaches the current major only this way, because the
-decode and the declared term arrive together. `require_current_facts`, shared with `amendment.py`,
-raises this refusal from either path.
+decode and the declared term arrive together. `successor_of` in `replacement.py` raises this
+refusal from either path.
 
 Every corpus version that pinned the old record then refuses at `corpus stage` and `corpus verify`
 with `SOURCE_RECORD_CHANGED`, exactly as after an amendment, and the result lists them in `impact`
@@ -1173,6 +1189,14 @@ way, so a changed frame cannot reach a module. A case frame that is a hard link 
 same inode, as is a frame reused from a linked version. Damage is named once for every bundle that
 holds that file, and removing one name leaves the others. A frame the case copied is named alone.
 
+`src/ss_track/corpus/bundles/verification.py` holds `corpus verify`, and `staging.py` holds
+`corpus stage`. Verify opens each bundle record once. Stage opens a parent once for a run of its
+cases, holding one parent's index at a time. Both hash a file with more than one name once per
+command (`FileDigests` in `src/ss_track/corpus/bundles/frames.py`), because every name of one inode
+reads the same bytes. A check therefore costs the frames that
+differ, not the names. On one 20,000-frame stream with eight cases, three of them only repeating or
+dropping frames, `corpus verify` fell from 4.5 s to 3.6 s and a repeated stage from 4.4 s to 3.6 s.
+
 A `verified` result covers source records and frames, not stored source bytes. Only `corpus build`
 and staging a new bundle read those, so `corpus verify` and a repeated `corpus stage` do not notice a
 damaged or removed stored source. No module reads one, and the frames that modules do read are the
@@ -1501,7 +1525,7 @@ accepted task, its decisions and its evidence.
 
 | Code | Raised when |
 | --- | --- |
-| `MANIFEST_INVALID` | A declaration is unreadable, breaks its contract, or breaks a reader rule above |
+| `MANIFEST_INVALID` | A declaration is unreadable, breaks its contract, or breaks a reader rule above, or a `--run-id` is not an identifier |
 | `SOURCE_NOT_FOUND` | The declared source does not exist |
 | `SOURCE_UNREADABLE` | The source is not a readable file, cannot be opened, or has no usable video stream |
 | `SOURCE_EMPTY` | The source has zero length |
@@ -1523,15 +1547,15 @@ accepted task, its decisions and its evidence.
 | `RETENTION_EXPIRED` | The evaluation day is after a source's inclusive retention deadline |
 | `CASE_INVALID` | A generated case does not fit its parent, changes no frame of it, does not match its parent's frame shape, or is named where preview expects the parent stream |
 | `TRANSFORM_REVISION_MISMATCH` | A stored case needs a transform revision this code does not provide |
-| `RECORD_TAMPERED` | A sealed record is missing, malformed, of another kind or fails its seal, or a re-import finds changed stored bytes |
-| `RECORD_INVALID` | A writer produced a record its contract refuses; nothing is sealed or written. This is a defect of ss-track, not of the input |
+| `RECORD_TAMPERED` | A sealed record is missing, malformed, of another kind or fails its seal, states a value its contract forbids, such as a declared color matrix no conversion applies or a bundle pixel format other than `rgb24`, or a re-import finds changed stored bytes |
+| `RECORD_INVALID` | A writer produced a record its contract refuses, a reused bundle hashed other than its candidate, or a preview sheet does not fit its own layout; nothing is sealed or written. This is a defect of ss-track, not of the input |
 | `RECORD_SCHEMA_UNSUPPORTED` | [Any sealed record](#reading-sealed-records) is of a major or stated shape this code does not serve as evidence, including at a re-import or rebuild over it and a corpus without source terms, or an amendment or a [redecode](#redecoding-under-a-new-policy) finds a record it cannot write forward |
 | `DECODE_POLICY_MISMATCH` | A source or pin uses a decode policy other than the installed one |
 | `IMPORT_CONFLICT` | The same source was imported at the current major with another declaration or decoder, or an amendment or a redecode names bytes with no record or changes more than terms |
 | `CORPUS_CONFLICT` | The `corpus_id` already exists with different content, or a superseded version differs from the seal its successor pinned, at build, stage or verify |
 | `CORPUS_NOT_BUILT` | The named corpus version or a version of its declared chain does not exist, or the identifier cannot name one |
 | `DECODE_DRIFT` | A staging decode disagrees with the import record of its source |
-| `BUNDLE_NOT_STAGED` | A stream has no staged frame bundle |
+| `BUNDLE_NOT_STAGED` | A stream has no staged frame bundle, or preview names a stream the corpus does not declare |
 | `BUNDLE_CONFLICT` | A bundle was staged from a different corpus version, for a different stream, or from other parent frames |
 | `FRAME_SET_NOT_STAGED` | Every bundle is staged but no frame set exists, so staging has not finished |
 | `FRAME_SET_MISMATCH` | Staged bundles differ from the frame set, or something undeclared sits among them |
@@ -1601,7 +1625,9 @@ carries their notices.
 ## Verification
 
 `tests/corpus/` generates its media at test time through the pinned library, so no binary enters the
-repository. `tests/corpus/decoding/test_decode.py` covers the strict inspection,
+repository. `tests/corpus/test_commands.py` covers each command's one JSON record and failing status,
+and `tests/corpus/storage/test_scratch.py` the locks, scratch removal and atomic replacement every
+writer shares. `tests/corpus/decoding/test_decode.py` covers the strict inspection,
 `test_decode_limit.py` the time limit, `test_decode_policy.py` the policy and its hash, and
 `test_decode_damage.py` the truncation sweep
 over small H.264 Matroska and MP4 clips and the damage default decoding hides and the policy
@@ -1643,6 +1669,8 @@ the commit in its name. `tests/corpus/sources/test_redecode.py` covers
 `--redecode` and `--redecode --amend-terms` the same way: a simulated policy upgrade, a tampered
 stored source, a repeat, a subprocess killed at each write, and both kept schema 1 records, one
 through the sequential route and one that needs both flags together.
+`tests/corpus/sources/test_replacement.py` covers the record a successor keeps when the existing
+major is read through a view.
 `tests/corpus/records/test_sealed.py` covers the read path itself, `test_sealing.py` the seal, the
 write and hashed copies, and `test_sealed_reads.py` scans for reads around the read path.
 `test_historic_records.py` reads every kept record through the read path and

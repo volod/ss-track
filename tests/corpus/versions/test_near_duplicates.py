@@ -1,7 +1,6 @@
 """A corpus build reports a re-encoded copy across groups and does not refuse it."""
 
 import argparse
-import json
 from collections.abc import Callable
 from pathlib import Path
 
@@ -9,8 +8,8 @@ import pytest
 
 from ss_track.commands.corpus import _run_corpus_build
 from ss_track.corpus import ImportResult, build_corpus, import_source
+from ss_track.corpus.records.kinds import CORPUS_MANIFEST
 from ss_track.corpus.records.sealed import read_sealed
-from ss_track.corpus.versions.builder import CORPUS_MANIFEST
 from ss_track.corpus.versions.fingerprint import SIMILARITY_THRESHOLD
 from tests.corpus._media import expected_rgb, flat_rgb, write_clip
 from tests.corpus.conftest import (
@@ -18,6 +17,7 @@ from tests.corpus.conftest import (
     WriteRecording,
     encounter_of,
     group_of,
+    last_record,
     reseal,
     single_group,
     stream_of,
@@ -234,7 +234,7 @@ def test_the_command_record_carries_the_pair(
     )
     status = _run_corpus_build(argparse.Namespace(manifest=declaration))
 
-    reported = json.loads(caplog.records[-1].getMessage())
+    reported = last_record(caplog)
     assert status == 0
     assert reported["status"] == "built"
     assert reported["near_duplicates"]["pairs"][0]["similarity"] >= SIMILARITY_THRESHOLD

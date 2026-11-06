@@ -10,10 +10,10 @@ import pytest
 import yaml
 
 from ss_track.corpus import build_corpus, import_source, stage_corpus
-from ss_track.corpus.bundles.frame_set import frame_set_path
 from ss_track.corpus.descriptors.descriptor import describe_corpus
 from ss_track.corpus.sources.importer import ImportResult
 from ss_track.corpus.sources.stored import load_source_record
+from ss_track.corpus.storage.layout import frame_set_path
 from ss_track.schema.registry.store import load_contract_set
 from tests.corpus.conftest import (
     WriteCorpus,

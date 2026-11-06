@@ -5,7 +5,7 @@ import pytest
 from ss_track.corpus import CorpusRefusal, RefusalCode, import_source
 from ss_track.corpus.records.sealing import sha256_file
 from tests.corpus._media import write_clip, write_clip_with_pts
-from tests.corpus.conftest import WriteRecording
+from tests.corpus.conftest import WriteRecording, imported_names
 
 
 def _assert_refused_leaving_nothing(
@@ -14,8 +14,7 @@ def _assert_refused_leaving_nothing(
     with pytest.raises(CorpusRefusal) as caught:
         import_source(declaration, data_root)
     assert caught.value.code is code
-    imports = data_root / "import"
-    assert not imports.exists() or list(imports.iterdir()) == []
+    assert imported_names(data_root) == []
     return caught.value
 
 
@@ -57,7 +56,7 @@ def test_unreadable_source_is_refused(
     def deny(*_: object) -> None:
         raise PermissionError(13, "Permission denied")
 
-    monkeypatch.setattr("ss_track.corpus.sources.importer.copy_with_sha256", deny)
+    monkeypatch.setattr("ss_track.corpus.sources.source_file.copy_with_sha256", deny)
 
     _assert_refused_leaving_nothing(write_recording(), data_root, RefusalCode.SOURCE_UNREADABLE)
 

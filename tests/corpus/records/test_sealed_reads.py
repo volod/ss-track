@@ -13,8 +13,7 @@ from ss_track.schema import ValidationResult
 _PACKAGE = Path(ss_track.__file__).parent
 _GATE = Path("corpus/records/sealed.py")
 _FACTS_READERS = {
-    Path("corpus/sources/amendment.py"),  # reads a `facts` record to write its successor
-    Path("corpus/sources/redecode.py"),  # reads a `facts` record to write its redecoded successor
+    Path("corpus/sources/replacement.py"),  # reads a `facts` record to write its successor
 }
 _DECLARATION_LOADER = Path(
     "schema/validation/enforce.py"
@@ -59,7 +58,7 @@ def _call_findings(call: ast.Call, relative: Path) -> Iterator[str]:
     if is_yaml_load and relative not in _YAML_READERS:
         yield f"calls {called}"
     if called == "read_stated" and relative not in _FACTS_READERS:
-        yield "reads stated facts outside the amendment"
+        yield "reads stated facts outside the successor writer"
     if called in _READS and (len(call.args) != 2 or call.keywords):
         yield f"calls {called} without exactly a path and a format"
 
@@ -148,7 +147,9 @@ def test_the_deep_check_returns_a_verdict_and_never_the_record() -> None:
             id="older",
         ),
         pytest.param(
-            "read_stated(path, FORMAT)", "reads stated facts outside the amendment", id="stated"
+            "read_stated(path, FORMAT)",
+            "reads stated facts outside the successor writer",
+            id="stated",
         ),
         pytest.param(
             'if record["schema_version"] == 1: pass',

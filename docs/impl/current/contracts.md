@@ -72,9 +72,8 @@ operator descriptions and numbers: the dialect allows exactly `["string", "numbe
 form. Numeric descriptive metadata has no physical-unit claim; declared range retains metres.
 The extension does not allow arbitrary scalar unions or change a recording's accepted values.
 
-Each sealed format's kind and major have one statement, its `RecordFormat` beside its writer
-(`corpus/sources/importer.py`, `builder.py`, `frames.py`, `frame_set.py`, `host_hashes.py`,
-`hash_comparison.py`), with every kind and the `RecordFormat` class in `corpus/records/kinds.py`.
+Each sealed format's kind and major have one statement, its `RecordFormat` in
+`corpus/records/kinds.py`, beside every kind and the `RecordFormat` class.
 The writer stamps a record with `RecordFormat.stamp()` and the read path reads with the same value.
 Declaration majors are constants in `corpus/declarations/declaration.py` and
 `corpus/descriptors/descriptor.py`. Declaration and record majors stay independent, and their

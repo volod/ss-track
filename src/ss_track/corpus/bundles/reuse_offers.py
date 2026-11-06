@@ -14,11 +14,10 @@ from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.bundles.bundle_reader import require_bundle_place
 from ss_track.corpus.bundles.bundle_record import LAYOUT_FIELDS
 from ss_track.corpus.bundles.duplicate_frames import linked_versions
-from ss_track.corpus.bundles.frame_set import frame_set_path
-from ss_track.corpus.bundles.frames import FRAME_BUNDLE, frames_root
+from ss_track.corpus.records.kinds import FRAME_BUNDLE
 from ss_track.corpus.records.read_refusals import incomplete_record
 from ss_track.corpus.records.sealed import read_sealed
-from ss_track.corpus.sources.importer import MANIFEST_NAME
+from ss_track.corpus.storage.layout import MANIFEST_NAME, frame_set_path, frames_root
 
 
 @dataclass(frozen=True, slots=True)

@@ -1,5 +1,6 @@
 """`ss-track corpus build`: bind imported sources into one immutable, hashed corpus version."""
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -15,19 +16,20 @@ from ss_track.corpus.declarations.declaration import (
     StreamDeclaration,
     load_corpus_declaration,
 )
-from ss_track.corpus.decoding.decode_policy import current_decode_policy
+from ss_track.corpus.decoding.decode_policy import (
+    DecodePolicy,
+    current_decode_policy,
+    require_policy,
+)
 from ss_track.corpus.decoding.streams import recorded_video_stream_index
-from ss_track.corpus.records.kinds import CORPUS_MANIFEST_KIND, RecordFormat
-from ss_track.corpus.records.projections import Unprojected
-from ss_track.corpus.records.sealed import read_comparable, read_sealed
+from ss_track.corpus.records.kinds import CORPUS_MANIFEST
+from ss_track.corpus.records.read_refusals import incomplete_record
+from ss_track.corpus.records.sealed import read_sealed
 from ss_track.corpus.records.sealing import seal, write_sealed
 from ss_track.corpus.sources.identity import recorded_content_sha256, source_identity
-from ss_track.corpus.sources.importer import (
-    MANIFEST_NAME,
-    decode_policy_sha256,
-)
 from ss_track.corpus.sources.stored import load_verified_source
 from ss_track.corpus.sources.terms import evaluation_date, require_retention
+from ss_track.corpus.storage.layout import MANIFEST_NAME, corpus_manifest_path
 from ss_track.corpus.versions.grouping import (
     SplitSummary,
     require_derived_frames,
@@ -42,15 +44,13 @@ from ss_track.corpus.versions.lineage import (
     require_same_places,
     trace_lineage,
 )
+from ss_track.corpus.versions.manifests import built_manifest_path, load_predecessor
 from ss_track.corpus.versions.near_duplicate_scan import fingerprint_manifest
 from ss_track.corpus.versions.near_duplicates import NearDuplicates, report_near_duplicates
-from ss_track.corpus.versions.predecessors import Predecessor, link_field, read_predecessors
+from ss_track.corpus.versions.predecessors import link_field, read_predecessors
 from ss_track.corpus.versions.unlinked import UnlinkedVersions, report_unlinked
-from ss_track.schema.validation.enforce import is_shared_type
 
-CORPUS_DIRECTORY = "corpus"
 CAMERA_MODALITY = "camera"
-CORPUS_MANIFEST = RecordFormat(CORPUS_MANIFEST_KIND, major=3)
 
 
 @dataclass(frozen=True, slots=True)
@@ -85,36 +85,14 @@ class BuildResult:
         return record
 
 
-def load_corpus_manifest(corpus_id: str, data_root: Path) -> dict[str, JsonValue]:
-    """Read one built corpus version as evidence, refusing an identifier that cannot name one."""
-    return read_sealed(_corpus_path(corpus_id, data_root), CORPUS_MANIFEST)
-
-
-def load_predecessor(corpus_id: str, data_root: Path) -> Predecessor:
-    """Read a declared predecessor of any major through its projection, for the comparison rules."""
-    found = read_comparable(_corpus_path(corpus_id, data_root), CORPUS_MANIFEST)
-    if found.projected is None:
-        return Unprojected(corpus_id, found.seal)
-    return found.projected
-
-
-def _corpus_path(corpus_id: str, data_root: Path) -> Path:
-    path = data_root / CORPUS_DIRECTORY / corpus_id / MANIFEST_NAME
-    if not is_shared_type("identifier", corpus_id) or not path.is_file():
-        raise CorpusRefusal(
-            RefusalCode.CORPUS_NOT_BUILT, "no such corpus version", {"corpus_id": corpus_id}
-        )
-    return path
-
-
 def build_corpus(
     declaration_path: Path, data_root: Path, *, today: date | None = None
 ) -> BuildResult:
     """Verify every declared source again, then write the corpus version."""
     checked_on = evaluation_date(today)
     declaration = load_corpus_declaration(declaration_path)
-    policy_record = current_decode_policy().as_record()
-    policy_sha256 = decode_policy_sha256(policy_record)
+    policy = current_decode_policy()
+    policy_sha256 = policy.sha256()
     require_policy(declaration.decode_policy_sha256, policy_sha256, "corpus declaration")
     require_one_membership(declaration)
     predecessors = read_predecessors(
@@ -134,11 +112,7 @@ def build_corpus(
     require_scenario_rights(streams, declaration.scenario_rights)
     require_same_places(declaration.corpus_id, streams, predecessors)
     unlinked = report_unlinked(
-        declaration.corpus_id,
-        streams,
-        predecessors,
-        data_root / CORPUS_DIRECTORY,
-        CORPUS_MANIFEST,
+        declaration.corpus_id, streams, predecessors, data_root, CORPUS_MANIFEST
     )
     cases = case_records(list(declaration.recipes()), streams)
     near_duplicates = report_near_duplicates(
@@ -146,11 +120,14 @@ def build_corpus(
         streams,
         predecessors,
         data_root,
-        lambda corpus_id: fingerprint_manifest(_corpus_path(corpus_id, data_root)),
+        lambda corpus_id: fingerprint_manifest(
+            built_manifest_path(corpus_id, data_root), CORPUS_MANIFEST
+        ),
+        CORPUS_MANIFEST,
     )
-    body = _corpus_body(declaration, policy_record, policy_sha256, streams, cases)
+    body = _corpus_body(declaration, policy, streams, cases)
     sealed = seal(body | link_field(predecessors))
-    target = data_root / CORPUS_DIRECTORY / declaration.corpus_id / MANIFEST_NAME
+    target = corpus_manifest_path(data_root, declaration.corpus_id)
     status = _commit(target, sealed)
     return BuildResult(
         status=status,
@@ -168,8 +145,7 @@ def build_corpus(
 
 def _corpus_body(
     declaration: CorpusDeclaration,
-    policy_record: dict[str, JsonValue],
-    policy_sha256: str,
+    policy: DecodePolicy,
     streams: list[dict[str, Any]],
     cases: list[dict[str, Any]],
 ) -> dict[str, JsonValue]:
@@ -177,22 +153,11 @@ def _corpus_body(
     return {
         **CORPUS_MANIFEST.stamp(),
         "corpus_id": declaration.corpus_id,
-        "decode_policy": policy_record,
-        "decode_policy_sha256": policy_sha256,
+        **policy.record_fields(),
         "scenario_rights": {"sharing": rights.sharing, "max_sensitivity": rights.max_sensitivity},
         "streams": list(streams),
         "generated_cases": list(cases),
     }
-
-
-def require_policy(found: JsonValue, expected: str, origin: str) -> None:
-    """Refuse a source decoded under anything but the corpus's one canonical policy."""
-    if found is not None and found != expected:
-        raise CorpusRefusal(
-            RefusalCode.DECODE_POLICY_MISMATCH,
-            f"{origin} uses a different decode policy than the installed decoder",
-            {"found_decode_policy_sha256": found, "installed_decode_policy_sha256": expected},
-        )
 
 
 def _resolve_selection(stream: StreamDeclaration, frame_count: int) -> dict[str, JsonValue]:
@@ -221,14 +186,33 @@ def _stream_record(
     data_root: Path,
     policy_sha256: str,
 ) -> dict[str, JsonValue]:
-    manifest = load_verified_source(stream.source_sha256, data_root)
+    verified = load_verified_source(stream.source_sha256, data_root)
+    manifest = verified.record
     require_policy(
         manifest["decode_policy_sha256"], policy_sha256, f"source {stream.source_sha256}"
     )
-    media = manifest["sequence"]
-    if not isinstance(media, dict) or not isinstance(media["frame_count"], int):
-        raise CorpusRefusal(RefusalCode.RECORD_TAMPERED, "source record has no sequence section")
-    record: dict[str, JsonValue] = {
+    media = verified.sequence
+    with incomplete_record(MANIFEST_NAME):
+        record = _placed_stream(group, encounter, stream, manifest, media)
+    content = recorded_content_sha256(manifest)
+    index = recorded_video_stream_index(media)
+    if content != stream.source_sha256 and source_identity(content, index) == stream.source_sha256:
+        record["content_sha256"] = content
+    return record
+
+
+def _placed_stream(
+    group: GroupDeclaration,
+    encounter: EncounterDeclaration,
+    stream: StreamDeclaration,
+    manifest: Mapping[str, JsonValue],
+    media: Mapping[str, Any],
+) -> dict[str, JsonValue]:
+    """State one declared stream with the facts its source record holds."""
+    frame_count = media["frame_count"]
+    if not isinstance(frame_count, int):
+        raise TypeError("frame_count")
+    return {
         "stream_id": stream.stream_id,
         "modality": CAMERA_MODALITY,
         "encounter_id": encounter.encounter_id,
@@ -236,8 +220,8 @@ def _stream_record(
         "split": group.split,
         "source_sha256": stream.source_sha256,
         "source_manifest_sha256": manifest[SEAL_FIELD],
-        "selection": _resolve_selection(stream, media["frame_count"]),
-        "frame_count": media["frame_count"],
+        "selection": _resolve_selection(stream, frame_count),
+        "frame_count": frame_count,
         "width": media["decoded_width"],
         "height": media["decoded_height"],
         "timestamp_quality": media["timestamp_quality"],
@@ -245,11 +229,6 @@ def _stream_record(
         "rights": manifest["rights"],
         "sensitivity": manifest["sensitivity"],
     }
-    content = recorded_content_sha256(manifest)
-    index = recorded_video_stream_index(media)
-    if content != stream.source_sha256 and source_identity(content, index) == stream.source_sha256:
-        record["content_sha256"] = content
-    return record
 
 
 def _commit(target: Path, sealed: dict[str, JsonValue]) -> str:

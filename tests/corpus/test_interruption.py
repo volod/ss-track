@@ -16,7 +16,13 @@ from ss_track.corpus import CorpusRefusal, build_corpus, redecode_source
 from ss_track.corpus.decoding import deadline
 from ss_track.corpus.decoding.deadline import DECODE_LIMIT_SECONDS
 from ss_track.corpus.sources.importer import ImportResult
-from tests.corpus.conftest import WriteCorpus, WriteRecording, last_record, stream_of
+from tests.corpus.conftest import (
+    WriteCorpus,
+    WriteRecording,
+    imported_names,
+    last_record,
+    stream_of,
+)
 
 _CORPUS = "pilot-v1"
 _PAST = float(DECODE_LIMIT_SECONDS + 5)
@@ -101,7 +107,7 @@ def test_an_import_past_its_limit_is_one_refusal_and_leaves_no_scratch(
         "frames_decoded": 0,
         "limit_seconds": DECODE_LIMIT_SECONDS,
     }
-    assert list((cli_root / "import").iterdir()) == []
+    assert imported_names(cli_root) == []
 
 
 def test_a_stage_past_its_limit_is_one_refusal_and_leaves_no_scratch(
@@ -153,7 +159,7 @@ def test_sigint_during_import_exits_with_one_refusal_and_no_scratch(
     )
 
     _interrupted(run)
-    assert list((data_root / "import").iterdir()) == []
+    assert imported_names(data_root) == []
 
 
 def test_sigint_during_stage_exits_with_one_refusal_and_no_scratch(

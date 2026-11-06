@@ -13,7 +13,7 @@ from ss_track.core.canonical import sha256_bytes
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.bundles.frames import frame_name
 from ss_track.corpus.decoding.pixels import OUTPUT_PIXEL_FORMAT, frame_size_bytes
-from ss_track.corpus.records.sealing import READ_ONLY_FILE_MODE
+from ss_track.corpus.storage.scratch import READ_ONLY_FILE_MODE
 
 # Linux reports a cross-device link as EXDEV and a filesystem without hard links as EPERM or
 # ENOTSUP. EMLINK means this inode cannot take another name, so a copy still stores the frame.

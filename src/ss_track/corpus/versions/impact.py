@@ -10,15 +10,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from ss_track.core.refusal import JsonValue
-from ss_track.corpus.bundles.frames import frames_root
+from ss_track.corpus.records.kinds import CORPUS_MANIFEST
 from ss_track.corpus.records.projections import SOURCE_PIN
-from ss_track.corpus.versions.builder import CORPUS_DIRECTORY, CORPUS_MANIFEST
-from ss_track.corpus.versions.unlinked import (
-    UNREADABLE,
-    UnreadCorpus,
-    compared_record,
-    scan_corpus_manifests,
-)
+from ss_track.corpus.storage.layout import frames_root
+from ss_track.corpus.versions.scan import UnreadCorpus, scan_fields, scan_versions
 
 
 @dataclass(frozen=True, slots=True)
@@ -50,11 +45,7 @@ class AmendmentImpact:
         record: dict[str, JsonValue] = {}
         if self.versions:
             record["versions"] = [item.to_record() for item in self.versions]
-        if self.not_compared:
-            record["not_compared"] = [gap.to_record() for gap in self.not_compared]
-        if self.scan is not None:
-            record["scan"] = self.scan
-        return record
+        return record | scan_fields(self.not_compared, self.scan)
 
 
 def report_amendment_impact(data_root: Path, replaced_manifest_sha256: str) -> AmendmentImpact:
@@ -64,24 +55,13 @@ def report_amendment_impact(data_root: Path, replaced_manifest_sha256: str) -> A
     is listed once, however many of its streams pin the record. The frames directory is that
     version's bundle directory, whether or not it currently holds files.
     """
-    root = data_root / CORPUS_DIRECTORY
-    try:
-        scanned = scan_corpus_manifests(root, CORPUS_MANIFEST)
-    except OSError:
-        return AmendmentImpact((), (), UNREADABLE)
-    versions: list[PinnedVersion] = []
-    unread: list[UnreadCorpus] = []
-    for item in scanned:
-        ready = compared_record(item)
-        if isinstance(ready, UnreadCorpus):
-            unread.append(ready)
-            continue
-        if _pins(ready, replaced_manifest_sha256):
-            versions.append(PinnedVersion(item.corpus_id, frames_root(data_root, item.corpus_id)))
-    return AmendmentImpact(
-        tuple(sorted(versions, key=lambda version: version.corpus_id)),
-        tuple(sorted(unread, key=lambda gap: gap.corpus_id)),
+    found = scan_versions(data_root, CORPUS_MANIFEST)
+    versions = tuple(
+        PinnedVersion(corpus_id, frames_root(data_root, corpus_id))
+        for corpus_id, projected in found.compared
+        if _pins(projected, replaced_manifest_sha256)
     )
+    return AmendmentImpact(versions, found.not_compared, found.scan)
 
 
 def _pins(projected: Mapping[str, JsonValue], seal: str) -> bool:

@@ -11,16 +11,10 @@ from typing import Any
 
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.records.kinds import RecordFormat
-from ss_track.corpus.records.projections import NotCompared, Unprojected
+from ss_track.corpus.records.projections import NotCompared
 from ss_track.corpus.records.sealed import read_comparable
-from ss_track.corpus.versions.predecessors import Predecessor
-from ss_track.corpus.versions.unlinked import (
-    UNREADABLE,
-    ScannedManifest,
-    UnreadCorpus,
-    compared_record,
-    scan_corpus_manifests,
-)
+from ss_track.corpus.versions.predecessors import Predecessor, predecessor_name
+from ss_track.corpus.versions.scan import scan_versions
 
 WINDOW_UNKNOWN = "window_unknown"
 _STREAM_FIELDS = ("stream_id", "group_id", "split", "source_sha256")
@@ -43,14 +37,14 @@ class OutsideChain:
     scan: str | None = None
 
 
-def fingerprint_manifest(path: Path) -> dict[str, JsonValue]:
+def fingerprint_manifest(path: Path, record_format: RecordFormat) -> dict[str, JsonValue]:
     """Return a corpus version's comparison projection, which carries its frame window.
 
     The near-duplicate report is not sealed evidence. A retired major is compared through that
     projection. A manifest that cannot be read, or whose major keeps no projection, is refused
     so the report can name it.
     """
-    projected = read_comparable(path, _corpus_manifest()).projected
+    projected = read_comparable(path, record_format).projected
     streams = projected.get("streams") if projected is not None else None
     if projected is None or not isinstance(streams, list):
         raise CorpusRefusal(RefusalCode.RECORD_TAMPERED, "corpus manifest cannot be read")
@@ -62,6 +56,7 @@ def outside_chain(
     predecessors: Sequence[Predecessor],
     chain_groups: set[str],
     data_root: Path,
+    record_format: RecordFormat,
 ) -> OutsideChain:
     """Return versions whose group differs, and name a version that cannot be read.
 
@@ -70,54 +65,16 @@ def outside_chain(
     question, so it is not fingerprinted. `scan` is set when the corpus directory itself
     cannot be listed; the declared chain is unaffected.
     """
-    root, record_format = _corpus_location(data_root)
-    try:
-        manifests = scan_corpus_manifests(root, record_format, name_missing=True)
-    except OSError:
-        return OutsideChain((), (), UNREADABLE)
-    excluded = {corpus_id, *(_corpus_name(item) for item in predecessors)}
-    readable, gaps = _readable(manifests, excluded)
+    excluded = {corpus_id, *(predecessor_name(item) for item in predecessors)}
+    found = scan_versions(data_root, record_format, excluded=excluded, name_missing=True)
+    gaps = [NotCompared(gap.corpus_id, gap.reason, ()) for gap in found.not_compared]
+    readable = [
+        (other_id, projected, groups)
+        for other_id, projected in found.compared
+        if (groups := _groups(projected))
+    ]
     versions, named = _select(readable, gaps, chain_groups)
-    return OutsideChain(versions, named)
-
-
-def _corpus_manifest() -> RecordFormat:
-    """The corpus manifest format. Lazy, because the builder imports this module."""
-    from ss_track.corpus.versions.builder import CORPUS_MANIFEST
-
-    return CORPUS_MANIFEST
-
-
-def _corpus_name(version: Predecessor) -> str:
-    """Return a predecessor's name. A partial record may carry no seal."""
-    if isinstance(version, Unprojected):
-        return version.corpus_id
-    return str(version["corpus_id"])
-
-
-def _corpus_location(data_root: Path) -> tuple[Path, RecordFormat]:
-    """Return the corpus directory. Imported lazily because the builder imports this module."""
-    from ss_track.corpus.versions.builder import CORPUS_DIRECTORY
-
-    return data_root / CORPUS_DIRECTORY, _corpus_manifest()
-
-
-def _readable(
-    manifests: Sequence[ScannedManifest], excluded: set[str]
-) -> tuple[list[tuple[str, Mapping[str, JsonValue], set[str]]], list[NotCompared]]:
-    readable: list[tuple[str, Mapping[str, JsonValue], set[str]]] = []
-    gaps: list[NotCompared] = []
-    for scanned in manifests:
-        if scanned.corpus_id in excluded:
-            continue
-        ready = compared_record(scanned)
-        if isinstance(ready, UnreadCorpus):
-            gaps.append(NotCompared(scanned.corpus_id, ready.reason, ()))
-            continue
-        groups = _groups(ready)
-        if groups:
-            readable.append((scanned.corpus_id, ready, groups))
-    return readable, gaps
+    return OutsideChain(versions, named, found.scan)
 
 
 def _groups(projected: Mapping[str, JsonValue]) -> set[str]:

@@ -6,7 +6,6 @@ read as a clean end of file, and invents timestamps a file never stored. The pol
 signal as one.
 """
 
-import os
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
@@ -21,13 +20,9 @@ from av.video.codeccontext import VideoCodecContext
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
 from ss_track.corpus.decoding import deadline
 from ss_track.corpus.decoding.decode_policy import DecodePolicy
-from ss_track.corpus.decoding.integrity import matroska_segment_end
+from ss_track.corpus.decoding.integrity import completeness_checks, damaged
 from ss_track.corpus.decoding.pixels import ColorTags, bits_per_component, color_tags
-from ss_track.corpus.decoding.streams import select_video_stream
-
-_MATROSKA_FORMAT = "matroska"
-FRAME_COUNT_CHECK = "frame_count"
-SEGMENT_SIZE_CHECK = "matroska_segment_size"
+from ss_track.corpus.decoding.streams import open_media, select_video_stream
 
 type FfmpegLog = list[tuple[int, str, str]]
 type FrameConsumer = Callable[[int, av.VideoFrame], None]
@@ -95,14 +90,6 @@ def _ffmpeg_errors() -> Iterator[FfmpegLog]:
         av.logging.set_skip_repeated(skip_repeated)
 
 
-def _damaged(reason: str, frames_decoded: int) -> CorpusRefusal:
-    return CorpusRefusal(
-        RefusalCode.SOURCE_DAMAGED,
-        f"source is truncated or corrupt: {reason}",
-        {"reason": reason, "frames_decoded": frames_decoded},
-    )
-
-
 def _ignore_frame(_: int, __: av.VideoFrame) -> None:
     """Inspection needs only the account of each frame, not its pixels."""
 
@@ -126,24 +113,17 @@ def inspect_media(
     monotonic time and the default limit is the declared bound.
     """
     chosen_clock = deadline.decode_clock if clock is None else clock
-    with _ffmpeg_errors() as logs:
-        try:
-            container = av.open(os.fspath(path), options=dict(policy.format_options))
-        except av.FFmpegError as error:
-            raise CorpusRefusal(
-                RefusalCode.SOURCE_UNREADABLE, f"cannot open media: {error.strerror}"
-            ) from error
-        with container:
-            return _inspect_container(
-                path,
-                container,
-                policy,
-                logs,
-                on_frame,
-                video_stream_index,
-                chosen_clock,
-                decode_limit_seconds,
-            )
+    with _ffmpeg_errors() as logs, open_media(path, policy.format_options) as container:
+        return _inspect_container(
+            path,
+            container,
+            policy,
+            logs,
+            on_frame,
+            video_stream_index,
+            chosen_clock,
+            decode_limit_seconds,
+        )
 
 
 def _configured_context(stream: av.video.VideoStream, policy: DecodePolicy) -> VideoCodecContext:
@@ -173,10 +153,10 @@ def _inspect_container(
     try:
         _decode_all(container, stream, logs, decoded, on_frame, clock, decode_limit_seconds)
     except av.FFmpegError as error:
-        raise _damaged(_last_log(logs) or str(error.strerror), len(decoded.pts)) from error
-    checks = _frame_count_checks(stream.frames, decoded)
-    if _MATROSKA_FORMAT in container.format.name:
-        checks += _matroska_checks(path, len(decoded.pts))
+        raise damaged(_last_log(logs) or str(error.strerror), len(decoded.pts)) from error
+    checks = completeness_checks(
+        path, container.format.name, stream.frames, decoded.pts, decoded.discarded
+    )
     shape = decoded.shape
     if shape is None:
         raise CorpusRefusal(RefusalCode.SOURCE_NO_FRAMES, "media decoded to no frames")
@@ -214,23 +194,23 @@ def _decode_all(
     bound = deadline.DecodeDeadline(decode_limit_seconds, clock)
     for packet in container.demux(stream):
         if packet.is_corrupt:
-            raise _damaged("demuxer flagged a corrupt packet", len(decoded.pts))
+            raise damaged("demuxer flagged a corrupt packet", len(decoded.pts))
         bound.check(len(decoded.pts))
         decoded.discarded += packet.is_discard
         for frame in packet.decode():
             bound.check(len(decoded.pts))
             if frame.is_corrupt:
-                raise _damaged("decoder flagged a corrupt frame", len(decoded.pts))
+                raise damaged("decoder flagged a corrupt frame", len(decoded.pts))
             _require_one_shape(frame, decoded)
             decoded.interlaced += frame.interlaced_frame
             on_frame(len(decoded.pts), frame)
             decoded.pts.append(frame.pts)
             bound.check(len(decoded.pts))
         if logs:
-            raise _damaged(_last_log(logs), len(decoded.pts))
+            raise damaged(_last_log(logs), len(decoded.pts))
     bound.check(len(decoded.pts))
     if logs:
-        raise _damaged(_last_log(logs), len(decoded.pts))
+        raise damaged(_last_log(logs), len(decoded.pts))
 
 
 def _require_one_shape(frame: av.VideoFrame, decoded: _Decoded) -> None:
@@ -250,31 +230,6 @@ def _require_one_shape(frame: av.VideoFrame, decoded: _Decoded) -> None:
                 "found": str(shape),
             },
         )
-
-
-def _frame_count_checks(declared_frames: int, decoded: _Decoded) -> tuple[str, ...]:
-    """Compare against the container's own frame count, when it stores one.
-
-    An edit list can mark stored samples as never presented. They are present in the file, so
-    they count toward the total without becoming frames of the sequence.
-    """
-    if declared_frames <= 0:
-        return ()
-    accounted = len(decoded.pts) + decoded.discarded
-    if accounted < declared_frames:
-        raise _damaged(f"container declares {declared_frames} frames", len(decoded.pts))
-    return (FRAME_COUNT_CHECK,) if accounted == declared_frames else ()
-
-
-def _matroska_checks(path: Path, decoded_frames: int) -> tuple[str, ...]:
-    """Compare the file against the segment length written in its own header."""
-    segment_end = matroska_segment_end(path)
-    if segment_end is None:
-        return ()
-    size = path.stat().st_size
-    if size < segment_end:
-        raise _damaged(f"segment ends at byte {segment_end}, file has {size}", decoded_frames)
-    return (SEGMENT_SIZE_CHECK,)
 
 
 def _last_log(logs: FfmpegLog) -> str:

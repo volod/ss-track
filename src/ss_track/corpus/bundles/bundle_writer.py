@@ -13,7 +13,7 @@ from ss_track.corpus.bundles.bundle_record import stream_bundle_body
 from ss_track.corpus.bundles.frame_store import require_space, store_frame
 from ss_track.corpus.bundles.frames import FrameBundle
 from ss_track.corpus.bundles.publish import publish_bundles
-from ss_track.corpus.decoding.declared_color import recorded_matrix, sws_colorspace
+from ss_track.corpus.decoding.declared_color import recorded_matrix
 from ss_track.corpus.decoding.decode import FrameConsumer, inspect_media
 from ss_track.corpus.decoding.decode_policy import DecodePolicy
 from ss_track.corpus.decoding.pixels import (
@@ -24,13 +24,9 @@ from ss_track.corpus.decoding.pixels import (
 )
 from ss_track.corpus.decoding.streams import VIDEO_STREAM_INDEX, recorded_video_stream_index
 from ss_track.corpus.records.sealing import seal, write_sealed
-from ss_track.corpus.sources.importer import (
-    MANIFEST_NAME,
-    decode_policy_sha256,
-    decoded_facts,
-    source_directory,
-)
-from ss_track.corpus.sources.stored import load_verified_source
+from ss_track.corpus.sources.source_record import decoded_facts
+from ss_track.corpus.sources.stored import VerifiedSource, load_verified_source
+from ss_track.corpus.storage.layout import MANIFEST_NAME
 
 _LOG = logging.getLogger(__name__)
 
@@ -42,33 +38,30 @@ def write_source_bundles(
     root: Path,
     data_root: Path,
     *,
-    verified_source: Mapping[str, Any] | None = None,
+    verified_source: VerifiedSource | None = None,
 ) -> tuple[FrameBundle, ...]:
     """Decode one source once and publish each stream. A failure publishes none of them.
 
     Every frame is decoded, including frames no stream stores. Seeking to a window would skip the
     proof that this decode still matches the import. Each stream keeps its own converter, so its
     frames are produced in the same sequence as a stage of that stream alone. `verified_source`
-    is a record this call's source hash was already checked against, so a caller that both links
+    is this call's source, already checked against its stored bytes, so a caller that both links
     and decodes one source does not hash the file twice.
     """
-    source_sha256 = _one_source(streams)
-    source: dict[str, Any] = (
-        dict(verified_source)
-        if verified_source is not None
-        else load_verified_source(source_sha256, data_root)
-    )
-    policy_sha256 = decode_policy_sha256(policy.as_record())
-    media: dict[str, Any] = source["sequence"]
-    stored = source_directory(data_root, source_sha256) / source["source"]["stored_name"]
+    source = verified_source or load_verified_source(_one_source(streams), data_root)
+    policy_sha256 = policy.sha256()
+    media = source.sequence
     width, height = media["decoded_width"], media["decoded_height"]
     require_space(root, sum(_selection_length(stream) for stream in streams), width, height)
     targets = tuple(root / str(stream["stream_id"]) for stream in streams)
     matrix = recorded_matrix(media)
     with publish_bundles(root, targets) as staged_dirs:
-        writers = _writers(staged_dirs, streams, policy, matrix)
+        writers = tuple(
+            _FrameWriter(staged, stream["selection"], policy.converter(matrix))
+            for staged, stream in zip(staged_dirs, streams, strict=True)
+        )
         inspection = inspect_media(
-            stored,
+            source.stored,
             policy,
             _fan_out(writers),
             video_stream_index=recorded_video_stream_index(media),
@@ -105,23 +98,6 @@ class _FrameWriter:
         """Convert and store one frame. This converter sees only this stream's frames."""
         pixels = self._converter.pixels(frame)
         self.frames.append(store_frame(self._directory, frame_index, frame.pts, pixels))
-
-
-def _writers(
-    staged_dirs: Sequence[Path],
-    streams: Sequence[Mapping[str, Any]],
-    policy: DecodePolicy,
-    matrix: int | None,
-) -> tuple[_FrameWriter, ...]:
-    return tuple(
-        _FrameWriter(staged, stream["selection"], _converter(policy, matrix))
-        for staged, stream in zip(staged_dirs, streams, strict=True)
-    )
-
-
-def _converter(policy: DecodePolicy, matrix: int | None) -> PixelConverter:
-    colorspace = None if matrix is None else sws_colorspace(matrix)
-    return PixelConverter(policy.conversion_flags, policy.thread_count, matrix=colorspace)
 
 
 def _fan_out(writers: Sequence[_FrameWriter]) -> FrameConsumer:
@@ -189,14 +165,10 @@ def _require_same_decode(
 
 def _drift_details(fields: list[str], stream_ids: list[str]) -> dict[str, JsonValue]:
     """Name the fields that moved and every stream this pass was writing."""
-    listed: list[JsonValue] = []
-    named: list[JsonValue] = []
-    for field in fields:
-        listed.append(field)
-    for stream_id in stream_ids:
-        named.append(stream_id)
-    if len(named) == 1:
-        return {"fields": listed, "stream_id": named[0]}
+    listed: list[JsonValue] = [*fields]
+    if len(stream_ids) == 1:
+        return {"fields": listed, "stream_id": stream_ids[0]}
+    named: list[JsonValue] = [*stream_ids]
     return {"fields": listed, "stream_ids": named}
 
 

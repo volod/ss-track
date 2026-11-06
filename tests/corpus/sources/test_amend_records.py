@@ -11,8 +11,8 @@ from pathlib import Path
 import pytest
 
 from ss_track.corpus import ImportResult, RefusalCode, amend_source_terms, verify_corpus_frames
-from ss_track.corpus.sources.amendment import replaced_record_path
-from ss_track.corpus.sources.importer import SOURCE_MANIFEST
+from ss_track.corpus.records.kinds import SOURCE_MANIFEST
+from ss_track.corpus.storage.layout import replaced_record_path
 from tests.corpus._amending import CORPUS, evidence, read_source, refused, rights_with, staged
 from tests.corpus._historic import kept_record
 from tests.corpus.conftest import WriteCorpus, WriteRecording

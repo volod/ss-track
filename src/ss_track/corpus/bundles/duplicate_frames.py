@@ -7,21 +7,21 @@ nothing but its parent's frames or new ones. A predecessor and its bundles are r
 majors' projections, so `other_schema` means only that a major keeps none.
 """
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.bundles.bundle_reader import open_corpus_bundle, require_bundle_place
-from ss_track.corpus.bundles.frame_set import frame_set_path
-from ss_track.corpus.bundles.frames import FRAME_BUNDLE, frames_root
+from ss_track.corpus.bundles.frames import FrameBundle
 from ss_track.corpus.bundles.shared_runs import (
     MIN_SHARED_FRAMES,
     StreamFrames,
     require_unshared_runs,
     stream_frames,
 )
+from ss_track.corpus.records.kinds import FRAME_BUNDLE
 from ss_track.corpus.records.projections import (
     OTHER_SCHEMA,
     NotCompared,
@@ -29,8 +29,8 @@ from ss_track.corpus.records.projections import (
     bundle_frames,
 )
 from ss_track.corpus.records.sealed import read_comparable
-from ss_track.corpus.sources.importer import MANIFEST_NAME
-from ss_track.corpus.versions.builder import load_predecessor
+from ss_track.corpus.storage.layout import MANIFEST_NAME, frame_set_path, frames_root
+from ss_track.corpus.versions.manifests import load_predecessor
 from ss_track.corpus.versions.predecessors import follow_links
 
 MANIFEST_REMOVED = "manifest_removed"
@@ -65,9 +65,7 @@ class _ChainStep:
     gaps: list[NotCompared]
 
 
-def _indexed(version: Manifest, stream: Mapping[str, Any], data_root: Path) -> StreamFrames:
-    corpus_id = version["corpus_id"]
-    bundle = open_corpus_bundle(stream["stream_id"], version, frames_root(data_root, corpus_id))
+def _indexed(corpus_id: str, stream: Mapping[str, Any], bundle: FrameBundle) -> StreamFrames:
     entries = ((entry.frame_index, entry.sha256) for entry in bundle.entries)
     return stream_frames(corpus_id, stream, entries)
 
@@ -135,14 +133,24 @@ def _staged_streams(version: Manifest, policy: str, data_root: Path) -> _ChainSt
     return _ChainStep(indexes, gaps)
 
 
-def require_unshared_frames(corpus: Manifest, data_root: Path) -> SharedFramesCheck:
-    """Refuse a repeated run across groups, or twice in one group of this version."""
+def require_unshared_frames(
+    corpus: Manifest, data_root: Path, opened: Callable[[str], FrameBundle] | None = None
+) -> SharedFramesCheck:
+    """Refuse a repeated run across groups, or twice in one group of this version.
+
+    `opened` returns a stream bundle of this version that the caller already holds open.
+    """
     versions, broken = linked_versions(corpus, data_root)
     steps = [
         (version["corpus_id"], _staged_streams(version, corpus["decode_policy_sha256"], data_root))
         for version in versions
     ]
-    current = [_indexed(corpus, stream, data_root) for stream in corpus["streams"]]
+    corpus_id = corpus["corpus_id"]
+    root = frames_root(data_root, corpus_id)
+    bundle_of = opened or (lambda stream_id: open_corpus_bundle(stream_id, corpus, root))
+    current = [
+        _indexed(corpus_id, stream, bundle_of(stream["stream_id"])) for stream in corpus["streams"]
+    ]
     earlier = [stream for _, step in steps for stream in step.indexes]
     require_unshared_runs(corpus["corpus_id"], current, earlier)
     gaps = [gap for _, step in steps for gap in step.gaps]

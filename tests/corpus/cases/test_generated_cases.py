@@ -17,10 +17,9 @@ from ss_track.corpus import (
     open_frame_bundle,
     stage_corpus,
 )
-from ss_track.corpus.bundles.frames import FRAME_BUNDLE
 from ss_track.corpus.cases.transforms import TRANSFORM_REVISIONS
+from ss_track.corpus.records.kinds import CORPUS_MANIFEST, FRAME_BUNDLE
 from ss_track.corpus.records.sealed import read_sealed
-from ss_track.corpus.versions.builder import CORPUS_MANIFEST
 from tests.corpus._media import FRAME_COUNT, HEIGHT, WIDTH
 from tests.corpus.conftest import WriteCorpus, WriteRecording, case_of, stream_of
 

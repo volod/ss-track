@@ -1,6 +1,5 @@
 """A remux held twice in one group, from real media to the exit status."""
 
-import json
 import logging
 from pathlib import Path
 
@@ -25,6 +24,7 @@ from tests.corpus.conftest import (
     WriteRecording,
     encounter_of,
     group_of,
+    last_record,
     reseal,
     stream_of,
 )
@@ -85,11 +85,11 @@ def test_stage_and_verify_exit_with_the_overlap_and_leave_no_frame_set(
 
     with caplog.at_level(logging.INFO):
         assert main(["corpus", "stage", "--corpus", V1]) == EXIT_REFUSED
-        assert json.loads(caplog.messages[-1])["code"] == "STREAM_OVERLAP"
+        assert last_record(caplog)["code"] == "STREAM_OVERLAP"
         assert not frame_set(data_root, V1).exists()
         assert main(["corpus", "verify", "--corpus", V1]) == EXIT_REFUSED
 
-    assert json.loads(caplog.messages[-1])["code"] == "STREAM_OVERLAP"
+    assert last_record(caplog)["code"] == "STREAM_OVERLAP"
 
 
 def test_a_cut_copy_in_one_group_names_where_each_stream_first_shows_the_frame(

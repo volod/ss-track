@@ -15,12 +15,17 @@ from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.bundles.bundle_reader import open_frame_bundle
 from ss_track.corpus.bundles.bundle_record import stream_bundle_body, stream_identity, stream_layout
 from ss_track.corpus.bundles.frame_store import linked_name
-from ss_track.corpus.bundles.frames import MAX_NAMED_FRAMES, FrameBundle, bundle_hash, frame_name
+from ss_track.corpus.bundles.frames import FrameBundle, bundle_hash, damage_details, frame_name
 from ss_track.corpus.bundles.publish import publish_bundle
 from ss_track.corpus.bundles.reuse_offers import BundleOffer, sealed_frames
 from ss_track.corpus.records.sealing import seal, write_sealed
-from ss_track.corpus.sources.importer import MANIFEST_NAME
-from ss_track.corpus.sources.stored import load_source_record, load_verified_source
+from ss_track.corpus.sources.stored import (
+    VerifiedSource,
+    load_source_record,
+    load_verified_source,
+    source_sequence,
+)
+from ss_track.corpus.storage.layout import MANIFEST_NAME
 
 type _Media = dict[str, Any]
 
@@ -40,7 +45,7 @@ class ReusePass:
 
     reused: tuple[ReusedBundle, ...]
     remaining: tuple[dict[str, Any], ...]
-    verified_source: Mapping[str, Any] | None
+    verified_source: VerifiedSource | None
 
 
 class _DecodeInstead(Exception):
@@ -63,7 +68,7 @@ def reuse_streams(
     if not streams or not offers:
         return ReusePass((), tuple(streams), None)
     source_sha256 = str(streams[0]["source_sha256"])
-    media = _sequence(load_source_record(source_sha256, data_root))
+    media = source_sequence(load_source_record(source_sha256, data_root))
     chosen: list[tuple[dict[str, Any], BundleOffer, list[JsonValue]]] = []
     remaining: list[dict[str, Any]] = []
     for stream in streams:
@@ -86,17 +91,6 @@ def reuse_streams(
         else:
             reused.append(ReusedBundle(published, offer.corpus_id, offer.stream_id))
     return ReusePass(tuple(reused), tuple(remaining), verified)
-
-
-def _sequence(manifest: Mapping[str, JsonValue]) -> _Media:
-    sequence = manifest["sequence"]
-    if not isinstance(sequence, dict):
-        raise CorpusRefusal(
-            RefusalCode.RECORD_TAMPERED,
-            "source record has no sequence section",
-            {"record": MANIFEST_NAME},
-        )
-    return sequence
 
 
 def _match(
@@ -123,7 +117,6 @@ def _require_intact(offer: BundleOffer, stream_id: str) -> FrameBundle:
     damage = bundle.damage()
     if not damage:
         return bundle
-    named: list[JsonValue] = [item.to_record() for item in damage[:MAX_NAMED_FRAMES]]
     raise CorpusRefusal(
         RefusalCode.FRAME_CORRUPTED,
         f"bundle {offer.corpus_id}/{offer.stream_id} does not match its sealed index, "
@@ -132,9 +125,8 @@ def _require_intact(offer: BundleOffer, stream_id: str) -> FrameBundle:
             "stream_id": stream_id,
             "candidate_corpus_id": offer.corpus_id,
             "candidate_stream_id": offer.stream_id,
-            "damaged_count": len(damage),
-            "frames": named,
-        },
+        }
+        | damage_details(damage),
     )
 
 

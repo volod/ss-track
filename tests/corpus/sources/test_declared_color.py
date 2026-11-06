@@ -19,12 +19,18 @@ from ss_track.corpus import (
     redecode_source,
     stage_corpus,
 )
-from ss_track.corpus.bundles.frames import FRAME_BUNDLE
+from ss_track.corpus.records.kinds import FRAME_BUNDLE, SOURCE_MANIFEST
 from ss_track.corpus.records.sealed import read_sealed
-from ss_track.corpus.sources.importer import SOURCE_MANIFEST
 from tests.corpus._media import write_clip
 from tests.corpus.bundles._bundle_writing import CORPUS, bundle_dir
-from tests.corpus.conftest import WriteCorpus, WriteRecording, last_record, stream_of
+from tests.corpus.conftest import (
+    WriteCorpus,
+    WriteRecording,
+    imported_names,
+    last_record,
+    reseal,
+    stream_of,
+)
 
 _PURE_RED = (63, 102, 240)
 _TRUE_RED = (255, 0, 0)
@@ -97,6 +103,24 @@ def test_a_declared_bt709_source_converts_pure_red(
     assert manifest["color"]["matrix"] == 2
 
 
+def test_a_record_resealed_with_a_matrix_no_conversion_applies_is_tampered(
+    media: Path, write_recording: WriteRecording, write_corpus: WriteCorpus, data_root: Path
+) -> None:
+    _write_untagged_red(media / "clip.mkv")
+    imported = import_source(write_recording(color={"matrix": "bt709"}), data_root)
+    sequence = _sequence(imported.manifest_path)
+    declared = {"matrix": 2, "origin": "declared"}
+    reseal(imported.manifest_path, sequence=sequence | {"declared_color": declared})
+    build_corpus(write_corpus([stream_of(imported)]), data_root)
+
+    with pytest.raises(CorpusRefusal) as caught:
+        stage_corpus(CORPUS, data_root)
+
+    assert caught.value.code is RefusalCode.RECORD_TAMPERED
+    assert caught.value.details == {"matrix": 2}
+    assert not bundle_dir(data_root).exists()
+
+
 def test_an_undeclared_source_still_converts_as_bt601(
     media: Path, write_recording: WriteRecording, write_corpus: WriteCorpus, data_root: Path
 ) -> None:
@@ -126,7 +150,7 @@ def test_a_declaration_that_disagrees_with_a_stored_tag_is_refused(
     refusal = caught.value
     assert refusal.code is RefusalCode.COLOR_TAG_CONFLICT
     assert refusal.details == {"declared_matrix": 6, "stored_matrix": 1}
-    assert list((data_root / "import").iterdir()) == []
+    assert imported_names(data_root) == []
 
 
 def test_a_matching_declaration_keeps_the_undeclared_manifest(
@@ -152,7 +176,7 @@ def test_a_matrix_on_a_format_that_uses_none_is_refused(
 
     assert caught.value.code is RefusalCode.COLOR_TAG_CONFLICT
     assert caught.value.details["source_pixel_format"] == "gray"
-    assert list((data_root / "import").iterdir()) == []
+    assert imported_names(data_root) == []
 
 
 def test_redecode_keeps_a_declared_matrix(
@@ -229,4 +253,4 @@ def test_the_import_command_refuses_a_disagreement_in_one_record(
     record = last_record(caplog)
     assert record["code"] == "COLOR_TAG_CONFLICT"
     assert record["status"] == "refused"
-    assert list((cli_root / "import").iterdir()) == []
+    assert imported_names(cli_root) == []

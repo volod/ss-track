@@ -1,6 +1,5 @@
 """Remuxed copies inside one corpus version that are leakage, from real media to the exit status."""
 
-import json
 import logging
 from pathlib import Path
 
@@ -15,7 +14,14 @@ from tests.corpus._media import (
     write_clip,
 )
 from tests.corpus._shared_frames import V1, V2, frame_set, hashes_of, named, sides, stage_refused
-from tests.corpus.conftest import WriteCorpus, WriteRecording, case_of, single_group, stream_of
+from tests.corpus.conftest import (
+    WriteCorpus,
+    WriteRecording,
+    case_of,
+    last_record,
+    single_group,
+    stream_of,
+)
 
 
 def test_a_remux_keeps_every_decoded_frame_and_changes_every_source_hash(
@@ -96,11 +102,11 @@ def test_a_refusal_reaches_the_exit_status_and_leaves_noframe_set(
     with caplog.at_level(logging.INFO):
         assert main(["corpus", "stage", "--corpus", V1]) == EXIT_REFUSED
 
-    assert json.loads(caplog.messages[-1])["code"] == "SPLIT_LEAKAGE"
+    assert last_record(caplog)["code"] == "SPLIT_LEAKAGE"
     assert not frame_set(data_root, V1).exists()
     assert not (data_root / "corpus" / V1 / "frames" / "shaken").exists()
     assert main(["corpus", "verify", "--corpus", V1]) == EXIT_REFUSED
-    assert json.loads(caplog.messages[-1])["code"] == "BUNDLE_NOT_STAGED"
+    assert last_record(caplog)["code"] == "BUNDLE_NOT_STAGED"
 
 
 def test_a_cut_copy_names_where_each_stream_first_shows_the_frame(
@@ -140,11 +146,11 @@ def test_stage_and_verify_report_one_result_as_json(
 
     with caplog.at_level(logging.INFO):
         assert main(["corpus", "stage", "--corpus", V2]) == EXIT_OK
-        staged = json.loads(caplog.messages[-1])
+        staged = last_record(caplog)
         assert main(["corpus", "stage", "--corpus", V2]) == EXIT_OK
-        repeated = json.loads(caplog.messages[-1])
+        repeated = last_record(caplog)
         assert main(["corpus", "verify", "--corpus", V2]) == EXIT_OK
-        verified = json.loads(caplog.messages[-1])
+        verified = last_record(caplog)
 
     expected = {
         "min_shared_frames": 8,

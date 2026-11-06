@@ -7,7 +7,7 @@ import pytest
 
 from ss_track.corpus import ImportResult
 from ss_track.corpus.records.projections import OTHER_SCHEMA
-from ss_track.corpus.versions.unlinked import UNREADABLE
+from ss_track.corpus.versions.scan import UNREADABLE
 from tests.corpus.conftest import WriteCorpus, reseal, single_group, stream_of
 from tests.corpus.versions._lineage_build import build_version
 from tests.corpus.versions._unlinked import place, plant

@@ -70,6 +70,7 @@ packages = [
   "ss_track.corpus.hosts",
   "ss_track.corpus.records",
   "ss_track.corpus.sources",
+  "ss_track.corpus.storage",
   "ss_track.corpus.versions",
   "ss_track.quality",
   "ss_track.schema",

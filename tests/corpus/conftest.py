@@ -4,11 +4,13 @@ import json
 import logging
 from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 import pytest
 import yaml
 
 from ss_track.corpus import import_source
+from ss_track.corpus.bundles.frames import bundle_hash
 from ss_track.corpus.records.sealing import sha256_file
 from ss_track.corpus.sources.importer import ImportResult
 from tests._sealing import self_sealed
@@ -96,6 +98,27 @@ def reseal(path: Path, **changes: object) -> None:
     record.pop("manifest_sha256")
     path.chmod(0o644)
     path.write_text(json.dumps(self_sealed(record | changes)), encoding="ascii")
+
+
+def bundle_identity(directory: Path) -> dict[str, Any]:
+    """Return a staged bundle's identity block, as its record holds it."""
+    record = json.loads((directory / "manifest.json").read_text(encoding="ascii"))
+    identity: dict[str, Any] = record["identity"]
+    return identity
+
+
+def reseal_bundle(directory: Path, identity: dict[str, Any]) -> None:
+    """Give a bundle another identity and repair its bundle hash and seal, as a reseal by hand."""
+    directory.chmod(0o755)
+    reseal(directory / "manifest.json", identity=identity, bundle_sha256=bundle_hash(identity))
+
+
+def imported_names(data_root: Path) -> list[str]:
+    """Return what the data root's imports hold, beside the lock files that writers share."""
+    imports = data_root / "import"
+    if not imports.exists():
+        return []
+    return sorted(path.name for path in imports.iterdir() if path.suffix != ".lock")
 
 
 def last_record(caplog: pytest.LogCaptureFixture) -> dict[str, object]:

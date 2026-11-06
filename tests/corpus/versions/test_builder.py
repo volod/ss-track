@@ -5,9 +5,9 @@ import pytest
 
 from ss_track.corpus import CorpusRefusal, ImportResult, RefusalCode, build_corpus
 from ss_track.corpus.decoding.decode_policy import current_decode_policy
+from ss_track.corpus.records.kinds import CORPUS_MANIFEST
 from ss_track.corpus.records.sealed import read_sealed
-from ss_track.corpus.sources.importer import decode_policy_sha256
-from ss_track.corpus.versions.builder import CORPUS_MANIFEST, load_corpus_manifest
+from ss_track.corpus.versions.manifests import load_corpus_manifest
 from ss_track.schema.validation.enforce import older_remedy
 from tests.corpus._media import FRAME_COUNT, HEIGHT, WIDTH
 from tests.corpus.conftest import WriteCorpus, reseal, stream_of
@@ -145,7 +145,7 @@ def test_declared_policy_pin_must_match_the_installed_decoder(
 def test_matching_policy_pin_is_accepted(
     imported: ImportResult, write_corpus: WriteCorpus, data_root: Path
 ) -> None:
-    pin = decode_policy_sha256(current_decode_policy().as_record())
+    pin = current_decode_policy().sha256()
 
     result = build_corpus(write_corpus([stream_of(imported)], decode_policy_sha256=pin), data_root)
 

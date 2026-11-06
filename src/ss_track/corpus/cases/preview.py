@@ -5,17 +5,15 @@ region is outlined on the case that declares it. A frame that case removed stays
 marked panel, so the gap is visible.
 """
 
-import os
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from tempfile import NamedTemporaryFile
 from typing import Any
 
 from ss_track.core.canonical import sha256_bytes
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.bundles.bundle_reader import open_corpus_bundle
-from ss_track.corpus.bundles.frames import FrameBundle, frames_root
+from ss_track.corpus.bundles.frames import FrameBundle
 from ss_track.corpus.cases.case_model import Region
 from ss_track.corpus.cases.preview_png import (
     PNG_ENCODER,
@@ -25,8 +23,9 @@ from ss_track.corpus.cases.preview_png import (
     removed_panel,
 )
 from ss_track.corpus.decoding.pixels import OUTPUT_PIXEL_FORMAT
-from ss_track.corpus.records.sealing import SCRATCH_PREFIX
-from ss_track.corpus.versions.builder import CORPUS_DIRECTORY, load_corpus_manifest
+from ss_track.corpus.storage.layout import corpus_root, frames_root
+from ss_track.corpus.storage.scratch import write_atomically
+from ss_track.corpus.versions.manifests import load_corpus_manifest
 
 ROLE_PARENT = "parent"
 ROLE_CASE = "case"
@@ -100,7 +99,7 @@ def preview_stream(
         panels.append(_case_panel(case, parent, frame_index, corpus, root))
     packed = join_horizontal([item for _, item in panels], parent.width, parent.height)
     payload = encode_rgb_png(parent.width * len(panels), parent.height, packed)
-    _write_bytes(out, payload)
+    _write_png(out, payload)
     described = tuple(panel for panel, _ in panels)
     return PreviewResult(
         corpus_id=corpus_id,
@@ -158,9 +157,9 @@ def _require_parent_stream(corpus: Mapping[str, Any], stream_id: str) -> None:
 
 def _require_output_outside_corpus(out: Path, data_root: Path) -> None:
     """A preview must not add a file among staged bundles or sealed corpus records."""
-    corpus_root = (data_root / CORPUS_DIRECTORY).resolve()
+    corpus = corpus_root(data_root).resolve()
     target = out.resolve()
-    if target == corpus_root or target.is_relative_to(corpus_root):
+    if target == corpus or target.is_relative_to(corpus):
         raise CorpusRefusal(
             RefusalCode.STORAGE_FAILED,
             "preview writes its PNG outside the corpus directory",
@@ -169,10 +168,11 @@ def _require_output_outside_corpus(out: Path, data_root: Path) -> None:
 
 
 def _require_rgb24(bundle: FrameBundle) -> None:
+    """Refuse a bundle record stating a layout its contract forbids, which a reseal by hand made."""
     if bundle.pixel_format != OUTPUT_PIXEL_FORMAT:
         raise CorpusRefusal(
-            RefusalCode.SOURCE_FORMAT_CHANGED,
-            "preview reads rgb24 frames",
+            RefusalCode.RECORD_TAMPERED,
+            f"bundle record states pixel format {bundle.pixel_format}; preview reads rgb24 frames",
             {"stream_id": bundle.stream_id, "pixel_format": bundle.pixel_format},
         )
 
@@ -221,7 +221,7 @@ def _frame_pixels(bundle: FrameBundle, frame_index: int) -> bytes | None:
         return None
 
 
-def _write_bytes(path: Path, payload: bytes) -> None:
+def _write_png(path: Path, payload: bytes) -> None:
     """Replace one file so a crash cannot leave a partial PNG in its place."""
     if not path.parent.is_dir():
         raise CorpusRefusal(
@@ -229,28 +229,9 @@ def _write_bytes(path: Path, payload: bytes) -> None:
             "preview cannot create its PNG because the directory does not exist",
             {"path": str(path)},
         )
-    temporary = _temporary(path, payload)
     try:
-        os.replace(temporary, path)
+        write_atomically(path, payload)
     except OSError as error:
-        temporary.unlink(missing_ok=True)
         raise CorpusRefusal(
             RefusalCode.STORAGE_FAILED, "preview cannot write its PNG", {"path": str(path)}
         ) from error
-    except BaseException:
-        temporary.unlink(missing_ok=True)
-        raise
-
-
-def _temporary(path: Path, payload: bytes) -> Path:
-    """Write the PNG aside. An interrupt removes that file before the error propagates."""
-    with NamedTemporaryFile(dir=path.parent, prefix=SCRATCH_PREFIX, delete=False) as handle:
-        temporary = Path(handle.name)
-        try:
-            handle.write(payload)
-            handle.flush()
-            os.fsync(handle.fileno())
-        except BaseException:
-            temporary.unlink(missing_ok=True)
-            raise
-        return temporary

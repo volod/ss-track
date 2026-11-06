@@ -28,38 +28,6 @@ extensions; none blocks M3. Fixture implementation proceeds without physical har
 
 ## Agent Implementation Tasks
 
-### Corpus provenance -- `corpus-provenance`
-
-#### corpus-provenance-audit (optional)
-
-The corpus pipeline grew one task at a time, so one rule can live in two places and no check reads
-import, build, stage and verify as one path.
-
-- Serves: `corpus-provenance` -- [Corpus
-  identity](../design/spec.md#41-corpus-identity-and-input-handling)
-- Agent status: CLEAR
-- Milestone: M2
-- Effort: high
-- Dependencies: every other agent task in this group.
-- User-visible outcome: Import, build, stage and verify read as one pipeline with one route for each
-  rule, and every record they wrote stays valid.
-- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
-  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
-  score or refusal code.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`,
-  `$DATA_DIR/import/<source-sha256>/`, `$DATA_DIR/corpus/`, `$DATA_DIR/corpus/<corpus-id>/`.
-- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from what
-  is already known to repeat: the `flock` routines and their scratch clearing in `staging.py`,
-  `amendment.py` and `descriptor_publish.py`, the `.incoming-` literal in `importer.py` beside
-  `SCRATCH_PREFIX`, the two `PermissionError` handlers for one source read, and the `_rights` test
-  helpers beside `_record` in `tests/test_cli.py`. Then compare the refusal table with the codes
-  raised.
-- Acceptance gates: Each named repetition is merged or kept for a stated reason. The fixed corpus
-  keeps its `bundle_sha256` and `frame_set_sha256`, and every refusal code keeps its meaning. Every
-  finding is fixed, routed to a task or dropped with its reason, and `make quality` passes. Finding
-  nothing is a valid result when the record states what was reviewed.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
 ### Self-supervised video corpus -- `self-supervised-corpus`
 
 #### corpus-sibling-integration-study
@@ -2017,9 +1985,9 @@ Telemetry has nowhere to live as evidence, because import takes only video.
   store, and a declared CSV reader as the first format. No profiles, analysis or live capture.
 - Data and artifact paths: `src/ss_track/telemetry/`, `tests/telemetry/`, `contracts/`,
   `$DATA_DIR/import/<source-sha256>/`, `$DATA_DIR/telemetry/<bundle-sha256>/`.
-- Execution path: Reuse `sealing.py` and `sealed.py`, publish-by-rename and the source-terms checks
-  by generalizing them, with no parallel copy. Store one little-endian file per field under a sealed
-  index.
+- Execution path: Reuse `sealing.py` and `sealed.py`, the locks, scratch and publish-by-rename of
+  `corpus/storage/`, and the source-terms checks by generalizing them, with no parallel copy. Store
+  one little-endian file per field under a sealed index.
 - Acceptance gates: Two stagings across data roots, and on x86-64 and arm64, give one hash. A float
   column round-trips bit-exact, including NaN payloads. A flipped column byte fails `verify` by name.
   Rights and retention refuse as they do for a recording.

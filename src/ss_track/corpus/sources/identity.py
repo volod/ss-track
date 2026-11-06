@@ -39,6 +39,11 @@ def source_identity(content_sha256: str, video_stream_index: int) -> str:
     return sha256_bytes(canonical_json(payload))
 
 
+def addressed_identity(content_sha256: str, video_stream_index: int | None) -> str:
+    """Return the identity a declaration addresses. An omitted index names the first stream."""
+    return source_identity(content_sha256, 0 if video_stream_index is None else video_stream_index)
+
+
 def recording_sha256(stream: Mapping[str, Any]) -> str:
     """Return the file hash this stream shares with the other camera of its container.
 

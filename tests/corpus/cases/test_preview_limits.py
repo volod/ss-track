@@ -8,27 +8,20 @@ import pytest
 
 from ss_track.cli import main
 from ss_track.commands.report import EXIT_OK, EXIT_REFUSED
-from ss_track.corpus import (
-    CorpusRefusal,
-    ImportResult,
-    RefusalCode,
-    build_corpus,
-    open_frame_bundle,
-    stage_corpus,
-)
-from ss_track.corpus.bundles.frames import FrameBundle
-from ss_track.corpus.cases.preview import (
-    ROLE_PARENT,
-    _require_rgb24,
-    _require_same_shape,
-    _write_bytes,
-)
+from ss_track.corpus import ImportResult, build_corpus, open_frame_bundle, stage_corpus
+from ss_track.corpus.cases.preview import ROLE_PARENT
 from ss_track.corpus.decoding.pixels import OUTPUT_PIXEL_FORMAT
 from tests.corpus._media import HEIGHT, WIDTH
 from tests.corpus.cases._staged_cases import CORPUS, stage_cases
 from tests.corpus.cases.test_preview import _cases, _snapshot
 from tests.corpus.cases.test_preview_png import _png_rgb
-from tests.corpus.conftest import WriteCorpus, last_record, stream_of
+from tests.corpus.conftest import (
+    WriteCorpus,
+    bundle_identity,
+    last_record,
+    reseal_bundle,
+    stream_of,
+)
 
 
 def _preview(frame: str, stream: str, out: Path) -> int:
@@ -46,27 +39,6 @@ def _preview(frame: str, stream: str, out: Path) -> int:
             str(out),
         ]
     )
-
-
-def _bundle(**overrides: object) -> FrameBundle:
-    fields: dict[str, object] = {
-        "directory": Path("."),
-        "stream_id": "one",
-        "corpus_manifest_sha256": "a" * 64,
-        "bundle_sha256": "b" * 64,
-        "source_sha256": "c" * 64,
-        "pixel_format": OUTPUT_PIXEL_FORMAT,
-        "width": WIDTH,
-        "height": HEIGHT,
-        "time_base": None,
-        "timestamp_quality": "missing",
-        "capture_clock_evidence": None,
-        "selection": range(1),
-        "entries": (),
-        "transform": "identity",
-        "parent_bundle_sha256": None,
-    }
-    return FrameBundle(**(fields | overrides))  # type: ignore[arg-type]
 
 
 @pytest.fixture
@@ -146,42 +118,55 @@ def test_a_stream_with_no_cases_writes_the_parent_alone(
     assert pixels == open_frame_bundle(root / "one").read_frame(0)
 
 
-def test_a_case_that_does_not_match_its_parent_shape_is_refused() -> None:
-    parent = _bundle()
-    _require_rgb24(parent)
-    _require_same_shape(parent, _bundle(stream_id="absence"))
-    with pytest.raises(CorpusRefusal) as caught:
-        _require_same_shape(parent, _bundle(stream_id="absence", width=WIDTH - 1))
-    assert caught.value.code is RefusalCode.CASE_INVALID
-    with pytest.raises(CorpusRefusal) as odd:
-        _require_rgb24(_bundle(pixel_format="gray"))
-    assert odd.value.code is RefusalCode.SOURCE_FORMAT_CHANGED
+def test_a_case_that_does_not_match_its_parent_shape_is_refused(
+    staged: Path, cli_root: Path, caplog: pytest.LogCaptureFixture, tmp_path: Path
+) -> None:
+    reseal_bundle(staged / "absence", bundle_identity(staged / "absence") | {"width": WIDTH - 1})
+
+    assert _preview("4", "one", tmp_path / "sheet.png") == EXIT_REFUSED
+
+    refusal = last_record(caplog)
+    assert refusal["code"] == "CASE_INVALID"
+    assert refusal["details"] == {
+        "case_id": "absence",
+        "parent_stream_id": "one",
+        "width": WIDTH - 1,
+        "height": HEIGHT,
+        "pixel_format": OUTPUT_PIXEL_FORMAT,
+    }
+    assert not (tmp_path / "sheet.png").exists()
 
 
-def test_a_failed_replace_leaves_no_scratch_file(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+def test_a_parent_record_stating_another_pixel_format_is_tampered(
+    staged: Path, cli_root: Path, caplog: pytest.LogCaptureFixture, tmp_path: Path
+) -> None:
+    reseal_bundle(staged / "one", bundle_identity(staged / "one") | {"pixel_format": "gray"})
+
+    assert _preview("4", "one", tmp_path / "sheet.png") == EXIT_REFUSED
+
+    refusal = last_record(caplog)
+    assert refusal["code"] == "RECORD_TAMPERED"
+    assert refusal["details"] == {"stream_id": "one", "pixel_format": "gray"}
+
+
+def test_a_failed_replace_is_a_storage_refusal_and_leaves_no_scratch(
+    staged: Path,
+    cli_root: Path,
+    caplog: pytest.LogCaptureFixture,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     def fail(source: str, _destination: str) -> None:
         raise OSError(f"cannot replace {source}")
 
     monkeypatch.setattr(os, "replace", fail)
-    with pytest.raises(CorpusRefusal) as caught:
-        _write_bytes(tmp_path / "sheet.png", b"png")
-    assert caught.value.code is RefusalCode.STORAGE_FAILED
-    assert list(tmp_path.glob(".incoming-*")) == []
 
+    assert _preview("4", "one", tmp_path / "sheet.png") == EXIT_REFUSED
 
-@pytest.mark.parametrize("where", ["fsync", "replace"])
-def test_an_interrupt_while_writing_a_preview_leaves_no_scratch(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, where: str
-) -> None:
-    def stop(*_args: object, **_kwargs: object) -> None:
-        raise KeyboardInterrupt
-
-    monkeypatch.setattr(os, where, stop)
-
-    with pytest.raises(KeyboardInterrupt):
-        _write_bytes(tmp_path / "sheet.png", b"png")
-
+    refusal = last_record(caplog)
+    assert (refusal["code"], refusal["message"]) == (
+        "STORAGE_FAILED",
+        "preview cannot write its PNG",
+    )
     assert list(tmp_path.glob(".incoming-*")) == []
     assert not (tmp_path / "sheet.png").exists()

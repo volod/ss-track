@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from ss_track.core.refusal import CorpusRefusal, JsonValue
+from ss_track.corpus.records.kinds import CORPUS_MANIFEST, RecordFormat
 from ss_track.corpus.records.projections import NotCompared, Unprojected
 from ss_track.corpus.versions.fingerprint import (
     GRID,
@@ -98,17 +99,18 @@ def report_near_duplicates(
     predecessors: Sequence[Predecessor],
     data_root: Path,
     load_manifest: ManifestLoader,
+    record_format: RecordFormat = CORPUS_MANIFEST,
 ) -> NearDuplicates:
     """Compare windows in different groups and report pairs at the measured threshold.
 
     `streams` are this version. `predecessors` are the linked versions, nearest first.
     `load_manifest` reads a linked version's frame window. Other built versions on
-    `data_root` follow that chain. A window, source, or version that cannot be read is named.
+    `data_root`, read as `record_format`, follow that chain. A window, source, or version that
+    cannot be read is named.
     """
     windows, gaps = _windows(corpus_id, streams, predecessors, load_manifest)
-    outside = outside_chain(
-        corpus_id, predecessors, {window.group_id for window in windows}, data_root
-    )
+    groups = {window.group_id for window in windows}
+    outside = outside_chain(corpus_id, predecessors, groups, data_root, record_format)
     for version in outside.versions:
         windows.extend(_window(version.corpus_id, stream) for stream in version.streams)
     gaps.extend(outside.not_compared)

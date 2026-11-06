@@ -72,4 +72,11 @@ def predecessor_identity(version: Predecessor) -> tuple[str, str]:
     """Return a predecessor's name and seal, which every major states."""
     if isinstance(version, Unprojected):
         return version.corpus_id, version.manifest_sha256
-    return str(version["corpus_id"]), str(version[SEAL_FIELD])
+    return predecessor_name(version), str(version[SEAL_FIELD])
+
+
+def predecessor_name(version: Predecessor) -> str:
+    """Return a predecessor's name, which a comparison that never reads its seal needs alone."""
+    if isinstance(version, Unprojected):
+        return version.corpus_id
+    return str(version["corpus_id"])

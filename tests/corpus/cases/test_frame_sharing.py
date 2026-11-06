@@ -17,7 +17,7 @@ from ss_track.corpus.bundles.frame_store import require_space
 from ss_track.corpus.bundles.frames import FrameBundle
 from ss_track.corpus.cases import generated
 from ss_track.corpus.cases.generated import write_case_bundle
-from ss_track.corpus.versions.builder import load_corpus_manifest
+from ss_track.corpus.versions.manifests import load_corpus_manifest
 from tests.corpus._media import FRAME_COUNT, HEIGHT, WIDTH
 from tests.corpus.bundles._staged_frames import flip_byte, frames_refusal
 from tests.corpus.cases._staged_cases import stage_cases

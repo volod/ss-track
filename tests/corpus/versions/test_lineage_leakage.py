@@ -1,6 +1,5 @@
 """A linked corpus version may not move material its declared predecessors placed."""
 
-import json
 import logging
 from pathlib import Path
 
@@ -9,7 +8,14 @@ import pytest
 from ss_track.cli import main
 from ss_track.commands.report import EXIT_OK, EXIT_REFUSED
 from ss_track.corpus import ImportResult, RefusalCode
-from tests.corpus.conftest import WriteCorpus, place_of, reseal, single_group, stream_of
+from tests.corpus.conftest import (
+    WriteCorpus,
+    last_record,
+    place_of,
+    reseal,
+    single_group,
+    stream_of,
+)
 from tests.corpus.versions._lineage_build import build_version, refused_build, source_of
 
 
@@ -63,7 +69,7 @@ def test_a_refused_move_exits_one_with_the_code_in_its_record(
         status = main(["corpus", "build", "--manifest", str(v2)])
 
     assert status == EXIT_REFUSED
-    assert json.loads(caplog.messages[-1])["code"] == "SPLIT_LEAKAGE"
+    assert last_record(caplog)["code"] == "SPLIT_LEAKAGE"
 
 
 def test_a_chain_refuses_a_source_dropped_by_the_version_between(

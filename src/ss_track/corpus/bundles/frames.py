@@ -12,23 +12,14 @@ from pathlib import Path
 
 from ss_track.core.canonical import canonical_json, sha256_bytes
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
-from ss_track.corpus.records.kinds import FRAME_BUNDLE_KIND, RecordFormat
 from ss_track.corpus.records.sealing import sha256_file
-from ss_track.corpus.sources.importer import MANIFEST_NAME
-from ss_track.corpus.versions.builder import CORPUS_DIRECTORY
+from ss_track.corpus.storage.layout import MANIFEST_NAME
 
-FRAME_BUNDLE = RecordFormat(FRAME_BUNDLE_KIND, major=3)
-FRAMES_DIRECTORY = "frames"
 IDENTITY_TRANSFORM = "identity"
 MISSING = "missing"
 HASH_MISMATCH = "hash_mismatch"
 UNEXPECTED_FILE = "unexpected_file"
 MAX_NAMED_FRAMES = 32
-
-
-def frames_root(data_root: Path, corpus_id: str) -> Path:
-    """Return the directory that holds every bundle of one corpus version."""
-    return data_root / CORPUS_DIRECTORY / corpus_id / FRAMES_DIRECTORY
 
 
 def frame_name(frame_index: int, pixel_format: str) -> str:
@@ -91,15 +82,43 @@ class FrameDamage:
         return record
 
 
-def frames_corrupted(damage: Sequence[FrameDamage]) -> CorpusRefusal:
-    """Build the refusal that names damaged frames, bounded for a badly damaged corpus."""
+def damage_details(damage: Sequence[FrameDamage]) -> dict[str, JsonValue]:
+    """Count damaged frames and name the first few, bounded for a badly damaged corpus."""
     named: list[JsonValue] = [entry.to_record() for entry in damage[:MAX_NAMED_FRAMES]]
+    return {"damaged_count": len(damage), "frames": named}
+
+
+def frames_corrupted(damage: Sequence[FrameDamage]) -> CorpusRefusal:
+    """Build the refusal that names damaged frames of a staged bundle."""
     return CorpusRefusal(
         RefusalCode.FRAME_CORRUPTED,
         f"{len(damage)} staged frame file(s) do not match the sealed index, first "
         f"{damage[0].frame}; remove the bundle and stage it again",
-        {"damaged_count": len(damage), "frames": named},
+        damage_details(damage),
     )
+
+
+class FileDigests:
+    """Hashes of frame files that have more than one name, each taken once in one command.
+
+    A case frame equal to its parent frame, and a bundle reused from a linked version, are hard
+    links to one inode, whose bytes are the same through every name. Hashing that inode once proves
+    the bytes of each name, so a check costs the frames that differ, not the names.
+    """
+
+    def __init__(self) -> None:
+        self._shared: dict[tuple[int, int], str] = {}
+
+    def sha256(self, path: Path) -> str:
+        """Return the hash of a file's bytes, hashing a shared inode only the first time."""
+        status = path.stat()
+        if status.st_nlink < 2:
+            return sha256_file(path)
+        key = (status.st_dev, status.st_ino)
+        found = self._shared.get(key)
+        if found is None:
+            found = self._shared[key] = sha256_file(path)
+        return found
 
 
 @dataclass(frozen=True, slots=True)
@@ -183,17 +202,25 @@ class FrameBundle:
             raise frames_corrupted([FrameDamage(self.stream_id, name, HASH_MISMATCH)])
         return pixels
 
-    def damage(self) -> list[FrameDamage]:
-        """Compare every file with the sealed index and name everything that differs."""
-        found = [item for entry in self.entries if (item := self._entry_damage(entry)) is not None]
+    def damage(self, digests: FileDigests | None = None) -> list[FrameDamage]:
+        """Compare every file with the sealed index and name everything that differs.
+
+        `digests` shares the hashes of linked files across the bundles of one command.
+        """
+        hashed = FileDigests() if digests is None else digests
+        found = [
+            item
+            for entry in self.entries
+            if (item := self._entry_damage(entry, hashed)) is not None
+        ]
         expected = {self._name(entry) for entry in self.entries} | {MANIFEST_NAME}
         extras = sorted(path.name for path in self.directory.iterdir() if path.name not in expected)
         return found + [FrameDamage(self.stream_id, name, UNEXPECTED_FILE) for name in extras]
 
-    def _entry_damage(self, entry: FrameEntry) -> FrameDamage | None:
+    def _entry_damage(self, entry: FrameEntry, digests: FileDigests) -> FrameDamage | None:
         name = self._name(entry)
         try:
-            actual = sha256_file(self.directory / name)
+            actual = digests.sha256(self.directory / name)
         except FileNotFoundError:
             return FrameDamage(self.stream_id, name, MISSING)
         return None if actual == entry.sha256 else FrameDamage(self.stream_id, name, HASH_MISMATCH)

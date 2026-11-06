@@ -11,7 +11,6 @@ from ss_track.corpus.decoding.decode import (
     inspect_media,
 )
 from ss_track.corpus.decoding.decode_policy import DecodePolicy
-from ss_track.corpus.sources.importer import decode_policy_sha256
 from tests.corpus._media import (
     write_clip,
 )
@@ -50,4 +49,4 @@ def test_the_inverse_dct_option_reaches_the_decoder(media: Path) -> None:
 def test_the_conversion_is_part_of_the_policy_identity() -> None:
     changed = replace(POLICY, conversion_flags="BILINEAR")
 
-    assert decode_policy_sha256(changed.as_record()) != decode_policy_sha256(POLICY.as_record())
+    assert changed.sha256() != POLICY.sha256()

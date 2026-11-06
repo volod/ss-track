@@ -9,13 +9,14 @@ from typing import Any
 
 from ss_track.core.canonical import SEAL_FIELD
 from ss_track.core.refusal import JsonValue
-from ss_track.corpus.bundles.frames import FRAME_BUNDLE, bundle_hash
+from ss_track.corpus.bundles.frames import bundle_hash
 from ss_track.corpus.decoding.declared_color import DECLARED_COLOR
 from ss_track.corpus.decoding.pixels import (
     OUTPUT_BITS_PER_COMPONENT,
     OUTPUT_PIXEL_FORMAT,
     frame_size_bytes,
 )
+from ss_track.corpus.records.kinds import FRAME_BUNDLE
 
 # Identity fields a decode has not yet produced frames for. The sealed index is the rest.
 LAYOUT_FIELDS = (

@@ -11,7 +11,7 @@ from ss_track.corpus import (
     stage_corpus,
     verify_corpus_frames,
 )
-from ss_track.corpus.bundles.staging import FramesResult
+from ss_track.corpus.bundles.stage_report import FramesResult
 from ss_track.schema import validate_file
 from tests.corpus.bundles._frame_set import (
     CORPUS,

@@ -14,11 +14,11 @@ from ss_track.corpus import (
     redecode_source,
     stage_corpus,
 )
-from ss_track.corpus.bundles.frames import frames_root
 from ss_track.corpus.decoding.decode_policy import DecodePolicy
 from ss_track.corpus.records.projections import OTHER_SCHEMA
+from ss_track.corpus.storage.layout import frames_root
 from ss_track.corpus.versions.builder import BuildResult
-from ss_track.corpus.versions.unlinked import UNREADABLE
+from ss_track.corpus.versions.scan import UNREADABLE
 from tests.corpus._amending import evidence
 from tests.corpus.conftest import WriteCorpus, WriteRecording, last_record, reseal, stream_of
 from tests.corpus.versions._unlinked import plant

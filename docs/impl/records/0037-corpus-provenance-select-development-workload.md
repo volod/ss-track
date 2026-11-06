@@ -87,4 +87,5 @@ covers usage and limits.
 
 Owner accepted the candidate. Plan counts changed from 127 (105 agent, 22 human) to 126 (105 agent,
 21 human); no capability status changed. The selection task was removed and its dependent tasks were
-updated. Current corpus documentation and the records index link this record. `make ci` and the required documentation and planning checks passed.
+updated. Current corpus documentation and the records index link this record. `make ci` and the
+required documentation and planning checks passed.

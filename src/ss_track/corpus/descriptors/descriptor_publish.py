@@ -5,23 +5,18 @@ replaces it. The previous generation sits beside that directory until the new on
 A scratch tree is never published: a killed write can be partial.
 """
 
-import fcntl
 import logging
 import os
 import shutil
-import tempfile
-from collections.abc import Iterator, Mapping
-from contextlib import contextmanager
+from collections.abc import Mapping
 from pathlib import Path
 
-from ss_track.corpus.records.sealing import SCRATCH_PREFIX
-from ss_track.corpus.versions.builder import CORPUS_DIRECTORY
+from ss_track.corpus.storage.layout import descriptions_directory
+from ss_track.corpus.storage.scratch import exclusive_lock, scratch_directory
 
 _LOG = logging.getLogger(__name__)
-_DESCRIPTIONS = "descriptions"
 _LOCK_NAME = ".describe.lock"
 _RECOVERY_PREFIX = ".replaced-"
-_STAGED = "staged"
 _CROISSANT = "croissant.json"
 
 
@@ -33,25 +28,15 @@ def publish_descriptor(
     The same bytes leave the published directory untouched. Different bytes are written aside
     and then swapped into place. An unfinished swap is put back before that.
     """
-    parent = data_root / CORPUS_DIRECTORY / corpus_id / _DESCRIPTIONS
+    parent = descriptions_directory(data_root, corpus_id)
     target = parent / visibility
     recovery = parent / f"{_RECOVERY_PREFIX}{visibility}"
-    with _exclusive(parent):
+    with exclusive_lock(parent, _LOCK_NAME, clear=(parent,)):
         _recover(target, recovery)
-        _clear_scratch(parent)
         if _same(target, output):
             return target / _CROISSANT
         _install(parent, target, recovery, output)
     return target / _CROISSANT
-
-
-@contextmanager
-def _exclusive(parent: Path) -> Iterator[None]:
-    """Serialize publication. The kernel drops this lock when the process ends."""
-    parent.mkdir(parents=True, exist_ok=True)
-    with (parent / _LOCK_NAME).open("w") as handle:
-        fcntl.flock(handle, fcntl.LOCK_EX)
-        yield
 
 
 def _recover(target: Path, recovery: Path) -> None:
@@ -69,12 +54,6 @@ def _recover(target: Path, recovery: Path) -> None:
     _rename(recovery, target)
 
 
-def _clear_scratch(parent: Path) -> None:
-    """Remove a killed run's scratch. The lock proves no other publication owns it."""
-    for leftover in parent.glob(f"{SCRATCH_PREFIX}*"):
-        shutil.rmtree(leftover)
-
-
 def _same(target: Path, output: Mapping[str, bytes]) -> bool:
     if not target.is_dir():
         return False
@@ -87,9 +66,7 @@ def _same(target: Path, output: Mapping[str, bytes]) -> bool:
 
 
 def _install(parent: Path, target: Path, recovery: Path, output: Mapping[str, bytes]) -> None:
-    with tempfile.TemporaryDirectory(prefix=SCRATCH_PREFIX, dir=parent) as temporary:
-        staged = Path(temporary) / _STAGED
-        staged.mkdir()
+    with scratch_directory(parent) as staged:
         _write_tree(staged, output)
         _fsync_directories(staged)
         _replace(staged, target, recovery)

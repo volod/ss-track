@@ -1,12 +1,15 @@
 """Reading a staged bundle: exactly the indexed bytes, and a reference to each frame."""
 
 import json
+import os
 from pathlib import Path
 
 import pytest
 
 from ss_track.core.canonical import sha256_bytes
 from ss_track.corpus import CorpusRefusal, ImportResult, RefusalCode, open_frame_bundle
+from ss_track.corpus.bundles import frames
+from ss_track.corpus.bundles.frames import FileDigests
 from ss_track.corpus.records.sealing import sha256_file
 from tests.corpus._media import FRAME_COUNT, HEIGHT, WIDTH
 from tests.corpus.bundles._staged_frames import delete_frame, flip_byte, stage_two_streams
@@ -98,3 +101,28 @@ def test_frame_refs_list_every_frame_in_presentation_order(staged: Path) -> None
 
     assert len(bundle) == FRAME_COUNT
     assert [ref.frame_index for ref in bundle.frame_refs()] == list(range(FRAME_COUNT))
+
+
+def test_a_file_with_two_names_is_hashed_once_per_command(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    shared = tmp_path / "parent"
+    shared.write_bytes(b"frame")
+    os.link(shared, tmp_path / "case")
+    single = tmp_path / "single"
+    single.write_bytes(b"other")
+    hashed: list[str] = []
+
+    def counted(path: Path) -> str:
+        hashed.append(path.name)
+        return sha256_file(path)
+
+    monkeypatch.setattr(frames, "sha256_file", counted)
+    digests = FileDigests()
+
+    found = {digests.sha256(tmp_path / name) for name in ("parent", "case")}
+    digests.sha256(single)
+    digests.sha256(single)
+
+    assert found == {sha256_bytes(b"frame")}
+    assert hashed == ["parent", "single", "single"]

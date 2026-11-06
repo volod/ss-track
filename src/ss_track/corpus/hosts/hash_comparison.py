@@ -12,11 +12,10 @@ from typing import Any
 
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.hosts.host_hashes import STAGED_HASHES_NAME, read_staged_hashes, run_directory
-from ss_track.corpus.records.kinds import HASH_COMPARISON_KIND, RecordFormat
+from ss_track.corpus.records.kinds import HASH_COMPARISON
 from ss_track.corpus.records.read_refusals import incomplete_record
 from ss_track.corpus.records.sealing import seal, write_sealed
 
-HASH_COMPARISON = RecordFormat(HASH_COMPARISON_KIND, major=1)  # written here; nothing reads it
 HASH_COMPARISON_NAME = "hash-comparison.json"
 IDENTICAL = "identical"
 DIFFERENT = "different"

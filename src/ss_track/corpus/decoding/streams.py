@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any, cast
 
 import av
+import av.container
 
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 
@@ -49,19 +50,23 @@ def recorded_video_stream_index(sequence: Mapping[str, Any]) -> int:
     return cast(int, value)
 
 
+def open_media(path: Path, format_options: Mapping[str, str]) -> av.container.InputContainer:
+    """Open a container under the policy's format options, refusing one FFmpeg cannot open."""
+    try:
+        return av.open(os.fspath(path), options=dict(format_options))
+    except av.FFmpegError as error:
+        raise CorpusRefusal(
+            RefusalCode.SOURCE_UNREADABLE, f"cannot open media: {error.strerror}"
+        ) from error
+
+
 def selected_video_index(path: Path, format_options: Mapping[str, str], index: int | None) -> int:
     """Return the named video stream's index without decoding frames.
 
     `index` is omitted only when the container has one video stream. A container with more is
     `VIDEO_STREAM_UNSPECIFIED` and lists every video stream.
     """
-    try:
-        container = av.open(os.fspath(path), options=dict(format_options))
-    except av.FFmpegError as error:
-        raise CorpusRefusal(
-            RefusalCode.SOURCE_UNREADABLE, f"cannot open media: {error.strerror}"
-        ) from error
-    with container:
+    with open_media(path, format_options) as container:
         _stream, selected = select_video_stream(container.streams.video, index)
         return selected
 

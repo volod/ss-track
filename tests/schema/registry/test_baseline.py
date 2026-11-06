@@ -6,11 +6,9 @@ from typing import Any
 import pytest
 
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
-from ss_track.corpus.bundles.frames import FRAME_BUNDLE
 from ss_track.corpus.cases.transforms import TRANSFORM_REVISIONS
 from ss_track.corpus.declarations.declaration import CORPUS_SCHEMA_VERSION
-from ss_track.corpus.hosts.host_hashes import STAGED_HASHES
-from ss_track.corpus.versions.builder import CORPUS_MANIFEST
+from ss_track.corpus.records.kinds import CORPUS_MANIFEST, FRAME_BUNDLE, STAGED_HASHES
 from ss_track.schema import validate_file
 from ss_track.schema.registry.fingerprints import walk
 from ss_track.schema.registry.store import load_contract_set

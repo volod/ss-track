@@ -14,14 +14,15 @@ from ss_track.corpus import (
     stage_corpus,
     verify_corpus_frames,
 )
-from ss_track.corpus.bundles.frames import FRAME_BUNDLE, bundle_hash
+from ss_track.corpus.records.kinds import CORPUS_MANIFEST
 from ss_track.corpus.records.sealed import read_sealed
-from ss_track.corpus.versions.builder import CORPUS_MANIFEST
 from tests.corpus.cases._staged_cases import CORPUS, SHAKE, case_frames_root, stage_cases
 from tests.corpus.conftest import (
     WriteCorpus,
+    bundle_identity,
     case_of,
     reseal,
+    reseal_bundle,
     stream_of,
 )
 
@@ -109,10 +110,7 @@ def test_verify_reports_each_case_with_its_transform(
 
 def _repoint_parent(bundle: Path, parent_bundle_sha256: str) -> None:
     """Make a self-consistent case record that names other parent frames."""
-    record = read_sealed(bundle / "manifest.json", FRAME_BUNDLE)
-    identity = record["identity"] | {"parent_bundle_sha256": parent_bundle_sha256}
-    bundle.chmod(0o755)
-    reseal(bundle / "manifest.json", identity=identity, bundle_sha256=bundle_hash(identity))
+    reseal_bundle(bundle, bundle_identity(bundle) | {"parent_bundle_sha256": parent_bundle_sha256})
 
 
 def test_a_case_from_other_parent_frames_is_refused(
@@ -161,11 +159,9 @@ def test_a_bundle_with_a_broken_generated_record_is_tampered(
     root = stage_cases(
         imported, write_corpus, data_root, case_of("shaken", "camera_shake", 1, SHAKE)
     )
-    record = read_sealed(root / "shaken" / "manifest.json", FRAME_BUNDLE)
-    identity = {key: value for key, value in record["identity"].items() if key != "recipe"}
-    (root / "shaken").chmod(0o755)
-    reseal(
-        root / "shaken" / "manifest.json", identity=identity, bundle_sha256=bundle_hash(identity)
+    identity = bundle_identity(root / "shaken")
+    reseal_bundle(
+        root / "shaken", {key: value for key, value in identity.items() if key != "recipe"}
     )
 
     with pytest.raises(CorpusRefusal) as caught:

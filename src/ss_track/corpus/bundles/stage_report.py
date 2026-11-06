@@ -1,9 +1,12 @@
 """What `corpus stage` and `corpus verify` report for one corpus version."""
 
+from collections.abc import Iterable
 from dataclasses import asdict, dataclass
 
 from ss_track.core.refusal import JsonValue
 from ss_track.corpus.bundles.duplicate_frames import SharedFramesCheck
+from ss_track.corpus.bundles.frames import FrameBundle
+from ss_track.corpus.storage.layout import MANIFEST_NAME
 
 
 @dataclass(frozen=True, slots=True)
@@ -48,3 +51,28 @@ class FramesResult:
         record["bundles"] = [bundle.to_record() for bundle in self.bundles]
         record["shared_frames"] = self.shared_frames.to_record()
         return record
+
+
+def summarize(
+    bundle: FrameBundle, status: str, *, origin: tuple[str, str] | None = None
+) -> BundleSummary:
+    """State one opened bundle as reported, with the linked version it came from when reused."""
+    corpus_id, stream_id = origin if origin is not None else (None, None)
+    return BundleSummary(
+        stream_id=bundle.stream_id,
+        status=status,
+        transform=bundle.transform,
+        bundle_sha256=bundle.bundle_sha256,
+        frame_count=len(bundle),
+        pixel_format=bundle.pixel_format,
+        width=bundle.width,
+        height=bundle.height,
+        manifest_path=str(bundle.directory / MANIFEST_NAME),
+        origin_corpus_id=corpus_id,
+        origin_stream_id=stream_id,
+    )
+
+
+def bundle_hashes(bundles: Iterable[BundleSummary | FrameBundle]) -> dict[str, str]:
+    """Return each bundle's hash by stream or case id, which is what a frame set seals."""
+    return {bundle.stream_id: bundle.bundle_sha256 for bundle in bundles}

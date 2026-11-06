@@ -13,9 +13,9 @@ from ss_track.corpus import (
     open_frame_bundle,
     stage_corpus,
 )
-from ss_track.corpus.bundles.frames import FRAME_BUNDLE
 from ss_track.corpus.cases.case_model import Pixels
 from ss_track.corpus.cases.transforms import prepare_case
+from ss_track.corpus.records.kinds import FRAME_BUNDLE
 from ss_track.corpus.records.sealed import read_sealed
 from tests.corpus._media import FRAME_COUNT, flat_rgb, write_clip
 from tests.corpus.cases._case_frames import FRAMES, case_record, prepare, window

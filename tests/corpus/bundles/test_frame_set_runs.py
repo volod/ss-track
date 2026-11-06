@@ -18,7 +18,7 @@ from ss_track.corpus import (
 )
 from ss_track.corpus.bundles import staging as staging_module
 from ss_track.corpus.bundles.frame_set import commit_frame_set
-from ss_track.corpus.bundles.staging import FramesResult
+from ss_track.corpus.bundles.stage_report import FramesResult
 from tests.corpus.bundles._frame_set import (
     CORPUS,
     SHAKE,

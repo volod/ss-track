@@ -14,7 +14,7 @@ from ss_track.corpus import (
     open_frame_bundle,
     stage_corpus,
 )
-from ss_track.corpus.bundles.frames import FRAME_BUNDLE
+from ss_track.corpus.records.kinds import FRAME_BUNDLE
 from ss_track.corpus.records.sealed import read_sealed
 from tests.corpus._media import FRAME_COUNT, HEIGHT, WIDTH, expected_rgb, write_clip
 from tests.corpus.bundles._bundle_writing import CORPUS, bundle_dir
