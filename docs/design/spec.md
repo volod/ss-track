@@ -366,9 +366,13 @@ measured rather than hidden.
 
 The [ss-video](https://github.com/volod/ss-video) video ingest and search service provides frame
 sampling, CLIP/DINO embeddings and vector search; [ss-fusion](https://github.com/volod/ss-fusion)
-provides perception packages and a research pipeline with SSL adaptation. Their actual export
-interfaces, versions, model licenses, reproducibility and operational requirements must be evaluated
-before choosing an integration. ss-track owns rights decisions, candidate and corpus provenance,
+provides perception packages and a research pipeline with SSL adaptation. The
+[integration study](../impl/current/corpus/sibling-integration.md) fixed the boundary. ss-track runs
+the ss-perception embedders out of process, in a pinned environment, over frames it staged itself.
+It neither imports sibling code into its own process nor depends on a running ss-video. A sibling
+timestamp names a window of source frames, never a frame. An adapted checkpoint is used only when
+its manifest names development-only training sources. ss-fusion carries no licence, so running it
+needs the owner's recorded grant. ss-track owns rights decisions, candidate and corpus provenance,
 encounter grouping, split membership, audit samples and immutable benchmark inputs. A candidate
 proposal is not a verified species, ground-truth label, or proof that a negative segment has no
 bird. Existing annotation and reviewer authority remain the route to frozen labels. Integrations do

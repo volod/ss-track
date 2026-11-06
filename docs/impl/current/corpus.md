@@ -35,6 +35,8 @@ The available corpus path imports declared sources and stages reviewed selection
 form a large corpus from sibling video indexes or self-supervised selection. The specification and
 plan define that future work, including source permissions and independent review. See the
 [corpus formation planning record](../records/0038-adhoc-self-supervised-corpus-plan.md).
+[Sibling integration](corpus/sibling-integration.md) records the pinned ss-video and ss-fusion
+interfaces, their frame mapping, rights and reproducibility, and the integration plan.
 
 ## Selected development workload
 
