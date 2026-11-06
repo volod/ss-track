@@ -86,6 +86,14 @@ contracts:
       class: minor
       summary: Add optional source.video_stream_index for the video stream a recording
         names.
+  - version: 2.3.0
+    file_sha256: e315db56cbcaa43f23f2909befbea4d62bf3abc0957b82576c0565e759a5a3b3
+    fingerprints:
+      structure: 5ee6a995be8861689219cbec710901b1b1b3975d3b6200c4c36b016b17321ccd
+      meaning: 6c2a23e4d70854ce46715fee1a64772672bcb22b99301d5d571a82ddfbf3d077
+    change:
+      class: minor
+      summary: Add optional color.matrix for a source that stores no color matrix.
   retired_majors:
   - major: 1
     status: retired
@@ -165,6 +173,14 @@ contracts:
       class: minor
       summary: State which fields a public descriptor may carry. Existing record bytes
         stay valid.
+  - version: 3.2.0
+    file_sha256: a584eff0fc2c3fafc4fd5ce69efcc68ac08c655b688366dbe1806c8780274309
+    fingerprints:
+      structure: 4ecd492321fe6f7153e55199ba2a81a0220d022dbf0d0833d534bf8eee4b53b0
+      meaning: d8418e890d52b17bfe04e2718a737091ac811573d2eb1eeee206a027ce2c61bc
+    change:
+      class: minor
+      summary: Record an operator-declared color matrix when conversion used it.
   retired_majors:
   - major: 1
     status: retired
@@ -239,6 +255,14 @@ contracts:
       class: minor
       summary: Add optional sequence.video_stream_index, absent when the decoded stream
         is the first.
+  - version: 2.3.0
+    file_sha256: e0ee590996701897731b968ffa41ce22370dc145d40d0667110a7251b0757349
+    fingerprints:
+      structure: c5faff2abbc2492bb717ab3ef5ec8efd53b0a425670fc8f585f03d179b6b2bcf
+      meaning: 5628719de993b87572df5f9747500d2b98d4fc8982f5e9a501fcae9fb96416dc
+    change:
+      class: minor
+      summary: Record an operator-declared color matrix when the source stores none.
   retired_majors:
   - major: 1
     status: facts
@@ -360,6 +384,15 @@ contracts:
       class: patch
       summary: Name source_sha256 as the source identity, which is the file hash for
         the first video stream.
+  - version: 1.10.0
+    file_sha256: c4255e129953e599b885d17bed622a64c9bb1db7b95d683ede3f06cb175da518
+    fingerprints:
+      structure: 4df1c6b487a6c316aaa085ede46e5affed612cc72da240092e08fc143602309b
+      meaning: b4203a73ff1ddd107bd5165e32b4e942dcf1491eebb69c57fe964501203ab5ad
+    change:
+      class: minor
+      summary: Add COLOR_TAG_CONFLICT when a declared color matrix disagrees with
+        the source.
 - family: shared
   id: types
   owner: data-contracts

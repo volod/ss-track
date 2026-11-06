@@ -13,6 +13,11 @@ from ss_track.corpus.bundles.bundle_reader import open_frame_bundle
 from ss_track.corpus.bundles.frame_store import require_space, store_frame
 from ss_track.corpus.bundles.frames import FRAME_BUNDLE, FrameBundle, bundle_hash
 from ss_track.corpus.bundles.publish import publish_bundles
+from ss_track.corpus.decoding.declared_color import (
+    DECLARED_COLOR,
+    recorded_matrix,
+    sws_colorspace,
+)
 from ss_track.corpus.decoding.decode import FrameConsumer, inspect_media
 from ss_track.corpus.decoding.decode_policy import DecodePolicy
 from ss_track.corpus.decoding.pixels import (
@@ -57,8 +62,9 @@ def write_source_bundles(
     width, height = media["decoded_width"], media["decoded_height"]
     require_space(root, sum(_selection_length(stream) for stream in streams), width, height)
     targets = tuple(root / str(stream["stream_id"]) for stream in streams)
+    matrix = recorded_matrix(media)
     with publish_bundles(root, targets) as staged_dirs:
-        writers = _writers(staged_dirs, streams, policy)
+        writers = _writers(staged_dirs, streams, policy, matrix)
         inspection = inspect_media(
             stored,
             policy,
@@ -67,7 +73,7 @@ def write_source_bundles(
         )
         _require_same_decode(decoded_facts(inspection), media, streams)
         _seal_bundles(streams, writers, staged_dirs, corpus, media, policy_sha256)
-    _warn_about_conversion([str(stream["stream_id"]) for stream in streams], media)
+        _warn_about_conversion([str(stream["stream_id"]) for stream in streams], media, matrix)
     return tuple(open_frame_bundle(target) for target in targets)
 
 
@@ -103,15 +109,17 @@ def _writers(
     staged_dirs: Sequence[Path],
     streams: Sequence[Mapping[str, Any]],
     policy: DecodePolicy,
+    matrix: int | None,
 ) -> tuple[_FrameWriter, ...]:
     return tuple(
-        _FrameWriter(staged, stream["selection"], _converter(policy))
+        _FrameWriter(staged, stream["selection"], _converter(policy, matrix))
         for staged, stream in zip(staged_dirs, streams, strict=True)
     )
 
 
-def _converter(policy: DecodePolicy) -> PixelConverter:
-    return PixelConverter(policy.conversion_flags, policy.thread_count)
+def _converter(policy: DecodePolicy, matrix: int | None) -> PixelConverter:
+    colorspace = None if matrix is None else sws_colorspace(matrix)
+    return PixelConverter(policy.conversion_flags, policy.thread_count, matrix=colorspace)
 
 
 def _fan_out(writers: Sequence[_FrameWriter]) -> FrameConsumer:
@@ -221,6 +229,7 @@ def _bundle_body(
         "source_bits_per_component": media["source_bits_per_component"],
         "precision_reduced": media["source_bits_per_component"] > OUTPUT_BITS_PER_COMPONENT,
         "color": media["color"],
+        **_declared_color(media),
         "display_rotation_degrees": media["display_rotation_degrees"],
         "interlaced_frames": media["interlaced_frames"],
         "timestamp_quality": media["timestamp_quality"],
@@ -229,14 +238,23 @@ def _bundle_body(
     }
 
 
-def _warn_about_conversion(stream_ids: Sequence[str], media: Mapping[str, Any]) -> None:
+def _declared_color(media: Mapping[str, Any]) -> dict[str, JsonValue]:
+    """Return the declared matrix when conversion used one, and nothing otherwise."""
+    if DECLARED_COLOR not in media:
+        return {}
+    return {DECLARED_COLOR: media[DECLARED_COLOR]}
+
+
+def _warn_about_conversion(
+    stream_ids: Sequence[str], media: Mapping[str, Any], matrix: int | None
+) -> None:
     """Both facts stay in each bundle record; say them once for the source."""
     subject = _stream_subject(stream_ids)
     bits = media["source_bits_per_component"]
     if bits > OUTPUT_BITS_PER_COMPONENT:
         _LOG.warning("%s: %d-bit source staged at 8 bits", subject, bits)
     unspecified = media["color"]["matrix"] == UNSPECIFIED_COLOR_MATRIX
-    if unspecified and uses_color_matrix(media["source_pixel_format"]):
+    if matrix is None and unspecified and uses_color_matrix(media["source_pixel_format"]):
         _LOG.warning("%s: no color matrix tag, converted as BT.601", subject)
 
 

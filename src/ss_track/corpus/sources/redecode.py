@@ -24,6 +24,7 @@ from ss_track.corpus.declarations.declaration import (
     RecordingDeclaration,
     load_recording_declaration,
 )
+from ss_track.corpus.decoding.declared_color import apply_declared_color
 from ss_track.corpus.decoding.decode import inspect_media
 from ss_track.corpus.decoding.decode_policy import current_decode_policy
 from ss_track.corpus.decoding.streams import selected_video_index
@@ -97,6 +98,7 @@ def _redecode(
     sequence["frame_count"] = len(inspection.pts)
     sequence["timestamp_quality"] = quality
     sequence["capture_clock_evidence"] = clock_evidence
+    apply_declared_color(sequence, inspection.source_pixel_format, declaration.color_matrix)
     carried = {key: value for key, value in existing.items() if key != SEAL_FIELD}
     terms = declared_terms(declaration) if amend_terms else _carried_terms(existing)
     successor = (

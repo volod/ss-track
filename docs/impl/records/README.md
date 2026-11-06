@@ -46,5 +46,6 @@ Copy the [template](template.md) using the
 | 0039 | `bundle-frame-sharing` | [0039-corpus-provenance-bundle-frame-sharing](0039-corpus-provenance-bundle-frame-sharing.md) |
 | 0040 | `import-stream-selection` | [0040-corpus-provenance-import-stream-selection](0040-corpus-provenance-import-stream-selection.md) |
 | 0041 | `dual-camera-file-identity` | [0041-corpus-provenance-dual-camera-file-identity](0041-corpus-provenance-dual-camera-file-identity.md) |
+| 0042 | `declared-color-tags` | [0042-corpus-provenance-declared-color-tags](0042-corpus-provenance-declared-color-tags.md) |
 
-Next unused sequence: `0042`.
+Next unused sequence: `0043`.

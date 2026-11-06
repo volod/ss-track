@@ -30,27 +30,6 @@ extensions; none blocks M3. Fixture implementation proceeds without physical har
 
 ### Corpus provenance -- `corpus-provenance`
 
-#### declared-color-tags (optional)
-
-A source with no color matrix tag converts as BT.601, which misreads BT.709 content.
-
-- Serves: `corpus-provenance` -- [Corpus
-  identity](../design/spec.md#41-corpus-identity-and-input-handling)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: An operator can declare a missing color tag, recorded as declared and used
-  in conversion.
-- Scope boundary: Absent tags only. A declared value never overrides a stored tag, and nothing is
-  guessed from resolution.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`.
-- Execution path: Add an optional `color` declaration, record its origin, and pass it to
-  `PixelConverter`.
-- Acceptance gates: A declared BT.709 source converts pure red within two levels of its true value.
-  A declaration that disagrees with a stored tag is refused, and an undeclared source behaves as
-  before.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
 #### decode-interruption-safety (optional)
 
 Ctrl-C ends a long run with a traceback, and a pathological file can decode with no limit.

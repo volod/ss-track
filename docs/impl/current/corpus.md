@@ -91,7 +91,7 @@ Each command logs one JSON record and exits 0. A refusal exits 1 and has this fo
 
 ## Declarations
 
-Each file is checked in full against its contract on read, `declaration/recording` 2.2.0 and
+Each file is checked in full against its contract on read, `declaration/recording` 2.3.0 and
 `declaration/corpus` 3.0.0, before any reader takes a value from it. Both reject unknown fields,
 repeated keys, non-finite numbers and any other schema version, so a misspelled key cannot silently
 drop a fact. A recording is schema 2 and a corpus is schema 3. There are no defaults for rights,
@@ -104,8 +104,9 @@ sensitivity, split or scenario rights: a declaration without them is refused, an
 `src/ss_track/corpus/declarations/fields.py` then gives the readers typed access. The readers keep
 only rules the contract states as `x-rules`: a range status needs its value and method, a corpus
 cannot supersede itself, a frame window must be non-empty, an absent range status means `unknown`,
-and free text that is only whitespace is refused (`text`). The video-stream rule is not one of
-these: it needs the file, so import enforces it. A value YAML read as a date is refused
+and free text that is only whitespace is refused (`text`). The video-stream rule and the
+color-matrix rule are not among these: each needs the file, so import enforces them. A value YAML
+read as a date is refused
 where text belongs, such as an unquoted `holder: 2024-01-05` or `lens: 2024-01-05`, by the validator
 itself, so `contracts validate` refuses it too. A date field such as `retain_until` takes an
 unquoted date as its ISO text.
@@ -135,6 +136,8 @@ capture:                     # optional; every absent fact is stored as unknown
     status: measured         # measured, estimated or unknown
     value_m: 12.5
     method: laser rangefinder
+color:                       # optional; fills a missing matrix tag only
+  matrix: bt709              # bt709, bt601, bt2020, fcc or smpte240m
 ```
 
 ```yaml
@@ -229,9 +232,10 @@ new corpus version. Changed terms alone are [recorded by an amendment](#withdraw
 
 A source manifest records the hash and size, whether the hash was declared, rights, sensitivity,
 capture facts, the decode policy and the sequence: container, codec, original and decoded dimensions,
-source pixel format and bit depth, stored color tags, display rotation, interlaced frame count, time
-base, one PTS per presented frame, discarded sample count, video stream count, the video stream
-index when it is not the first, timestamp quality and completeness checks.
+source pixel format and bit depth, stored color tags, `declared_color` when a declared matrix was
+used, display rotation, interlaced frame count, time base, one PTS per presented frame, discarded
+sample count, video stream count, the video stream index when it is not the first, timestamp quality
+and completeness checks.
 
 `corpus build` trusts nothing from import time. It re-reads every source manifest, re-hashes every
 stored source, requires each source's decode policy to be the installed one, and checks each
@@ -662,11 +666,36 @@ that honors rotation must map its coordinates back to the stored orientation.
 `src/ss_track/corpus/decoding/pixels.py` owns the conversion to `rgb24`. It honors the stored color matrix,
 range and chroma location, and converts neither primaries nor transfer function, so an HDR source
 keeps its gamut and curve in 8-bit values. A source with no matrix tag is converted as BT.601, which
-misreads BT.709 content: a pure BT.709 red becomes `(233, 0, 2)`. Staging warns, and nothing guesses
-a tag the source lacks. Unspecified chroma location means center. Sources deeper than 8 bits lose
+misreads BT.709 content: a pure BT.709 red becomes `(233, 0, 2)`. Staging warns. An operator may
+declare that missing matrix; see [Declared color matrix](#declared-color-matrix). Nothing is guessed
+from resolution. Unspecified chroma location means center. Sources deeper than 8 bits lose
 precision and alpha is dropped. Interlaced frames stay woven and convert as progressive, so they are
 counted in `interlaced_frames`. Changing any stored color tag within a stream is
 `SOURCE_FORMAT_CHANGED`, which keeps one recorded description true of every frame.
+
+### Declared color matrix
+
+`color.matrix` on a recording declaration fills a matrix tag the file does not store.
+`src/ss_track/corpus/decoding/declared_color.py` checks it after the decode. The stored
+`color.matrix` stays unspecified (`2`). The source sequence and each bundle gain `declared_color`,
+holding that matrix's FFmpeg code and `origin` `declared`, only when conversion used the
+declaration. `PixelConverter` passes the matrix only when the frame's own tag is unspecified, so a
+stored tag stays the one conversion uses.
+
+A declaration that disagrees with a stored tag, and one on a pixel format that uses no matrix, are
+`COLOR_TAG_CONFLICT` and leave nothing imported. A declaration that matches a stored tag is accepted
+and omitted from the record, because the file's tag is already the one conversion uses. An
+undeclared source keeps its previous manifest bytes, and an untagged matrix still converts as
+BT.601. Adding, dropping or changing the declaration later is `IMPORT_CONFLICT` on import,
+amendment and redecode, as with any other capture fact.
+
+The names are the matrices conversion can apply: `bt709` (1), `bt601` (6, SMPTE 170M), `bt2020`
+(9), `fcc` (4) and `smpte240m` (7). `bt601` is applied with swscale's ITU 601 coefficients. Range,
+primaries, transfer and chroma location stay the stored tags. A generated case inherits
+`declared_color` with the rest of its parent record.
+`tests/corpus/decoding/test_pixels.py` and `tests/corpus/sources/test_declared_color.py` cover the
+conversion, the refusal and the record. The
+[task record](../records/0042-corpus-provenance-declared-color-tags.md) holds the acceptance.
 
 The decoder runs in process, not through the `ffmpeg` binary that `ss-video` and `ss-fusion` call.
 This corpus needs a decoder version fixed by `uv.lock`, its behavior covered by `make ci`, and frame
@@ -740,7 +769,8 @@ its selection.
 height, bytes per frame, time base, selection and the ordered index of frame index, PTS and frame
 hash. Nothing else enters it, so two stagings of one source and window under one policy give one
 hash, whatever the corpus or stream is called. The record separately holds the source pixel format
-and bit depth, `precision_reduced`, stored color tags, display rotation, interlaced frame count,
+and bit depth, `precision_reduced`, stored color tags, `declared_color` when conversion used a
+declared matrix, display rotation, interlaced frame count,
 timestamp quality, its `stream_id` and the links to its corpus and source manifests.
 
 Staging trusts nothing from before it ran. It re-hashes each stored source once on a pass, requires
@@ -1281,6 +1311,7 @@ accepted task, its decisions and its evidence.
 | `SOURCE_NO_FRAMES` | The media opened but decoded to no frames |
 | `SOURCE_FORMAT_CHANGED` | Resolution, pixel format or display rotation changes within the stream |
 | `VIDEO_STREAM_UNSPECIFIED` | The declaration does not name a video stream this container holds. Details list every video stream |
+| `COLOR_TAG_CONFLICT` | A declared color matrix disagrees with a stored tag, or the pixel format has no matrix to fill |
 | `PTS_NON_INCREASING` | Stored PTS repeats or goes backward |
 | `TIMESTAMP_CLAIM_UNSUPPORTED` | Capture-clock evidence was declared without complete PTS |
 | `SELECTION_OUT_OF_RANGE` | A selection runs past the end of its sequence |

@@ -8,12 +8,14 @@ from types import SimpleNamespace
 
 import av
 import pytest
-from av.video.reformatter import ChromaLocation
+from av.video.reformatter import ChromaLocation, Colorspace
 
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
+from ss_track.corpus.decoding.declared_color import MATRIX_CODES, matrix_code, sws_colorspace
 from ss_track.corpus.decoding.decode_policy import current_decode_policy
 from ss_track.corpus.decoding.pixels import (
     CONVERSION_FLAGS,
+    UNSPECIFIED_COLOR_MATRIX,
     PixelConverter,
     bits_per_component,
     color_tags,
@@ -89,6 +91,45 @@ def test_the_stored_color_matrix_steers_the_conversion() -> None:
 
     assert red[0] >= 254 and red[1] <= 2 and red[2] <= 2
     assert misread[0] < 240
+
+
+def _near_red(pixel: bytes) -> bool:
+    return abs(pixel[0] - 255) <= 2 and pixel[1] <= 2 and pixel[2] <= 2
+
+
+def test_a_declared_bt709_matrix_converts_untagged_red() -> None:
+    frame = _flat_yuv(*_PURE_RED_BT709, UNSPECIFIED_COLOR_MATRIX)
+    colorspace = sws_colorspace(matrix_code("bt709"))
+    declared = PixelConverter(CONVERSION_FLAGS, _THREADS, matrix=colorspace).pixels(frame)[:3]
+    untouched = _pixels(frame)[:3]
+
+    assert _near_red(declared)
+    assert tuple(untouched) == (233, 0, 2)
+    assert not _near_red(untouched)
+
+
+def test_a_declared_matrix_does_not_override_a_stored_tag() -> None:
+    frame = _flat_yuv(*_PURE_RED_BT709, _BT601_MATRIX)
+    forced = PixelConverter(CONVERSION_FLAGS, _THREADS, matrix=Colorspace.ITU709).pixels(frame)
+
+    assert forced == _pixels(frame)
+
+
+def test_frame_size_does_not_choose_a_color_matrix() -> None:
+    narrow = _pixels(_flat_yuv(*_PURE_RED_BT709, UNSPECIFIED_COLOR_MATRIX))[:3]
+    wide = av.VideoFrame(320, 16, "yuv444p")
+    for plane, value in zip(wide.planes, _PURE_RED_BT709, strict=True):
+        plane.update(bytes([value]) * (plane.line_size * plane.height))
+    wide.colorspace, wide.color_range = UNSPECIFIED_COLOR_MATRIX, _LIMITED_RANGE
+
+    assert tuple(_pixels(wide)[:3]) == tuple(narrow) == (233, 0, 2)
+
+
+def test_bt601_uses_the_swscale_coefficients_for_that_name() -> None:
+    """Code 6 is SMPTE 170M. swscale applies it as ITU601, whose own value is 5."""
+    assert set(MATRIX_CODES) == {"bt709", "bt601", "bt2020", "fcc", "smpte240m"}
+    assert int(sws_colorspace(matrix_code("bt601"))) == int(Colorspace.ITU601)
+    assert int(Colorspace.ITU601) != matrix_code("bt601")
 
 
 def test_the_stored_chroma_location_steers_the_conversion() -> None:

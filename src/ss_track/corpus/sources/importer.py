@@ -13,6 +13,11 @@ from ss_track.corpus.declarations.declaration import (
     RecordingDeclaration,
     load_recording_declaration,
 )
+from ss_track.corpus.decoding.declared_color import (
+    DECLARED_COLOR_FACT,
+    apply_declared_color,
+    declaration_changed,
+)
 from ss_track.corpus.decoding.decode import MediaInspection, inspect_media
 from ss_track.corpus.decoding.decode_policy import DecodePolicy, current_decode_policy
 from ss_track.corpus.decoding.streams import VIDEO_STREAM_INDEX
@@ -98,6 +103,8 @@ def changed_facts(record: Mapping[str, Any], declaration: RecordingDeclaration) 
     declared_index = declaration.video_stream_index
     if declared_index is not None and sequence.get(VIDEO_STREAM_INDEX, 0) != declared_index:
         changed.append(f"sequence.{VIDEO_STREAM_INDEX}")
+    if isinstance(sequence, Mapping) and declaration_changed(sequence, declaration.color_matrix):
+        changed.append(DECLARED_COLOR_FACT)
     return changed
 
 
@@ -181,6 +188,7 @@ def _manifest_body(
     sequence["frame_count"] = len(inspection.pts)
     sequence["timestamp_quality"] = quality
     sequence["capture_clock_evidence"] = declaration.capture_clock_evidence
+    apply_declared_color(sequence, inspection.source_pixel_format, declaration.color_matrix)
     return {
         **SOURCE_MANIFEST.stamp(),
         "source": {

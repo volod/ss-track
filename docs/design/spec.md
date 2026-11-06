@@ -170,7 +170,10 @@ name, so two stagings of one source under one policy give one hash. Staging deco
 once, in full, and writes every stream that source feeds. Seeking to a window would skip the proof
 that the stored source still matches its import. The decode policy includes the
 conversion to the output pixel format, and a bundle records the stored color tags that conversion
-used, without inventing a tag the source lacks. Later external
+used, without inventing a tag the source lacks. An operator may declare a matrix the file does not
+store. Conversion uses that declaration, and the bundle records it with origin `declared`, while
+the stored tag stays unspecified. A declaration never overrides a stored tag. A disagreement is
+refused. Nothing is guessed from resolution. Later external
 modules may consume the same bundle or original packets. The latter path matches source hash,
 packet/frame identity and PTS, and validates a declared sample of decoded pixels under a measured
 tolerance. If exact input correspondence cannot be established, `EXTERNAL_EVENTS` reports contract

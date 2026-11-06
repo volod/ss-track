@@ -10,6 +10,7 @@ from ss_track.core.refusal import RefusalCode
 from ss_track.corpus.bundles.frame_set import FRAME_SET
 from ss_track.corpus.bundles.frames import FRAME_BUNDLE
 from ss_track.corpus.declarations.fields import TEXT_RULE
+from ss_track.corpus.decoding.declared_color import MATRIX_CODES
 from ss_track.corpus.descriptors.descriptor_public import SPLITS
 from ss_track.corpus.hosts.hash_comparison import HASH_COMPARISON
 from ss_track.corpus.hosts.host_hashes import STAGED_HASHES
@@ -84,6 +85,17 @@ def test_every_free_text_declaration_field_states_the_not_blank_rule_its_reader_
                 missing.append(f"{contract.urn(newest)}: {node.get('description')}")
 
     assert missing == []
+
+
+def test_declared_color_names_are_the_recording_contract() -> None:
+    contracts = load_contract_set(CONTRACTS)
+    contract = contracts.named("declaration/recording")
+    newest = contract.newest()
+    assert newest is not None
+    schema = contracts.frozen_schema(contract, newest)
+    names = schema["properties"]["color"]["properties"]["matrix"]["enum"]
+
+    assert set(names) == set(MATRIX_CODES)
 
 
 def test_every_record_contract_has_a_writer() -> None:

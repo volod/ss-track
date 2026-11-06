@@ -16,6 +16,7 @@ from tests.corpus.conftest import WriteRecording, reseal
     [
         ({"capture": {"camera": "bench camera"}}, ["capture"]),
         ({"timestamps": {"capture_clock_evidence": "clock"}}, ["sequence.capture_clock_evidence"]),
+        ({"color": {"matrix": "bt709"}}, ["sequence.declared_color"]),
     ],
 )
 def test_an_amendment_that_changes_capture_facts_records_nothing(
