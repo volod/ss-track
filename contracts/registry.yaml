@@ -70,6 +70,22 @@ contracts:
       summary: State the not-blank rule of each free-text field under x-rules. Accepted
         values do not change.
 - family: declaration
+  id: discovery-plan
+  owner: self-supervised-corpus
+  status: active
+  description: 'Operator declaration of one discovery run over a staged corpus version:
+    the owner''s source approval, the pool window, the audit sample, the pinned embedding
+    worker and any ss-video hint files. It grants no right and verifies no label.'
+  versions:
+  - version: 1.0.0
+    file_sha256: 9a940ba81a2167b1dcba247e53c05cc0e24fde28cf6ca98dabd7178875027ef5
+    fingerprints:
+      structure: e5ea0cadb95518dffd23225efc3bd6d34c115a2275e46ccf8e6f03baac42133e
+      meaning: 7586eae789a1b86782db68aebbd5a96a4b00ed6e2b71c61e25a42ab06cac496d
+    change:
+      class: initial
+      summary: Initial contract.
+- family: declaration
   id: recording
   owner: corpus-provenance
   status: active
@@ -118,6 +134,40 @@ contracts:
       for this major.
     migration: Set schema_version 2 and state rights.retain_until and rights.derived_frames,
       which only an operator can state.
+- family: declaration
+  id: video-hints
+  owner: self-supervised-corpus
+  status: active
+  description: Matches an ss-video index returned, joined to the source file hash,
+    with the sampling facts that turn a sibling time into a window of ss-track frames.
+    A match is a hint, never a label.
+  versions:
+  - version: 1.0.0
+    file_sha256: c440e5a35091f2a7cceddde26fdb3e4de42ff345d2dc8a03f333981b46510f49
+    fingerprints:
+      structure: a2b59e95561c2265e948f270e11b10a75b9e59093ffb134afcff1a1a5f5b19cd
+      meaning: 6f998d210560843d09c8cd85dd528bafcd5a0a78132285c9cf4bd46f77695829
+    change:
+      class: initial
+      summary: Initial contract.
+- family: record
+  id: candidate-inventory
+  owner: self-supervised-corpus
+  status: active
+  description: 'One sealed record of every candidate window a discovery run proposed
+    in one staged stream: its frames, its origin, its scores, what selection decided
+    and whether the independent audit sample holds it. A candidate is a proposal for
+    review: it is not a label, does not authorize its source and does not place it
+    in a split.'
+  versions:
+  - version: 1.0.0
+    file_sha256: 185b5cdc3492793f1395914322adcd58b31cad074729cd33f387c9ef3fea9bb7
+    fingerprints:
+      structure: ef5a90dffe5cad6beba91f6cd6f733867cd79b1e30d2a1c540ad246c4e083b79
+      meaning: 4c2b79e303fb56a5c3810fd7a1ffdd5bb01ed0318f4159c1853892779ca26de5
+    change:
+      class: initial
+      summary: Initial contract.
 - family: record
   id: corpus-manifest
   owner: corpus-provenance
@@ -182,6 +232,51 @@ contracts:
       for this major.
     migration: Build a new corpus version under a new corpus_id that names this one
       in supersedes; lineage and shared frames compare it through this major's projection.
+- family: record
+  id: discovery-run
+  owner: self-supervised-corpus
+  status: active
+  description: 'One sealed record of how a discovery run proposed candidate windows
+    over a staged corpus version: the frames it read, the feature extractors and their
+    full provenance, its scores, sibling hint sources, pool, selection method and
+    independent audit design, and the seal of each stream''s candidate inventory.
+    It is written after its last inventory. Nothing in it is a label, authorizes a
+    source or assigns a split.'
+  versions:
+  - version: 1.0.0
+    file_sha256: dc74192599c64d08f4da47988fc231df7b1c57b310ee7d9062d49afd53d1a511
+    fingerprints:
+      structure: 7b95729c423c0c4f2a3105248fe02ab7afd873a37a32900e937ce1cda08a7da8
+      meaning: 1c8e7dc49cf849e64974476c5ab8e2a5c9291b4985e0e150b3377bb81da971a9
+    change:
+      class: initial
+      summary: Initial contract.
+  - version: 1.1.0
+    file_sha256: 00009b0172318f9fc992aea7f8f7d45ff2b8122b765f6f0b5acf9974ff83f54a
+    fingerprints:
+      structure: 374ca9ecb2c1290fd5ec65673eff92be8f97d28d557b19f1b3c42126e03bc618
+      meaning: 9a8c1715d6c441a7015c8345095341307f626397acb9059cd99c4fb008a7e6d5
+    change:
+      class: minor
+      summary: Name the owner's source approval, seal each feature-rows record and
+        count what became of each hint file's matches.
+- family: record
+  id: feature-rows
+  owner: self-supervised-corpus
+  status: active
+  description: 'One sealed record of the feature rows one extractor of a discovery
+    run returned for one stream: the key of every row, by bundle, frame index and
+    frame hash, and the seal of the float32 vector file that holds the rows in the
+    same order. A feature row is not a label.'
+  versions:
+  - version: 1.0.0
+    file_sha256: c7fcc42e45b03bd9da4b7713df95170f5d471484953fe5d26f1728c52b297e31
+    fingerprints:
+      structure: beaa95aaab45536f6a1096618639f7ef7549c83ab8fac7ac9f1b6670587681c3
+      meaning: 75ae1075f9a2ff5efad57e56c10f5b5e1e1703d9bc4f87539d5592671379339e
+    change:
+      class: initial
+      summary: Initial contract.
 - family: record
   id: frame-bundle
   owner: corpus-provenance
@@ -477,6 +572,15 @@ contracts:
       class: minor
       summary: Name a missing or unreadable corpus version in the near-duplicate report,
         and name a corpus directory that could not be listed.
+  - version: 1.15.0
+    file_sha256: e480dbd135609057c0308f6e4dcb3ba2190216afde7a157a32ec741506b0078e
+    fingerprints:
+      structure: 56d63ee1cc9d1b2ae919b0b788ba885fea48f96c51348d2879c19b2d3a71283f
+      meaning: e0f681396c747de418d10a4b880a9aa66341b123c0d26cf66ead0a2b506d8897
+    change:
+      class: minor
+      summary: Report a discovery run and its hint matches, and refuse an unpinned
+        or incompatible extractor, a failed worker or a busy run id.
 - family: shared
   id: types
   owner: data-contracts

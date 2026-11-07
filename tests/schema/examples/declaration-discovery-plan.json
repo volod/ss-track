@@ -1,0 +1,64 @@
+{
+  "audit": {
+    "sample_size": 2,
+    "seed": 7
+  },
+  "corpus_id": "pilot-v1",
+  "embedding": {
+    "extractors": [
+      {
+        "batch_size": 16,
+        "device": "cpu",
+        "dimensions": 512,
+        "extractor_id": "clip-b16",
+        "kind": "openclip",
+        "model": "ViT-B-16",
+        "pretrained": "openai",
+        "weights": [
+          {
+            "name": "timm/vit_base_patch16_clip_224.openai",
+            "revision": "977e3dd0ec55ab8da155f2fbeb6b5f54948b6e3d",
+            "sha256": "4b8699299b1e8997753c64b052ba32031449d5d853f55a039148560ee02b820f",
+            "size_bytes": 598516980
+          }
+        ]
+      },
+      {
+        "batch_size": 16,
+        "device": "cpu",
+        "dimensions": 768,
+        "extractor_id": "dino-b14",
+        "kind": "dino",
+        "model": "dinov3_vitb14",
+        "weights": [
+          {
+            "name": "facebookresearch_dinov2_main:dinov2_vitb14_reg4_pretrain.pth",
+            "revision": "tree-sha256:71fce3dad7f39787df390e06fdc478bc92895441e7886adefce9f164f3f46315",
+            "sha256": "73182a088cf94833c94b1666d1c99e02fe87e2007bff57b564fb6206e25dba71",
+            "size_bytes": 346393545
+          }
+        ]
+      }
+    ],
+    "frame_stride": 1,
+    "package": {
+      "commit": "12cb0861af8f6ae6562d2cf5211547e284c5b40d",
+      "name": "ss-perception"
+    }
+  },
+  "hints": [
+    {
+      "file": "hints.yaml",
+      "hint_source_id": "ss-video-1"
+    }
+  ],
+  "pool": {
+    "window_frames": 8
+  },
+  "run_id": "discovery-1",
+  "schema_version": 1,
+  "source_approval": {
+    "owner": "project owner",
+    "reference": "approval-2026-001"
+  }
+}

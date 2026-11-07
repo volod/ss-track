@@ -1,0 +1,171 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ss-track:contract:record:feature-rows:1.0.0",
+  "title": "Feature rows",
+  "description": "One sealed record of the feature rows one extractor of a discovery run returned for one stream: the key of every row, by bundle, frame index and frame hash, and the seal of the float32 vector file that holds the rows in the same order. A feature row is not a label.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind",
+    "schema_version",
+    "run_id",
+    "corpus_id",
+    "stream_id",
+    "extractor_id",
+    "bundle_sha256",
+    "frame_stride",
+    "dimensions",
+    "vectors",
+    "rows",
+    "manifest_sha256"
+  ],
+  "properties": {
+    "kind": {
+      "type": "string",
+      "const": "ss-track.feature-rows",
+      "description": "Names this format.",
+      "x-sensitivity": "public"
+    },
+    "schema_version": {
+      "type": "integer",
+      "const": 1,
+      "description": "The contract's major.",
+      "x-sensitivity": "public"
+    },
+    "run_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "Discovery run that wrote the rows.",
+      "x-references": "record/discovery-run#/properties/run_id",
+      "x-sensitivity": "restricted"
+    },
+    "corpus_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "Corpus version of the staged frames.",
+      "x-references": "record/frame-set#/properties/corpus_id",
+      "x-sensitivity": "restricted"
+    },
+    "stream_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "Stream whose frames the rows describe.",
+      "x-references": "record/frame-set#/$defs/bundle/properties/stream_id",
+      "x-sensitivity": "restricted"
+    },
+    "extractor_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "Extractor of the run that computed the rows.",
+      "x-references": "record/discovery-run#/$defs/extractor/properties/extractor_id",
+      "x-sensitivity": "restricted"
+    },
+    "bundle_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Bundle whose frames the rows describe.",
+      "x-references": "record/frame-set#/$defs/bundle/properties/bundle_sha256",
+      "x-sensitivity": "restricted"
+    },
+    "frame_stride": {
+      "type": "integer",
+      "description": "Every frame_stride-th frame of the bundle, from its first, has a row.",
+      "x-unit": "1",
+      "minimum": 1,
+      "x-sensitivity": "restricted"
+    },
+    "dimensions": {
+      "type": "integer",
+      "description": "Values per row.",
+      "x-unit": "1",
+      "minimum": 1,
+      "x-sensitivity": "restricted"
+    },
+    "vectors": {
+      "type": "object",
+      "description": "The file that holds the rows.",
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "File name beside this record.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*\\.f32$",
+          "x-sensitivity": "restricted"
+        },
+        "sha256": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+          "description": "SHA-256 of the file bytes.",
+          "x-sensitivity": "restricted"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "description": "File size.",
+          "x-unit": "By",
+          "minimum": 4,
+          "x-sensitivity": "restricted"
+        },
+        "dtype": {
+          "type": "string",
+          "description": "Value type of each element.",
+          "enum": [
+            "float32"
+          ],
+          "x-sensitivity": "restricted"
+        },
+        "byte_order": {
+          "type": "string",
+          "description": "Byte order of each element.",
+          "enum": [
+            "little"
+          ],
+          "x-sensitivity": "restricted"
+        }
+      },
+      "required": [
+        "file",
+        "sha256",
+        "size_bytes",
+        "dtype",
+        "byte_order"
+      ],
+      "additionalProperties": false,
+      "x-sensitivity": "restricted"
+    },
+    "rows": {
+      "type": "array",
+      "description": "Row keys in ascending frame_index order; row i is the i-th vector of the file.",
+      "items": {
+        "type": "object",
+        "description": "The key of one row.",
+        "properties": {
+          "frame_index": {
+            "type": "integer",
+            "description": "Zero-based source frame index.",
+            "x-unit": "1",
+            "minimum": 0,
+            "x-sensitivity": "public"
+          },
+          "frame_sha256": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+            "description": "SHA-256 of the packed frame the worker embedded.",
+            "x-references": "record/frame-bundle#/properties/identity/properties/frames/items/properties/sha256",
+            "x-sensitivity": "restricted"
+          }
+        },
+        "required": [
+          "frame_index",
+          "frame_sha256"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1,
+      "x-sensitivity": "restricted"
+    },
+    "manifest_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Seal of this record.",
+      "x-sensitivity": "public"
+    }
+  },
+  "x-rules": {
+    "seal": "manifest_sha256 is the lowercase SHA-256 of the record without that key, as JSON with sorted keys, ASCII escapes and no whitespace.",
+    "order": "rows are in ascending frame_index order, each frame_index appearing once.",
+    "vectors": "size_bytes is 4 times dimensions times the number of rows; the file holds row i as dimensions little-endian float32 values at offset 4 times dimensions times i, and every value is finite.",
+    "binding": "The rows name exactly the frames of the bundle at frame_stride from its first frame, and each frame_sha256 equals that frame's sealed hash; the run named by run_id seals this record.",
+    "rights": "A feature row describes pixels the run read. It is not a label, and nothing in this record grants a right or assigns a split."
+  }
+}

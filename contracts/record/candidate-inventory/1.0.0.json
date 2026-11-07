@@ -1,0 +1,492 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ss-track:contract:record:candidate-inventory:1.0.0",
+  "title": "Candidate inventory",
+  "description": "One sealed record of every candidate window a discovery run proposed in one staged stream: its frames, its origin, its scores, what selection decided and whether the independent audit sample holds it. A candidate is a proposal for review: it is not a label, does not authorize its source and does not place it in a split.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind",
+    "schema_version",
+    "run_id",
+    "corpus_id",
+    "stream_id",
+    "group_id",
+    "bundle_sha256",
+    "source_sha256",
+    "source_manifest_sha256",
+    "bundle_frames",
+    "candidates",
+    "manifest_sha256"
+  ],
+  "properties": {
+    "kind": {
+      "type": "string",
+      "const": "ss-track.candidate-inventory",
+      "description": "Names this format.",
+      "x-sensitivity": "public"
+    },
+    "schema_version": {
+      "type": "integer",
+      "const": 1,
+      "description": "The contract's major.",
+      "x-sensitivity": "public"
+    },
+    "run_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "Discovery run that wrote this inventory.",
+      "x-references": "record/discovery-run#/properties/run_id",
+      "x-sensitivity": "restricted"
+    },
+    "corpus_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "Corpus version of the staged frames.",
+      "x-references": "record/frame-set#/properties/corpus_id",
+      "x-sensitivity": "restricted"
+    },
+    "stream_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "Stream the candidates come from.",
+      "x-references": "record/frame-set#/$defs/bundle/properties/stream_id",
+      "x-sensitivity": "restricted"
+    },
+    "group_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "Encounter group of the stream in that corpus version.",
+      "x-references": "record/corpus-manifest#/properties/streams/items/properties/group_id",
+      "x-sensitivity": "restricted"
+    },
+    "bundle_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Bundle whose frames every window names.",
+      "x-references": "record/frame-set#/$defs/bundle/properties/bundle_sha256",
+      "x-sensitivity": "restricted"
+    },
+    "source_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Source identity of the bundle.",
+      "x-references": "record/frame-set#/$defs/bundle/properties/source_sha256",
+      "x-sensitivity": "restricted"
+    },
+    "source_manifest_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Source record whose terms these candidates rest on.",
+      "x-references": "record/frame-set#/$defs/bundle/properties/source_manifest_sha256",
+      "x-sensitivity": "restricted"
+    },
+    "bundle_frames": {
+      "type": "object",
+      "description": "Half-open source frame window the bundle holds.",
+      "properties": {
+        "start_frame": {
+          "type": "integer",
+          "description": "Inclusive zero-based source frame index.",
+          "x-unit": "1",
+          "minimum": 0,
+          "x-sensitivity": "public"
+        },
+        "end_frame": {
+          "type": "integer",
+          "description": "Exclusive zero-based source frame index.",
+          "x-unit": "1",
+          "minimum": 1,
+          "x-sensitivity": "public"
+        }
+      },
+      "required": [
+        "start_frame",
+        "end_frame"
+      ],
+      "additionalProperties": false,
+      "x-rules": {
+        "order": "start_frame is strictly before end_frame."
+      }
+    },
+    "candidates": {
+      "type": "array",
+      "description": "Candidates in ascending candidate_id order.",
+      "items": {
+        "$ref": "#/$defs/candidate"
+      },
+      "minItems": 1,
+      "x-sensitivity": "restricted"
+    },
+    "manifest_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Seal of this record.",
+      "x-sensitivity": "public"
+    }
+  },
+  "$defs": {
+    "candidate": {
+      "type": "object",
+      "description": "One candidate window.",
+      "properties": {
+        "candidate_id": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+          "description": "Name of the candidate within this inventory.",
+          "x-sensitivity": "restricted"
+        },
+        "window": {
+          "type": "object",
+          "description": "Half-open window of source frame indexes of the bundle.",
+          "properties": {
+            "start_frame": {
+              "type": "integer",
+              "description": "Inclusive zero-based source frame index.",
+              "x-unit": "1",
+              "minimum": 0,
+              "x-sensitivity": "public"
+            },
+            "end_frame": {
+              "type": "integer",
+              "description": "Exclusive zero-based source frame index.",
+              "x-unit": "1",
+              "minimum": 1,
+              "x-sensitivity": "public"
+            }
+          },
+          "required": [
+            "start_frame",
+            "end_frame"
+          ],
+          "additionalProperties": false,
+          "x-rules": {
+            "order": "start_frame is strictly before end_frame."
+          }
+        },
+        "origin": {
+          "description": "How the window entered the inventory.",
+          "oneOf": [
+            {
+              "type": "object",
+              "description": "A window of the eligible pool.",
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "description": "Where the window came from.",
+                  "const": "pool",
+                  "x-sensitivity": "restricted"
+                }
+              },
+              "required": [
+                "source"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "description": "A window a sibling time named, mapped onto ss-track frames by the slot rule.",
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "description": "Where the window came from.",
+                  "const": "sibling_time",
+                  "x-sensitivity": "restricted"
+                },
+                "hint_source_id": {
+                  "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                  "description": "Hint source of the run, which names the sibling ffmpeg version and sampling rate.",
+                  "x-references": "record/discovery-run#/$defs/hint-source/properties/hint_source_id",
+                  "x-sensitivity": "restricted"
+                },
+                "slot": {
+                  "type": "integer",
+                  "description": "Zero-based sibling sample index; the sibling time is slot divided by the sampling rate.",
+                  "x-unit": "1",
+                  "minimum": 0,
+                  "x-sensitivity": "restricted"
+                }
+              },
+              "required": [
+                "source",
+                "hint_source_id",
+                "slot"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "scores": {
+          "type": "array",
+          "description": "One entry per score of the run, in ascending score_id order.",
+          "items": {
+            "description": "One score of the run for this window.",
+            "oneOf": [
+              {
+                "type": "object",
+                "description": "A score that was computed.",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "description": "Score status.",
+                    "const": "computed",
+                    "x-sensitivity": "restricted"
+                  },
+                  "score_id": {
+                    "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                    "description": "Score of the run.",
+                    "x-references": "record/discovery-run#/$defs/score/properties/score_id",
+                    "x-sensitivity": "restricted"
+                  },
+                  "value": {
+                    "type": "number",
+                    "description": "Score value on the scale its method defines; it is evidence for review, not a label.",
+                    "x-unit": "1",
+                    "x-sensitivity": "restricted"
+                  }
+                },
+                "required": [
+                  "status",
+                  "score_id",
+                  "value"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "description": "A score that could not be computed, stated instead of invented.",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "description": "Score status.",
+                    "const": "unavailable",
+                    "x-sensitivity": "restricted"
+                  },
+                  "score_id": {
+                    "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                    "description": "Score of the run.",
+                    "x-references": "record/discovery-run#/$defs/score/properties/score_id",
+                    "x-sensitivity": "restricted"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "description": "Why no value exists.",
+                    "enum": [
+                      "extractor_failed",
+                      "frame_unreadable",
+                      "window_too_short"
+                    ],
+                    "x-sensitivity": "restricted"
+                  }
+                },
+                "required": [
+                  "status",
+                  "score_id",
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "minItems": 0,
+          "x-sensitivity": "restricted"
+        },
+        "selection": {
+          "description": "What selection decided for this window.",
+          "oneOf": [
+            {
+              "type": "object",
+              "description": "Selected for review.",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "description": "Selection status.",
+                  "const": "selected",
+                  "x-sensitivity": "restricted"
+                },
+                "rank": {
+                  "type": "integer",
+                  "description": "Position in the run's selection, from 1.",
+                  "x-unit": "1",
+                  "minimum": 1,
+                  "x-sensitivity": "restricted"
+                },
+                "probability": {
+                  "type": "number",
+                  "description": "Probability that the selection method selects this window.",
+                  "x-unit": "1",
+                  "exclusiveMinimum": 0,
+                  "maximum": 1,
+                  "x-sensitivity": "restricted"
+                }
+              },
+              "required": [
+                "status",
+                "rank",
+                "probability"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "description": "Ranked but not selected.",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "description": "Selection status.",
+                  "const": "not_selected",
+                  "x-sensitivity": "restricted"
+                },
+                "probability": {
+                  "type": "number",
+                  "description": "Probability that the selection method selects this window.",
+                  "x-unit": "1",
+                  "minimum": 0,
+                  "exclusiveMaximum": 1,
+                  "x-sensitivity": "restricted"
+                }
+              },
+              "required": [
+                "status",
+                "probability"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "description": "Not ranked, for a stated reason. It stays in the audit pool.",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "description": "Selection status.",
+                  "const": "excluded",
+                  "x-sensitivity": "restricted"
+                },
+                "reason": {
+                  "type": "string",
+                  "description": "Why the method did not rank the window.",
+                  "enum": [
+                    "features_unavailable",
+                    "repeated_content",
+                    "operator_excluded"
+                  ],
+                  "x-sensitivity": "restricted"
+                }
+              },
+              "required": [
+                "status",
+                "reason"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "audit": {
+          "description": "Whether the independent audit sample holds this window.",
+          "oneOf": [
+            {
+              "type": "object",
+              "description": "Drawn into the independent audit sample.",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "description": "Audit status.",
+                  "const": "sampled",
+                  "x-sensitivity": "restricted"
+                },
+                "stratum_id": {
+                  "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                  "description": "Audit stratum of the run.",
+                  "x-references": "record/discovery-run#/$defs/stratum/properties/stratum_id",
+                  "x-sensitivity": "restricted"
+                },
+                "inclusion_probability": {
+                  "type": "number",
+                  "description": "Probability that the audit design draws this window.",
+                  "x-unit": "1",
+                  "exclusiveMinimum": 0,
+                  "maximum": 1,
+                  "x-sensitivity": "restricted"
+                }
+              },
+              "required": [
+                "status",
+                "stratum_id",
+                "inclusion_probability"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "description": "Eligible for the audit sample but not drawn.",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "description": "Audit status.",
+                  "const": "not_sampled",
+                  "x-sensitivity": "restricted"
+                },
+                "stratum_id": {
+                  "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                  "description": "Audit stratum of the run.",
+                  "x-references": "record/discovery-run#/$defs/stratum/properties/stratum_id",
+                  "x-sensitivity": "restricted"
+                },
+                "inclusion_probability": {
+                  "type": "number",
+                  "description": "Probability that the audit design draws this window.",
+                  "x-unit": "1",
+                  "exclusiveMinimum": 0,
+                  "exclusiveMaximum": 1,
+                  "x-sensitivity": "restricted"
+                }
+              },
+              "required": [
+                "status",
+                "stratum_id",
+                "inclusion_probability"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "description": "Outside the eligible pool, so no audit estimate covers it.",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "description": "Audit status.",
+                  "const": "ineligible",
+                  "x-sensitivity": "restricted"
+                },
+                "reason": {
+                  "type": "string",
+                  "description": "Why the window cannot enter the audit sample: a sibling hint has no known inclusion probability.",
+                  "enum": [
+                    "no_inclusion_probability"
+                  ],
+                  "x-sensitivity": "restricted"
+                }
+              },
+              "required": [
+                "status",
+                "reason"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "required": [
+        "candidate_id",
+        "window",
+        "origin",
+        "scores",
+        "selection",
+        "audit"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "x-rules": {
+    "seal": "manifest_sha256 is the lowercase SHA-256 of the record without that key, as JSON with sorted keys, ASCII escapes and no whitespace.",
+    "order": "candidates are in ascending candidate_id order, each id appearing once, and each candidate's scores name every score of the run once, in ascending score_id order.",
+    "frames": "Every window lies within bundle_frames, and names frames of the bundle that bundle_sha256 identifies. No candidate is named by a time alone.",
+    "pool": "The pool windows tile bundle_frames in order, each window_frames long as the run states, the last possibly shorter, with no gap or overlap.",
+    "sibling": "A sibling_time window names a hint source of the run, and holds the source frames whose presentation time falls in that slot under the slot rule of its ffmpeg version and sampling rate.",
+    "audit": "A pool window is sampled or not_sampled, whatever selection decided, with inclusion probability sample_size / eligible_count of its stratum in the run. A sibling_time window is ineligible, so an audit estimate never rests on it.",
+    "binding": "run_id and corpus_id are the run's. stream_id names a stream, not a generated case, of the frame set the run read; bundle_sha256, source_sha256 and source_manifest_sha256 repeat that stream's line, and group_id and bundle_frames repeat its group and selection in the corpus manifest that frame set binds.",
+    "selection": "A selected or not_selected candidate has a computed value for every score the run's selection reads; a window without them is excluded. Under deterministic selection a selected candidate has probability 1 and a not_selected one 0.",
+    "rights": "source_manifest_sha256 names the source terms the run read. A score is not a label, and nothing in this record grants a right or assigns a split."
+  }
+}

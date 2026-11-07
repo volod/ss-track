@@ -27,9 +27,10 @@ YAML 1.2 one, so ss-track accepts it unquoted only where the contract states `fo
 anywhere else.
 
 The baseline freezes recording and corpus declarations, source and corpus manifests, frame bundles,
-frame sets, staged hashes, hash comparisons and command results. Every frame-set reference annotation
-resolves at its exact schema pointer. General drafts still have a `reason` and must not be treated
-as validated without a frozen version.
+frame sets, staged hashes, hash comparisons and command results. Discovery runs and candidate
+inventories record why a window of staged frames became a candidate for review. Every frame-set
+reference annotation resolves at its exact schema pointer. General drafts still have a `reason`
+and must not be treated as validated without a frozen version.
 
 `retired_majors` lists earlier majors with no frozen contract, each with a disposition (`facts` or
 `retired`, as its `status`), a reason and the `migration` a holder of such a record must make.

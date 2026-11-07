@@ -30,63 +30,6 @@ extensions; none blocks M3. Fixture implementation proceeds without physical har
 
 ### Self-supervised video corpus -- `self-supervised-corpus`
 
-#### corpus-sibling-integration-study
-
-The sibling projects expose video indexing and SSL research, but their exact export and version
-compatibility for frozen corpus formation need evidence.
-
-- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
-- Agent status: CLEAR
-- Research: yes
-- Dependencies: none.
-- User-visible outcome: A reviewable adapter plan identifies usable ss-video and ss-fusion interfaces.
-- Scope boundary: Inspect pinned revisions, package and model licenses, sampling and export paths;
-  training, privileged service deployment, and broad source acquisition are excluded.
-- Data and artifact paths: `docs/impl/current/corpus.md`, `docs/impl/records/`, `$DATA_DIR/self-supervised-corpus/<run-id>/`.
-- Execution path: Inspect ss-video ingest/search and ss-fusion perception/SSL paths; test a small
-  local example or fixtures and record exact revisions, versions, resource requirements and gaps.
-- Acceptance gates: Document the source/frame-to-embedding and export mapping, model and data rights,
-  version compatibility and reproducibility; a reasoned incompatibility or unavailable interface is
-  a valid negative with an alternative or explicit block. `make ci` passes.
-- Documentation target: [Corpus](current/corpus.md).
-
-#### corpus-discovery-contract
-
-Reviewers cannot reconstruct why a frame or interval entered a candidate list without stable records.
-
-- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
-- Agent status: CLEAR
-- Dependencies: corpus-sibling-integration-study.
-- User-visible outcome: A portable, validated candidate inventory records authorized source lineage,
-  frame or time windows, group, model and processing revision, scores, selection and audit status.
-- Scope boundary: Versioned interchange contracts and validators; predictions are not labels and
-  scores do not authorize a source or assign a final split.
-- Data and artifact paths: `contracts/`, `src/ss_track/corpus/`, `tests/corpus/`.
-- Execution path: Reuse source and frame identities, define candidate and run contracts and validate
-  golden records without either external service.
-- Acceptance gates: Fixtures reject missing rights references, ambiguous frame/time identity, missing
-  model provenance and invalid selection probability; contract-only consumers validate unchanged
-  records and `make ci` passes.
-- Documentation target: [Corpus](current/corpus.md).
-
-#### corpus-video-index-adapter
-
-An operator needs to use indexed video candidates without losing source or frame identity.
-
-- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
-- Agent status: CLEAR
-- Dependencies: corpus-discovery-contract.
-- User-visible outcome: Authorized indexed observations become auditable candidate records.
-- Scope boundary: An ss-video adapter against the studied interface; no unrestricted URL crawl,
-  network requirement in tests, silent source download, or conversion of predictions to labels.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/self-supervised-corpus/<run-id>/`.
-- Execution path: Map source hashes, decoded frame identity and sampled timestamps through a pinned
-  adapter, recording unsupported or unavailable records and service or model configuration.
-- Acceptance gates: Fixture responses map exactly to source and frame references; missing rights,
-  timestamps, revisions, incompatible models and partial responses are refused or reported, never
-  fabricated; retries are deterministic and `make ci` passes.
-- Documentation target: [Corpus](current/corpus.md).
-
 #### corpus-ssl-selection
 
 Ranking only known objects misses rare, tiny or unfamiliar birds and background negatives.
@@ -94,17 +37,27 @@ Ranking only known objects misses rare, tiny or unfamiliar birds and background 
 - Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: CLEAR
 - Research: yes
-- Dependencies: corpus-discovery-contract, corpus-sibling-integration-study.
+- Dependencies: none.
 - User-visible outcome: Operators get ranked, diverse candidate windows plus reproducible independent
   audit samples from the eligible pool.
-- Scope boundary: Frozen or explicitly versioned ss-fusion visual representations where feasible,
-  diversity, uncertainty, motion and seeded random sampling; no claim that a score is a label.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/self-supervised-corpus/<run-id>/`.
-- Execution path: Implement a model-agnostic selection seam and evaluate sibling embeddings against a
-  simple uniform baseline, retaining each sampling probability, seed and exclusion reason.
+- Scope boundary: Frozen pretrained CLIP and DINOv2 backbones pinned by revision, diversity,
+  uncertainty, motion and seeded random sampling; an SSL-adapted checkpoint only with a manifest
+  naming development-only training sources ([adapted models](current/corpus/sibling-integration.md#adapted-models));
+  no claim that a score is a label.
+- Data and artifact paths: `contracts/`, `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/self-supervised-corpus/<run-id>/`.
+- Execution path: Implement a model-agnostic selection seam over the feature rows
+  [`discover run`](current/corpus/discovery-runs.md) writes, replacing its `unranked` selection,
+  and evaluate sibling embeddings against a simple uniform baseline, retaining each sampling
+  probability, seed and exclusion reason in the
+  [discovery records](current/corpus/discovery-records.md). A stream in the locked split, which
+  the adapter reads like any other, is excluded from selection as `operator_excluded` unless the
+  locked-test custodian policy allows it. The embedders centre-crop to 224
+  pixels, so add tiled or uncropped coverage and measure it on fixtures with small targets near the
+  frame edge; a tiled mode adds its crop name and grid to `record/discovery-run` as a minor.
 - Acceptance gates: Fixtures reproduce selection and independent audit membership; negatives,
-  confusers and unseen candidates can enter the audit sample; unavailable features are explicit.
-  A negative model comparison is valid and `make ci` passes.
+  confusers and unseen candidates can enter the audit sample; edge and small-target coverage is
+  reported; unavailable features are explicit. A negative model comparison is valid and `make ci`
+  passes.
 - Documentation target: [Corpus](current/corpus.md).
 
 #### corpus-group-and-leakage-review
@@ -113,7 +66,7 @@ Related recordings and visually similar copies can leak across splits and exagge
 
 - Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: CLEAR
-- Dependencies: corpus-discovery-contract.
+- Dependencies: none.
 - User-visible outcome: Reviewers see likely related video and keep related encounters together.
 - Scope boundary: Source and exact frame checks plus flagged embedding or perceptual candidates;
   final grouping decisions remain human-owned, and a similarity threshold is not ground truth.
@@ -131,7 +84,7 @@ Large candidate inventories need bounded human decisions before they become benc
 
 - Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: CLEAR
-- Dependencies: corpus-video-index-adapter, corpus-ssl-selection, corpus-group-and-leakage-review.
+- Dependencies: corpus-ssl-selection, corpus-group-and-leakage-review.
 - User-visible outcome: Reviewers can inspect candidates and export a frozen, reproducible corpus
   version with source terms, group, split, exclusions and decision provenance.
 - Scope boundary: Review and source-to-corpus manifest export; label adjudication uses the existing
@@ -150,7 +103,7 @@ A larger selected pool may conceal missed small birds or exclude hard negatives.
 
 - Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: CLEAR
-- Dependencies: corpus-ssl-selection, corpus-discovery-contract.
+- Dependencies: corpus-ssl-selection.
 - User-visible outcome: A report compares model-assisted selection with a random or uniform
   baseline and exposes missed cases and resource cost at a matched review budget.
 - Scope boundary: Independently reviewed audit samples and stratified uncertainty; no field accuracy,
@@ -178,7 +131,10 @@ A large corpus needs evidence that selection can run within the owner's availabl
   agreed list or unattended spend.
 - Data and artifact paths: `$DATA_DIR/self-supervised-corpus/<run-id>/`, `$DATA_DIR/corpus/<corpus-id>/`.
 - Execution path: Use the approved corpus-size and diversity targets, candidate sampling, human
-  review and baseline protocol; measure ingest, storage, compute and completeness; retain run pins.
+  review and baseline protocol; measure ingest, storage, CPU or GPU compute and completeness; retain
+  run pins. The embedding worker records float32 rows only and refuses mixed precision; a GPU run
+  either measures float32 or adds a float16 or autocast mode as a `record/discovery-run` minor
+  with its own reproducibility check.
 - Acceptance gates: Corpus verification, rights and grouping checks pass; the report states selection
   recall, uncertainty, negative coverage and matched-budget baseline results, including missing
   evidence. Insufficient resources or a negative selection result is a valid negative; `make ci` passes.
@@ -2333,14 +2289,20 @@ cannot grant itself.
 - Agent status: HUMAN-GATED
 - Dependencies: none.
 - User-visible outcome: The owner approves a source list, corpus size and diversity targets, permitted
-  processing, compute and storage budgets, and a baseline review budget.
+  processing, compute and storage budgets, a baseline review budget, and use of the sibling code and
+  model weights the [integration plan](current/corpus/sibling-integration.md#model-and-data-rights)
+  pins.
 - Scope boundary: Authorized public or private sources, benchmarking, model processing and derived
   artifacts, retention and access; public redistribution is a separate permission.
 - Data and artifact paths: `$DATA_DIR/self-supervised-corpus/<run-id>/`, `$DATA_DIR/import/`.
 - Execution path: Record each source's terms, allowed uses, retention and handling, and select an
   explicit resource envelope before acquiring or running over the sources.
 - Acceptance gates: Every selected source has verifiable rights and retention, a named owner of the
-  approval, approved model use and cost limits, and target coverage and negative cases. No eligible
+  approval, approved model use and cost limits, and target coverage and negative cases. ss-fusion
+  carries no licence, so its pinned tag needs a licence or a recorded grant, and each weight needs
+  an approved revision (a Hugging Face snapshot commit or a torch.hub tree digest, as
+  [discovery plans](current/corpus/discovery-runs.md#plan) pin them) and use terms. The approval
+  has a reference that every discovery plan names. No eligible
   source or inadequate budget is a recorded valid negative and authorizes no acquisition.
 - Documentation target: [Corpus](current/corpus.md).
 

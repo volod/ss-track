@@ -366,23 +366,32 @@ measured rather than hidden.
 
 The [ss-video](https://github.com/volod/ss-video) video ingest and search service provides frame
 sampling, CLIP/DINO embeddings and vector search; [ss-fusion](https://github.com/volod/ss-fusion)
-provides perception packages and a research pipeline with SSL adaptation. Their actual export
-interfaces, versions, model licenses, reproducibility and operational requirements must be evaluated
-before choosing an integration. ss-track owns rights decisions, candidate and corpus provenance,
+provides perception packages and a research pipeline with SSL adaptation. The
+[integration study](../impl/current/corpus/sibling-integration.md) fixed the boundary. ss-track runs
+the ss-perception embedders out of process, in a pinned environment, over frames it staged itself.
+It neither imports sibling code into its own process nor depends on a running ss-video. A sibling
+timestamp names a window of source frames, never a frame. An adapted checkpoint is used only when
+its manifest names development-only training sources. ss-fusion carries no licence, so running it
+needs the owner's recorded grant. ss-track owns rights decisions, candidate and corpus provenance,
 encounter grouping, split membership, audit samples and immutable benchmark inputs. A candidate
 proposal is not a verified species, ground-truth label, or proof that a negative segment has no
 bird. Existing annotation and reviewer authority remain the route to frozen labels. Integrations do
 not grant download, processing, model-weight, redistribution or storage rights.
 
 Each source and derivative must have authorized uses and retention; jobs are limited by an approved
-source list, resource envelope and access rules. Evidence retains source and time/frame identity,
-model and preprocessing versions, score provenance, selection method, deterministic seeds and
-sampling probabilities where applicable. Group related and duplicate footage before assigning
-splits; never train or tune on a locked test. Discovery-only model data remains distinct from
-reviewed labels and frozen corpus membership. An unavailable external service, model, permission or
-insufficient budget must be visible, not silently replaced by invented results. No arbitrary video
-acquisition, autonomous approval of sources, field-safety claim, or promotion of pseudo-labels to
-truth is implied.
+source list, resource envelope and access rules. ss-track cannot tell fixture media from authorized
+sources, so every discovery run names the owner's approval record and refuses to run without one.
+Evidence retains source and time/frame identity, model and preprocessing versions, score provenance,
+selection method, deterministic seeds and sampling probabilities where applicable. A candidate names
+a window of staged ss-track frames, never a time alone, and the eligible pool tiles every stream so
+unprocessed exposure is visible. Audit eligibility depends only on how a window entered the pool: a
+window selection excluded or did not rank stays eligible, and a sibling hint, which carries no
+inclusion probability, never is. Group related and duplicate footage before assigning splits; never
+train or tune on a locked test. Discovery-only model data remains distinct from reviewed labels and
+frozen corpus membership. An unavailable external service, model, permission or insufficient budget
+must be visible, not silently replaced by invented results. No arbitrary video acquisition,
+autonomous approval of sources, field-safety claim, or promotion of pseudo-labels to truth is
+implied.
 
 Evaluation: on an independently reviewed, grouped reference sample with target-present,
 target-absent, small-target and confuser cases, compare model-assisted selection with a
