@@ -30,35 +30,13 @@ extensions; none blocks M3. Fixture implementation proceeds without physical har
 
 ### Self-supervised video corpus -- `self-supervised-corpus`
 
-#### corpus-discovery-contract
-
-Reviewers cannot reconstruct why a frame or interval entered a candidate list without stable records.
-
-- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
-- Agent status: CLEAR
-- Dependencies: none.
-- User-visible outcome: A portable, validated candidate inventory records authorized source lineage,
-  frame or time windows, group, model and processing revision, scores, selection and audit status.
-- Scope boundary: Versioned interchange contracts and validators; predictions are not labels and
-  scores do not authorize a source or assign a final split.
-- Data and artifact paths: `contracts/`, `src/ss_track/corpus/`, `tests/corpus/`.
-- Execution path: Reuse source and frame identities, define candidate and run contracts and validate
-  golden records without either external service. Feature provenance names the package commit,
-  library versions, weight revisions and SHA-256, device, dtype, batch size and preprocessing; a
-  window from a sibling time names its ffmpeg version and sampling rate
-  ([frame mapping](current/corpus/sibling-integration.md#frame-mapping)).
-- Acceptance gates: Fixtures reject missing rights references, ambiguous frame/time identity, a
-  frame named only by a sibling time, missing model provenance and invalid selection probability;
-  contract-only consumers validate unchanged records and `make ci` passes.
-- Documentation target: [Corpus](current/corpus.md).
-
 #### corpus-video-index-adapter
 
 An operator needs sibling embeddings and indexed video hints without losing source or frame identity.
 
 - Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: CLEAR
-- Dependencies: corpus-discovery-contract.
+- Dependencies: none.
 - User-visible outcome: Staged frames receive pinned, auditable sibling embeddings, and optional
   ss-video matches become candidate windows that name ss-track frames.
 - Scope boundary: The [integration plan](current/corpus/sibling-integration.md#integration-plan): an
@@ -66,13 +44,19 @@ An operator needs sibling embeddings and indexed video hints without losing sour
   reader. No in-process sibling import, running ss-video stack, unrestricted URL crawl, network
   requirement in tests, silent source or weight download, or conversion of predictions to labels.
   A run on real sources waits for authorize-video-corpus-sources.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/self-supervised-corpus/<run-id>/`.
+- Data and artifact paths: `contracts/`, `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/self-supervised-corpus/<run-id>/`.
 - Execution path: Run the worker in a pinned environment with an explicit process environment, send
   packed frames named by `FrameRef` and key each row by bundle hash, frame index and frame hash with
-  full feature provenance. Map an ss-video match through the `file_hash` join and the `fps` slot rule
-  under its recorded ffmpeg version and sampling rate; it carries no inclusion probability, so it
-  never enters an audit sample. Wrap the sibling defects the study found: a loaded `.env` changing
-  the environment, progress written to standard output, `DINO_CHECKPOINT` or
+  full feature provenance; feature rows get their own record contract. Write runs through
+  `seal_discovery` and `write_discovery` ([discovery records](current/corpus/discovery-records.md))
+  from a command that also verifies a run and reports through a `result/command` minor. Map an
+  ss-video match through the `file_hash` join and the `fps` slot rule under its recorded ffmpeg
+  version and sampling rate; it carries no inclusion probability, so it never enters an audit
+  sample. Make `verify_discovery` recompute each `sibling_time` window from the bundle's PTS by the
+  slot rule, beyond its hint-source and bounds checks. Before a run over real sources, add the
+  owner's source approval reference to `record/discovery-run` as a minor and refuse a real-source
+  run without it. Wrap the sibling defects the study found: a loaded `.env` changing the
+  environment, progress written to standard output, `DINO_CHECKPOINT` or
   `active_checkpoint.txt` loading silently, a missing checkpoint keeping base weights, a CUDA
   out-of-memory switch to the CPU, and weights resolved from `main`. Each wrapper has a test that
   fails once the pinned release no longer shows the defect.
@@ -80,7 +64,9 @@ An operator needs sibling embeddings and indexed video hints without losing sour
   start offset, a source slower than the sampling rate and variable frame rate; unpinned weights, a
   set checkpoint, a device change, a multi-stream source, a missing hash join, missing timestamps,
   revisions or rights, incompatible models and partial responses are refused or reported, never
-  fabricated; retries are deterministic and `make ci` passes.
+  fabricated; a sibling window that disagrees with the slot rule and a real-source run without an
+  approval reference are refused; concurrent writers of one run id leave one whole run or a
+  refusal, as staging does; retries are deterministic and `make ci` passes.
 - Documentation target: [Corpus](current/corpus.md).
 
 #### corpus-ssl-selection
@@ -90,18 +76,19 @@ Ranking only known objects misses rare, tiny or unfamiliar birds and background 
 - Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: CLEAR
 - Research: yes
-- Dependencies: corpus-discovery-contract, corpus-video-index-adapter.
+- Dependencies: corpus-video-index-adapter.
 - User-visible outcome: Operators get ranked, diverse candidate windows plus reproducible independent
   audit samples from the eligible pool.
 - Scope boundary: Frozen pretrained CLIP and DINOv2 backbones pinned by revision, diversity,
   uncertainty, motion and seeded random sampling; an SSL-adapted checkpoint only with a manifest
   naming development-only training sources ([adapted models](current/corpus/sibling-integration.md#adapted-models));
   no claim that a score is a label.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/self-supervised-corpus/<run-id>/`.
+- Data and artifact paths: `contracts/`, `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/self-supervised-corpus/<run-id>/`.
 - Execution path: Implement a model-agnostic selection seam and evaluate sibling embeddings against a
-  simple uniform baseline, retaining each sampling probability, seed and exclusion reason. The
-  embedders centre-crop to 224 pixels, so add tiled or uncropped coverage and measure it on fixtures
-  with small targets near the frame edge.
+  simple uniform baseline, retaining each sampling probability, seed and exclusion reason in the
+  [discovery records](current/corpus/discovery-records.md). The embedders centre-crop to 224
+  pixels, so add tiled or uncropped coverage and measure it on fixtures with small targets near the
+  frame edge; a tiled mode adds its crop name and grid to `record/discovery-run` as a minor.
 - Acceptance gates: Fixtures reproduce selection and independent audit membership; negatives,
   confusers and unseen candidates can enter the audit sample; edge and small-target coverage is
   reported; unavailable features are explicit. A negative model comparison is valid and `make ci`
@@ -114,7 +101,7 @@ Related recordings and visually similar copies can leak across splits and exagge
 
 - Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: CLEAR
-- Dependencies: corpus-discovery-contract.
+- Dependencies: none.
 - User-visible outcome: Reviewers see likely related video and keep related encounters together.
 - Scope boundary: Source and exact frame checks plus flagged embedding or perceptual candidates;
   final grouping decisions remain human-owned, and a similarity threshold is not ground truth.
@@ -151,7 +138,7 @@ A larger selected pool may conceal missed small birds or exclude hard negatives.
 
 - Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: CLEAR
-- Dependencies: corpus-ssl-selection, corpus-discovery-contract.
+- Dependencies: corpus-ssl-selection.
 - User-visible outcome: A report compares model-assisted selection with a random or uniform
   baseline and exposes missed cases and resource cost at a matched review budget.
 - Scope boundary: Independently reviewed audit samples and stratified uncertainty; no field accuracy,

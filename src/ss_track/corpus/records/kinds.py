@@ -16,6 +16,8 @@ FRAME_BUNDLE_KIND = "ss-track.frame-bundle"
 FRAME_SET_KIND = "ss-track.frame-set"
 STAGED_HASHES_KIND = "ss-track.staged-hashes"
 HASH_COMPARISON_KIND = "ss-track.hash-comparison"
+DISCOVERY_RUN_KIND = "ss-track.discovery-run"
+CANDIDATE_INVENTORY_KIND = "ss-track.candidate-inventory"
 
 
 @dataclass(frozen=True, slots=True)
@@ -36,3 +38,5 @@ FRAME_BUNDLE = RecordFormat(FRAME_BUNDLE_KIND, major=3)
 FRAME_SET = RecordFormat(FRAME_SET_KIND, major=1)
 STAGED_HASHES = RecordFormat(STAGED_HASHES_KIND, major=1)
 HASH_COMPARISON = RecordFormat(HASH_COMPARISON_KIND, major=1)  # written; no command reads it back
+DISCOVERY_RUN = RecordFormat(DISCOVERY_RUN_KIND, major=1)
+CANDIDATE_INVENTORY = RecordFormat(CANDIDATE_INVENTORY_KIND, major=1)

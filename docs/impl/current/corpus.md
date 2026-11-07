@@ -37,6 +37,8 @@ plan define that future work, including source permissions and independent revie
 [corpus formation planning record](../records/0038-adhoc-self-supervised-corpus-plan.md).
 [Sibling integration](corpus/sibling-integration.md) records the pinned ss-video and ss-fusion
 interfaces, their frame mapping, rights and reproducibility, and the integration plan.
+[Discovery records](corpus/discovery-records.md) state the candidate inventory and discovery run
+contracts that record why a window of staged frames became a candidate, and their validators.
 
 ## Selected development workload
 

@@ -119,6 +119,24 @@ contracts:
     migration: Set schema_version 2 and state rights.retain_until and rights.derived_frames,
       which only an operator can state.
 - family: record
+  id: candidate-inventory
+  owner: self-supervised-corpus
+  status: active
+  description: 'One sealed record of every candidate window a discovery run proposed
+    in one staged stream: its frames, its origin, its scores, what selection decided
+    and whether the independent audit sample holds it. A candidate is a proposal for
+    review: it is not a label, does not authorize its source and does not place it
+    in a split.'
+  versions:
+  - version: 1.0.0
+    file_sha256: 185b5cdc3492793f1395914322adcd58b31cad074729cd33f387c9ef3fea9bb7
+    fingerprints:
+      structure: ef5a90dffe5cad6beba91f6cd6f733867cd79b1e30d2a1c540ad246c4e083b79
+      meaning: 4c2b79e303fb56a5c3810fd7a1ffdd5bb01ed0318f4159c1853892779ca26de5
+    change:
+      class: initial
+      summary: Initial contract.
+- family: record
   id: corpus-manifest
   owner: corpus-provenance
   status: active
@@ -182,6 +200,25 @@ contracts:
       for this major.
     migration: Build a new corpus version under a new corpus_id that names this one
       in supersedes; lineage and shared frames compare it through this major's projection.
+- family: record
+  id: discovery-run
+  owner: self-supervised-corpus
+  status: active
+  description: 'One sealed record of how a discovery run proposed candidate windows
+    over a staged corpus version: the frames it read, the feature extractors and their
+    full provenance, its scores, sibling hint sources, pool, selection method and
+    independent audit design, and the seal of each stream''s candidate inventory.
+    It is written after its last inventory. Nothing in it is a label, authorizes a
+    source or assigns a split.'
+  versions:
+  - version: 1.0.0
+    file_sha256: dc74192599c64d08f4da47988fc231df7b1c57b310ee7d9062d49afd53d1a511
+    fingerprints:
+      structure: 7b95729c423c0c4f2a3105248fe02ab7afd873a37a32900e937ce1cda08a7da8
+      meaning: 1c8e7dc49cf849e64974476c5ab8e2a5c9291b4985e0e150b3377bb81da971a9
+    change:
+      class: initial
+      summary: Initial contract.
 - family: record
   id: frame-bundle
   owner: corpus-provenance

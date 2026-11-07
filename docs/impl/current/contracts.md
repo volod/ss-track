@@ -16,7 +16,9 @@ baseline scope and evidence. The installed set contains these document contracts
 | `declaration/corpus` | `3.0.0`, `3.1.0`, `3.2.0` |
 | `declaration/dataset` | `1.0.0`, `1.1.0` |
 | `declaration/recording` | `2.0.0`, `2.1.0`, `2.2.0`, `2.3.0` |
+| `record/candidate-inventory` | `1.0.0` |
 | `record/corpus-manifest` | `3.0.0`, `3.1.0`, `3.2.0`, `3.3.0`, `3.4.0` |
+| `record/discovery-run` | `1.0.0` |
 | `record/frame-bundle` | `3.0.0`, `3.1.0`, `3.2.0`, `3.3.0`, `3.4.0` |
 | `record/frame-set` | `1.0.0` |
 | `record/staged-hashes` | `1.0.0` |
@@ -65,6 +67,11 @@ state that over any script, and `Fields.text` enforces it; the accepted values d
 `x-sensitivity` marks and do not change the values a record stores. `schema_version` remains the
 major, so a record sealed at 3.0.0 or 2.0.0 still validates under the newest minor. The descriptor
 uses that newest minor when it chooses public fields.
+
+`record/discovery-run` and `record/candidate-inventory`, owned by `self-supervised-corpus`, hold a
+discovery run and one stream's candidate windows; [discovery records](corpus/discovery-records.md)
+states their rules and validators. Their `x-references` name `record/frame-set` and
+`record/corpus-manifest` fields.
 
 `shared/types` supplies hashes and identifiers. Every shipped document format has a frozen contract,
 and every frame-set reference resolves at its annotated schema pointer. Capture fields preserve

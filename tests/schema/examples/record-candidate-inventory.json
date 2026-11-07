@@ -1,0 +1,144 @@
+{
+  "bundle_frames": {
+    "end_frame": 24,
+    "start_frame": 0
+  },
+  "bundle_sha256": "1f7b73c8b19aeb19e6944e8134a5a46edd733959453eadb1dc969a6692d1b696",
+  "candidates": [
+    {
+      "audit": {
+        "inclusion_probability": 0.3333333333333333,
+        "status": "sampled",
+        "stratum_id": "group-one"
+      },
+      "candidate_id": "pool-000",
+      "origin": {
+        "source": "pool"
+      },
+      "scores": [
+        {
+          "score_id": "motion",
+          "status": "computed",
+          "value": 10.0
+        },
+        {
+          "score_id": "novelty",
+          "status": "computed",
+          "value": 5.0
+        }
+      ],
+      "selection": {
+        "probability": 0.0,
+        "status": "not_selected"
+      },
+      "window": {
+        "end_frame": 8,
+        "start_frame": 0
+      }
+    },
+    {
+      "audit": {
+        "inclusion_probability": 0.3333333333333333,
+        "status": "not_sampled",
+        "stratum_id": "group-one"
+      },
+      "candidate_id": "pool-001",
+      "origin": {
+        "source": "pool"
+      },
+      "scores": [
+        {
+          "score_id": "motion",
+          "status": "computed",
+          "value": 9.0
+        },
+        {
+          "score_id": "novelty",
+          "status": "computed",
+          "value": 4.5
+        }
+      ],
+      "selection": {
+        "probability": 1.0,
+        "rank": 1,
+        "status": "selected"
+      },
+      "window": {
+        "end_frame": 16,
+        "start_frame": 8
+      }
+    },
+    {
+      "audit": {
+        "inclusion_probability": 0.3333333333333333,
+        "status": "not_sampled",
+        "stratum_id": "group-one"
+      },
+      "candidate_id": "pool-002",
+      "origin": {
+        "source": "pool"
+      },
+      "scores": [
+        {
+          "score_id": "motion",
+          "status": "computed",
+          "value": 8.0
+        },
+        {
+          "score_id": "novelty",
+          "status": "computed",
+          "value": 4.0
+        }
+      ],
+      "selection": {
+        "probability": 0.0,
+        "status": "not_selected"
+      },
+      "window": {
+        "end_frame": 24,
+        "start_frame": 16
+      }
+    },
+    {
+      "audit": {
+        "reason": "no_inclusion_probability",
+        "status": "ineligible"
+      },
+      "candidate_id": "sibling-ss-video-1-3",
+      "origin": {
+        "hint_source_id": "ss-video-1",
+        "slot": 3,
+        "source": "sibling_time"
+      },
+      "scores": [
+        {
+          "score_id": "motion",
+          "status": "computed",
+          "value": 4.0
+        },
+        {
+          "score_id": "novelty",
+          "status": "computed",
+          "value": 2.0
+        }
+      ],
+      "selection": {
+        "probability": 0.0,
+        "status": "not_selected"
+      },
+      "window": {
+        "end_frame": 18,
+        "start_frame": 13
+      }
+    }
+  ],
+  "corpus_id": "pilot-v1",
+  "group_id": "group-one",
+  "kind": "ss-track.candidate-inventory",
+  "manifest_sha256": "5c4a38cba5a49eb38059ee3dc5dd1f6f03b94abba81ff500b50f68667050b635",
+  "run_id": "discovery-1",
+  "schema_version": 1,
+  "source_manifest_sha256": "21377a7dcdec813a2a6fdbd3042822277150bd9ebd5164c3286a197f50caecd4",
+  "source_sha256": "badc3b1222bae1ffc9e8040aa06aab43e3497a3859ceaa882e8a4de289354884",
+  "stream_id": "one"
+}

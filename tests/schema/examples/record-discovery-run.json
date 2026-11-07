@@ -1,0 +1,135 @@
+{
+  "audit": {
+    "design": "stratified_fixed_size",
+    "revision": 1,
+    "seed": 7,
+    "strata": [
+      {
+        "eligible_count": 6,
+        "sample_size": 2,
+        "stratum_id": "group-one"
+      }
+    ]
+  },
+  "corpus_id": "pilot-v1",
+  "extractors": [
+    {
+      "architecture": "ViT-B-16",
+      "autocast": false,
+      "batch_size": 16,
+      "device": "cpu",
+      "dtype": "float32",
+      "extractor_id": "clip-b16",
+      "libraries": [
+        {
+          "name": "open-clip-torch",
+          "version": "4.2.1"
+        },
+        {
+          "name": "torch",
+          "version": "2.15.0+cpu"
+        }
+      ],
+      "output": {
+        "dimensions": 512,
+        "normalized": true
+      },
+      "package": {
+        "commit": "12cb0861af8f6ae6562d2cf5211547e284c5b40d",
+        "name": "ss-perception",
+        "version": "0.2.1"
+      },
+      "pixel_source": "staged_frame",
+      "preprocessing": {
+        "crop": "center",
+        "input_height": 224,
+        "input_width": 224,
+        "interpolation": "bicubic",
+        "mean": [
+          0.48145466,
+          0.4578275,
+          0.40821073
+        ],
+        "resize": "short_side",
+        "std": [
+          0.26862954,
+          0.26130258,
+          0.27577711
+        ]
+      },
+      "weights": [
+        {
+          "name": "timm/vit_base_patch16_clip_224.openai",
+          "revision": "977e3dd0",
+          "sha256": "4b8699299b1e8997753c64b052ba32031449d5d853f55a039148560ee02b820f",
+          "size_bytes": 598516980
+        }
+      ]
+    }
+  ],
+  "frame_set_sha256": "9eab668390541e7355dbd862125dbd54712f728835cf181a86c08e0469c54c31",
+  "hint_sources": [
+    {
+      "commit": "703e3c943dbc960a16cbc859680172c5a7ba5255",
+      "ffmpeg_version": "8.0.1",
+      "hint_source_id": "ss-video-1",
+      "project": "ss-video",
+      "sample_rate": "5/1"
+    }
+  ],
+  "inventories": [
+    {
+      "bundle_sha256": "1f7b73c8b19aeb19e6944e8134a5a46edd733959453eadb1dc969a6692d1b696",
+      "candidate_count": 4,
+      "inventory_sha256": "5c4a38cba5a49eb38059ee3dc5dd1f6f03b94abba81ff500b50f68667050b635",
+      "source_manifest_sha256": "21377a7dcdec813a2a6fdbd3042822277150bd9ebd5164c3286a197f50caecd4",
+      "stream_id": "one"
+    },
+    {
+      "bundle_sha256": "c7a471fa9190213f04b8e59f7d912c88b2b9b0a66476b9cc67e5adc4d04e6d09",
+      "candidate_count": 3,
+      "inventory_sha256": "43d8fb3c5a1424a0702c4f4bd19f924ebed2fa307830e9a0d11fc01a71244fe0",
+      "source_manifest_sha256": "ab74e526f10b6d2534ee99460fe50392cc94adc836c185144fea77fdbdfa5ae9",
+      "stream_id": "two"
+    }
+  ],
+  "kind": "ss-track.discovery-run",
+  "manifest_sha256": "4d99b6b39107b768cbd3470509215d14e13940ab197e3fde52b858e767826777",
+  "pool": {
+    "window_frames": 8
+  },
+  "processing": {
+    "revision": 1,
+    "ss_track_version": "0.1.0"
+  },
+  "run_id": "discovery-1",
+  "schema_version": 1,
+  "scores": [
+    {
+      "extractor_ids": [],
+      "method": "frame-difference",
+      "preferred": "higher",
+      "revision": 1,
+      "score_id": "motion"
+    },
+    {
+      "extractor_ids": [
+        "clip-b16"
+      ],
+      "method": "cosine-novelty",
+      "preferred": "higher",
+      "revision": 1,
+      "score_id": "novelty"
+    }
+  ],
+  "selection": {
+    "budget": 2,
+    "method": "score-rank",
+    "revision": 1,
+    "score_ids": [
+      "motion",
+      "novelty"
+    ],
+    "seed": null
+  }
+}

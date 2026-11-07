@@ -11,7 +11,9 @@ from ss_track.corpus.declarations.fields import TEXT_RULE
 from ss_track.corpus.decoding.declared_color import MATRIX_CODES
 from ss_track.corpus.descriptors.descriptor_public import SPLITS
 from ss_track.corpus.records.kinds import (
+    CANDIDATE_INVENTORY,
     CORPUS_MANIFEST,
+    DISCOVERY_RUN,
     FRAME_BUNDLE,
     FRAME_SET,
     HASH_COMPARISON,
@@ -26,7 +28,9 @@ from ss_track.schema.registry.store import load_contract_set
 from tests.schema.conftest import CONTRACTS, PROJECT_ROOT, frame_set_path, read_registry
 
 _WRITTEN = (
+    CANDIDATE_INVENTORY,
     CORPUS_MANIFEST,
+    DISCOVERY_RUN,
     FRAME_BUNDLE,
     FRAME_SET,
     HASH_COMPARISON,

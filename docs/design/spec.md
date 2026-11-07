@@ -381,10 +381,14 @@ not grant download, processing, model-weight, redistribution or storage rights.
 Each source and derivative must have authorized uses and retention; jobs are limited by an approved
 source list, resource envelope and access rules. Evidence retains source and time/frame identity,
 model and preprocessing versions, score provenance, selection method, deterministic seeds and
-sampling probabilities where applicable. Group related and duplicate footage before assigning
-splits; never train or tune on a locked test. Discovery-only model data remains distinct from
-reviewed labels and frozen corpus membership. An unavailable external service, model, permission or
-insufficient budget must be visible, not silently replaced by invented results. No arbitrary video
+sampling probabilities where applicable. A candidate names a window of staged ss-track frames, never
+a time alone, and the eligible pool tiles every stream so unprocessed exposure is visible. Audit
+eligibility depends only on how a window entered the pool: a window selection excluded or did not
+rank stays eligible, and a sibling hint, which carries no inclusion probability, never is. Group
+related and duplicate footage before assigning splits; never train or tune on a locked test.
+Discovery-only model data remains distinct from reviewed labels and frozen corpus membership. An
+unavailable external service, model, permission or insufficient budget must be visible, not
+silently replaced by invented results. No arbitrary video
 acquisition, autonomous approval of sources, field-safety claim, or promotion of pseudo-labels to
 truth is implied.
 

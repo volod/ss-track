@@ -55,5 +55,6 @@ Copy the [template](template.md) using the
 | 0048 | `near-duplicates-outside-the-chain` | [0048-corpus-provenance-near-duplicates-outside-the-chain](0048-corpus-provenance-near-duplicates-outside-the-chain.md) |
 | 0049 | `corpus-provenance-audit` | [0049-corpus-provenance-corpus-provenance-audit](0049-corpus-provenance-corpus-provenance-audit.md) |
 | 0050 | `corpus-sibling-integration-study` | [0050-self-supervised-corpus-corpus-sibling-integration-study](0050-self-supervised-corpus-corpus-sibling-integration-study.md) |
+| 0051 | `corpus-discovery-contract` | [0051-self-supervised-corpus-corpus-discovery-contract](0051-self-supervised-corpus-corpus-discovery-contract.md) |
 
-Next unused sequence: `0051`.
+Next unused sequence: `0052`.
