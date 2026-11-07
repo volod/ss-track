@@ -15,6 +15,8 @@ RUN_DIRECTORY = "run"
 DISCOVERY_DIRECTORY = "self-supervised-corpus"
 DISCOVERY_RUN_NAME = "run.json"
 INVENTORIES_DIRECTORY = "inventories"
+FEATURES_DIRECTORY = "features"
+VECTORS_SUFFIX = ".f32"
 MANIFEST_NAME = "manifest.json"
 FRAME_SET_NAME = "frame-set.json"
 _REPLACED_SUFFIX = ".json"
@@ -70,9 +72,14 @@ def run_root(data_root: Path) -> Path:
     return data_root / RUN_DIRECTORY
 
 
+def discovery_root(data_root: Path) -> Path:
+    """Return the directory that holds every discovery run."""
+    return data_root / DISCOVERY_DIRECTORY
+
+
 def discovery_run_directory(data_root: Path, run_id: str) -> Path:
     """Return one discovery run's directory: its run record and one inventory per stream."""
-    return data_root / DISCOVERY_DIRECTORY / run_id
+    return discovery_root(data_root) / run_id
 
 
 def discovery_run_path(data_root: Path, run_id: str) -> Path:
@@ -83,3 +90,18 @@ def discovery_run_path(data_root: Path, run_id: str) -> Path:
 def candidate_inventory_path(data_root: Path, run_id: str, stream_id: str) -> Path:
     """Return the sealed candidate inventory of one stream of a discovery run."""
     return discovery_run_directory(data_root, run_id) / INVENTORIES_DIRECTORY / f"{stream_id}.json"
+
+
+def feature_rows_name(extractor_id: str, stream_id: str) -> str:
+    """Return a feature-rows record's path inside its run directory."""
+    return f"{FEATURES_DIRECTORY}/{extractor_id}/{stream_id}.json"
+
+
+def feature_vectors_name(stream_id: str) -> str:
+    """Return the vector file name a feature-rows record names beside itself."""
+    return f"{stream_id}{VECTORS_SUFFIX}"
+
+
+def feature_rows_path(data_root: Path, run_id: str, extractor_id: str, stream_id: str) -> Path:
+    """Return the sealed feature-rows record of one extractor and stream of a discovery run."""
+    return discovery_run_directory(data_root, run_id) / feature_rows_name(extractor_id, stream_id)

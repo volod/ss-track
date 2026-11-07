@@ -1,0 +1,17 @@
+{
+  "commit": "703e3c943dbc960a16cbc859680172c5a7ba5255",
+  "ffmpeg_version": "8.0.1-3ubuntu2+esm5",
+  "matches": [
+    {
+      "file_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "t_sec": 0.6
+    },
+    {
+      "file_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "t_sec": 1.2
+    }
+  ],
+  "project": "ss-video",
+  "sample_rate": "5/1",
+  "schema_version": 1
+}

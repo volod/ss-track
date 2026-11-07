@@ -3,8 +3,9 @@
 This page records what [ss-video](https://github.com/volod/ss-video) and
 [ss-fusion](https://github.com/volod/ss-fusion) offer for
 [video corpus formation](../../../design/spec.md#41a-self-supervised-video-corpus-formation), and the
-integration plan the corpus tasks follow. No adapter code exists yet. ss-track does not depend on
-either sibling, and its tests never import them. The evidence comes from inspecting the pinned trees
+integration plan the corpus tasks follow. [Discovery runs](discovery-runs.md) implements its
+embedding worker and hint reader. ss-track does not depend on either sibling, and its tests never
+import them. The evidence comes from inspecting the pinned trees
 and running ss-perception on clips that ss-track staged. The
 [task record](../../records/0050-self-supervised-corpus-corpus-sibling-integration-study.md) holds
 the commands and results.
@@ -33,10 +34,11 @@ therefore cannot identify the revision. An installer that records the commit (`u
 | `POST /query/text`, `/query/image` | ss-video API | Hints only. At most 100 matches, without vectors, source hash or model name |
 | SSL fine-tuning, `ssv` pipeline | ss-fusion `selfsuvis.pipeline.training`, `ssv_vdp` | Excluded. See [adapted models](#adapted-models) |
 
-ss-video has no bulk export of frames, vectors or payloads. A full inventory would need direct reads
-of its Qdrant collection and PostgreSQL tables. That is privileged service access, and running the
-stack needs Redis, PostgreSQL, Qdrant, an API, a worker and optional GPU containers. The corpus tasks
-therefore do not depend on a running ss-video.
+ss-video has no bulk export of frames, vectors or payloads, and no export of query matches joined to
+`processed_files.file_hash`, so an operator builds each [hint file](discovery-runs.md#hint-files) by
+that join. A full inventory would need direct reads of its Qdrant collection and PostgreSQL tables.
+That is privileged service access, and running the stack needs Redis, PostgreSQL, Qdrant, an API, a
+worker and optional GPU containers. The corpus tasks therefore do not depend on a running ss-video.
 
 ## Frame mapping
 
@@ -101,11 +103,14 @@ Hazards in the inspected code that an adapter must neutralise:
   `.data/.env.local` from a project root it takes from the working directory. Started in the
   ss-track checkout, that root is ss-track. Sibling code must therefore run in its own process,
   with an explicit environment and a neutral working directory.
-- Model loading prints its download progress on standard output, which carries the one JSON record
-  of an ss-track command.
+- torch.hub, which the DINO loader calls, writes each `Downloading:` line on standard output, even
+  when the connection then fails. That descriptor carries the one JSON record of an ss-track command
+  and the worker protocol. With cached weights nothing else reaches standard output; sibling logs go
+  to standard error.
 - `DINOEmbedder` loads `DINO_CHECKPOINT`, or a path in `active_checkpoint.txt`, without recording
   it. A missing checkpoint file logs a warning and keeps the base weights.
-- On CUDA out-of-memory both embedders move to the CPU for the rest of the run, so one run can mix
+- `resolve_device` returns the CPU when the requested device is unavailable, and on CUDA
+  out-of-memory both embedders move to the CPU for the rest of the run, so one run can mix
   fp16-autocast GPU vectors with fp32 CPU vectors.
 - Both embedders resize the short side to 224 and centre-crop it. A 16:9 frame loses about 22% of
   its width on each side, and a small bird shrinks with the frame.
@@ -121,16 +126,12 @@ show that it never saw locked-test footage, and corpus selection uses frozen pre
 
 ## Integration plan
 
-1. **Embedding worker.** ss-track runs ss-perception in a separate, pinned environment over frames
-   it staged itself. The worker receives packed RGB frames named by `FrameRef` and an explicit
-   environment. It returns one feature row per frame, keyed by bundle hash, frame index and frame
-   hash, with the package commit, torch and open_clip versions, weight revisions and SHA-256,
-   device, dtype, batch size and preprocessing. It refuses an unpinned weight, a set
-   `DINO_CHECKPOINT` and a device change. The
-   [video index adapter](../../plan.md#corpus-video-index-adapter) owns it.
-2. **ss-video hints.** A query match or exported point becomes a candidate window only through the
-   `file_hash` join and the slot rule above, under a recorded ffmpeg version and sampling rate. It
-   never names a frame by itself. The same adapter task owns this optional reader.
+1. **Embedding worker.** Implemented: ss-track runs ss-perception in a separate, pinned environment
+   over frames it staged itself, and keys every row by bundle hash, frame index and frame hash with
+   full provenance ([embedding worker](discovery-runs.md#embedding-worker)).
+2. **ss-video hints.** Implemented: a query match becomes a candidate window only through the
+   `file_hash` join and the slot rule above, under a recorded ffmpeg version and sampling rate
+   ([hint files](discovery-runs.md#hint-files)). It never names a frame by itself.
 3. **Selection features.** Whole-frame vectors miss edges and tiny targets, so
    [SSL selection](../../plan.md#corpus-ssl-selection) adds tiled or uncropped coverage and measures
    it on small-target fixtures.
@@ -150,5 +151,6 @@ show that it never saw locked-test footage, and corpus selection uses frozen pre
 | Peak resident memory | 1.6 GB |
 
 At these rates one hour of video sampled at five frames per second costs about 1.8 CPU hours for
-both models. `torch.hub` fetched `facebookresearch/dinov2` at `main`, which GitHub reported as
-commit `7764ea0f` during the study; the downloaded archive does not record a commit.
+both models. The adapter's [measured run](discovery-runs.md#measured-run) agrees. `torch.hub`
+fetched `facebookresearch/dinov2` at `main`, which GitHub reported as commit `7764ea0f` during the
+study; the downloaded archive does not record a commit.

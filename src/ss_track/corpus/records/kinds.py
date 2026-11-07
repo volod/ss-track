@@ -18,6 +18,7 @@ STAGED_HASHES_KIND = "ss-track.staged-hashes"
 HASH_COMPARISON_KIND = "ss-track.hash-comparison"
 DISCOVERY_RUN_KIND = "ss-track.discovery-run"
 CANDIDATE_INVENTORY_KIND = "ss-track.candidate-inventory"
+FEATURE_ROWS_KIND = "ss-track.feature-rows"
 
 
 @dataclass(frozen=True, slots=True)
@@ -40,3 +41,4 @@ STAGED_HASHES = RecordFormat(STAGED_HASHES_KIND, major=1)
 HASH_COMPARISON = RecordFormat(HASH_COMPARISON_KIND, major=1)  # written; no command reads it back
 DISCOVERY_RUN = RecordFormat(DISCOVERY_RUN_KIND, major=1)
 CANDIDATE_INVENTORY = RecordFormat(CANDIDATE_INVENTORY_KIND, major=1)
+FEATURE_ROWS = RecordFormat(FEATURE_ROWS_KIND, major=1)

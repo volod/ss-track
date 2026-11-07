@@ -31,14 +31,17 @@ tasks, their decisions and their acceptance evidence:
 [record read gate](../records/0016-data-contracts-record-read-gate.md) and the
 [corpus provenance group audit](../records/0049-corpus-provenance-corpus-provenance-audit.md).
 
-The available corpus path imports declared sources and stages reviewed selections; it does not yet
-form a large corpus from sibling video indexes or self-supervised selection. The specification and
-plan define that future work, including source permissions and independent review. See the
+The available corpus path imports declared sources and stages reviewed selections. `ss-track discover`
+proposes candidate windows of staged frames from pinned sibling embeddings and ss-video hints, but
+does not yet rank them or freeze a corpus from reviewed candidates. The specification and plan define
+that future work, including source permissions and independent review. See the
 [corpus formation planning record](../records/0038-adhoc-self-supervised-corpus-plan.md).
 [Sibling integration](corpus/sibling-integration.md) records the pinned ss-video and ss-fusion
 interfaces, their frame mapping, rights and reproducibility, and the integration plan.
-[Discovery records](corpus/discovery-records.md) state the candidate inventory and discovery run
-contracts that record why a window of staged frames became a candidate, and their validators.
+[Discovery records](corpus/discovery-records.md) state the candidate inventory, discovery run and
+feature-rows contracts that record why a window of staged frames became a candidate, and their
+validators. [Discovery runs](corpus/discovery-runs.md) states the commands, the plan and hint
+declarations, the embedding worker and its guards against sibling defects.
 
 ## Selected development workload
 
@@ -84,6 +87,8 @@ ss-track corpus verify --corpus pilot-v1
 ss-track corpus hashes --corpus pilot-v1 --run-id host-a
 ss-track corpus compare --left a/staged-hashes.json --right b/staged-hashes.json --run-id compare-1
 ss-track corpus preview --corpus pilot-v1 --stream enc01-cam0 --frame 0 --out sheet.png
+ss-track discover run --plan plan.yaml
+ss-track discover verify --run-id discovery-1
 ```
 
 Each command logs one JSON record and exits 0. A refusal exits 1 and has this form:
@@ -1568,6 +1573,10 @@ accepted task, its decisions and its evidence.
 | `STAGING_IN_PROGRESS` | Another run is staging this corpus version |
 | `FRAME_CORRUPTED` | A staged file differs from the sealed index, is gone, or is not in it. A reuse candidate that differs is named and not linked |
 | `FRAME_NOT_IN_BUNDLE` | A bundle does not hold a frame index, including a frame a case dropped |
+| `EXTRACTOR_UNPINNED` | A [discovery](corpus/discovery-runs.md) extractor loaded a package commit or weight file other than its plan pins, a weight with no immutable revision, or a configured adapted checkpoint, or the sibling settings import changed the environment |
+| `EXTRACTOR_INCOMPATIBLE` | An extractor's architecture, row length, device type, precision or preprocessing is not what its plan states or the adapter records, its model changed device, or a bundle is not `rgb24` |
+| `WORKER_FAILED` | The embedding worker could not start, stopped, missed its deadline, broke the protocol, or returned rows for other frames, a partial batch or rows that are not finite unit vectors; `SST_PERCEPTION_PYTHON` is unset |
+| `DISCOVERY_IN_PROGRESS` | Another command is writing this discovery run id |
 | `INTERRUPTED` | SIGINT stopped the command. Import and stage leave no scratch |
 | `STORAGE_FAILED` | The data root cannot be written, lacks the space for raw frames, or a preview PNG cannot be written outside the corpus directory |
 

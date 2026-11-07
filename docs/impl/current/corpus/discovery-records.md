@@ -4,10 +4,12 @@ A discovery run proposes candidate windows of staged frames for human review. It
 reviewer reconstruct why each window entered the candidate list: the frames it names, where it came
 from, which pinned model and preprocessing scored it, what selection decided with what
 probability, and whether the independent audit sample holds it. These records describe
-[video corpus formation](../../../design/spec.md#41a-self-supervised-video-corpus-formation). No
-command writes them yet; the [video index adapter](../../plan.md#corpus-video-index-adapter) and
-[SSL selection](../../plan.md#corpus-ssl-selection) produce them through the functions below. The
-[task record](../../records/0051-self-supervised-corpus-corpus-discovery-contract.md) holds the
+[video corpus formation](../../../design/spec.md#41a-self-supervised-video-corpus-formation).
+[Discovery runs](discovery-runs.md) states the `ss-track discover` commands that write and verify
+them through the functions below; [SSL selection](../../plan.md#corpus-ssl-selection) will add
+scores and selection. The
+[contract record](../../records/0051-self-supervised-corpus-corpus-discovery-contract.md) and the
+[adapter record](../../records/0052-self-supervised-corpus-corpus-video-index-adapter.md) hold the
 decisions and evidence.
 
 A candidate is a proposal. A score is not a label, and nothing in these records authorizes a source,
@@ -19,14 +21,18 @@ One run is one directory under `$DATA_DIR/self-supervised-corpus/<run-id>/`:
 
 | File | Contract | Holds |
 | --- | --- | --- |
-| `run.json` | `record/discovery-run` 1.0.0 | Frame set read, extractors, scores, hint sources, pool, selection, audit design, one line per inventory |
+| `run.json` | `record/discovery-run` 1.1.0 | Frame set read, extractors, scores, hint sources and what became of their matches, pool, selection, audit design, the owner's source approval, one line per inventory and per feature record |
 | `inventories/<stream-id>.json` | `record/candidate-inventory` 1.0.0 | Every candidate window of one stream |
+| `features/<extractor-id>/<stream-id>.json` | `record/feature-rows` 1.0.0 | One extractor's row keys for one stream, and the seal of the vector file beside it |
 
-The run is written after its last inventory and seals each one by hash, as a frame set seals its
-bundles. A run id never holds two different runs: repeating the same records changes nothing, and
-different records are `CORPUS_CONFLICT`. One inventory per stream keeps each record bounded by its
-stream's length. As written, a golden pool candidate with two scores takes about 650 bytes, so one
-hour of 25 frame per second video cut into eight-frame windows is about 7 MB.
+The run seals each inventory and each feature record by hash, as a frame set seals its bundles. A
+run is built in scratch and published by one rename under a lock, so a reader meets a whole run or
+none. A run id never holds two different runs: repeating the same records changes nothing, and
+different records are `CORPUS_CONFLICT`. Version 1.1.0 adds `source_approval`, `feature_rows` and a
+hint source's `matches`, each optional, so a 1.0.0 record still validates. One inventory per stream
+keeps each record bounded by its stream's length. As written, a golden pool candidate with two
+scores takes about 650 bytes, so one hour of 25 frame per second video cut into eight-frame windows
+is about 7 MB.
 
 ### Identity and rights
 
@@ -51,7 +57,8 @@ entered the inventory:
 
 Because the pool tiles every bundle, its size is the run's processed exposure, and a missing window
 is a refusal instead of silent unprocessed video. The slot rule that turns a sibling slot into
-frames is in [frame mapping](sibling-integration.md#frame-mapping).
+frames is in [frame mapping](sibling-integration.md#frame-mapping); `verify_discovery` recomputes
+each sibling window from the stream's pinned source record and refuses one that differs.
 
 ### Provenance
 
@@ -90,12 +97,14 @@ unselected windows stay measurable for missed positives.
 | --- | --- | --- |
 | `seal_discovery(run_body, inventory_bodies)` | `corpus/discovery/records.py` | Seals each inventory, then the run with one line per inventory; refuses any contract or rule violation as `RECORD_INVALID` |
 | `write_discovery(data_root, records)` | same | Binds the run to its staged corpus, writes the inventories, then the run |
-| `read_discovery(data_root, run_id)` | `corpus/discovery/reader.py` | Reads the run and each inventory through the sealed read path, checks contracts, seals and rules |
-| `verify_discovery(data_root, run_id)` | same | `read_discovery`, then the binding to the frame set and corpus manifest |
+| `read_discovery(data_root, run_id)` | `corpus/discovery/reader.py` | Reads the run, each inventory and each feature record through the sealed read path, checks contracts, seals, rules and vector file hashes |
+| `verify_discovery(data_root, run_id)` | same | `read_discovery`, then the binding to the frame set and corpus manifest, the slot rule for each sibling window and the bundle frames for each feature row |
 
-`run_rules.py` and `inventory_rules.py` check what the contracts state in words under `x-rules`;
-`binding.py` checks a run against its corpus. A rule refusal lists every finding with its record
-(`run` or `inventories/<stream-id>`), JSON pointer, `x-rules` key and message:
+`seal_discovery` also takes the sealed feature records and adds one run line per record.
+`run_rules.py`, `inventory_rules.py` and `features.py` check what the contracts state in words under
+`x-rules`; `binding.py` and `sibling_check.py` check a run against its corpus. A rule refusal lists
+every finding with its record (`run` or `inventories/<stream-id>`), JSON pointer, `x-rules` key and
+message:
 
 ```json
 {"record": "inventories/one", "pointer": "/candidates/2/selection/probability",
@@ -112,23 +121,17 @@ probability. The cross-record rules need ss-track or a reader that follows the `
 
 ## Limits
 
-- The ss-video slot rule is not recomputed: a `sibling_time` window is checked for a declared hint
-  source and bundle bounds, not against the bundle's presentation times. The
-  [video index adapter](../../plan.md#corpus-video-index-adapter) owns the mapping and its check.
-- A run names no owner's source approval, because no approval record exists yet. The same adapter
-  task adds it before a run over real sources.
 - Crop modes are `center` and `none`. Tiled coverage adds a mode with its grid as a contract minor,
   owned by [SSL selection](../../plan.md#corpus-ssl-selection).
-- `write_discovery` takes no lock. Two writers of one run id can leave a run whose lines name the
-  other writer's inventories; the read then refuses it as `RECORD_TAMPERED`, never serves it. The
-  command that writes runs, owned by the video index adapter, serializes writers.
 - Pool windows do not overlap, and the only audit design is `stratified_fixed_size`; another
   stride or design is a contract minor when a consumer needs it.
+- `source_approval` names an approval kept outside ss-track; the run cannot check that it exists.
 
 ## Verification
 
 ```bash
 .venv/bin/pytest tests/corpus/discovery tests/schema/registry/test_standalone.py
+.venv/bin/ss-track contracts validate --file tests/schema/examples/record-feature-rows.json
 .venv/bin/ss-track contracts validate --file tests/schema/examples/record-candidate-inventory.json
 make ci
 ```

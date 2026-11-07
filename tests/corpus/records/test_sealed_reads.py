@@ -27,8 +27,15 @@ _DEEP_CHECK = Path(
 _DEEP_PARSER = Path(
     "schema/validation/_documents.py"
 )  # private parser of the deep check and declarations
+# The embedding worker's protocol is JSON lines between two processes and holds no sealed record;
+# the worker also reads the sibling package's `direct_url.json` to learn its commit.
+_WORKER_PROTOCOL = {
+    Path("corpus/siblings/perception_worker.py"),
+    Path("corpus/siblings/worker_process.py"),
+}
+_PACKAGE_METADATA_READER = Path("corpus/siblings/perception_worker.py")
 # The loader parses only the JSON it serialized itself, to validate a record as it will be written.
-_JSON_READERS = {_GATE, _CONTRACT_FILE_READER, _DEEP_PARSER, _DECLARATION_LOADER}
+_JSON_READERS = {_GATE, _CONTRACT_FILE_READER, _DEEP_PARSER, _DECLARATION_LOADER, *_WORKER_PROTOCOL}
 _YAML_READERS = {_CONTRACT_FILE_READER, _DEEP_PARSER}
 _PARSER_USERS = {_DEEP_CHECK, _DECLARATION_LOADER}
 _LOADERS = {"json.load", "json.loads", "yaml.load", "yaml.safe_load"}
@@ -120,7 +127,7 @@ def test_every_read_of_a_record_file_goes_through_the_gate() -> None:
         and ".read_text(" in (_PACKAGE / module).read_text(encoding="utf-8")
     ]
 
-    assert readers == [_GATE]
+    assert readers == sorted([_GATE, _PACKAGE_METADATA_READER])
 
 
 def test_the_deep_check_returns_a_verdict_and_never_the_record() -> None:

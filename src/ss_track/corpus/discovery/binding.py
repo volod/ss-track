@@ -3,7 +3,8 @@
 The frame set names each stream's bundle and the source record whose terms it rests on, so a run
 that agrees with it rests on those records; the corpus manifest names each stream's group and the
 frames its bundle holds. A generated case is fixture material, not discovered video, so no
-inventory may cover one.
+inventory may cover one. Each sibling window must be what the slot rule maps its slot to, and each
+feature record must name exactly the frames of its bundle at its stride, by their sealed hashes.
 """
 
 from collections.abc import Iterator, Mapping
@@ -12,22 +13,30 @@ from typing import Any
 
 from ss_track.core.canonical import SEAL_FIELD
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
+from ss_track.corpus.bundles.bundle_reader import open_corpus_bundle
 from ss_track.corpus.bundles.frame_set import read_frame_set
+from ss_track.corpus.bundles.frames import FrameBundle
+from ss_track.corpus.discovery.features import FeatureFile
+from ss_track.corpus.discovery.features import binding_findings as rows_findings
 from ss_track.corpus.discovery.findings import (
     RUN_RECORD,
     Finding,
     inventory_label,
     require_no_findings,
 )
+from ss_track.corpus.discovery.sibling_check import sibling_findings
 from ss_track.corpus.records.read_refusals import incomplete_record
-from ss_track.corpus.storage.layout import DISCOVERY_RUN_NAME
+from ss_track.corpus.storage.layout import DISCOVERY_RUN_NAME, frames_root
 from ss_track.corpus.versions.manifests import load_corpus_manifest
 
 _FRAME_SET_FIELDS = ("bundle_sha256", "source_sha256", "source_manifest_sha256")
 
 
 def require_bound(
-    data_root: Path, run: Mapping[str, Any], inventories: Mapping[str, Mapping[str, Any]]
+    data_root: Path,
+    run: Mapping[str, Any],
+    inventories: Mapping[str, Mapping[str, Any]],
+    features: Mapping[str, FeatureFile] | None = None,
 ) -> None:
     """Refuse a run unless it names exactly what its corpus version staged on this data root."""
     corpus_id = str(run["corpus_id"])
@@ -46,7 +55,24 @@ def require_bound(
         )
     with incomplete_record(DISCOVERY_RUN_NAME):
         found = binding_findings(run, inventories, frame_set, corpus)
+        if not found:
+            found += sibling_findings(run, inventories, data_root)
+            found += _feature_findings(features or {}, corpus, data_root)
     require_no_findings(found, str(run["run_id"]))
+
+
+def _feature_findings(
+    features: Mapping[str, FeatureFile], corpus: Mapping[str, Any], data_root: Path
+) -> list[Finding]:
+    root = frames_root(data_root, str(corpus["corpus_id"]))
+    bundles: dict[str, FrameBundle] = {}
+    found: list[Finding] = []
+    for name, feature in sorted(features.items()):
+        stream_id = feature.stream_id
+        if stream_id not in bundles:
+            bundles[stream_id] = open_corpus_bundle(stream_id, corpus, root)
+        found += rows_findings(feature.record, bundles[stream_id], name)
+    return found
 
 
 def binding_findings(

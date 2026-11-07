@@ -30,45 +30,6 @@ extensions; none blocks M3. Fixture implementation proceeds without physical har
 
 ### Self-supervised video corpus -- `self-supervised-corpus`
 
-#### corpus-video-index-adapter
-
-An operator needs sibling embeddings and indexed video hints without losing source or frame identity.
-
-- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
-- Agent status: CLEAR
-- Dependencies: none.
-- User-visible outcome: Staged frames receive pinned, auditable sibling embeddings, and optional
-  ss-video matches become candidate windows that name ss-track frames.
-- Scope boundary: The [integration plan](current/corpus/sibling-integration.md#integration-plan): an
-  out-of-process ss-perception embedding worker over staged bundles and an optional ss-video match
-  reader. No in-process sibling import, running ss-video stack, unrestricted URL crawl, network
-  requirement in tests, silent source or weight download, or conversion of predictions to labels.
-  A run on real sources waits for authorize-video-corpus-sources.
-- Data and artifact paths: `contracts/`, `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/self-supervised-corpus/<run-id>/`.
-- Execution path: Run the worker in a pinned environment with an explicit process environment, send
-  packed frames named by `FrameRef` and key each row by bundle hash, frame index and frame hash with
-  full feature provenance; feature rows get their own record contract. Write runs through
-  `seal_discovery` and `write_discovery` ([discovery records](current/corpus/discovery-records.md))
-  from a command that also verifies a run and reports through a `result/command` minor. Map an
-  ss-video match through the `file_hash` join and the `fps` slot rule under its recorded ffmpeg
-  version and sampling rate; it carries no inclusion probability, so it never enters an audit
-  sample. Make `verify_discovery` recompute each `sibling_time` window from the bundle's PTS by the
-  slot rule, beyond its hint-source and bounds checks. Before a run over real sources, add the
-  owner's source approval reference to `record/discovery-run` as a minor and refuse a real-source
-  run without it. Wrap the sibling defects the study found: a loaded `.env` changing the
-  environment, progress written to standard output, `DINO_CHECKPOINT` or
-  `active_checkpoint.txt` loading silently, a missing checkpoint keeping base weights, a CUDA
-  out-of-memory switch to the CPU, and weights resolved from `main`. Each wrapper has a test that
-  fails once the pinned release no longer shows the defect.
-- Acceptance gates: Fixture worker rows map exactly to frame references; slot-rule fixtures cover a
-  start offset, a source slower than the sampling rate and variable frame rate; unpinned weights, a
-  set checkpoint, a device change, a multi-stream source, a missing hash join, missing timestamps,
-  revisions or rights, incompatible models and partial responses are refused or reported, never
-  fabricated; a sibling window that disagrees with the slot rule and a real-source run without an
-  approval reference are refused; concurrent writers of one run id leave one whole run or a
-  refusal, as staging does; retries are deterministic and `make ci` passes.
-- Documentation target: [Corpus](current/corpus.md).
-
 #### corpus-ssl-selection
 
 Ranking only known objects misses rare, tiny or unfamiliar birds and background negatives.
@@ -76,7 +37,7 @@ Ranking only known objects misses rare, tiny or unfamiliar birds and background 
 - Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: CLEAR
 - Research: yes
-- Dependencies: corpus-video-index-adapter.
+- Dependencies: none.
 - User-visible outcome: Operators get ranked, diverse candidate windows plus reproducible independent
   audit samples from the eligible pool.
 - Scope boundary: Frozen pretrained CLIP and DINOv2 backbones pinned by revision, diversity,
@@ -84,9 +45,13 @@ Ranking only known objects misses rare, tiny or unfamiliar birds and background 
   naming development-only training sources ([adapted models](current/corpus/sibling-integration.md#adapted-models));
   no claim that a score is a label.
 - Data and artifact paths: `contracts/`, `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/self-supervised-corpus/<run-id>/`.
-- Execution path: Implement a model-agnostic selection seam and evaluate sibling embeddings against a
-  simple uniform baseline, retaining each sampling probability, seed and exclusion reason in the
-  [discovery records](current/corpus/discovery-records.md). The embedders centre-crop to 224
+- Execution path: Implement a model-agnostic selection seam over the feature rows
+  [`discover run`](current/corpus/discovery-runs.md) writes, replacing its `unranked` selection,
+  and evaluate sibling embeddings against a simple uniform baseline, retaining each sampling
+  probability, seed and exclusion reason in the
+  [discovery records](current/corpus/discovery-records.md). A stream in the locked split, which
+  the adapter reads like any other, is excluded from selection as `operator_excluded` unless the
+  locked-test custodian policy allows it. The embedders centre-crop to 224
   pixels, so add tiled or uncropped coverage and measure it on fixtures with small targets near the
   frame edge; a tiled mode adds its crop name and grid to `record/discovery-run` as a minor.
 - Acceptance gates: Fixtures reproduce selection and independent audit membership; negatives,
@@ -119,7 +84,7 @@ Large candidate inventories need bounded human decisions before they become benc
 
 - Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: CLEAR
-- Dependencies: corpus-video-index-adapter, corpus-ssl-selection, corpus-group-and-leakage-review.
+- Dependencies: corpus-ssl-selection, corpus-group-and-leakage-review.
 - User-visible outcome: Reviewers can inspect candidates and export a frozen, reproducible corpus
   version with source terms, group, split, exclusions and decision provenance.
 - Scope boundary: Review and source-to-corpus manifest export; label adjudication uses the existing
@@ -167,7 +132,9 @@ A large corpus needs evidence that selection can run within the owner's availabl
 - Data and artifact paths: `$DATA_DIR/self-supervised-corpus/<run-id>/`, `$DATA_DIR/corpus/<corpus-id>/`.
 - Execution path: Use the approved corpus-size and diversity targets, candidate sampling, human
   review and baseline protocol; measure ingest, storage, CPU or GPU compute and completeness; retain
-  run pins.
+  run pins. The embedding worker records float32 rows only and refuses mixed precision; a GPU run
+  either measures float32 or adds a float16 or autocast mode as a `record/discovery-run` minor
+  with its own reproducibility check.
 - Acceptance gates: Corpus verification, rights and grouping checks pass; the report states selection
   recall, uncertainty, negative coverage and matched-budget baseline results, including missing
   evidence. Insufficient resources or a negative selection result is a valid negative; `make ci` passes.
@@ -2333,7 +2300,9 @@ cannot grant itself.
 - Acceptance gates: Every selected source has verifiable rights and retention, a named owner of the
   approval, approved model use and cost limits, and target coverage and negative cases. ss-fusion
   carries no licence, so its pinned tag needs a licence or a recorded grant, and each weight needs
-  an approved revision and use terms. No eligible
+  an approved revision (a Hugging Face snapshot commit or a torch.hub tree digest, as
+  [discovery plans](current/corpus/discovery-runs.md#plan) pin them) and use terms. The approval
+  has a reference that every discovery plan names. No eligible
   source or inadequate budget is a recorded valid negative and authorizes no acquisition.
 - Documentation target: [Corpus](current/corpus.md).
 
