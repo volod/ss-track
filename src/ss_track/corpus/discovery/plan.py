@@ -2,7 +2,9 @@
 
 The contract requires the owner's source approval on every plan: ss-track cannot tell fixture media
 from real sources, so a run over real sources cannot be written without one. Hint file paths are
-relative to the plan, so a plan and its hint files move together.
+relative to the plan, so a plan and its hint files move together. A tiled extractor becomes one run
+extractor per tile, and a selection may read only scores the run computes; every name either
+derives must be an identifier no other extractor holds.
 """
 
 from dataclasses import dataclass
@@ -10,7 +12,9 @@ from pathlib import Path
 from typing import Any
 
 from ss_track.corpus.declarations.fields import Fields, invalid
-from ss_track.schema.validation.enforce import read_declaration
+from ss_track.corpus.selection.catalog import UNIFORM, score_specs
+from ss_track.corpus.siblings.tiles import Tile, grid
+from ss_track.schema.validation.enforce import is_shared_type, read_declaration
 
 PLAN_CONTRACT = "declaration/discovery-plan"
 PLAN_SCHEMA_VERSION = 1
@@ -28,6 +32,13 @@ class ExtractorPlan:
     batch_size: int
     dimensions: int
     weights: tuple[dict[str, Any], ...]
+    tiles: tuple[int, int] | None = None  # columns and rows
+
+    def views(self) -> tuple[tuple[str, Tile | None], ...]:
+        """Return each run extractor this one becomes: itself, or one per tile, row by row."""
+        if self.tiles is None:
+            return ((self.extractor_id, None),)
+        return tuple((f"{self.extractor_id}.{tile.suffix()}", tile) for tile in grid(*self.tiles))
 
     def to_worker(self) -> dict[str, Any]:
         """Return what the worker is told about the extractor it loads."""
@@ -61,6 +72,16 @@ class HintFile:
 
 
 @dataclass(frozen=True, slots=True)
+class SelectionPlan:
+    """How the run ranks pool windows: its method, budget, seed and the scores it reads."""
+
+    method: str
+    budget: int
+    seed: int | None
+    score_ids: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
 class DiscoveryPlan:
     """One validated discovery plan."""
 
@@ -73,6 +94,11 @@ class DiscoveryPlan:
     audit_sample_size: int
     embedding: EmbeddingPlan | None
     hints: tuple[HintFile, ...]
+    selection: SelectionPlan | None = None
+
+    def extractors(self) -> tuple[ExtractorPlan, ...]:
+        """Return the plan's extractors, none without an embedding section."""
+        return () if self.embedding is None else self.embedding.extractors
 
 
 def _weight(fields: Fields) -> dict[str, Any]:
@@ -91,6 +117,10 @@ def _extractor(raw: object, where: str) -> ExtractorPlan:
         for position, item in enumerate(fields.items("weights"))
     )
     _require_ascending([weight["name"] for weight in weights], f"{where}.weights", "name")
+    tiles = None
+    if fields.has("tiles"):
+        tile_fields = fields.child("tiles")
+        tiles = (tile_fields.index("columns"), tile_fields.index("rows"))
     return ExtractorPlan(
         kind=fields.text("kind"),
         extractor_id=fields.text("extractor_id"),
@@ -100,6 +130,7 @@ def _extractor(raw: object, where: str) -> ExtractorPlan:
         batch_size=fields.index("batch_size"),
         dimensions=fields.index("dimensions"),
         weights=weights,
+        tiles=tiles,
     )
 
 
@@ -120,11 +151,53 @@ def _embedding(fields: Fields) -> EmbeddingPlan | None:
     )
     ids = [extractor.extractor_id for extractor in extractors]
     _require_ascending(ids, f"{embedding.where}.extractors", "extractor_id")
+    _require_views(extractors, f"{embedding.where}.extractors")
     return EmbeddingPlan(
         package_name=package.text("name"),
         package_commit=package.text("commit"),
         frame_stride=embedding.index("frame_stride"),
         extractors=extractors,
+    )
+
+
+def _require_views(extractors: tuple[ExtractorPlan, ...], where: str) -> None:
+    """The `tiles` rule: each tile's extractor id is an identifier no other extractor holds."""
+    seen: set[str] = {extractor.extractor_id for extractor in extractors}
+    for extractor in extractors:
+        for view_id, tile in extractor.views():
+            if tile is None:
+                continue
+            if not is_shared_type("identifier", view_id) or view_id in seen:
+                raise invalid(f"{where}: tile extractor id {view_id!r} is not a free identifier")
+            seen.add(view_id)
+
+
+def _selection(fields: Fields, extractors: tuple[ExtractorPlan, ...]) -> SelectionPlan | None:
+    """The `scores` rule: a selection reads only scores the run computes, in ascending order."""
+    if not fields.has("selection"):
+        return None
+    selection = fields.child("selection")
+    method = selection.text("method")
+    score_ids = tuple(str(item) for item in selection.optional_items("score_ids"))
+    _require_ascending(list(score_ids), f"{selection.where}.score_ids", "score_id")
+    specs = score_specs(
+        [
+            (extractor.extractor_id, [view_id for view_id, _ in extractor.views()])
+            for extractor in extractors
+        ]
+    )
+    known = {spec.score_id for spec in specs}
+    for score_id in score_ids:
+        if score_id not in known:
+            raise invalid(f"{selection.where}.score_ids: the run computes no score {score_id!r}")
+    for spec in specs:
+        if not is_shared_type("identifier", spec.score_id):
+            raise invalid(f"plan.embedding: score id {spec.score_id!r} is not an identifier")
+    return SelectionPlan(
+        method=method,
+        budget=selection.index("budget"),
+        seed=selection.index("seed") if method == UNIFORM else None,
+        score_ids=score_ids,
     )
 
 
@@ -141,6 +214,7 @@ def read_discovery_plan(path: Path) -> DiscoveryPlan:
         )
     )
     _require_ascending([hint.hint_source_id for hint in hints], "plan.hints", "hint_source_id")
+    embedding = _embedding(fields)
     return DiscoveryPlan(
         run_id=fields.text("run_id"),
         corpus_id=fields.text("corpus_id"),
@@ -149,6 +223,7 @@ def read_discovery_plan(path: Path) -> DiscoveryPlan:
         window_frames=fields.child("pool").index("window_frames"),
         audit_seed=audit.index("seed"),
         audit_sample_size=audit.index("sample_size"),
-        embedding=_embedding(fields),
+        embedding=embedding,
         hints=hints,
+        selection=_selection(fields, () if embedding is None else embedding.extractors),
     )

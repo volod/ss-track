@@ -6,10 +6,10 @@ from, which pinned model and preprocessing scored it, what selection decided wit
 probability, and whether the independent audit sample holds it. These records describe
 [video corpus formation](../../../design/spec.md#41a-self-supervised-video-corpus-formation).
 [Discovery runs](discovery-runs.md) states the `ss-track discover` commands that write and verify
-them through the functions below; [SSL selection](../../plan.md#corpus-ssl-selection) will add
-scores and selection. The
-[contract record](../../records/0051-self-supervised-corpus-corpus-discovery-contract.md) and the
-[adapter record](../../records/0052-self-supervised-corpus-corpus-video-index-adapter.md) hold the
+them through the functions below, and the scores and selection methods a run states. The
+[contract record](../../records/0051-self-supervised-corpus-corpus-discovery-contract.md), the
+[adapter record](../../records/0052-self-supervised-corpus-corpus-video-index-adapter.md) and the
+[selection record](../../records/0053-self-supervised-corpus-corpus-ssl-selection.md) hold the
 decisions and evidence.
 
 A candidate is a proposal. A score is not a label, and nothing in these records authorizes a source,
@@ -21,7 +21,7 @@ One run is one directory under `$DATA_DIR/self-supervised-corpus/<run-id>/`:
 
 | File | Contract | Holds |
 | --- | --- | --- |
-| `run.json` | `record/discovery-run` 1.1.0 | Frame set read, extractors, scores, hint sources and what became of their matches, pool, selection, audit design, the owner's source approval, one line per inventory and per feature record |
+| `run.json` | `record/discovery-run` 1.2.0 | Frame set read, extractors, scores, hint sources and what became of their matches, pool, selection, audit design, the owner's source approval, one line per inventory and per feature record |
 | `inventories/<stream-id>.json` | `record/candidate-inventory` 1.0.0 | Every candidate window of one stream |
 | `features/<extractor-id>/<stream-id>.json` | `record/feature-rows` 1.0.0 | One extractor's row keys for one stream, and the seal of the vector file beside it |
 
@@ -29,7 +29,8 @@ The run seals each inventory and each feature record by hash, as a frame set sea
 run is built in scratch and published by one rename under a lock, so a reader meets a whole run or
 none. A run id never holds two different runs: repeating the same records changes nothing, and
 different records are `CORPUS_CONFLICT`. Version 1.1.0 adds `source_approval`, `feature_rows` and a
-hint source's `matches`, each optional, so a 1.0.0 record still validates. One inventory per stream
+hint source's `matches`, each optional, so a 1.0.0 record still validates. Version 1.2.0 adds the
+crop `tiled` and an extractor's `tile`. One inventory per stream
 keeps each record bounded by its stream's length. As written, a golden pool candidate with two
 scores takes about 650 bytes, so one hour of 25 frame per second video cut into eight-frame windows
 is about 7 MB.
@@ -65,13 +66,13 @@ each sibling window from the stream's pinned source record and refuses one that 
 Each extractor states its architecture, package name, version and full commit, every library
 version its rows depend on, each weight file's name, immutable revision, SHA-256 and size, device,
 dtype and autocast, batch size, whether it read staged frames or sibling JPEGs, preprocessing
-(resize, crop, interpolation, input size, mean and deviation) and its output dimension and
-normalization. The [sibling study](sibling-integration.md#reproducibility) found rows depend on
-batch size, device and weight file, and that sibling JPEG rows differ from staged-frame rows, so
-each is a required field. A device pattern names one device, so a run that moved to the CPU mid-way
-cannot state one. Each score names its method, revision, the extractors it reads and which end ranks
-first; a candidate carries every score of the run, either `computed` with a value or `unavailable`
-with a reason.
+(resize, crop, interpolation, input size, mean and deviation, and a tile's grid position) and its
+output dimension and normalization. The [sibling study](sibling-integration.md#reproducibility)
+found rows depend on batch size, device and weight file, and that sibling JPEG rows differ from
+staged-frame rows, so each is a required field. A device pattern names one device, so a run that
+moved to the CPU mid-way cannot state one. Each score names its method, revision, the extractors it
+reads and which end ranks first; a candidate carries every score of the run, either `computed` with
+a value or `unavailable` with a reason.
 
 ### Selection and audit
 
@@ -121,8 +122,8 @@ probability. The cross-record rules need ss-track or a reader that follows the `
 
 ## Limits
 
-- Crop modes are `center` and `none`. Tiled coverage adds a mode with its grid as a contract minor,
-  owned by [SSL selection](../../plan.md#corpus-ssl-selection).
+- Crop modes are `center`, `none` and `tiled`. A tiled grid states each tile as its own extractor,
+  so a feature-rows record stays one row per frame.
 - Pool windows do not overlap, and the only audit design is `stratified_fixed_size`; another
   stride or design is a contract minor when a consumer needs it.
 - `source_approval` names an approval kept outside ss-track; the run cannot check that it exists.

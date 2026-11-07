@@ -113,7 +113,8 @@ Hazards in the inspected code that an adapter must neutralise:
   out-of-memory both embedders move to the CPU for the rest of the run, so one run can mix
   fp16-autocast GPU vectors with fp32 CPU vectors.
 - Both embedders resize the short side to 224 and centre-crop it. A 16:9 frame loses about 22% of
-  its width on each side, and a small bird shrinks with the frame.
+  its width on each side, and a small bird shrinks with the frame. A tiled extractor
+  ([tiled coverage](discovery-runs.md#tiled-coverage)) sends square tiles that cover the frame.
 - `torch.hub` reads `facebookresearch/dinov2` at `main`, and `open_clip` reads Hugging Face at
   `main`, so the weights can change underneath one pin.
 
@@ -132,9 +133,9 @@ show that it never saw locked-test footage, and corpus selection uses frozen pre
 2. **ss-video hints.** Implemented: a query match becomes a candidate window only through the
    `file_hash` join and the slot rule above, under a recorded ffmpeg version and sampling rate
    ([hint files](discovery-runs.md#hint-files)). It never names a frame by itself.
-3. **Selection features.** Whole-frame vectors miss edges and tiny targets, so
-   [SSL selection](../../plan.md#corpus-ssl-selection) adds tiled or uncropped coverage and measures
-   it on small-target fixtures.
+3. **Selection features.** Implemented: whole-frame vectors miss edges and tiny targets, so an
+   extractor may embed square tiles that cover each frame
+   ([tiled coverage](discovery-runs.md#tiled-coverage)), measured on small-target fixtures.
 4. **Rights.** Running the worker on real sources waits for the
    [source authorization](../../plan.md#authorize-video-corpus-sources) grant for ss-fusion code and
    the pinned weights.

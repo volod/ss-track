@@ -3,14 +3,16 @@
 `ss-track discover run` writes one [discovery run](discovery-records.md) over a staged corpus
 version from an operator's plan. It embeds staged frames with pinned ss-perception extractors in a
 separate process, turns ss-video matches into candidate windows of ss-track frames, tiles every
-bundle into pool windows and draws the independent audit sample. `ss-track discover verify` checks
-a written run against the corpus version it read. The adapter ranks nothing: SSL selection, which
-the [plan](../../plan.md#corpus-ssl-selection) schedules, adds scores and a selection method. The
-[task record](../../records/0052-self-supervised-corpus-corpus-video-index-adapter.md) holds the
+bundle into pool windows and draws the independent audit sample. A plan with a selection then
+scores every candidate and ranks pool windows under its method ([selection](#selection)).
+`ss-track discover verify` checks a written run against the corpus version it read and recomputes
+its scores and selection. The
+[adapter record](../../records/0052-self-supervised-corpus-corpus-video-index-adapter.md) and the
+[selection record](../../records/0053-self-supervised-corpus-corpus-ssl-selection.md) hold the
 decisions and acceptance evidence.
 
-A candidate is a proposal and a feature row describes pixels. Neither is a label, and a run
-authorizes no source.
+A candidate is a proposal, a feature row describes pixels and a score ranks windows for review.
+None is a label, and a run authorizes no source.
 
 ## Commands
 
@@ -28,16 +30,25 @@ never guesses it, and a plan without extractors does not need it. Each command l
  "manifest_sha256": "...", "manifest_path": ".../self-supervised-corpus/discovery-1/run.json",
  "inventory_count": 2, "candidate_count": 35, "feature_row_count": 240,
  "hint_sources": [{"hint_source_id": "ss-video-1", "read": 20, "mapped": 16,
-                   "unmapped": [{"reason": "empty_slot", "count": 4}]}]}
+                   "unmapped": [{"reason": "empty_slot", "count": 4}]}],
+ "selection": {"method": "ssl-diverse", "budget": 12, "selected": 12,
+               "excluded": [{"reason": "operator_excluded", "count": 8}]},
+ "unavailable_scores": [{"score_id": "clip-b16.instability", "reason": "window_too_short",
+                         "count": 2}],
+ "coverage": [{"extractor_id": "clip-b16", "covered_fraction": 0.5625, "scale": 0.207407}]}
 ```
 
-The same plan over the same staged frames writes the same bytes, so a retry reports `unchanged`.
-Another plan under a used run id is `CORPUS_CONFLICT`. `verify` reports `verified` with the same
-fields.
+`selection` counts what selection decided and why windows were excluded; `unavailable_scores`
+counts each score a window could not have, by reason. `coverage` states, for each extractor, the
+least share of a frame's area its model input showed over the run's streams, and the least scale
+at which it saw a target: `scale` times a target's width in frame pixels is its width in the model
+input. The same plan over the same staged frames writes the same bytes, so a retry reports
+`unchanged`. Another plan under a used run id is `CORPUS_CONFLICT`. `verify` reports `verified`
+with the same fields.
 
 ## Plan
 
-`declaration/discovery-plan` 1.0.0 states one run. Extractors, weights and hint files are listed in
+`declaration/discovery-plan` 1.1.0 states one run. Extractors, weights and hint files are listed in
 ascending id order:
 
 ```yaml
@@ -65,7 +76,13 @@ embedding:                              # optional
                 size_bytes: 346393545}]}
 hints:                                  # optional; paths relative to the plan
 - {hint_source_id: ss-video-1, file: hints.yaml}
+selection:                              # optional; absent, the run ranks nothing
+  {method: ssl-diverse, budget: 12, score_ids: [clip-b16.deviation, motion]}
 ```
+
+`declaration/discovery-plan` 1.1.0 adds `selection` and an extractor's `tiles`. An extractor with
+`tiles: {columns: 4, rows: 2}` embeds square tiles instead of whole frames
+([tiled coverage](#tiled-coverage)).
 
 `source_approval` is required on every plan. ss-track cannot tell fixture media from real sources,
 so it cannot refuse only real-source runs without it. The run records the approval in
@@ -156,10 +173,59 @@ every value is finite. `verify_discovery` also checks that the rows name exactly
 at the stride, by their sealed hashes, and recomputes every sibling window from the stream's pinned
 source record by the slot rule.
 
-Every pool window is `not_selected` with probability 0 under the `unranked` method, budget 0 and
-no scores. The audit sample is `stratified_fixed_size` with one stratum per encounter group: each
-pool window ranks by the SHA-256 of the seed, group, stream and candidate id, and the lowest
-`min(sample_size, windows)` are drawn. The rank is the same in any language and Python version.
+A plan without a selection writes the `unranked` method, budget 0 and no scores: every window is
+`not_selected` with probability 0. The audit sample is `stratified_fixed_size` with one stratum per
+encounter group: each pool window ranks by the SHA-256 of the seed, group, stream and candidate id,
+and the lowest `min(sample_size, windows)` are drawn. The rank is the same in any language and
+Python version, and selection never moves it: runs with the same pool and audit seed draw the same
+audit sample whatever they select.
+
+## Tiled coverage
+
+The embedders scale a frame's short side to 224 pixels and keep the centre, so a 16:9 frame loses
+about a fifth of its width on each side and a small bird shrinks with the whole frame. An extractor
+with `tiles: {columns: C, rows: R}` cuts each frame into C by R square tiles of side
+`S = max(ceil(W / C), ceil(H / R))`, the left edge of column `c` at `floor(c (W - S) / (C - 1))`
+and the top edge of row `r` likewise, so the tiles cover the frame. A square tile passes through the
+embedder's centre crop whole, and a target in it is `224 / S` times its frame size instead of
+`224 / min(W, H)`. A 1920 by 1080 frame in a 4 by 2 grid gives tiles of 540 pixels, twice the scale
+of the centre crop, at eight times the compute.
+
+Each tile position is its own extractor of the run, `<extractor_id>.r<row>c<column>`, with crop
+`tiled` and its `tile` in `record/discovery-run` 1.2.0, and its own feature records keyed by the
+frame each tile was cut from. One worker loads the model once; each batch holds one tile position
+of `batch_size` consecutive frames, so rows are reproducible from the plan. A grid whose tile side
+exceeds a stream's shorter side, or a model with a non-square input that would crop each tile, is
+`EXTRACTOR_INCOMPATIBLE`.
+
+## Selection
+
+A plan's `selection` makes the run compute every score below for every candidate, pool and sibling,
+and rank pool windows within `budget`. A score that a window cannot support is `unavailable` with
+its reason, never a guessed value.
+
+| Score | Method | Value |
+| --- | --- | --- |
+| `motion` | `block-difference` | The largest mean absolute BT.601 luma change of any 16 by 16 block, partial edge blocks included, between consecutive frames of the window. A one-frame window has none |
+| `<extractor_id>.deviation` | `background-deviation` | `1 - cos` between the unit mean of the window's rows and the unit mean of all the stream's rows, the most over the extractor's tiles. A window with no embedded frame has none |
+| `<extractor_id>.instability` | `temporal-instability` | Mean `1 - cos` between consecutive embedded frames of the window, the most over the extractor's tiles. A window needs two embedded frames |
+
+Deviation finds what a fixed camera rarely shows; instability, how much the frozen backbone's account
+of a window changes from frame to frame, stands in for uncertainty, which a backbone without a
+classifier does not have. Values are rounded to ten decimals. Each score's method has revision 1.
+
+| Method | Seed | Rule |
+| --- | --- | --- |
+| `uniform` | required | The baseline. A simple random sample of `n = min(budget, N)` of the `N` eligible pool windows, ranked by the SHA-256 of the method, seed, stream and candidate id; every eligible window has probability `n / N`. It reads no score, so `features_unavailable` never applies |
+| `ssl-diverse` | none | Deterministic. Each read score becomes a percentile among eligible windows, ties averaged, and priority is their mean. Picks are greedy: the highest priority less half the largest cosine similarity to a window already picked, the similarity being the mean over the extractors the read scores use. Ties go to stream, then candidate order. A window missing a read score is `features_unavailable` |
+
+Only pool windows are ranked: a sibling window keeps its scores for review and is `not_selected`
+with probability 0. A pool window of a stream in the `locked` split is `operator_excluded` under
+every method that ranks, because no locked-test custodian policy exists to allow it; it still
+stays in the audit pool. `discover verify` recomputes every score and decision from the feature rows
+and the staged frames and refuses a difference, or a method it does not know, as `RECORD_INVALID`
+with a `selection` finding. Scores compare as written, so verification holds on the host that wrote
+the run.
 
 ## Determinism and concurrency
 
@@ -188,15 +254,49 @@ absolute difference; each empty slot showed the previous slot's frame. Peak resi
 1.56 GB. A retry of the 30 fps run reported `unchanged`, so CPU rows are reproducible across
 processes. A GPU run was not measured.
 
+## Measured selection
+
+On 2026-11-07 six synthetic 640 by 360 clips of 64 frames were staged as one corpus, each stream its
+own group: a 12 by 6 pixel gull at the right edge, the same gull at the centre, a 5 by 3 pixel bird
+at the top-left edge, empty sky, a swaying branch (a confuser) and a brightness flicker (a
+negative). Twelve of the 48 eight-frame pool windows hold a target. One run embedded every second
+frame with CLIP ViT-B/16 and DINOv2 ViT-B/14, each centre-cropped and in a 4 by 2 grid, and selected
+12 windows by `ssl-diverse` over `clip-b16-tiles.deviation` and `motion`; a second ran `uniform`
+with the same audit seed. Other score sets were replayed through the same `score_and_select` over
+the first run's rows. Results, scripts and records are under
+`$DATA_DIR/self-supervised-corpus/selection-eval-20261107/`.
+
+| Scores read | Targets of 12 selected | Edge, centre, tiny edge | Confusers selected |
+| --- | --- | --- | --- |
+| `uniform`, seed 3 (expected 3) | 4 | 2, 0, 2 | branch 2, flicker 2, empty 1 |
+| `motion` | 4 | 3, 1, 0 | branch 8 |
+| CLIP centre deviation | 4 | 0, 4, 0 | flicker 4 |
+| CLIP tiled deviation | 8 | 4, 4, 0 | none |
+| CLIP centre deviation and motion | 5 | 0, 4, 1 | branch 5, flicker 1 |
+| CLIP tiled deviation and motion (the run) | 11 | 4, 4, 3 | branch 1 |
+| DINOv2 tiled deviation and motion | 10 | 4, 4, 2 | branch 1 |
+
+The centre crop cannot see an edge target: CLIP deviation separates edge-gull windows from
+target-free ones with an area under the curve of 0.15 centre-cropped and 0.94 tiled, and the tiny
+bird with 0.30 and 0.83. Motion alone ranks the branch first. The 12-window audit sample held 3
+target windows and 2 each of branch, flicker and empty sky, so negatives and confusers stay
+measurable whatever selection picks. The run took 10 min 45 s on this host's CPU with 1.56 GB peak
+resident memory for 3,456 embedded images; the uniform run, which embeds nothing, took 1.1 s and a
+retry reported `unchanged`. `discover verify` recomputed every score and decision in 1.3 s. These
+clips are fixtures: the result shows the mechanism works and that tiles matter for edge and small
+targets, not how selection performs on real footage.
+
 ## Limits
 
-- The adapter ranks nothing and draws only the audit sample;
-  [SSL selection](../../plan.md#corpus-ssl-selection) adds scores and selection.
+- Deviation compares a window with its own stream, so an object present for a whole stream is its
+  background; motion and the audit sample are the cover for it. Scores rank review; they do not
+  detect, and a high score is not a bird.
+- Selection evidence on real footage needs the reviewed protocol of the
+  [selection evaluation](../../plan.md#corpus-selection-evaluation).
 - ss-video has no export of matches joined to file hashes, so an operator builds the hint file.
 - Rows are float32 only; a GPU mixed-precision mode is a contract minor that the
   [scale pilot](../../plan.md#corpus-scale-pilot) owns if it needs one.
-- Embedders centre-crop to 224 pixels; tiled coverage belongs to
-  [SSL selection](../../plan.md#corpus-ssl-selection).
+- A tiled grid multiplies embedding compute by its tile count.
 - Running over real sources waits for the
   [source authorization](../../plan.md#authorize-video-corpus-sources) grant for the sibling code
   and weights.
@@ -207,8 +307,18 @@ processes. A GPU run was not measured.
 | --- | --- |
 | `commands/discover.py` | `discover run` and `discover verify` |
 | `corpus/discovery/run.py` | `run_discovery`, `build_discovery`, `verify_discovery_run` |
-| `corpus/discovery/plan.py` | `read_discovery_plan` |
-| `corpus/discovery/pool.py` | Pool tiling, the `unranked` selection and the audit draw |
+| `corpus/discovery/result.py` | `DiscoveryResult`: counts, selection summary, unavailable scores, coverage |
+| `corpus/discovery/plan.py` | `read_discovery_plan`, tile views and the selection's score rule |
+| `corpus/discovery/pool.py` | Pool tiling and the audit draw |
+| `corpus/discovery/selection_check.py` | `require_reproduced`: recompute scores and selection on verify |
+| `corpus/selection/catalog.py` | Score names, methods and revisions |
+| `corpus/selection/motion.py` | The `block-difference` motion score |
+| `corpus/selection/embeddings.py` | Feature rows by extractor and stream, window rows, stream background |
+| `corpus/selection/scores.py` | Every candidate's scores, or why each is unavailable |
+| `corpus/selection/methods.py` | `unranked`, `uniform` and `ssl-diverse` |
+| `corpus/selection/apply.py` | `score_and_select` from a plan or from a written run |
+| `corpus/siblings/tiles.py` | Tile geometry, crops and coverage |
+| `corpus/siblings/worker_env.py` | The worker's interpreter and process environment |
 | `corpus/discovery/features.py` | Feature-rows records: seal, rules, vector reads, frame binding |
 | `corpus/discovery/sibling_check.py` | Recomputes each sibling window from pinned PTS |
 | `corpus/siblings/slots.py` | The slot rule, in exact rationals |
@@ -220,7 +330,7 @@ processes. A GPU run was not measured.
 ## Verification
 
 ```bash
-.venv/bin/pytest tests/corpus/siblings tests/corpus/discovery
+.venv/bin/pytest tests/corpus/siblings tests/corpus/discovery tests/corpus/selection
 SST_PERCEPTION_PYTHON=/path/to/pinned-env/bin/python \
   .venv/bin/pytest tests/corpus/siblings/test_sibling_defects.py
 make ci
@@ -231,3 +341,7 @@ ss-perception (`fake_site/`), which reproduces each defect on request, over real
 `test_slots.py` covers a start offset, a slower source and a variable rate.
 `tests/corpus/discovery/test_discovery_run.py` writes, retries, conflicts, locks, races two
 writers, and refuses a moved sibling window, altered vectors and rows naming other frames.
+`test_selection_run.py` runs tiled extractors and both methods over a corpus with a locked stream,
+holds the audit sample fixed across methods, and refuses a changed decision, a changed score and an
+unknown method on verify. `tests/corpus/selection/` checks tile geometry, coverage, the motion
+block rule, each score and both methods against hand-calculated values.

@@ -16,7 +16,7 @@ from typing import Any
 
 import pytest
 
-from ss_track.corpus.siblings.embedding import PYTHON_VARIABLE
+from ss_track.corpus.siblings.worker_env import PYTHON_VARIABLE
 
 PINNED_COMMIT = "12cb0861af8f6ae6562d2cf5211547e284c5b40d"
 PYTHON = os.environ.get(PYTHON_VARIABLE)

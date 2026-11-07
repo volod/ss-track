@@ -1,10 +1,10 @@
 """The candidates of one stream: pool windows that tile its bundle, sibling windows, and the audit draw.
 
-The adapter ranks nothing, so its selection is the empty deterministic one: every window is
-`not_selected` with probability 0, and SSL selection replaces it with scores of its own. The audit
-sample is simple random sampling without replacement inside each encounter group: each pool window
-gets a rank from the SHA-256 of the seed, its group, stream and candidate id, and the lowest ranks are
-drawn. That rank is the same in any language and Python version, so a seed always draws one sample.
+A candidate here holds its window, origin and audit status; selection (`corpus/selection/`) adds
+its scores and what it decided. The audit sample is simple random sampling without replacement
+inside each encounter group: each pool window gets a rank from the SHA-256 of the seed, its group,
+stream and candidate id, and the lowest ranks are drawn. That rank is the same in any language and
+Python version, so a seed always draws one sample, whatever selection then decides.
 """
 
 import hashlib
@@ -16,25 +16,11 @@ from ss_track.corpus.discovery.inventory_rules import SIBLING_TIME, pool_windows
 from ss_track.corpus.discovery.run_rules import NOT_SAMPLED, POOL, SAMPLED
 from ss_track.corpus.siblings.video_hints import HintWindow
 
-SELECTION_METHOD = "unranked"
-SELECTION_REVISION = 1
 AUDIT_DESIGN = "stratified_fixed_size"
 AUDIT_REVISION = 1
 _MIN_ID_DIGITS = 3
 _SLOT_DIGITS = 8
-_UNRANKED: dict[str, JsonValue] = {"status": "not_selected", "probability": 0.0}
 _INELIGIBLE: dict[str, JsonValue] = {"status": "ineligible", "reason": "no_inclusion_probability"}
-
-
-def unranked_selection() -> dict[str, JsonValue]:
-    """Return the run's selection when the adapter ranks nothing."""
-    return {
-        "method": SELECTION_METHOD,
-        "revision": SELECTION_REVISION,
-        "seed": None,
-        "budget": 0,
-        "score_ids": [],
-    }
 
 
 @dataclass(frozen=True, slots=True)
@@ -110,8 +96,6 @@ def pool_candidate(window: PoolWindow, draw: AuditDraw) -> dict[str, JsonValue]:
         "candidate_id": window.candidate_id,
         "window": _window(window.start_frame, window.end_frame),
         "origin": {"source": POOL},
-        "scores": [],
-        "selection": dict(_UNRANKED),
         "audit": {
             "status": status,
             "stratum_id": window.stratum_id,
@@ -126,8 +110,6 @@ def sibling_candidate(hint_source_id: str, window: HintWindow) -> dict[str, Json
         "candidate_id": f"sibling-{hint_source_id}-{window.slot:0{_SLOT_DIGITS}d}",
         "window": _window(window.start_frame, window.end_frame),
         "origin": {"source": SIBLING_TIME, "hint_source_id": hint_source_id, "slot": window.slot},
-        "scores": [],
-        "selection": dict(_UNRANKED),
         "audit": dict(_INELIGIBLE),
     }
 

@@ -15,13 +15,8 @@ from ss_track.corpus import ImportResult, build_corpus, stage_corpus
 from ss_track.corpus.bundles.bundle_reader import open_corpus_bundle
 from ss_track.corpus.bundles.frames import FrameBundle
 from ss_track.corpus.discovery.plan import ExtractorPlan
-from ss_track.corpus.siblings.embedding import (
-    PYTHON_VARIABLE,
-    ExtractorRows,
-    embed_streams,
-    worker_environment,
-    worker_python,
-)
+from ss_track.corpus.siblings.embedding import ExtractorRows, embed_streams
+from ss_track.corpus.siblings.worker_env import PYTHON_VARIABLE, worker_environment, worker_python
 from ss_track.corpus.storage.layout import frames_root
 from ss_track.corpus.versions.manifests import load_corpus_manifest
 from tests.corpus.conftest import WriteCorpus, stream_of
@@ -59,9 +54,10 @@ def _embed(
     timeout: float = 60.0,
 ) -> ExtractorRows:
     plan = embedding_plan([extractor], frame_stride)
-    return embed_streams(
+    (rows,) = embed_streams(
         plan, extractor, bundles, python=python, timeout=timeout, environ=caches.environ
     )
+    return rows
 
 
 def _refused(

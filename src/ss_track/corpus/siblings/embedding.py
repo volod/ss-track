@@ -6,10 +6,13 @@ any frame is sent, the worker's own account of what it loaded must equal the pla
 commit, every weight's revision, hash and size, the architecture, device type, batch size and row
 length. Batches never cross a stream and always hold `batch_size` frames but a stream's last, so the
 same plan sends the same batches and gets the same rows.
+
+A tiled extractor sends square tiles cut from each frame instead (see `tiles.py`). Each tile
+position is its own extractor of the run, with its own rows keyed by the frame they were cut from,
+and each batch holds one tile position of `batch_size` consecutive frames.
 """
 
 import math
-import os
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -17,9 +20,12 @@ from typing import Any
 
 import numpy as np
 
+from ss_track.core.canonical import sha256_bytes
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.bundles.frames import FrameBundle, FrameRef
 from ss_track.corpus.discovery.plan import EmbeddingPlan, ExtractorPlan
+from ss_track.corpus.siblings.tiles import TILED, Tile, TileBox, crop
+from ss_track.corpus.siblings.worker_env import require_no_checkpoint, worker_environment
 from ss_track.corpus.siblings.worker_process import (
     DEFAULT_TIMEOUT_SEC,
     WorkerProcess,
@@ -27,14 +33,9 @@ from ss_track.corpus.siblings.worker_process import (
 )
 
 PROTOCOL = 1
-PYTHON_VARIABLE = "SST_PERCEPTION_PYTHON"
 PIXEL_FORMAT = "rgb24"
 STAGED_FRAME = "staged_frame"
 _NORM_TOLERANCE = 1e-3
-# Forwarded so the worker finds its caches and devices; nothing else of this process reaches it.
-_FORWARDED = ("PATH", "HOME", "HF_HOME", "HF_HUB_CACHE", "TORCH_HOME", "XDG_CACHE_HOME")
-_FORWARDED_DEVICES = ("CUDA_VISIBLE_DEVICES",)
-_CHECKPOINT_VARIABLE = "DINO_CHECKPOINT"
 
 
 @dataclass(frozen=True, slots=True)
@@ -49,62 +50,10 @@ class StreamRows:
 
 @dataclass(frozen=True, slots=True)
 class ExtractorRows:
-    """An extractor's provenance as a run states it, and its rows for every stream."""
+    """One run extractor's provenance as a run states it, and its rows for every stream."""
 
     provenance: dict[str, JsonValue]
     streams: tuple[StreamRows, ...]
-
-
-def worker_python(environ: Mapping[str, str] | None = None) -> Path:
-    """Return the pinned environment's interpreter, which the operator names, never a default."""
-    found = (os.environ if environ is None else environ).get(PYTHON_VARIABLE)
-    if not found:
-        raise CorpusRefusal(
-            RefusalCode.WORKER_FAILED,
-            f"set {PYTHON_VARIABLE} to the Python of the pinned ss-perception environment",
-            {"variable": PYTHON_VARIABLE},
-        )
-    return Path(found)
-
-
-def require_no_checkpoint(environ: Mapping[str, str] | None = None) -> None:
-    """Refuse a configured adapted checkpoint, which the worker would otherwise never see."""
-    found = (os.environ if environ is None else environ).get(_CHECKPOINT_VARIABLE)
-    if found:
-        raise CorpusRefusal(
-            RefusalCode.EXTRACTOR_UNPINNED,
-            f"{_CHECKPOINT_VARIABLE} is set; adapted checkpoints carry no training-source manifest",
-            {"variable": _CHECKPOINT_VARIABLE},
-        )
-
-
-def worker_environment(
-    extractor: ExtractorPlan, neutral: Path, environ: Mapping[str, str] | None = None
-) -> dict[str, str]:
-    """Build the worker's whole environment: caches offline, settings explicit, data dir empty."""
-    source = os.environ if environ is None else environ
-    forwarded = {key: source[key] for key in (*_FORWARDED, *_FORWARDED_DEVICES) if key in source}
-    settings = {
-        "APP_ENV": "dev",
-        "DATA_DIR": str(neutral),
-        "SUP_CHECKPOINT_DIR": str(neutral / "checkpoints"),
-        _CHECKPOINT_VARIABLE: "",
-        "DEVICE": extractor.device,
-        "USE_FP16": "false",
-        "OPENCLIP_MODEL": extractor.model,
-        "OPENCLIP_PRETRAINED": extractor.pretrained or "",
-    }
-    quiet = {
-        "HF_HUB_OFFLINE": "1",
-        "TRANSFORMERS_OFFLINE": "1",
-        "HF_HUB_DISABLE_TELEMETRY": "1",
-        "HF_HUB_DISABLE_PROGRESS_BARS": "1",
-        "TQDM_DISABLE": "1",
-        "PYTHONHASHSEED": "0",
-        "PYTHONDONTWRITEBYTECODE": "1",
-        "LC_ALL": "C.UTF-8",
-    }
-    return forwarded | settings | quiet
 
 
 def _differs(name: str, pinned: object, found: object) -> CorpusRefusal | None:
@@ -173,25 +122,46 @@ def embedded_frames(bundle: FrameBundle, frame_stride: int) -> list[FrameRef]:
     return [ref for ref in bundle.frame_refs() if (ref.frame_index - start) % frame_stride == 0]
 
 
+def tiled_provenance(
+    provenance: Mapping[str, Any], extractor_id: str, tile: Tile
+) -> dict[str, Any]:
+    """State one tile position as its own extractor, refusing an input a tile would be cropped by."""
+    preprocessing = provenance["preprocessing"]
+    if preprocessing["input_width"] != preprocessing["input_height"]:
+        raise CorpusRefusal(
+            RefusalCode.EXTRACTOR_INCOMPATIBLE,
+            "a tiled extractor needs a square model input, or the embedder would crop each tile",
+            {"extractor_id": extractor_id, "preprocessing": _json(preprocessing)},
+        )
+    tiled = {**preprocessing, "crop": TILED, "tile": tile.to_record()}
+    return {**provenance, "extractor_id": extractor_id, "preprocessing": tiled}
+
+
 def _batch(
-    worker: WorkerProcess, bundle: FrameBundle, refs: Sequence[FrameRef], dimensions: int
+    worker: WorkerProcess,
+    refs: Sequence[FrameRef],
+    pixels: Sequence[bytes],
+    box: TileBox | None,
+    dimensions: int,
 ) -> bytes:
-    frames = [
-        {
-            "frame_index": ref.frame_index,
-            "sha256": ref.sha256,
-            "width": ref.width,
-            "height": ref.height,
-        }
-        for ref in refs
-    ]
-    worker.send(
-        {"op": "embed", "frames": frames},
-        b"".join(map(bundle.read_frame, (r.frame_index for r in refs))),
-    )
+    frames: list[dict[str, Any]] = []
+    sent: list[bytes] = []
+    for ref, frame in zip(refs, pixels, strict=True):
+        pixels_sent = frame if box is None else crop(frame, ref.width, ref.height, box)
+        width, height = (ref.width, ref.height) if box is None else (box.side, box.side)
+        frames.append(
+            {
+                "frame_index": ref.frame_index,
+                "sha256": ref.sha256 if box is None else sha256_bytes(pixels_sent),
+                "width": width,
+                "height": height,
+            }
+        )
+        sent.append(pixels_sent)
+    worker.send({"op": "embed", "frames": frames}, b"".join(sent))
     header, payload = worker.receive()
-    sent = [[ref.frame_index, ref.sha256] for ref in refs]
-    if header.get("status") != "rows" or header.get("keys") != sent:
+    keys = [[frame["frame_index"], frame["sha256"]] for frame in frames]
+    if header.get("status") != "rows" or header.get("keys") != keys:
         raise worker.failed("the worker answered with rows for other frames than it was sent")
     if len(payload) != len(refs) * dimensions * 4:
         raise worker.failed("the worker answered with a partial batch of rows")
@@ -206,15 +176,24 @@ def _batch(
 
 def _stream_rows(
     worker: WorkerProcess, bundle: FrameBundle, extractor: ExtractorPlan, frame_stride: int
-) -> StreamRows:
+) -> list[StreamRows]:
+    """Return one stream's rows of every view: the whole frame, or each tile position."""
     refs = embedded_frames(bundle, frame_stride)
+    boxes = [
+        None if tile is None else tile.box(bundle.width, bundle.height)
+        for _, tile in extractor.views()
+    ]
+    vectors = [bytearray() for _ in boxes]
     size = extractor.batch_size
-    vectors = b"".join(
-        _batch(worker, bundle, refs[first : first + size], extractor.dimensions)
-        for first in range(0, len(refs), size)
-    )
+    for first in range(0, len(refs), size):
+        chunk = refs[first : first + size]
+        pixels = [bundle.read_frame(ref.frame_index) for ref in chunk]
+        for rows, box in zip(vectors, boxes, strict=True):
+            rows += _batch(worker, chunk, pixels, box, extractor.dimensions)
     keys = tuple((ref.frame_index, ref.sha256) for ref in refs)
-    return StreamRows(bundle.stream_id, bundle.bundle_sha256, keys, vectors)
+    return [
+        StreamRows(bundle.stream_id, bundle.bundle_sha256, keys, bytes(rows)) for rows in vectors
+    ]
 
 
 def embed_streams(
@@ -225,8 +204,8 @@ def embed_streams(
     python: Path,
     timeout: float = DEFAULT_TIMEOUT_SEC,
     environ: Mapping[str, str] | None = None,
-) -> ExtractorRows:
-    """Run one extractor's worker over every bundle and return its pinned rows."""
+) -> tuple[ExtractorRows, ...]:
+    """Run one extractor's worker over every bundle and return the pinned rows of each view."""
     require_no_checkpoint(environ)
     with started_worker(
         python, lambda neutral: worker_environment(extractor, neutral, environ), timeout
@@ -241,7 +220,14 @@ def embed_streams(
         except (KeyError, TypeError, AttributeError) as error:
             message = f"the worker's account of what it loaded is incomplete: {error}"
             raise worker.failed(message) from error
-        streams = tuple(
+        views = [
+            provenance if tile is None else tiled_provenance(provenance, view_id, tile)
+            for view_id, tile in extractor.views()
+        ]
+        per_stream = [
             _stream_rows(worker, bundle, extractor, embedding.frame_stride) for bundle in bundles
-        )
-    return ExtractorRows(provenance, streams)
+        ]
+    return tuple(
+        ExtractorRows(view, tuple(rows[position] for rows in per_stream))
+        for position, view in enumerate(views)
+    )

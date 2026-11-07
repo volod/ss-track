@@ -85,6 +85,14 @@ contracts:
     change:
       class: initial
       summary: Initial contract.
+  - version: 1.1.0
+    file_sha256: 9aae8ee2151c6723d6671a82cdc36d59d1102cb9b18e1965c20c853e42517e90
+    fingerprints:
+      structure: 7b972b52b2be03c748fe57f07b677a9047e913fa2fc7da3130baf5ece8df23a1
+      meaning: cf75a5ea1ff9603768ba5ab3ac8bebc042781f548d59c30fe93bdff3e6c7b4ec
+    change:
+      class: minor
+      summary: Add a selection method and tiled extractors.
 - family: declaration
   id: recording
   owner: corpus-provenance
@@ -260,6 +268,14 @@ contracts:
       class: minor
       summary: Name the owner's source approval, seal each feature-rows record and
         count what became of each hint file's matches.
+  - version: 1.2.0
+    file_sha256: 2c2e0e82296e6c7b0a9dc3a14ce10d5cb46b7af0ff00af19556466b477e3ddf3
+    fingerprints:
+      structure: 5d628f43824cedf21e112c57f0b8cde8fb1135485e6d1027e6cfc295f23c7939
+      meaning: f91255f86f95173da116a94ac9ab0b3afb7cfc1a17ed1d8699779cf67cf07ce4
+    change:
+      class: minor
+      summary: Add the tiled crop and the tile an extractor read.
 - family: record
   id: feature-rows
   owner: self-supervised-corpus
@@ -581,6 +597,14 @@ contracts:
       class: minor
       summary: Report a discovery run and its hint matches, and refuse an unpinned
         or incompatible extractor, a failed worker or a busy run id.
+  - version: 1.16.0
+    file_sha256: 58a3e81aec4d2df8053d52ad251b2ce072106dab4e5a600b2349b3a2ff42a350
+    fingerprints:
+      structure: 2496586ba90fdf6f23737d07bb203a02dd1786154bc87a21e49e4bfe72fde184
+      meaning: e828666a8a21ea689b9e563ccb1812832212884f3e84b87cadd22ca1aa891c4a
+    change:
+      class: minor
+      summary: Add a discovery run's selection, unavailable scores and coverage.
 - family: shared
   id: types
   owner: data-contracts

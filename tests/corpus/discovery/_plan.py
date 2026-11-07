@@ -5,7 +5,7 @@ from typing import Any
 
 import yaml
 
-from ss_track.corpus.siblings.embedding import PYTHON_VARIABLE
+from ss_track.corpus.siblings.worker_env import PYTHON_VARIABLE
 from tests.corpus.siblings._fake_sibling import COMMIT, DIMENSIONS, Caches
 
 RUN_ID = "discovery-1"

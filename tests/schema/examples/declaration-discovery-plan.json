@@ -30,6 +30,10 @@
         "extractor_id": "dino-b14",
         "kind": "dino",
         "model": "dinov3_vitb14",
+        "tiles": {
+          "columns": 3,
+          "rows": 2
+        },
         "weights": [
           {
             "name": "facebookresearch_dinov2_main:dinov2_vitb14_reg4_pretrain.pth",
@@ -57,6 +61,15 @@
   },
   "run_id": "discovery-1",
   "schema_version": 1,
+  "selection": {
+    "budget": 20,
+    "method": "ssl-diverse",
+    "score_ids": [
+      "clip-b16.deviation",
+      "dino-b14.deviation",
+      "motion"
+    ]
+  },
   "source_approval": {
     "owner": "project owner",
     "reference": "approval-2026-001"

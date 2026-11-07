@@ -386,12 +386,15 @@ selection method, deterministic seeds and sampling probabilities where applicabl
 a window of staged ss-track frames, never a time alone, and the eligible pool tiles every stream so
 unprocessed exposure is visible. Audit eligibility depends only on how a window entered the pool: a
 window selection excluded or did not rank stays eligible, and a sibling hint, which carries no
-inclusion probability, never is. Group related and duplicate footage before assigning splits; never
-train or tune on a locked test. Discovery-only model data remains distinct from reviewed labels and
-frozen corpus membership. An unavailable external service, model, permission or insufficient budget
-must be visible, not silently replaced by invented results. No arbitrary video acquisition,
-autonomous approval of sources, field-safety claim, or promotion of pseudo-labels to truth is
-implied.
+inclusion probability, never is. Selection ranks only pool windows, never one of a stream in the
+locked split while no custodian policy allows it, and a run records every score and decision so they
+can be recomputed from its feature rows and staged frames. Scores rank windows for review; they do
+not detect a bird, and model-assisted selection is always compared with a seeded uniform baseline.
+Group related and duplicate footage before assigning splits; never train or tune on a locked test.
+Discovery-only model data remains distinct from reviewed labels and frozen corpus membership. An
+unavailable external service, model, permission or insufficient budget must be visible, not silently
+replaced by invented results. No arbitrary video acquisition, autonomous approval of sources,
+field-safety claim, or promotion of pseudo-labels to truth is implied.
 
 Evaluation: on an independently reviewed, grouped reference sample with target-present,
 target-absent, small-target and confuser cases, compare model-assisted selection with a

@@ -15,19 +15,19 @@ baseline scope and evidence. The installed set contains these document contracts
 | --- | --- |
 | `declaration/corpus` | `3.0.0`, `3.1.0`, `3.2.0` |
 | `declaration/dataset` | `1.0.0`, `1.1.0` |
-| `declaration/discovery-plan` | `1.0.0` |
+| `declaration/discovery-plan` | `1.0.0`, `1.1.0` |
 | `declaration/recording` | `2.0.0`, `2.1.0`, `2.2.0`, `2.3.0` |
 | `declaration/video-hints` | `1.0.0` |
 | `record/candidate-inventory` | `1.0.0` |
 | `record/corpus-manifest` | `3.0.0`, `3.1.0`, `3.2.0`, `3.3.0`, `3.4.0` |
-| `record/discovery-run` | `1.0.0`, `1.1.0` |
+| `record/discovery-run` | `1.0.0`, `1.1.0`, `1.2.0` |
 | `record/feature-rows` | `1.0.0` |
 | `record/frame-bundle` | `3.0.0`, `3.1.0`, `3.2.0`, `3.3.0`, `3.4.0` |
 | `record/frame-set` | `1.0.0` |
 | `record/staged-hashes` | `1.0.0` |
 | `record/hash-comparison` | `1.0.0` |
 | `record/source-manifest` | `2.0.0`, `2.1.0`, `2.2.0`, `2.3.0` |
-| `result/command` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0`, `1.4.0`, `1.5.0`, `1.6.0`, `1.7.0`, `1.8.0`, `1.9.0`, `1.9.1`, `1.10.0`, `1.11.0`, `1.12.0`, `1.13.0`, `1.14.0`, `1.15.0` |
+| `result/command` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0`, `1.4.0`, `1.5.0`, `1.6.0`, `1.7.0`, `1.8.0`, `1.9.0`, `1.9.1`, `1.10.0`, `1.11.0`, `1.12.0`, `1.13.0`, `1.14.0`, `1.15.0`, `1.16.0` |
 
 `result/command` `1.5.0` adds `redecoded`. `1.6.0` adds optional `unlinked` on a corpus build,
 present only when that data root has something to report. `1.7.0` adds optional `impact` when an
@@ -50,7 +50,8 @@ when that bundle's frames were hard-linked from a linked corpus version. `1.14.0
 not be listed. A missing or unreadable version outside the declared chain is named, and the report
 still does not refuse. `1.15.0` adds the `discover` fields `run_id`, `inventory_count`,
 `candidate_count`, `feature_row_count` and `hint_sources`, and the codes `EXTRACTOR_UNPINNED`,
-`EXTRACTOR_INCOMPATIBLE`, `WORKER_FAILED` and `DISCOVERY_IN_PROGRESS`.
+`EXTRACTOR_INCOMPATIBLE`, `WORKER_FAILED` and `DISCOVERY_IN_PROGRESS`. `1.16.0` adds the
+`discover` fields `selection`, `unavailable_scores` and `coverage`.
 `declaration/corpus` 3.1.0 adds `compression` and `variable_timing` recipes.
 `record/corpus-manifest` 3.3.0 and `record/frame-bundle` 3.3.0 add those
 recipes and the label kinds `compression` and `timing`. `declaration/corpus` 3.2.0 adds
@@ -79,8 +80,11 @@ row keys for one stream; [discovery records](corpus/discovery-records.md) states
 validators. Their `x-references` name `record/frame-set` and `record/corpus-manifest` fields.
 `record/discovery-run` 1.1.0 adds optional `source_approval`, `feature_rows` and a hint source's
 `matches`, each with its rule on the new node, because a root `x-rules` change takes a major.
-`declaration/discovery-plan` and `declaration/video-hints`, owned by the same capability, state a
-[discovery run's plan and an ss-video hint file](corpus/discovery-runs.md).
+`record/discovery-run` 1.2.0 adds the crop `tiled` and an extractor's optional `tile`, whose rule
+places it on the frame. `declaration/discovery-plan` and `declaration/video-hints`, owned by the same
+capability, state a [discovery run's plan and an ss-video hint file](corpus/discovery-runs.md);
+`declaration/discovery-plan` 1.1.0 adds an extractor's optional `tiles` and the optional
+`selection`.
 
 `shared/types` supplies hashes and identifiers. Every shipped document format has a frozen contract,
 and every frame-set reference resolves at its annotated schema pointer. Capture fields preserve

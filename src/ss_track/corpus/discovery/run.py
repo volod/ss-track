@@ -3,12 +3,13 @@
 A run reads a staged corpus version. Each pinned extractor embeds every bundle's frames in its own
 worker process; each hint file's matches become sibling windows through the hash join and the slot
 rule; every bundle is tiled into pool windows, and the audit sample is drawn from them per
-encounter group. Nothing is written until every extractor and hint file has answered, and a run id
-is held by one command at a time, so a refused or interrupted run leaves no partial run behind.
+encounter group. A plan with a selection then scores every candidate and ranks pool windows by its
+method. Nothing is written until every extractor and hint file has answered, and a run id is held
+by one command at a time, so a refused or interrupted run leaves no partial run behind. Verifying a
+run also recomputes its scores and selection from its feature rows and the staged frames.
 """
 
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -20,23 +21,28 @@ from ss_track.corpus.bundles.frame_set import read_frame_set
 from ss_track.corpus.bundles.frames import FrameBundle
 from ss_track.corpus.discovery.features import FeatureFile, seal_feature_rows
 from ss_track.corpus.discovery.plan import DiscoveryPlan, read_discovery_plan
-from ss_track.corpus.discovery.pool import (
-    audit_design,
-    draw_audit,
-    stream_candidates,
-    stream_pool,
-    unranked_selection,
-)
+from ss_track.corpus.discovery.pool import audit_design, draw_audit, stream_candidates, stream_pool
 from ss_track.corpus.discovery.reader import verify_discovery
 from ss_track.corpus.discovery.records import DiscoveryRecords, seal_discovery, write_discovery
+from ss_track.corpus.discovery.result import DiscoveryResult
+from ss_track.corpus.discovery.selection_check import require_reproduced
 from ss_track.corpus.discovery.sibling_check import stream_timing
-from ss_track.corpus.siblings.embedding import embed_streams, worker_python
+from ss_track.corpus.selection.apply import (
+    Selection,
+    locked_streams,
+    planned,
+    score_and_select,
+    unranked,
+)
+from ss_track.corpus.selection.catalog import score_specs
+from ss_track.corpus.siblings.embedding import embed_streams
 from ss_track.corpus.siblings.video_hints import (
     HintMapping,
     HintSource,
     map_hints,
     read_hint_source,
 )
+from ss_track.corpus.siblings.worker_env import worker_python
 from ss_track.corpus.siblings.worker_process import DEFAULT_TIMEOUT_SEC
 from ss_track.corpus.storage.layout import discovery_root, discovery_run_path, frames_root
 from ss_track.corpus.storage.scratch import exclusive_lock
@@ -46,34 +52,6 @@ WRITTEN = "written"
 UNCHANGED = "unchanged"
 VERIFIED = "verified"
 PROCESSING_REVISION = 1
-
-
-@dataclass(frozen=True, slots=True)
-class DiscoveryResult:
-    """What a discovery command reports."""
-
-    status: str
-    records: DiscoveryRecords
-    path: Path
-
-    def to_record(self) -> dict[str, JsonValue]:
-        """Return the JSON-compatible command result."""
-        run: Mapping[str, Any] = self.records.run
-        return {
-            "status": self.status,
-            "run_id": run["run_id"],
-            "corpus_id": run["corpus_id"],
-            "manifest_sha256": run[SEAL_FIELD],
-            "manifest_path": str(self.path),
-            "inventory_count": len(self.records.inventories),
-            "candidate_count": sum(line["candidate_count"] for line in run["inventories"]),
-            "feature_row_count": sum(line["row_count"] for line in run.get("feature_rows", [])),
-            "hint_sources": [
-                {"hint_source_id": source["hint_source_id"], **source["matches"]}
-                for source in run["hint_sources"]
-                if "matches" in source
-            ],
-        }
 
 
 def _streams(corpus: Mapping[str, Any]) -> list[Mapping[str, Any]]:
@@ -122,25 +100,39 @@ def _features(
     if embedding is None:
         return [], []
     python = worker_python(environ)
-    extractors: list[JsonValue] = []
+    extractors: list[dict[str, JsonValue]] = []
     files: list[FeatureFile] = []
     for extractor in embedding.extractors:
-        rows = embed_streams(
+        for rows in embed_streams(
             embedding, extractor, bundles, python=python, timeout=timeout, environ=environ
-        )
-        extractors.append(rows.provenance)
-        files += [
-            seal_feature_rows(
-                plan.run_id,
-                plan.corpus_id,
-                extractor.extractor_id,
-                stream,
-                embedding.frame_stride,
-                extractor.dimensions,
-            )
-            for stream in rows.streams
+        ):
+            extractors.append(rows.provenance)
+            files += [
+                seal_feature_rows(
+                    plan.run_id,
+                    plan.corpus_id,
+                    str(rows.provenance["extractor_id"]),
+                    stream,
+                    embedding.frame_stride,
+                    extractor.dimensions,
+                )
+                for stream in rows.streams
+            ]
+    extractors.sort(key=lambda provenance: str(provenance["extractor_id"]))
+    return list(extractors), files
+
+
+def _selection(plan: DiscoveryPlan) -> Selection:
+    if plan.selection is None:
+        return unranked()
+    scores = score_specs(
+        [
+            (extractor.extractor_id, [view_id for view_id, _ in extractor.views()])
+            for extractor in plan.extractors()
         ]
-    return extractors, files
+    )
+    chosen = plan.selection
+    return planned(chosen.method, chosen.budget, chosen.seed, chosen.score_ids, scores)
 
 
 def build_discovery(
@@ -185,16 +177,24 @@ def build_discovery(
         for shell in shells
     ]
     extractors, features = _features(plan, bundles, environ, timeout)
+    selection = _selection(plan)
+    inventories = score_and_select(
+        selection,
+        inventories,
+        {feature.name: feature for feature in features},
+        bundles,
+        locked_streams(corpus),
+    )
     run_body: dict[str, JsonValue] = {
         "run_id": plan.run_id,
         "corpus_id": plan.corpus_id,
         "frame_set_sha256": frame_set[SEAL_FIELD],
         "processing": {"ss_track_version": project_info().version, "revision": PROCESSING_REVISION},
         "extractors": extractors,
-        "scores": [],
+        "scores": selection.run_scores(),
         "hint_sources": [source.to_run(mappings[source.hint_source_id]) for source in sources],
         "pool": {"window_frames": plan.window_frames},
-        "selection": unranked_selection(),
+        "selection": selection.run_selection(),
         "audit": audit_design(draw, plan.audit_seed),
         "source_approval": {"owner": plan.approval_owner, "reference": plan.approval_reference},
     }
@@ -218,10 +218,21 @@ def run_discovery(
     with exclusive_lock(discovery_root(data_root), f".run-{plan.run_id}.lock", busy=busy):
         records = build_discovery(plan, data_root, environ=environ, timeout=timeout)
         written = write_discovery(data_root, records)
-    return DiscoveryResult(WRITTEN if written.written else UNCHANGED, records, written.path)
+    status = WRITTEN if written.written else UNCHANGED
+    return DiscoveryResult(status, records, written.path, _frame_sizes(records, data_root))
+
+
+def _frame_sizes(records: DiscoveryRecords, data_root: Path) -> dict[str, tuple[int, int]]:
+    corpus_id = str(records.run["corpus_id"])
+    corpus = load_corpus_manifest(corpus_id, data_root)
+    root = frames_root(data_root, corpus_id)
+    bundles = (open_corpus_bundle(stream_id, corpus, root) for stream_id in records.inventories)
+    return {bundle.stream_id: (bundle.width, bundle.height) for bundle in bundles}
 
 
 def verify_discovery_run(run_id: str, data_root: Path) -> DiscoveryResult:
-    """Verify a written run against the corpus version it read."""
+    """Verify a written run against the corpus version it read, recomputing its selection."""
     records = verify_discovery(data_root, run_id)
-    return DiscoveryResult(VERIFIED, records, discovery_run_path(data_root, run_id))
+    require_reproduced(records, data_root)
+    path = discovery_run_path(data_root, run_id)
+    return DiscoveryResult(VERIFIED, records, path, _frame_sizes(records, data_root))

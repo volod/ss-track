@@ -32,8 +32,9 @@ tasks, their decisions and their acceptance evidence:
 [corpus provenance group audit](../records/0049-corpus-provenance-corpus-provenance-audit.md).
 
 The available corpus path imports declared sources and stages reviewed selections. `ss-track discover`
-proposes candidate windows of staged frames from pinned sibling embeddings and ss-video hints, but
-does not yet rank them or freeze a corpus from reviewed candidates. The specification and plan define
+proposes candidate windows of staged frames from pinned sibling embeddings and ss-video hints, scores
+them and ranks pool windows for review under a seeded uniform baseline or a model-assisted method,
+but does not yet freeze a corpus from reviewed candidates. The specification and plan define
 that future work, including source permissions and independent review. See the
 [corpus formation planning record](../records/0038-adhoc-self-supervised-corpus-plan.md).
 [Sibling integration](corpus/sibling-integration.md) records the pinned ss-video and ss-fusion
@@ -41,7 +42,8 @@ interfaces, their frame mapping, rights and reproducibility, and the integration
 [Discovery records](corpus/discovery-records.md) state the candidate inventory, discovery run and
 feature-rows contracts that record why a window of staged frames became a candidate, and their
 validators. [Discovery runs](corpus/discovery-runs.md) states the commands, the plan and hint
-declarations, the embedding worker and its guards against sibling defects.
+declarations, the embedding worker and its guards against sibling defects, tiled coverage, the
+scores and the selection methods.
 
 ## Selected development workload
 
@@ -1557,7 +1559,7 @@ accepted task, its decisions and its evidence.
 | `CASE_INVALID` | A generated case does not fit its parent, changes no frame of it, does not match its parent's frame shape, or is named where preview expects the parent stream |
 | `TRANSFORM_REVISION_MISMATCH` | A stored case needs a transform revision this code does not provide |
 | `RECORD_TAMPERED` | A sealed record is missing, malformed, of another kind or fails its seal, states a value its contract forbids, such as a declared color matrix no conversion applies or a bundle pixel format other than `rgb24`, or a re-import finds changed stored bytes |
-| `RECORD_INVALID` | A writer produced a record its contract refuses, a reused bundle hashed other than its candidate, or a preview sheet does not fit its own layout; nothing is sealed or written. This is a defect of ss-track, not of the input |
+| `RECORD_INVALID` | A writer produced a record its contract refuses, a reused bundle hashed other than its candidate, or a preview sheet does not fit its own layout; nothing is sealed or written. This is a defect of ss-track, not of the input. `discover verify` also refuses a run whose scores or selection its own feature rows and frames do not give, or whose method this ss-track does not know |
 | `RECORD_SCHEMA_UNSUPPORTED` | [Any sealed record](#reading-sealed-records) is of a major or stated shape this code does not serve as evidence, including at a re-import or rebuild over it and a corpus without source terms, or an amendment or a [redecode](#redecoding-under-a-new-policy) finds a record it cannot write forward |
 | `DECODE_POLICY_MISMATCH` | A source or pin uses a decode policy other than the installed one |
 | `IMPORT_CONFLICT` | The same source was imported at the current major with another declaration or decoder, or an amendment or a redecode names bytes with no record or changes more than terms |
@@ -1574,7 +1576,7 @@ accepted task, its decisions and its evidence.
 | `FRAME_CORRUPTED` | A staged file differs from the sealed index, is gone, or is not in it. A reuse candidate that differs is named and not linked |
 | `FRAME_NOT_IN_BUNDLE` | A bundle does not hold a frame index, including a frame a case dropped |
 | `EXTRACTOR_UNPINNED` | A [discovery](corpus/discovery-runs.md) extractor loaded a package commit or weight file other than its plan pins, a weight with no immutable revision, or a configured adapted checkpoint, or the sibling settings import changed the environment |
-| `EXTRACTOR_INCOMPATIBLE` | An extractor's architecture, row length, device type, precision or preprocessing is not what its plan states or the adapter records, its model changed device, or a bundle is not `rgb24` |
+| `EXTRACTOR_INCOMPATIBLE` | An extractor's architecture, row length, device type, precision or preprocessing is not what its plan states or the adapter records, its model changed device, a bundle is not `rgb24`, or a tile grid does not fit a stream's frames or would be cropped by a non-square model input |
 | `WORKER_FAILED` | The embedding worker could not start, stopped, missed its deadline, broke the protocol, or returned rows for other frames, a partial batch or rows that are not finite unit vectors; `SST_PERCEPTION_PYTHON` is unset |
 | `DISCOVERY_IN_PROGRESS` | Another command is writing this discovery run id |
 | `INTERRUPTED` | SIGINT stopped the command. Import and stage leave no scratch |

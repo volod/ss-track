@@ -30,36 +30,6 @@ extensions; none blocks M3. Fixture implementation proceeds without physical har
 
 ### Self-supervised video corpus -- `self-supervised-corpus`
 
-#### corpus-ssl-selection
-
-Ranking only known objects misses rare, tiny or unfamiliar birds and background negatives.
-
-- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
-- Agent status: CLEAR
-- Research: yes
-- Dependencies: none.
-- User-visible outcome: Operators get ranked, diverse candidate windows plus reproducible independent
-  audit samples from the eligible pool.
-- Scope boundary: Frozen pretrained CLIP and DINOv2 backbones pinned by revision, diversity,
-  uncertainty, motion and seeded random sampling; an SSL-adapted checkpoint only with a manifest
-  naming development-only training sources ([adapted models](current/corpus/sibling-integration.md#adapted-models));
-  no claim that a score is a label.
-- Data and artifact paths: `contracts/`, `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/self-supervised-corpus/<run-id>/`.
-- Execution path: Implement a model-agnostic selection seam over the feature rows
-  [`discover run`](current/corpus/discovery-runs.md) writes, replacing its `unranked` selection,
-  and evaluate sibling embeddings against a simple uniform baseline, retaining each sampling
-  probability, seed and exclusion reason in the
-  [discovery records](current/corpus/discovery-records.md). A stream in the locked split, which
-  the adapter reads like any other, is excluded from selection as `operator_excluded` unless the
-  locked-test custodian policy allows it. The embedders centre-crop to 224
-  pixels, so add tiled or uncropped coverage and measure it on fixtures with small targets near the
-  frame edge; a tiled mode adds its crop name and grid to `record/discovery-run` as a minor.
-- Acceptance gates: Fixtures reproduce selection and independent audit membership; negatives,
-  confusers and unseen candidates can enter the audit sample; edge and small-target coverage is
-  reported; unavailable features are explicit. A negative model comparison is valid and `make ci`
-  passes.
-- Documentation target: [Corpus](current/corpus.md).
-
 #### corpus-group-and-leakage-review
 
 Related recordings and visually similar copies can leak across splits and exaggerate evidence.
@@ -84,11 +54,13 @@ Large candidate inventories need bounded human decisions before they become benc
 
 - Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: CLEAR
-- Dependencies: corpus-ssl-selection, corpus-group-and-leakage-review.
+- Dependencies: corpus-group-and-leakage-review.
 - User-visible outcome: Reviewers can inspect candidates and export a frozen, reproducible corpus
   version with source terms, group, split, exclusions and decision provenance.
 - Scope boundary: Review and source-to-corpus manifest export; label adjudication uses the existing
-  annotation contract and the locked split requires its existing custodian policy.
+  annotation contract and the locked split requires its existing custodian policy. Selection never
+  ranks a locked stream, but the audit sample, which depends only on origin, draws from locked
+  groups' strata; review offers none of those windows without that policy and says why.
 - Data and artifact paths: `contracts/`, `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/corpus/<corpus-id>/`.
 - Execution path: Provide bounded review decisions and manifest generation through existing import,
   corpus build, stage and verify flows, with refusal on expired terms or unresolved split conflicts.
@@ -103,7 +75,7 @@ A larger selected pool may conceal missed small birds or exclude hard negatives.
 
 - Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: CLEAR
-- Dependencies: corpus-ssl-selection.
+- Dependencies: none.
 - User-visible outcome: A report compares model-assisted selection with a random or uniform
   baseline and exposes missed cases and resource cost at a matched review budget.
 - Scope boundary: Independently reviewed audit samples and stratified uncertainty; no field accuracy,
@@ -111,6 +83,10 @@ A larger selected pool may conceal missed small birds or exclude hard negatives.
 - Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/self-supervised-corpus/<run-id>/`.
 - Execution path: Define a reproducible evaluation protocol before running, score reviewed random
   samples including unselected material, and report diversity, negatives, recall, cost and exclusions.
+  Compare `ssl-diverse` with the `uniform` run of the same pool and audit seed
+  ([selection](current/corpus/discovery-runs.md#selection)), report misses by kind, including a
+  target present for a whole stream, which background deviation compares against itself, and
+  confusers that motion ranks high.
 - Acceptance gates: Hand-calculated fixtures verify denominators, sampling weights, uncertainty and
   unavailable strata; empty or insufficient evidence produces an explicit inconclusive result.
   Negative gains remain valid and `make ci` passes.
@@ -134,7 +110,10 @@ A large corpus needs evidence that selection can run within the owner's availabl
   review and baseline protocol; measure ingest, storage, CPU or GPU compute and completeness; retain
   run pins. The embedding worker records float32 rows only and refuses mixed precision; a GPU run
   either measures float32 or adds a float16 or autocast mode as a `record/discovery-run` minor
-  with its own reproducibility check.
+  with its own reproducibility check. A tile grid multiplies embedding cost by its tile count, so
+  choose the grid from measured cost and small-target scale. `discover verify` compares recomputed
+  scores and the `ssl-diverse` similarity exactly; run it on a second host or architecture, and if a
+  near-tie flips there, quantize the similarity under a new method revision.
 - Acceptance gates: Corpus verification, rights and grouping checks pass; the report states selection
   recall, uncertainty, negative coverage and matched-budget baseline results, including missing
   evidence. Insufficient resources or a negative selection result is a valid negative; `make ci` passes.
