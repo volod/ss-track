@@ -14,6 +14,8 @@ REPLACED_DIRECTORY = "replaced"
 RUN_DIRECTORY = "run"
 DISCOVERY_DIRECTORY = "self-supervised-corpus"
 DISCOVERY_RUN_NAME = "run.json"
+DISCOVERY_PUBLISH_LOCK = ".publish.lock"
+LINKS_NAME = "links.json"
 INVENTORIES_DIRECTORY = "inventories"
 FEATURES_DIRECTORY = "features"
 VECTORS_SUFFIX = ".f32"
@@ -85,6 +87,11 @@ def discovery_run_directory(data_root: Path, run_id: str) -> Path:
 def discovery_run_path(data_root: Path, run_id: str) -> Path:
     """Return one discovery run's sealed run record."""
     return discovery_run_directory(data_root, run_id) / DISCOVERY_RUN_NAME
+
+
+def links_path(data_root: Path, run_id: str) -> Path:
+    """Return one link review's sealed record, in the discovery namespace of run ids."""
+    return discovery_run_directory(data_root, run_id) / LINKS_NAME
 
 
 def candidate_inventory_path(data_root: Path, run_id: str, stream_id: str) -> Path:

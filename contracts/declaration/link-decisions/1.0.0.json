@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ss-track:contract:declaration:link-decisions:1.0.0",
+  "title": "Link decisions",
+  "description": "A reviewer's decisions on whether two imported recordings are related: not independent of each other, so every stream cut from them belongs in one encounter group. A decision is about two recordings, not a corpus version, so it carries over to any version that holds them. It is human judgment; no similarity score makes one.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "reviewer",
+    "decisions"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1,
+      "minimum": 0,
+      "x-unit": "1",
+      "description": "Declaration major."
+    },
+    "reviewer": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Who made these decisions: a person or a role the owner recognizes.",
+      "x-rules": {
+        "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+      }
+    },
+    "decisions": {
+      "type": "array",
+      "description": "Decisions in any order. A pair of recordings is decided at most once.",
+      "items": {
+        "type": "object",
+        "description": "One decision on one pair of recordings.",
+        "properties": {
+          "sources": {
+            "type": "array",
+            "description": "The two source identities, as a corpus declaration names them, in either order.",
+            "prefixItems": [
+              {
+                "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+                "description": "One source identity."
+              },
+              {
+                "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+                "description": "The other source identity."
+              }
+            ],
+            "items": false,
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "decision": {
+            "type": "string",
+            "description": "related: the recordings are not independent and their streams must share one group. unrelated: the reviewer judged them independent, whatever a score says.",
+            "enum": [
+              "related",
+              "unrelated"
+            ]
+          },
+          "note": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Why, in the reviewer's words. Optional.",
+            "x-rules": {
+              "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+            }
+          }
+        },
+        "required": [
+          "sources",
+          "decision"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1
+    }
+  },
+  "x-rules": {
+    "distinct": "The two sources of a decision differ.",
+    "once": "A pair of sources, in either order, is decided at most once."
+  }
+}

@@ -1,0 +1,585 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ss-track:contract:record:corpus-links:1.0.0",
+  "title": "Corpus links",
+  "description": "One sealed link review of a staged corpus version: pairs of recordings in different encounter groups that a similarity method flagged or a reviewer decided, with the evidence and the decision. A version holding a run of identical frames in two groups, or recordings a reviewer decided are related in two groups, is refused rather than written. A link is a question for a reviewer: a similarity is not ground truth and no link merges a group.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind",
+    "schema_version",
+    "run_id",
+    "corpus_id",
+    "corpus_manifest_sha256",
+    "frame_set_sha256",
+    "shared_frames",
+    "methods",
+    "not_compared",
+    "links",
+    "status",
+    "manifest_sha256"
+  ],
+  "properties": {
+    "kind": {
+      "type": "string",
+      "const": "ss-track.corpus-links",
+      "description": "Names this format.",
+      "x-sensitivity": "public"
+    },
+    "schema_version": {
+      "type": "integer",
+      "const": 1,
+      "description": "The contract's major.",
+      "x-sensitivity": "public"
+    },
+    "run_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "Run id that keeps this review, in the namespace of discovery runs.",
+      "x-sensitivity": "restricted"
+    },
+    "corpus_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "Corpus version reviewed.",
+      "x-references": "record/corpus-manifest#/properties/corpus_id",
+      "x-sensitivity": "restricted"
+    },
+    "corpus_manifest_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Seal of that corpus manifest.",
+      "x-references": "record/corpus-manifest#/properties/manifest_sha256",
+      "x-sensitivity": "restricted"
+    },
+    "frame_set_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Seal of the frame set staged for it.",
+      "x-references": "record/frame-set#/properties/manifest_sha256",
+      "x-sensitivity": "restricted"
+    },
+    "shared_frames": {
+      "type": "object",
+      "description": "What the shared-frame check compared before any link was sought: it refuses a run of identical frames held by two groups, so none is a link.",
+      "properties": {
+        "min_shared_frames": {
+          "type": "integer",
+          "description": "Different frames in a row that count as one recording.",
+          "x-unit": "1",
+          "minimum": 1
+        },
+        "compared_versions": {
+          "type": "array",
+          "description": "Linked versions whose staged frames were compared.",
+          "items": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+            "description": "Corpus version."
+          },
+          "minItems": 0
+        },
+        "not_compared": {
+          "type": "array",
+          "description": "Linked versions or streams that could not be compared, so are unknown, not clear.",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "description": "One missing comparison.",
+            "properties": {
+              "corpus_id": {
+                "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                "description": "Corpus version."
+              },
+              "reason": {
+                "type": "string",
+                "description": "Why it could not be compared.",
+                "enum": [
+                  "manifest_removed",
+                  "no_frame_set",
+                  "bundles_removed",
+                  "other_decode_policy",
+                  "other_schema"
+                ]
+              },
+              "stream_ids": {
+                "type": "array",
+                "description": "Affected streams; empty when the whole version is.",
+                "items": {
+                  "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                  "description": "Stream."
+                },
+                "minItems": 0
+              }
+            },
+            "required": [
+              "corpus_id",
+              "reason",
+              "stream_ids"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "min_shared_frames",
+        "compared_versions",
+        "not_compared"
+      ],
+      "additionalProperties": false,
+      "x-sensitivity": "restricted"
+    },
+    "features": {
+      "type": "object",
+      "description": "Discovery run whose feature rows background-cosine compared. Absent when none was named.",
+      "properties": {
+        "run_id": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+          "description": "Discovery run.",
+          "x-references": "record/discovery-run#/properties/run_id"
+        },
+        "run_sha256": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+          "description": "Seal of its run record.",
+          "x-references": "record/discovery-run#/properties/manifest_sha256"
+        }
+      },
+      "required": [
+        "run_id",
+        "run_sha256"
+      ],
+      "additionalProperties": false,
+      "x-sensitivity": "restricted"
+    },
+    "methods": {
+      "type": "array",
+      "description": "Every method this review applied, the fingerprint first, then each extractor in ascending order.",
+      "minItems": 1,
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "description": "The build's re-encoded-copy fingerprint over this version's windows.",
+            "properties": {
+              "method": {
+                "type": "string",
+                "const": "luma-grid-16",
+                "description": "Box-averaged luma grids of frames sampled through each window, compared by normalized correlation."
+              },
+              "samples": {
+                "type": "integer",
+                "description": "Frames sampled per window.",
+                "x-unit": "1",
+                "minimum": 1
+              },
+              "grid": {
+                "type": "integer",
+                "description": "Grid side in cells.",
+                "x-unit": "1",
+                "minimum": 1
+              },
+              "threshold": {
+                "type": "number",
+                "description": "Least correlation that flags a pair.",
+                "x-unit": "1",
+                "minimum": -1,
+                "maximum": 1
+              }
+            },
+            "required": [
+              "method",
+              "samples",
+              "grid",
+              "threshold"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "description": "Cosine of two streams' backgrounds under one extractor of a discovery run.",
+            "properties": {
+              "method": {
+                "type": "string",
+                "const": "background-cosine",
+                "description": "Unit mean of a stream's feature rows per tile position; a pair's similarity is the mean cosine over the positions."
+              },
+              "revision": {
+                "type": "integer",
+                "description": "Revision of the method's rule.",
+                "x-unit": "1",
+                "minimum": 1
+              },
+              "extractor_id": {
+                "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                "description": "Plan extractor of the discovery run."
+              },
+              "run_extractor_ids": {
+                "type": "array",
+                "description": "Run extractors compared: the extractor itself, or each of its tile positions, ascending.",
+                "items": {
+                  "type": "string",
+                  "description": "Run extractor id.",
+                  "pattern": "^[a-z0-9][a-z0-9._-]*$"
+                },
+                "minItems": 1
+              },
+              "threshold": {
+                "type": "number",
+                "description": "Least similarity that flags a pair, as measured for the extractor's architecture and crop.",
+                "x-unit": "1",
+                "minimum": -1,
+                "maximum": 1
+              }
+            },
+            "required": [
+              "method",
+              "revision",
+              "extractor_id",
+              "run_extractor_ids",
+              "threshold"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "x-sensitivity": "restricted"
+    },
+    "not_compared": {
+      "type": "array",
+      "description": "Streams a method could not compare, so whose links are unknown, not absent.",
+      "items": {
+        "type": "object",
+        "description": "Streams one method could not compare.",
+        "properties": {
+          "method": {
+            "type": "string",
+            "description": "Method that flagged or could not compare.",
+            "enum": [
+              "luma-grid-16",
+              "background-cosine"
+            ]
+          },
+          "extractor_id": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+            "description": "Plan extractor, for background-cosine."
+          },
+          "reason": {
+            "type": "string",
+            "description": "source_unreadable: the source could not be decoded through the window. no_feature_rows: the discovery run holds no rows of the stream for that extractor. no_threshold: no threshold was measured for the extractor's architecture and crop, so it compared nothing.",
+            "enum": [
+              "source_unreadable",
+              "no_feature_rows",
+              "no_threshold"
+            ]
+          },
+          "stream_ids": {
+            "type": "array",
+            "description": "Affected streams.",
+            "items": {
+              "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+              "description": "Stream."
+            },
+            "minItems": 0
+          }
+        },
+        "required": [
+          "method",
+          "reason",
+          "stream_ids"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 0,
+      "x-sensitivity": "restricted"
+    },
+    "review": {
+      "type": "object",
+      "description": "The reviewer's decisions file. Absent when none was given.",
+      "properties": {
+        "reviewer": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Who decided."
+        },
+        "decision_count": {
+          "type": "integer",
+          "description": "Decisions the file holds.",
+          "x-unit": "1",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "reviewer",
+        "decision_count"
+      ],
+      "additionalProperties": false,
+      "x-sensitivity": "restricted"
+    },
+    "decisions_outside_links": {
+      "type": "array",
+      "description": "Decisions of the file that name no link of this version, in ascending source order. Present with review.",
+      "items": {
+        "type": "object",
+        "description": "A decision that names no link of this version.",
+        "properties": {
+          "sources": {
+            "type": "array",
+            "description": "The two source identities, ascending.",
+            "prefixItems": [
+              {
+                "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+                "description": "One source."
+              },
+              {
+                "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+                "description": "The other source."
+              }
+            ],
+            "items": false,
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "decision": {
+            "type": "string",
+            "description": "What the reviewer decided.",
+            "enum": [
+              "related",
+              "unrelated"
+            ]
+          },
+          "note": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The reviewer's reason."
+          },
+          "reason": {
+            "type": "string",
+            "description": "not_in_corpus: this version does not hold both sources. same_group: one group already holds both.",
+            "enum": [
+              "not_in_corpus",
+              "same_group"
+            ]
+          }
+        },
+        "required": [
+          "sources",
+          "decision",
+          "reason"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 0,
+      "x-sensitivity": "restricted"
+    },
+    "links": {
+      "type": "array",
+      "description": "Every link, in ascending source order.",
+      "items": {
+        "type": "object",
+        "description": "Two recordings in different groups that a method flagged or the reviewer decided.",
+        "properties": {
+          "sources": {
+            "type": "array",
+            "description": "The two recordings, in ascending source order.",
+            "prefixItems": [
+              {
+                "type": "object",
+                "description": "One recording of the link and where this version holds it.",
+                "properties": {
+                  "source_sha256": {
+                    "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+                    "description": "Source identity."
+                  },
+                  "group_id": {
+                    "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                    "description": "Encounter group holding every stream of the source."
+                  },
+                  "split": {
+                    "type": "string",
+                    "description": "Split of that group.",
+                    "enum": [
+                      "development",
+                      "calibration",
+                      "locked"
+                    ]
+                  },
+                  "stream_ids": {
+                    "type": "array",
+                    "description": "Streams cut from the source, ascending.",
+                    "items": {
+                      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                      "description": "Stream."
+                    },
+                    "minItems": 0
+                  }
+                },
+                "required": [
+                  "source_sha256",
+                  "group_id",
+                  "split",
+                  "stream_ids"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "description": "One recording of the link and where this version holds it.",
+                "properties": {
+                  "source_sha256": {
+                    "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+                    "description": "Source identity."
+                  },
+                  "group_id": {
+                    "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                    "description": "Encounter group holding every stream of the source."
+                  },
+                  "split": {
+                    "type": "string",
+                    "description": "Split of that group.",
+                    "enum": [
+                      "development",
+                      "calibration",
+                      "locked"
+                    ]
+                  },
+                  "stream_ids": {
+                    "type": "array",
+                    "description": "Streams cut from the source, ascending.",
+                    "items": {
+                      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                      "description": "Stream."
+                    },
+                    "minItems": 0
+                  }
+                },
+                "required": [
+                  "source_sha256",
+                  "group_id",
+                  "split",
+                  "stream_ids"
+                ],
+                "additionalProperties": false
+              }
+            ],
+            "items": false,
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "cross_split": {
+            "type": "boolean",
+            "description": "Whether the two groups sit in different splits."
+          },
+          "evidence": {
+            "type": "array",
+            "description": "What flagged the pair, one entry per method and extractor; empty when only the reviewer named it.",
+            "items": {
+              "type": "object",
+              "description": "The strongest pair one method or extractor flagged.",
+              "properties": {
+                "method": {
+                  "type": "string",
+                  "description": "Method that flagged or could not compare.",
+                  "enum": [
+                    "luma-grid-16",
+                    "background-cosine"
+                  ]
+                },
+                "extractor_id": {
+                  "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                  "description": "Plan extractor, for background-cosine."
+                },
+                "similarity": {
+                  "type": "number",
+                  "description": "Similarity the method measured, rounded to four decimals.",
+                  "x-unit": "1",
+                  "minimum": -1,
+                  "maximum": 1
+                },
+                "stream_ids": {
+                  "type": "array",
+                  "description": "The two streams, in ascending order.",
+                  "prefixItems": [
+                    {
+                      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                      "description": "One stream."
+                    },
+                    {
+                      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                      "description": "The other stream."
+                    }
+                  ],
+                  "items": false,
+                  "minItems": 2,
+                  "maxItems": 2
+                }
+              },
+              "required": [
+                "method",
+                "similarity",
+                "stream_ids"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 0
+          },
+          "decision": {
+            "type": "object",
+            "description": "What the reviewer decided.",
+            "properties": {
+              "decision": {
+                "type": "string",
+                "description": "related never appears in a written record, because it refuses; unrelated keeps the groups apart.",
+                "enum": [
+                  "related",
+                  "unrelated"
+                ]
+              },
+              "note": {
+                "type": "string",
+                "minLength": 1,
+                "description": "The reviewer's reason."
+              }
+            },
+            "required": [
+              "decision"
+            ],
+            "additionalProperties": false
+          },
+          "status": {
+            "type": "string",
+            "description": "unresolved: no one decided. unrelated: the reviewer decided the recordings are independent.",
+            "enum": [
+              "unresolved",
+              "unrelated"
+            ]
+          }
+        },
+        "required": [
+          "sources",
+          "cross_split",
+          "evidence",
+          "status"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 0,
+      "x-sensitivity": "restricted"
+    },
+    "status": {
+      "type": "string",
+      "description": "clear: every link is decided. unresolved: at least one is not.",
+      "enum": [
+        "clear",
+        "unresolved"
+      ],
+      "x-sensitivity": "public"
+    },
+    "manifest_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Seal of this record.",
+      "x-sensitivity": "public"
+    }
+  },
+  "x-rules": {
+    "seal": "manifest_sha256 is the lowercase SHA-256 of the record without that key, as JSON with sorted keys, ASCII escapes and no whitespace.",
+    "status": "status is clear exactly when every link holds a decision.",
+    "decisions": "A link's status is unrelated exactly when it holds a decision, which is then unrelated; review and decisions_outside_links appear together.",
+    "groups": "The two sources of a link sit in different groups, and cross_split states whether their splits differ.",
+    "rights": "This record grants no right, verifies no label and places nothing in a split."
+  }
+}

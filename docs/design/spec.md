@@ -391,6 +391,12 @@ locked split while no custodian policy allows it, and a run records every score 
 can be recomputed from its feature rows and staged frames. Scores rank windows for review; they do
 not detect a bird, and model-assisted selection is always compared with a seeded uniform baseline.
 Group related and duplicate footage before assigning splits; never train or tune on a locked test.
+A link review of a staged version first applies the source and shared-frame refusals, then flags
+pairs of recordings in different groups that the perceptual fingerprint or a frozen backbone's
+stream background finds alike, at thresholds measured per backbone and crop that are not ground
+truth. A reviewer decides each pair `related` or `unrelated`; a decision names two recordings, not a
+version. A version that keeps related recordings in different groups is refused, an undecided link
+is exposed as unresolved and never merged, and freezing refuses an unresolved link across splits.
 Discovery-only model data remains distinct from reviewed labels and frozen corpus membership. An
 unavailable external service, model, permission or insufficient budget must be visible, not silently
 replaced by invented results. No arbitrary video acquisition, autonomous approval of sources,

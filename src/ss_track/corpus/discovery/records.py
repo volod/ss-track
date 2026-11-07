@@ -24,6 +24,7 @@ from ss_track.corpus.records.kinds import CANDIDATE_INVENTORY, DISCOVERY_RUN
 from ss_track.corpus.records.sealed import read_sealed
 from ss_track.corpus.records.sealing import seal, write_sealed
 from ss_track.corpus.storage.layout import (
+    DISCOVERY_PUBLISH_LOCK,
     DISCOVERY_RUN_NAME,
     INVENTORIES_DIRECTORY,
     discovery_root,
@@ -35,8 +36,6 @@ from ss_track.corpus.storage.scratch import (
     scratch_directory,
     write_atomically,
 )
-
-_PUBLISH_LOCK = ".publish.lock"
 
 
 @dataclass(frozen=True, slots=True)
@@ -148,7 +147,7 @@ def write_discovery(data_root: Path, records: DiscoveryRecords) -> DiscoveryWrit
     require_bound(data_root, records.run, records.inventories, records.features)
     root = discovery_root(data_root)
     path = discovery_run_path(data_root, records.run_id)
-    with exclusive_lock(root, _PUBLISH_LOCK, clear=(root,)):
+    with exclusive_lock(root, DISCOVERY_PUBLISH_LOCK, clear=(root,)):
         if path.parent.exists():
             _require_same(path, records)
             return DiscoveryWrite(path, written=False)

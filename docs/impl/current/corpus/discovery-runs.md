@@ -12,7 +12,8 @@ its scores and selection. The
 decisions and acceptance evidence.
 
 A candidate is a proposal, a feature row describes pixels and a score ranks windows for review.
-None is a label, and a run authorizes no source.
+None is a label, and a run authorizes no source. A run's feature rows also feed the
+[leakage review](leakage-review.md), which compares stream backgrounds across groups.
 
 ## Commands
 

@@ -12,6 +12,7 @@ from ss_track.corpus.decoding.declared_color import MATRIX_CODES
 from ss_track.corpus.descriptors.descriptor_public import SPLITS
 from ss_track.corpus.records.kinds import (
     CANDIDATE_INVENTORY,
+    CORPUS_LINKS,
     CORPUS_MANIFEST,
     DISCOVERY_RUN,
     FEATURE_ROWS,
@@ -30,6 +31,7 @@ from tests.schema.conftest import CONTRACTS, PROJECT_ROOT, frame_set_path, read_
 
 _WRITTEN = (
     CANDIDATE_INVENTORY,
+    CORPUS_LINKS,
     CORPUS_MANIFEST,
     DISCOVERY_RUN,
     FEATURE_ROWS,

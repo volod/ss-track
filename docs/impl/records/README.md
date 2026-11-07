@@ -58,5 +58,6 @@ Copy the [template](template.md) using the
 | 0051 | `corpus-discovery-contract` | [0051-self-supervised-corpus-corpus-discovery-contract](0051-self-supervised-corpus-corpus-discovery-contract.md) |
 | 0052 | `corpus-video-index-adapter` | [0052-self-supervised-corpus-corpus-video-index-adapter](0052-self-supervised-corpus-corpus-video-index-adapter.md) |
 | 0053 | `corpus-ssl-selection` | [0053-self-supervised-corpus-corpus-ssl-selection](0053-self-supervised-corpus-corpus-ssl-selection.md) |
+| 0054 | `corpus-group-and-leakage-review` | [0054-self-supervised-corpus-corpus-group-and-leakage-review](0054-self-supervised-corpus-corpus-group-and-leakage-review.md) |
 
-Next unused sequence: `0054`.
+Next unused sequence: `0055`.

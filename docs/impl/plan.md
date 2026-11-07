@@ -30,31 +30,13 @@ extensions; none blocks M3. Fixture implementation proceeds without physical har
 
 ### Self-supervised video corpus -- `self-supervised-corpus`
 
-#### corpus-group-and-leakage-review
-
-Related recordings and visually similar copies can leak across splits and exaggerate evidence.
-
-- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
-- Agent status: CLEAR
-- Dependencies: none.
-- User-visible outcome: Reviewers see likely related video and keep related encounters together.
-- Scope boundary: Source and exact frame checks plus flagged embedding or perceptual candidates;
-  final grouping decisions remain human-owned, and a similarity threshold is not ground truth.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/self-supervised-corpus/<run-id>/`.
-- Execution path: Reuse existing corpus grouping and duplicate checks, add reviewable candidate
-  links and reject known cross-split leakage on export.
-- Acceptance gates: Fixtures cover remuxed and related recordings, unrelated lookalikes and an
-  unresolved conflict; known leakage is refused and uncertain matches are exposed, not silently
-  merged. `make ci` passes.
-- Documentation target: [Corpus](current/corpus.md).
-
 #### corpus-review-and-freeze
 
 Large candidate inventories need bounded human decisions before they become benchmark inputs.
 
 - Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: CLEAR
-- Dependencies: corpus-group-and-leakage-review.
+- Dependencies: none.
 - User-visible outcome: Reviewers can inspect candidates and export a frozen, reproducible corpus
   version with source terms, group, split, exclusions and decision provenance.
 - Scope boundary: Review and source-to-corpus manifest export; label adjudication uses the existing
@@ -64,6 +46,12 @@ Large candidate inventories need bounded human decisions before they become benc
 - Data and artifact paths: `contracts/`, `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/corpus/<corpus-id>/`.
 - Execution path: Provide bounded review decisions and manifest generation through existing import,
   corpus build, stage and verify flows, with refusal on expired terms or unresolved split conflicts.
+  An unresolved split conflict is a link across splits that the version's
+  [link review](current/corpus/leakage-review.md) left undecided: freezing reads the review with
+  `read_links`, requires it to name the frozen version's manifest and frame set, and refuses an
+  unresolved link across splits. A link review covers one version, so freezing also applies the
+  reviewer's link decisions to every version the frozen one supersedes and refuses a related
+  recording held in another split there.
 - Acceptance gates: Replaying frozen reviewed decisions yields the same membership and hashes;
   rejected, unknown or unreviewed cases cannot masquerade as verified labels; denied, expired and
   conflicting sources refuse. Fixture tests and `make ci` pass.
@@ -113,7 +101,14 @@ A large corpus needs evidence that selection can run within the owner's availabl
   with its own reproducibility check. A tile grid multiplies embedding cost by its tile count, so
   choose the grid from measured cost and small-target scale. `discover verify` compares recomputed
   scores and the `ssl-diverse` similarity exactly; run it on a second host or architecture, and if a
-  near-tie flips there, quantize the similarity under a new method revision.
+  near-tie flips there, quantize the similarity under a new method revision. The link review's
+  `background-cosine` thresholds were measured on one real recording and synthetic scenes
+  ([measured thresholds](current/corpus/leakage-review.md#measured-thresholds)): measure them on
+  reviewed related and unrelated pairs of the pilot's footage, including sessions of one site in
+  other light and the tile grid the pilot chooses, and revise the table under a new method revision
+  when a related pair falls below it; repeat the review on the second host and quantize its
+  similarity too if a flag flips. The fingerprint compares every pair of windows in Python, so
+  measure its time at the pilot's stream count with the build's report and the review.
 - Acceptance gates: Corpus verification, rights and grouping checks pass; the report states selection
   recall, uncertainty, negative coverage and matched-budget baseline results, including missing
   evidence. Insufficient resources or a negative selection result is a valid negative; `make ci` passes.

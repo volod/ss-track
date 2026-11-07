@@ -43,7 +43,9 @@ interfaces, their frame mapping, rights and reproducibility, and the integration
 feature-rows contracts that record why a window of staged frames became a candidate, and their
 validators. [Discovery runs](corpus/discovery-runs.md) states the commands, the plan and hint
 declarations, the embedding worker and its guards against sibling defects, tiled coverage, the
-scores and the selection methods.
+scores and the selection methods. [Leakage review](corpus/leakage-review.md) states
+`discover links`: likely related recordings across groups, reviewer decisions, and the refusal of a
+version that keeps related recordings apart.
 
 ## Selected development workload
 
@@ -91,6 +93,7 @@ ss-track corpus compare --left a/staged-hashes.json --right b/staged-hashes.json
 ss-track corpus preview --corpus pilot-v1 --stream enc01-cam0 --frame 0 --out sheet.png
 ss-track discover run --plan plan.yaml
 ss-track discover verify --run-id discovery-1
+ss-track discover links --corpus pilot-v1 --run-id links-1 --features discovery-1 --decisions decisions.yaml
 ```
 
 Each command logs one JSON record and exits 0. A refusal exits 1 and has this form:
@@ -282,7 +285,9 @@ hash.
 | Stream | One sensor's frames of one encounter, from one source and frame window. `stream_id` identifies it across the corpus, in its bundle path and in every `FrameRef` |
 
 Grouping is the operator's judgment. Only [shared frames](#shared-frames) can show that two groups
-are in fact related. `src/ss_track/corpus/versions/grouping.py` owns the rules that `corpus build` applies:
+are in fact related; a [leakage review](corpus/leakage-review.md) shows a reviewer the likely related
+ones and refuses a version that keeps recordings the reviewer decided are related in two groups.
+`src/ss_track/corpus/versions/grouping.py` owns the rules that `corpus build` applies:
 
 - A split is stated once, on a group, so every encounter and stream inherits it.
 - An identifier declared in two splits is `SPLIT_LEAKAGE`. Repeated in one split it is
@@ -578,6 +583,9 @@ same-group predecessor that cannot be read is not named, because it is not a nea
 question. A retired major that still carries a window is fingerprinted through its comparison
 projection; corpus major 2 is one.
 [Shared frames](#shared-frames) still refuses an exact remux.
+
+A [leakage review](corpus/leakage-review.md) applies the same fingerprint within one version and
+asks a reviewer to decide each pair it flags.
 
 What this cannot see:
 

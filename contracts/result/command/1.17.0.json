@@ -1,0 +1,2004 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ss-track:contract:result:command:1.17.0",
+  "title": "Command",
+  "type": "object",
+  "description": "The shipped command format.",
+  "properties": {
+    "status": {
+      "type": "string",
+      "description": "Command outcome.",
+      "enum": [
+        "imported",
+        "unchanged",
+        "amended",
+        "built",
+        "staged",
+        "verified",
+        "recorded",
+        "identical",
+        "different",
+        "listed",
+        "valid",
+        "refused",
+        "diffed",
+        "frozen",
+        "written",
+        "exported",
+        "redecoded"
+      ]
+    },
+    "code": {
+      "type": "string",
+      "description": "Stable refusal reason.",
+      "enum": [
+        "MANIFEST_INVALID",
+        "SOURCE_NOT_FOUND",
+        "SOURCE_UNREADABLE",
+        "SOURCE_EMPTY",
+        "SOURCE_HASH_MISMATCH",
+        "SOURCE_DAMAGED",
+        "SOURCE_NO_FRAMES",
+        "SOURCE_FORMAT_CHANGED",
+        "PTS_NON_INCREASING",
+        "TIMESTAMP_CLAIM_UNSUPPORTED",
+        "SELECTION_OUT_OF_RANGE",
+        "SOURCE_NOT_IMPORTED",
+        "SOURCE_RECORD_CHANGED",
+        "RECORD_TAMPERED",
+        "DECODE_POLICY_MISMATCH",
+        "IMPORT_CONFLICT",
+        "CORPUS_CONFLICT",
+        "CORPUS_NOT_BUILT",
+        "SPLIT_LEAKAGE",
+        "STREAM_OVERLAP",
+        "RETENTION_EXPIRED",
+        "RIGHTS_CONFLICT",
+        "CASE_INVALID",
+        "TRANSFORM_REVISION_MISMATCH",
+        "RECORD_SCHEMA_UNSUPPORTED",
+        "DECODE_DRIFT",
+        "BUNDLE_CONFLICT",
+        "BUNDLE_NOT_STAGED",
+        "FRAME_SET_NOT_STAGED",
+        "FRAME_SET_MISMATCH",
+        "HASHES_NOT_COMPARABLE",
+        "STAGED_HASHES_DIFFER",
+        "STAGING_IN_PROGRESS",
+        "FRAME_CORRUPTED",
+        "FRAME_NOT_IN_BUNDLE",
+        "RECORD_INVALID",
+        "CONTRACT_UNKNOWN",
+        "CONTRACT_SET_INVALID",
+        "STORAGE_FAILED",
+        "VIDEO_STREAM_UNSPECIFIED",
+        "COLOR_TAG_CONFLICT",
+        "DECODE_TIME_EXCEEDED",
+        "INTERRUPTED",
+        "EXTRACTOR_UNPINNED",
+        "EXTRACTOR_INCOMPATIBLE",
+        "WORKER_FAILED",
+        "DISCOVERY_IN_PROGRESS"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation of a refusal."
+    },
+    "details": {
+      "type": "object",
+      "description": "Command-specific JSON refusal context, deliberately open.",
+      "properties": {},
+      "additionalProperties": true
+    },
+    "source_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Source identity. The file hash when the recording names its first video stream."
+    },
+    "manifest_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Manifest seal."
+    },
+    "manifest_path": {
+      "type": "string",
+      "description": "Local manifest path."
+    },
+    "timestamp_quality": {
+      "type": "string",
+      "description": "Timestamp evidence quality.",
+      "enum": [
+        "measured",
+        "derived",
+        "missing"
+      ]
+    },
+    "frame_count": {
+      "type": "integer",
+      "description": "Decoded frame count.",
+      "x-unit": "1",
+      "minimum": 1
+    },
+    "completeness_checks": {
+      "type": "array",
+      "description": "Container completeness checks.",
+      "items": {
+        "type": "string",
+        "description": "Check name."
+      },
+      "minItems": 0
+    },
+    "replaced_manifest_sha256": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Previous source seal, or null when unchanged.",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "replaced_path": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Path of the replaced source record, or null."
+    },
+    "changed_terms": {
+      "type": "array",
+      "description": "Amended term paths.",
+      "items": {
+        "type": "string",
+        "description": "Field path."
+      },
+      "minItems": 0
+    },
+    "decode_policy_current": {
+      "type": "boolean",
+      "description": "Whether decoded facts use the installed policy."
+    },
+    "corpus_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "Corpus version."
+    },
+    "stream_count": {
+      "type": "integer",
+      "description": "Number of streams.",
+      "x-unit": "1",
+      "minimum": 1
+    },
+    "generated_case_count": {
+      "type": "integer",
+      "description": "Number of generated cases.",
+      "x-unit": "1",
+      "minimum": 0
+    },
+    "splits": {
+      "type": "object",
+      "description": "Counts by evaluation split.",
+      "properties": {
+        "development": {
+          "type": "object",
+          "description": "Counts in one split.",
+          "properties": {
+            "group_count": {
+              "type": "integer",
+              "description": "Independent groups.",
+              "x-unit": "1",
+              "minimum": 0
+            },
+            "encounter_count": {
+              "type": "integer",
+              "description": "Encounters.",
+              "x-unit": "1",
+              "minimum": 0
+            },
+            "stream_count": {
+              "type": "integer",
+              "description": "Streams.",
+              "x-unit": "1",
+              "minimum": 0
+            },
+            "generated_case_count": {
+              "type": "integer",
+              "description": "Generated cases.",
+              "x-unit": "1",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "group_count",
+            "encounter_count",
+            "stream_count",
+            "generated_case_count"
+          ],
+          "additionalProperties": false
+        },
+        "calibration": {
+          "type": "object",
+          "description": "Counts in one split.",
+          "properties": {
+            "group_count": {
+              "type": "integer",
+              "description": "Independent groups.",
+              "x-unit": "1",
+              "minimum": 0
+            },
+            "encounter_count": {
+              "type": "integer",
+              "description": "Encounters.",
+              "x-unit": "1",
+              "minimum": 0
+            },
+            "stream_count": {
+              "type": "integer",
+              "description": "Streams.",
+              "x-unit": "1",
+              "minimum": 0
+            },
+            "generated_case_count": {
+              "type": "integer",
+              "description": "Generated cases.",
+              "x-unit": "1",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "group_count",
+            "encounter_count",
+            "stream_count",
+            "generated_case_count"
+          ],
+          "additionalProperties": false
+        },
+        "locked": {
+          "type": "object",
+          "description": "Counts in one split.",
+          "properties": {
+            "group_count": {
+              "type": "integer",
+              "description": "Independent groups.",
+              "x-unit": "1",
+              "minimum": 0
+            },
+            "encounter_count": {
+              "type": "integer",
+              "description": "Encounters.",
+              "x-unit": "1",
+              "minimum": 0
+            },
+            "stream_count": {
+              "type": "integer",
+              "description": "Streams.",
+              "x-unit": "1",
+              "minimum": 0
+            },
+            "generated_case_count": {
+              "type": "integer",
+              "description": "Generated cases.",
+              "x-unit": "1",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "group_count",
+            "encounter_count",
+            "stream_count",
+            "generated_case_count"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "lineage": {
+      "description": "Whether and how the version is linked.",
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "No declared predecessor.",
+          "properties": {
+            "status": {
+              "type": "string",
+              "description": "Lineage status.",
+              "const": "no_lineage"
+            }
+          },
+          "required": [
+            "status"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "Comparison with the predecessor chain.",
+          "properties": {
+            "status": {
+              "type": "string",
+              "description": "Lineage status.",
+              "const": "linked"
+            },
+            "supersedes": {
+              "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+              "description": "Immediate predecessor."
+            },
+            "supersedes_manifest_sha256": {
+              "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+              "description": "Immediate predecessor seal."
+            },
+            "compared_versions": {
+              "type": "array",
+              "description": "Compared corpus versions.",
+              "items": {
+                "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                "description": "Corpus version."
+              },
+              "minItems": 0
+            },
+            "added": {
+              "type": "array",
+              "description": "Sources added.",
+              "items": {
+                "type": "object",
+                "description": "One source placement.",
+                "properties": {
+                  "source_sha256": {
+                    "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+                    "description": "Source identity. The file hash when the recording names its first video stream."
+                  },
+                  "group_id": {
+                    "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                    "description": "Group."
+                  },
+                  "split": {
+                    "type": "string",
+                    "description": "Evaluation partition.",
+                    "enum": [
+                      "development",
+                      "calibration",
+                      "locked"
+                    ]
+                  }
+                },
+                "required": [
+                  "source_sha256",
+                  "group_id",
+                  "split"
+                ],
+                "additionalProperties": false
+              },
+              "minItems": 0
+            },
+            "removed": {
+              "type": "array",
+              "description": "Sources removed.",
+              "items": {
+                "type": "object",
+                "description": "One source placement.",
+                "properties": {
+                  "source_sha256": {
+                    "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+                    "description": "Source identity. The file hash when the recording names its first video stream."
+                  },
+                  "group_id": {
+                    "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                    "description": "Group."
+                  },
+                  "split": {
+                    "type": "string",
+                    "description": "Evaluation partition.",
+                    "enum": [
+                      "development",
+                      "calibration",
+                      "locked"
+                    ]
+                  }
+                },
+                "required": [
+                  "source_sha256",
+                  "group_id",
+                  "split"
+                ],
+                "additionalProperties": false
+              },
+              "minItems": 0
+            },
+            "kept": {
+              "type": "array",
+              "description": "Sources kept.",
+              "items": {
+                "type": "object",
+                "description": "One source placement.",
+                "properties": {
+                  "source_sha256": {
+                    "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+                    "description": "Source identity. The file hash when the recording names its first video stream."
+                  },
+                  "group_id": {
+                    "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                    "description": "Group."
+                  },
+                  "split": {
+                    "type": "string",
+                    "description": "Evaluation partition.",
+                    "enum": [
+                      "development",
+                      "calibration",
+                      "locked"
+                    ]
+                  }
+                },
+                "required": [
+                  "source_sha256",
+                  "group_id",
+                  "split"
+                ],
+                "additionalProperties": false
+              },
+              "minItems": 0
+            },
+            "not_compared": {
+              "type": "array",
+              "description": "Predecessors whose major keeps no comparison projection, present only when one exists.",
+              "items": {
+                "type": "object",
+                "description": "One missing comparison.",
+                "properties": {
+                  "corpus_id": {
+                    "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                    "description": "Corpus version."
+                  },
+                  "reason": {
+                    "type": "string",
+                    "description": "Why it could not be compared.",
+                    "enum": [
+                      "manifest_removed",
+                      "no_frame_set",
+                      "bundles_removed",
+                      "other_decode_policy",
+                      "other_schema"
+                    ]
+                  },
+                  "stream_ids": {
+                    "type": "array",
+                    "description": "Affected streams.",
+                    "items": {
+                      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                      "description": "Stream."
+                    },
+                    "minItems": 0
+                  }
+                },
+                "required": [
+                  "corpus_id",
+                  "reason",
+                  "stream_ids"
+                ],
+                "additionalProperties": false
+              },
+              "minItems": 1
+            }
+          },
+          "required": [
+            "status",
+            "supersedes",
+            "supersedes_manifest_sha256",
+            "compared_versions",
+            "added",
+            "removed",
+            "kept"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "unlinked": {
+      "type": "object",
+      "description": "Other corpus versions on this data root that place a source of this version in another group or split. Absent when there is nothing to report. The build still succeeds.",
+      "properties": {
+        "placements": {
+          "type": "array",
+          "description": "Sources placed elsewhere, ordered by source hash, then by the other version's name.",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "description": "One source held by this version and by another version.",
+            "properties": {
+              "source_sha256": {
+                "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+                "description": "Source identity. The file hash when the recording names its first video stream."
+              },
+              "from": {
+                "type": "object",
+                "description": "Where another version on this data root places the source.",
+                "properties": {
+                  "corpus_id": {
+                    "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                    "description": "The other corpus version."
+                  },
+                  "group_id": {
+                    "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                    "description": "Group."
+                  },
+                  "split": {
+                    "type": "string",
+                    "description": "Evaluation partition.",
+                    "enum": [
+                      "development",
+                      "calibration",
+                      "locked"
+                    ]
+                  }
+                },
+                "required": [
+                  "corpus_id",
+                  "group_id",
+                  "split"
+                ],
+                "additionalProperties": false
+              },
+              "to": {
+                "type": "object",
+                "description": "Where this version places the source.",
+                "properties": {
+                  "corpus_id": {
+                    "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                    "description": "This corpus version."
+                  },
+                  "group_id": {
+                    "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                    "description": "Group."
+                  },
+                  "split": {
+                    "type": "string",
+                    "description": "Evaluation partition.",
+                    "enum": [
+                      "development",
+                      "calibration",
+                      "locked"
+                    ]
+                  }
+                },
+                "required": [
+                  "corpus_id",
+                  "group_id",
+                  "split"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "source_sha256",
+              "from",
+              "to"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "scan": {
+          "type": "string",
+          "description": "Present when the corpus directory could not be listed, so no version was compared. Absent when the scan visited each version directory. The build still succeeds.",
+          "enum": [
+            "unreadable"
+          ]
+        },
+        "not_compared": {
+          "type": "array",
+          "description": "Manifests on this data root that could not be read, or whose major keeps no projection. Present only when one exists, ordered by corpus version name.",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "description": "One manifest the listing could not compare.",
+            "properties": {
+              "corpus_id": {
+                "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                "description": "Corpus directory name."
+              },
+              "reason": {
+                "type": "string",
+                "description": "Why the manifest was not compared.",
+                "enum": [
+                  "other_schema",
+                  "unreadable"
+                ]
+              }
+            },
+            "required": [
+              "corpus_id",
+              "reason"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "near_duplicates": {
+      "type": "object",
+      "description": "Likely re-encoded copies in different groups, at the measured perceptual threshold. The comparison reads the version being built, the chain its declaration links, and every other built version on the same data root. Absent when no pair meets the threshold, every window and version could be read, and the corpus directory could be listed. The build still succeeds, and this report is not sealed.",
+      "properties": {
+        "method": {
+          "type": "string",
+          "description": "Fingerprint that was compared.",
+          "enum": [
+            "luma-grid-16"
+          ]
+        },
+        "samples": {
+          "type": "integer",
+          "description": "How many frames of each window were sampled.",
+          "minimum": 1,
+          "x-unit": "1"
+        },
+        "grid": {
+          "type": "integer",
+          "description": "Width and height of each frame's box-averaged luma grid.",
+          "minimum": 1,
+          "x-unit": "1"
+        },
+        "threshold": {
+          "type": "number",
+          "description": "Minimum normalized correlation reported as a likely copy.",
+          "minimum": 0,
+          "maximum": 1,
+          "x-unit": "1"
+        },
+        "pairs": {
+          "type": "array",
+          "description": "Pairs at or above the threshold, ordered by corpus version and stream. Present only when one exists.",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "description": "One likely re-encoded copy.",
+            "properties": {
+              "similarity": {
+                "type": "number",
+                "description": "Normalized correlation of the two fingerprints, rounded to four decimal places.",
+                "minimum": 0,
+                "maximum": 1,
+                "x-unit": "1"
+              },
+              "streams": {
+                "type": "array",
+                "description": "The two streams, ordered by corpus version then stream.",
+                "minItems": 2,
+                "maxItems": 2,
+                "items": {
+                  "type": "object",
+                  "description": "One stream of the pair.",
+                  "properties": {
+                    "corpus_id": {
+                      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                      "description": "Corpus version that holds the stream."
+                    },
+                    "stream_id": {
+                      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                      "description": "Stream."
+                    },
+                    "group_id": {
+                      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                      "description": "Encounter group."
+                    },
+                    "split": {
+                      "type": "string",
+                      "description": "Evaluation partition.",
+                      "enum": [
+                        "development",
+                        "calibration",
+                        "locked"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "corpus_id",
+                    "stream_id",
+                    "group_id",
+                    "split"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "similarity",
+              "streams"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "scan": {
+          "type": "string",
+          "description": "Present when the corpus directory could not be listed, so versions outside the declared chain were not compared. The declared chain is still compared. Absent when the scan visited each version directory. The build still succeeds.",
+          "enum": [
+            "unreadable"
+          ]
+        },
+        "not_compared": {
+          "type": "array",
+          "description": "Windows or versions that could not be fingerprinted. Present only when one exists. A missing manifest and a version that cannot be read are unreadable.",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "description": "One gap in the comparison.",
+            "properties": {
+              "corpus_id": {
+                "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                "description": "Corpus version."
+              },
+              "reason": {
+                "type": "string",
+                "description": "Why the window or version was not compared.",
+                "enum": [
+                  "source_unreadable",
+                  "window_unknown",
+                  "other_schema",
+                  "unreadable"
+                ]
+              },
+              "stream_ids": {
+                "type": "array",
+                "description": "Streams that were not compared. Empty when the version has no readable stream list.",
+                "items": {
+                  "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                  "description": "Stream."
+                },
+                "minItems": 0
+              }
+            },
+            "required": [
+              "corpus_id",
+              "reason",
+              "stream_ids"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "method",
+        "samples",
+        "grid",
+        "threshold"
+      ],
+      "additionalProperties": false
+    },
+    "impact": {
+      "type": "object",
+      "description": "Corpus versions on this data root that pin the source record this command replaced, each with its frames directory. Absent when nothing needs reporting, including a repeat that replaced nothing. The replacement is still recorded.",
+      "properties": {
+        "versions": {
+          "type": "array",
+          "description": "Versions that pin the replaced record, ordered by corpus version name. A version is listed once however many of its streams pin it.",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "description": "One corpus version that pins the replaced source record.",
+            "properties": {
+              "corpus_id": {
+                "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                "description": "Corpus version."
+              },
+              "frames_directory": {
+                "type": "string",
+                "description": "Directory that holds this version's staged frames, whether or not it currently contains files."
+              }
+            },
+            "required": [
+              "corpus_id",
+              "frames_directory"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "not_compared": {
+          "type": "array",
+          "description": "Manifests on this data root that could not be read, or whose major keeps no projection. Present only when one exists, ordered by corpus version name. Such a version is not treated as absent.",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "description": "One manifest the listing could not compare.",
+            "properties": {
+              "corpus_id": {
+                "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                "description": "Corpus directory name."
+              },
+              "reason": {
+                "type": "string",
+                "description": "Why the manifest was not compared.",
+                "enum": [
+                  "other_schema",
+                  "unreadable"
+                ]
+              }
+            },
+            "required": [
+              "corpus_id",
+              "reason"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "scan": {
+          "type": "string",
+          "description": "Present when the corpus directory could not be listed. Absent when the scan visited each version directory. The replacement is still recorded.",
+          "enum": [
+            "unreadable"
+          ]
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "frame_set_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Frame-set seal."
+    },
+    "bundles": {
+      "type": "array",
+      "description": "Staged bundle summaries.",
+      "items": {
+        "type": "object",
+        "description": "One staged or verified bundle.",
+        "properties": {
+          "stream_id": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+            "description": "Stream or case id."
+          },
+          "status": {
+            "type": "string",
+            "description": "Bundle status.",
+            "enum": [
+              "staged",
+              "reused",
+              "unchanged",
+              "verified"
+            ]
+          },
+          "reused_from": {
+            "type": "object",
+            "description": "Present when this bundle's frames were hard-linked from a linked corpus version. Absent when this run decoded the stream, left it unchanged, or verified it.",
+            "properties": {
+              "corpus_id": {
+                "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                "description": "Linked version that held the frames."
+              },
+              "stream_id": {
+                "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                "description": "Stream whose bundle supplied the frames."
+              }
+            },
+            "required": [
+              "corpus_id",
+              "stream_id"
+            ],
+            "additionalProperties": false
+          },
+          "transform": {
+            "type": "string",
+            "description": "Transform name, or identity for an original stream."
+          },
+          "bundle_sha256": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+            "description": "Bundle identity hash."
+          },
+          "frame_count": {
+            "type": "integer",
+            "description": "Bundle frame count.",
+            "x-unit": "1",
+            "minimum": 1
+          },
+          "pixel_format": {
+            "type": "string",
+            "description": "Raw frame layout.",
+            "const": "rgb24"
+          },
+          "width": {
+            "type": "integer",
+            "description": "Width.",
+            "x-unit": "{pixel}",
+            "minimum": 1
+          },
+          "height": {
+            "type": "integer",
+            "description": "Height.",
+            "x-unit": "{pixel}",
+            "minimum": 1
+          },
+          "manifest_path": {
+            "type": "string",
+            "description": "Local bundle manifest path."
+          }
+        },
+        "required": [
+          "stream_id",
+          "status",
+          "transform",
+          "bundle_sha256",
+          "frame_count",
+          "pixel_format",
+          "width",
+          "height",
+          "manifest_path"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1
+    },
+    "shared_frames": {
+      "type": "object",
+      "description": "Coverage of the shared-frame check.",
+      "properties": {
+        "min_shared_frames": {
+          "type": "integer",
+          "description": "Minimum shared consecutive frames.",
+          "x-unit": "1",
+          "minimum": 1
+        },
+        "compared_versions": {
+          "type": "array",
+          "description": "Compared versions.",
+          "items": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+            "description": "Corpus version."
+          },
+          "minItems": 0
+        },
+        "not_compared": {
+          "type": "array",
+          "description": "Uncompared predecessors.",
+          "items": {
+            "type": "object",
+            "description": "One missing comparison.",
+            "properties": {
+              "corpus_id": {
+                "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                "description": "Corpus version."
+              },
+              "reason": {
+                "type": "string",
+                "description": "Why it could not be compared.",
+                "enum": [
+                  "manifest_removed",
+                  "no_frame_set",
+                  "bundles_removed",
+                  "other_decode_policy",
+                  "other_schema"
+                ]
+              },
+              "stream_ids": {
+                "type": "array",
+                "description": "Affected streams.",
+                "items": {
+                  "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                  "description": "Stream."
+                },
+                "minItems": 0
+              }
+            },
+            "required": [
+              "corpus_id",
+              "reason",
+              "stream_ids"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0
+        }
+      },
+      "required": [
+        "min_shared_frames",
+        "compared_versions",
+        "not_compared"
+      ],
+      "additionalProperties": false
+    },
+    "bundle_count": {
+      "type": "integer",
+      "description": "Number of bundles.",
+      "x-unit": "1",
+      "minimum": 1
+    },
+    "host": {
+      "type": "object",
+      "description": "Host facts, outside the frame-set identity.",
+      "properties": {
+        "machine": {
+          "type": "string",
+          "description": "Processor architecture."
+        },
+        "system": {
+          "type": "string",
+          "description": "Operating system."
+        },
+        "python": {
+          "type": "string",
+          "description": "Python interpreter version."
+        }
+      },
+      "required": [
+        "machine",
+        "system",
+        "python"
+      ],
+      "additionalProperties": false
+    },
+    "record_path": {
+      "type": "string",
+      "description": "Local output record path."
+    },
+    "kind": {
+      "type": "string",
+      "description": "Comparison record kind, when embedded in a result.",
+      "const": "ss-track.hash-comparison"
+    },
+    "schema_version": {
+      "type": "integer",
+      "description": "Embedded comparison record major.",
+      "x-unit": "1",
+      "const": 1,
+      "minimum": 0
+    },
+    "source_count": {
+      "type": "integer",
+      "description": "Compared source count.",
+      "x-unit": "1",
+      "minimum": 1
+    },
+    "left": {
+      "type": "object",
+      "description": "One comparison side.",
+      "properties": {
+        "host": {
+          "type": "object",
+          "description": "Host facts, outside the frame-set identity.",
+          "properties": {
+            "machine": {
+              "type": "string",
+              "description": "Processor architecture."
+            },
+            "system": {
+              "type": "string",
+              "description": "Operating system."
+            },
+            "python": {
+              "type": "string",
+              "description": "Python interpreter version."
+            }
+          },
+          "required": [
+            "machine",
+            "system",
+            "python"
+          ],
+          "additionalProperties": false
+        },
+        "frame_set_sha256": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+          "description": "Frame-set seal."
+        },
+        "corpus_manifest_sha256": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+          "description": "Corpus seal."
+        }
+      },
+      "required": [
+        "host",
+        "frame_set_sha256",
+        "corpus_manifest_sha256"
+      ],
+      "additionalProperties": false
+    },
+    "right": {
+      "type": "object",
+      "description": "One comparison side.",
+      "properties": {
+        "host": {
+          "type": "object",
+          "description": "Host facts, outside the frame-set identity.",
+          "properties": {
+            "machine": {
+              "type": "string",
+              "description": "Processor architecture."
+            },
+            "system": {
+              "type": "string",
+              "description": "Operating system."
+            },
+            "python": {
+              "type": "string",
+              "description": "Python interpreter version."
+            }
+          },
+          "required": [
+            "machine",
+            "system",
+            "python"
+          ],
+          "additionalProperties": false
+        },
+        "frame_set_sha256": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+          "description": "Frame-set seal."
+        },
+        "corpus_manifest_sha256": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+          "description": "Corpus seal."
+        }
+      },
+      "required": [
+        "host",
+        "frame_set_sha256",
+        "corpus_manifest_sha256"
+      ],
+      "additionalProperties": false
+    },
+    "sources": {
+      "type": "array",
+      "description": "Differing source reports.",
+      "items": {
+        "type": "object",
+        "description": "One differing source.",
+        "properties": {
+          "source_sha256": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+            "description": "Source identity. The file hash when the recording names its first video stream."
+          },
+          "codec": {
+            "type": "string",
+            "description": "Left codec name."
+          },
+          "source_pixel_format": {
+            "type": "string",
+            "description": "Left pixel format name."
+          },
+          "source_record_differs": {
+            "type": "boolean",
+            "description": "Whether imported source seals differ."
+          },
+          "bundles": {
+            "type": "array",
+            "description": "Differing bundles of this source.",
+            "items": {
+              "type": "object",
+              "description": "One differing bundle.",
+              "properties": {
+                "stream_id": {
+                  "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                  "description": "Stream or case identifier."
+                },
+                "parent_stream_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Parent stream, or null for original stream.",
+                  "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+                },
+                "left_bundle_sha256": {
+                  "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+                  "description": "Left identity hash."
+                },
+                "right_bundle_sha256": {
+                  "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+                  "description": "Right identity hash."
+                },
+                "frame_count": {
+                  "type": "integer",
+                  "description": "Number of frames on the left.",
+                  "x-unit": "1",
+                  "minimum": 0
+                },
+                "differing_frames": {
+                  "type": "integer",
+                  "description": "Number of indexes with missing or differing hash or PTS.",
+                  "x-unit": "1",
+                  "minimum": 0
+                },
+                "first_differing_frame": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "description": "Smallest differing source frame index, or null.",
+                  "x-unit": "1",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "stream_id",
+                "parent_stream_id",
+                "left_bundle_sha256",
+                "right_bundle_sha256",
+                "frame_count",
+                "differing_frames",
+                "first_differing_frame"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 0
+          }
+        },
+        "required": [
+          "source_sha256",
+          "codec",
+          "source_pixel_format",
+          "source_record_differs",
+          "bundles"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 0
+    },
+    "root": {
+      "type": "string",
+      "description": "Installed contracts directory."
+    },
+    "contracts": {
+      "type": "array",
+      "description": "Contract listing.",
+      "items": {
+        "type": "object",
+        "description": "One listed contract.",
+        "properties": {
+          "contract": {
+            "type": "string",
+            "description": "Family/id."
+          },
+          "family": {
+            "type": "string",
+            "description": "Contract family.",
+            "enum": [
+              "declaration",
+              "record",
+              "event",
+              "result",
+              "external",
+              "shared"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "description": "Format id."
+          },
+          "owner": {
+            "type": "string",
+            "description": "Owning capability."
+          },
+          "status": {
+            "type": "string",
+            "description": "Contract lifecycle.",
+            "enum": [
+              "draft",
+              "active",
+              "deprecated",
+              "retired"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "description": "Format summary."
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Reason a draft has no frozen version."
+          },
+          "versions": {
+            "type": "array",
+            "description": "Frozen versions.",
+            "items": {
+              "type": "object",
+              "description": "One frozen contract version.",
+              "properties": {
+                "version": {
+                  "type": "string",
+                  "description": "Semantic version."
+                },
+                "urn": {
+                  "type": "string",
+                  "description": "Frozen contract URN."
+                },
+                "file_sha256": {
+                  "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+                  "description": "Exact file hash."
+                },
+                "structure": {
+                  "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+                  "description": "Structural fingerprint."
+                },
+                "meaning": {
+                  "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+                  "description": "Semantic fingerprint."
+                },
+                "change": {
+                  "type": "object",
+                  "description": "Frozen version change log.",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Compatibility class.",
+                      "enum": [
+                        "initial",
+                        "patch",
+                        "minor",
+                        "major"
+                      ]
+                    },
+                    "summary": {
+                      "type": "string",
+                      "description": "Description of the change."
+                    },
+                    "migration": {
+                      "type": "string",
+                      "description": "Required operator migration."
+                    },
+                    "disposition": {
+                      "type": "string",
+                      "description": "Disposition of the predecessor major.",
+                      "enum": [
+                        "view",
+                        "facts",
+                        "retired"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "class",
+                    "summary"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "version",
+                "urn",
+                "file_sha256",
+                "structure",
+                "meaning",
+                "change"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 0
+          },
+          "retired_majors": {
+            "type": "array",
+            "description": "Historic majors without frozen contracts.",
+            "items": {
+              "type": "object",
+              "description": "Historic major with no frozen contract.",
+              "properties": {
+                "major": {
+                  "type": "integer",
+                  "description": "Historic format major.",
+                  "x-unit": "1",
+                  "minimum": 1
+                },
+                "status": {
+                  "type": "string",
+                  "description": "Disposition: facts while a retained record has a route, retired once none needs one.",
+                  "enum": [
+                    "facts",
+                    "retired"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "description": "Why no retained runtime evidence needs a contract."
+                },
+                "migration": {
+                  "type": "string",
+                  "description": "What a holder of a record of this major must do."
+                }
+              },
+              "required": [
+                "major",
+                "status",
+                "reason"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 0
+          }
+        },
+        "required": [
+          "contract",
+          "family",
+          "id",
+          "owner",
+          "status",
+          "description",
+          "reason",
+          "versions"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 0
+    },
+    "path": {
+      "type": "string",
+      "description": "Validated input path."
+    },
+    "contract": {
+      "type": "string",
+      "description": "Validated family/id."
+    },
+    "version": {
+      "type": "string",
+      "description": "Validated semantic version."
+    },
+    "urn": {
+      "type": "string",
+      "description": "Validated contract URN."
+    },
+    "seal_checked": {
+      "type": "boolean",
+      "description": "Whether the input record seal was checked."
+    },
+    "required_bump": {
+      "type": "string",
+      "description": "Minimum compatible schema bump; none for an unchanged or initial candidate.",
+      "enum": [
+        "none",
+        "patch",
+        "minor",
+        "major"
+      ]
+    },
+    "changes": {
+      "type": "array",
+      "description": "Explained schema changes.",
+      "items": {
+        "type": "object",
+        "description": "One schema change.",
+        "properties": {
+          "pointer": {
+            "type": "string",
+            "description": "JSON pointer into the candidate schema, or the previous schema for removal."
+          },
+          "class": {
+            "type": "string",
+            "description": "Minimum bump.",
+            "enum": [
+              "patch",
+              "minor",
+              "major"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "description": "Compatibility explanation."
+          }
+        },
+        "required": [
+          "pointer",
+          "class",
+          "reason"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "files": {
+      "type": "array",
+      "description": "Paths written by a command.",
+      "items": {
+        "type": "string",
+        "description": "Path of one generated file."
+      },
+      "minItems": 0
+    },
+    "preview": {
+      "type": "object",
+      "description": "Contact sheet of one parent frame beside its generated cases.",
+      "properties": {
+        "stream_id": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+          "description": "Parent stream."
+        },
+        "frame_index": {
+          "type": "integer",
+          "description": "Source frame index shown.",
+          "x-unit": "1",
+          "minimum": 0
+        },
+        "width": {
+          "type": "integer",
+          "description": "Sheet width.",
+          "x-unit": "{pixel}",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "description": "Sheet height.",
+          "x-unit": "{pixel}",
+          "minimum": 1
+        },
+        "frame_width": {
+          "type": "integer",
+          "description": "Width of one panel.",
+          "x-unit": "{pixel}",
+          "minimum": 1
+        },
+        "frame_height": {
+          "type": "integer",
+          "description": "Height of one panel.",
+          "x-unit": "{pixel}",
+          "minimum": 1
+        },
+        "png_sha256": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+          "description": "SHA-256 of the written PNG."
+        },
+        "encoder": {
+          "type": "string",
+          "description": "Pinned PNG encoder. Stored deflate, so bytes do not depend on a zlib build.",
+          "enum": [
+            "stored-deflate-rgb24-v1"
+          ]
+        },
+        "panels": {
+          "type": "array",
+          "description": "Panels from left to right.",
+          "items": {
+            "description": "One panel.",
+            "oneOf": [
+              {
+                "type": "object",
+                "description": "The parent frame, with no outline.",
+                "properties": {
+                  "stream_id": {
+                    "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                    "description": "Parent stream."
+                  },
+                  "role": {
+                    "type": "string",
+                    "description": "Panel role.",
+                    "const": "parent"
+                  }
+                },
+                "required": [
+                  "stream_id",
+                  "role"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "description": "A generated case whose frame is present.",
+                "properties": {
+                  "stream_id": {
+                    "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                    "description": "Case id."
+                  },
+                  "role": {
+                    "type": "string",
+                    "description": "Panel role.",
+                    "const": "case"
+                  },
+                  "region": {
+                    "type": "object",
+                    "description": "Outlined rectangle. Absent when this frame is outside the case window.",
+                    "properties": {
+                      "x": {
+                        "type": "integer",
+                        "description": "Left column.",
+                        "x-unit": "{pixel}",
+                        "minimum": 0
+                      },
+                      "y": {
+                        "type": "integer",
+                        "description": "Top row.",
+                        "x-unit": "{pixel}",
+                        "minimum": 0
+                      },
+                      "width": {
+                        "type": "integer",
+                        "description": "Rectangle width.",
+                        "x-unit": "{pixel}",
+                        "minimum": 1
+                      },
+                      "height": {
+                        "type": "integer",
+                        "description": "Rectangle height.",
+                        "x-unit": "{pixel}",
+                        "minimum": 1
+                      }
+                    },
+                    "required": [
+                      "x",
+                      "y",
+                      "width",
+                      "height"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "stream_id",
+                  "role"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "description": "A generated case that removed this frame.",
+                "properties": {
+                  "stream_id": {
+                    "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                    "description": "Case id."
+                  },
+                  "role": {
+                    "type": "string",
+                    "description": "Panel role.",
+                    "const": "removed"
+                  }
+                },
+                "required": [
+                  "stream_id",
+                  "role"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "stream_id",
+        "frame_index",
+        "width",
+        "height",
+        "frame_width",
+        "frame_height",
+        "png_sha256",
+        "encoder",
+        "panels"
+      ],
+      "additionalProperties": false
+    },
+    "run_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "Discovery run."
+    },
+    "inventory_count": {
+      "type": "integer",
+      "description": "Candidate inventories of a discovery run, one per stream.",
+      "x-unit": "1",
+      "minimum": 1
+    },
+    "candidate_count": {
+      "type": "integer",
+      "description": "Candidate windows across a discovery run.",
+      "x-unit": "1",
+      "minimum": 1
+    },
+    "feature_row_count": {
+      "type": "integer",
+      "description": "Feature rows across a discovery run's extractors and streams.",
+      "x-unit": "1",
+      "minimum": 0
+    },
+    "hint_sources": {
+      "type": "array",
+      "description": "What became of each hint source's matches, in ascending hint_source_id order.",
+      "items": {
+        "type": "object",
+        "description": "One hint source.",
+        "properties": {
+          "hint_source_id": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+            "description": "Hint source of the run."
+          },
+          "read": {
+            "type": "integer",
+            "description": "Matches read.",
+            "x-unit": "1",
+            "minimum": 0
+          },
+          "mapped": {
+            "type": "integer",
+            "description": "Matches that named a window.",
+            "x-unit": "1",
+            "minimum": 0
+          },
+          "unmapped": {
+            "type": "array",
+            "description": "Matches that named no window, by reason.",
+            "items": {
+              "type": "object",
+              "description": "Matches of one reason.",
+              "properties": {
+                "reason": {
+                  "type": "string",
+                  "description": "Why no window was named.",
+                  "enum": [
+                    "empty_slot",
+                    "missing_timestamps",
+                    "multi_stream_source",
+                    "no_hash_join",
+                    "not_on_slot",
+                    "outside_bundle",
+                    "slot_out_of_range"
+                  ]
+                },
+                "count": {
+                  "type": "integer",
+                  "description": "Matches of this reason.",
+                  "x-unit": "1",
+                  "minimum": 1
+                }
+              },
+              "required": [
+                "reason",
+                "count"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 0
+          }
+        },
+        "required": [
+          "hint_source_id",
+          "read",
+          "mapped",
+          "unmapped"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 0
+    },
+    "selection": {
+      "type": "object",
+      "description": "What a discovery run's selection decided across its candidates.",
+      "properties": {
+        "method": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+          "description": "Selection method of the run."
+        },
+        "budget": {
+          "type": "integer",
+          "x-unit": "1",
+          "minimum": 0,
+          "description": "Most candidates the method may select."
+        },
+        "selected": {
+          "type": "integer",
+          "x-unit": "1",
+          "minimum": 0,
+          "description": "Candidates selected for review."
+        },
+        "excluded": {
+          "type": "array",
+          "description": "Candidates excluded from ranking, by reason in ascending order.",
+          "items": {
+            "type": "object",
+            "description": "Candidates of one reason.",
+            "properties": {
+              "reason": {
+                "type": "string",
+                "description": "Why the candidates were not ranked.",
+                "enum": [
+                  "features_unavailable",
+                  "operator_excluded",
+                  "repeated_content"
+                ]
+              },
+              "count": {
+                "type": "integer",
+                "x-unit": "1",
+                "minimum": 1,
+                "description": "Candidates of this reason."
+              }
+            },
+            "required": [
+              "reason",
+              "count"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0
+        }
+      },
+      "required": [
+        "method",
+        "budget",
+        "selected",
+        "excluded"
+      ],
+      "additionalProperties": false
+    },
+    "unavailable_scores": {
+      "type": "array",
+      "description": "Scores a discovery run could not compute, by score_id and then reason in ascending order.",
+      "items": {
+        "type": "object",
+        "description": "Candidates missing one score for one reason.",
+        "properties": {
+          "score_id": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+            "description": "Score of the run."
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why the score is unavailable.",
+            "enum": [
+              "extractor_failed",
+              "frame_unreadable",
+              "window_too_short"
+            ]
+          },
+          "count": {
+            "type": "integer",
+            "x-unit": "1",
+            "minimum": 1,
+            "description": "Candidates without the score for this reason."
+          }
+        },
+        "required": [
+          "score_id",
+          "reason",
+          "count"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 0
+    },
+    "coverage": {
+      "type": "array",
+      "description": "What each extractor of a discovery run saw of the staged frames, in ascending extractor_id order: the least over the run's streams.",
+      "items": {
+        "type": "object",
+        "description": "One extractor.",
+        "properties": {
+          "extractor_id": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+            "description": "Extractor of the run."
+          },
+          "covered_fraction": {
+            "type": "number",
+            "x-unit": "1",
+            "exclusiveMinimum": 0,
+            "maximum": 1,
+            "description": "Share of a frame's area the model input shows. The tiles of one grid together cover the whole frame."
+          },
+          "scale": {
+            "type": "number",
+            "x-unit": "1",
+            "exclusiveMinimum": 0,
+            "description": "Model input pixels per frame pixel along one side: a target this many frame pixels wide is this times as wide in the model input."
+          }
+        },
+        "required": [
+          "extractor_id",
+          "covered_fraction",
+          "scale"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 0
+    },
+    "links": {
+      "type": "object",
+      "description": "What a link review holds, counted.",
+      "properties": {
+        "status": {
+          "type": "string",
+          "description": "clear: every link is decided. unresolved: at least one is not.",
+          "enum": [
+            "clear",
+            "unresolved"
+          ]
+        },
+        "count": {
+          "type": "integer",
+          "description": "Links written.",
+          "x-unit": "1",
+          "minimum": 0
+        },
+        "states": {
+          "type": "array",
+          "description": "Links per status, ascending by status.",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "description": "One status.",
+            "properties": {
+              "status": {
+                "type": "string",
+                "description": "Link status.",
+                "enum": [
+                  "unresolved",
+                  "unrelated"
+                ]
+              },
+              "count": {
+                "type": "integer",
+                "description": "Links in it.",
+                "x-unit": "1",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "status",
+              "count"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "unresolved_cross_split": {
+          "type": "integer",
+          "description": "Undecided links whose groups sit in different splits.",
+          "x-unit": "1",
+          "minimum": 0
+        },
+        "flagged": {
+          "type": "array",
+          "description": "Links each method and extractor flagged, ascending.",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "description": "One method or extractor.",
+            "properties": {
+              "method": {
+                "type": "string",
+                "description": "Method.",
+                "enum": [
+                  "luma-grid-16",
+                  "background-cosine"
+                ]
+              },
+              "extractor_id": {
+                "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                "description": "Plan extractor, for background-cosine."
+              },
+              "count": {
+                "type": "integer",
+                "description": "Links it flagged.",
+                "x-unit": "1",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "method",
+              "count"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "not_compared": {
+          "type": "integer",
+          "description": "Entries of streams a method could not compare.",
+          "x-unit": "1",
+          "minimum": 0
+        },
+        "decisions_outside_links": {
+          "type": "integer",
+          "description": "Decisions that name no link of the version; present when a decisions file was given.",
+          "x-unit": "1",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "status",
+        "count",
+        "states",
+        "unresolved_cross_split",
+        "flagged",
+        "not_compared"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "status"
+  ],
+  "additionalProperties": false,
+  "x-rules": {
+    "outcome": "Refused requires code, message and details. Success fields are those of the invoked command. Unchanged retains the fields of import, amendment, build or staging, so status alone does not identify the shape.",
+    "comparison": "A successful comparison embeds the sealed comparison and adds record_path; record_path is not covered by its embedded seal.",
+    "versions": "This result format stamps no version of its own; schema_version, when present, belongs to the embedded comparison."
+  }
+}

@@ -94,6 +94,24 @@ contracts:
       class: minor
       summary: Add a selection method and tiled extractors.
 - family: declaration
+  id: link-decisions
+  owner: self-supervised-corpus
+  status: active
+  description: 'A reviewer''s decisions on whether two imported recordings are related:
+    not independent of each other, so every stream cut from them belongs in one encounter
+    group. A decision is about two recordings, not a corpus version, so it carries
+    over to any version that holds them. It is human judgment; no similarity score
+    makes one.'
+  versions:
+  - version: 1.0.0
+    file_sha256: 4332935825c5bdf9c89bd6959b179e36b58ceec91a468d5fd8fa2fd8478e53a0
+    fingerprints:
+      structure: 78329631fa8258e735969f42ac83481672fd15d34228c3dcd6977e3b3a2ac800
+      meaning: f2b388149e9dcd9761e606070a6de79861566d2a38825667fd3c563fc56b4b9c
+    change:
+      class: initial
+      summary: Initial contract.
+- family: declaration
   id: recording
   owner: corpus-provenance
   status: active
@@ -173,6 +191,25 @@ contracts:
     fingerprints:
       structure: ef5a90dffe5cad6beba91f6cd6f733867cd79b1e30d2a1c540ad246c4e083b79
       meaning: 4c2b79e303fb56a5c3810fd7a1ffdd5bb01ed0318f4159c1853892779ca26de5
+    change:
+      class: initial
+      summary: Initial contract.
+- family: record
+  id: corpus-links
+  owner: self-supervised-corpus
+  status: active
+  description: 'One sealed link review of a staged corpus version: pairs of recordings
+    in different encounter groups that a similarity method flagged or a reviewer decided,
+    with the evidence and the decision. A version holding a run of identical frames
+    in two groups, or recordings a reviewer decided are related in two groups, is
+    refused rather than written. A link is a question for a reviewer: a similarity
+    is not ground truth and no link merges a group.'
+  versions:
+  - version: 1.0.0
+    file_sha256: 4a4bd34fa62f427d26bd4f4b1610b79c0cf24e1d94dc31305ad390aaaaef84c7
+    fingerprints:
+      structure: 87e8a86fec306fad30b7d674ac1407cb53ebee193b6301ac5d9f840073717fa8
+      meaning: d776a60a5fe07d9978a7a78214142ac42fd7b850f091bfff1b53dcabbc10a84c
     change:
       class: initial
       summary: Initial contract.
@@ -605,6 +642,14 @@ contracts:
     change:
       class: minor
       summary: Add a discovery run's selection, unavailable scores and coverage.
+  - version: 1.17.0
+    file_sha256: 88eb917796346c510931b0b6f46c42669869d7bf43fa7d0a7523a3f416f0a218
+    fingerprints:
+      structure: c44eabf50222618425d003754d439893df96a7cc53043fce684c9ce146bcb3b3
+      meaning: 20930075327e2b3b1e47f35146359321d926bb87d0ba7cdfe01baf9a86f06f60
+    change:
+      class: minor
+      summary: Add links, the counts of a link review.
 - family: shared
   id: types
   owner: data-contracts
