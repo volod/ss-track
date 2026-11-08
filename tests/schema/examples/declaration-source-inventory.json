@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "collections": [
+    {
+      "provider": "zenodo",
+      "collection_id": "15696105",
+      "revision": "v4",
+      "archive_path": "videos.zip",
+      "archive_md5": "95eae83aceb2d12803f5f567c31060a9",
+      "videos": [
+        {
+          "path": "videos/b.mp4",
+          "source_reference": null,
+          "annotation_reference": null,
+          "upstream_split": null,
+          "attribution": null,
+          "terms": "MIT",
+          "terms_reference": null,
+          "status": "candidate",
+          "exclusion_reason": null
+        },
+        {
+          "path": "videos/a.mp4",
+          "source_reference": null,
+          "annotation_reference": null,
+          "upstream_split": null,
+          "attribution": null,
+          "terms": null,
+          "terms_reference": null,
+          "status": "unknown",
+          "exclusion_reason": null
+        }
+      ]
+    },
+    {
+      "provider": "huggingface",
+      "collection_id": "wayneballard/drone-detection-dataset",
+      "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "archive_path": null,
+      "archive_md5": null,
+      "videos": [
+        {
+          "path": "insects/a.mp4",
+          "source_reference": null,
+          "annotation_reference": null,
+          "upstream_split": null,
+          "attribution": null,
+          "terms": null,
+          "terms_reference": null,
+          "status": "excluded",
+          "exclusion_reason": "unknown rights"
+        }
+      ]
+    }
+  ]
+}

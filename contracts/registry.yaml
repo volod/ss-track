@@ -180,6 +180,21 @@ contracts:
     migration: Set schema_version 2 and state rights.retain_until and rights.derived_frames,
       which only an operator can state.
 - family: declaration
+  id: source-inventory
+  owner: self-supervised-corpus
+  status: active
+  description: An operator inventory of candidate source videos, upstream pins and
+    unresolved rights; it authorizes no acquisition or processing.
+  versions:
+  - version: 1.0.0
+    file_sha256: b243c1f058208825c94d1d2737c5b5963a9d3d30be2984ce32bf43734f9908e2
+    fingerprints:
+      structure: 882d11ded64c659df3db07849ad06b90f14485638cc4fa2183371d2e1b65635c
+      meaning: ba89e1cc10969989540fdb42c12b2b2da34a6de0170f7005d178f0d470e1ecd0
+    change:
+      class: initial
+      summary: Initial source inventory declaration.
+- family: declaration
   id: video-hints
   owner: self-supervised-corpus
   status: active
@@ -696,6 +711,22 @@ contracts:
       class: minor
       summary: Add the queue, review and superseded results of review and freeze,
         the declaration path and hash, and LINKS_UNRESOLVED.
+  - version: 1.19.0
+    file_sha256: 5f01efe15957db105080d8ab888172b737cb186c0c433a90a62be1eecae9a21b
+    fingerprints:
+      structure: f823c76447319f44d0dcc94aa4a0623a1948f1fd07f20412c16c1b81b3c11a26
+      meaning: 9d2dd411d4b40450b1a06aa5dbb410263092b97b559bb3a7d05f6e3dc6ae237c
+    change:
+      class: minor
+      summary: Add source inventory status and unresolved fact counts.
+  - version: 1.20.0
+    file_sha256: c319cae5a8385b7673a67fd8d0d61a35973245d98cc730097b4c659ebce6405b
+    fingerprints:
+      structure: ec5d5587af540bde85e29dcebdeeef3dc48bd465b4e9a2f1444df66aa4358784
+      meaning: f60810d4f4feca62f9b65ed9c295c3f5a6e90df552313900196be5a1c680eacf
+    change:
+      class: minor
+      summary: Add source inventory location, digest and totals.
 - family: shared
   id: types
   owner: data-contracts

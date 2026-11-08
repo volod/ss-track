@@ -18,6 +18,7 @@ baseline scope and evidence. The installed set contains these document contracts
 | `declaration/discovery-plan` | `1.0.0`, `1.1.0` |
 | `declaration/corpus-review` | `1.0.0` |
 | `declaration/link-decisions` | `1.0.0` |
+| `declaration/source-inventory` | `1.0.0` |
 | `declaration/recording` | `2.0.0`, `2.1.0`, `2.2.0`, `2.3.0` |
 | `declaration/video-hints` | `1.0.0` |
 | `record/candidate-inventory` | `1.0.0` |
@@ -31,7 +32,7 @@ baseline scope and evidence. The installed set contains these document contracts
 | `record/staged-hashes` | `1.0.0` |
 | `record/hash-comparison` | `1.0.0` |
 | `record/source-manifest` | `2.0.0`, `2.1.0`, `2.2.0`, `2.3.0` |
-| `result/command` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0`, `1.4.0`, `1.5.0`, `1.6.0`, `1.7.0`, `1.8.0`, `1.9.0`, `1.9.1`, `1.10.0`, `1.11.0`, `1.12.0`, `1.13.0`, `1.14.0`, `1.15.0`, `1.16.0`, `1.17.0`, `1.18.0` |
+| `result/command` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0`, `1.4.0`, `1.5.0`, `1.6.0`, `1.7.0`, `1.8.0`, `1.9.0`, `1.9.1`, `1.10.0`, `1.11.0`, `1.12.0`, `1.13.0`, `1.14.0`, `1.15.0`, `1.16.0`, `1.17.0`, `1.18.0`, `1.19.0`, `1.20.0` |
 
 `result/command` `1.5.0` adds `redecoded`. `1.6.0` adds optional `unlinked` on a corpus build,
 present only when that data root has something to report. `1.7.0` adds optional `impact` when an
@@ -66,6 +67,11 @@ recipes and the label kinds `compression` and `timing`. `declaration/corpus` 3.2
 `record/corpus-manifest` 3.4.0 and `record/frame-bundle` 3.4.0 add those recipes and the label kind
 `track_status`. Writers still stamp the major. A declaration stamped schema 3 validates under
 `declaration/corpus` 3.2.0, and a dataset descriptor copies that newest minor.
+
+`declaration/source-inventory` 1.0.0 records upstream candidate videos, pins and unresolved facts;
+`result/command` 1.19.0 adds its status and missing-fact counts, and 1.20.0 adds its path,
+digest and totals. The
+[inventory reader](corpus.md#source-inventory) enforces cross-field and path rules.
 
 `declaration/dataset` states the operator-supplied title, description, license, citation, address
 and publication date. It can be checked with `ss-track contracts validate` and is consumed by the

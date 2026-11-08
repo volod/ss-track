@@ -4,12 +4,13 @@ import argparse
 from pathlib import Path
 
 from ss_track.commands import Subcommands
-from ss_track.commands.report import reported_on_data_root
+from ss_track.commands.report import reported, reported_on_data_root
 from ss_track.corpus.discovery.run import run_discovery, verify_discovery_run
 from ss_track.corpus.evaluation.report import evaluate
 from ss_track.corpus.links.run import LinkRequest, write_links
 from ss_track.corpus.review.export import export_review
 from ss_track.corpus.review.template import queue_review
+from ss_track.corpus.sources.inventory import inventory_sources
 
 
 def add_discover_commands(subcommands: Subcommands) -> None:
@@ -18,6 +19,10 @@ def add_discover_commands(subcommands: Subcommands) -> None:
         "discover", help="propose candidate windows of staged frames for review"
     )
     commands = discover.add_subparsers(dest="discover_command", required=True)
+    inventory = commands.add_parser("inventory", help="normalize an upstream source inventory")
+    inventory.add_argument("--file", type=Path, required=True, help="source inventory declaration")
+    inventory.add_argument("--out", type=Path, required=True, help="normalized inventory path")
+    inventory.set_defaults(handler=_inventory)
     run = commands.add_parser(
         "run", help="embed staged frames, map ss-video hints and write one discovery run"
     )
@@ -97,3 +102,7 @@ def _evaluate(args: argparse.Namespace) -> int:
             args.uniform_freeze,
         )
     )
+
+
+def _inventory(args: argparse.Namespace) -> int:
+    return reported(lambda: inventory_sources(args.file, args.out))

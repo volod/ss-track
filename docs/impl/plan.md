@@ -30,35 +30,13 @@ extensions; none blocks M3. Fixture implementation proceeds without physical har
 
 ### Self-supervised video corpus -- `self-supervised-corpus`
 
-#### corpus-source-inventory
-
-Operators need to inventory upstream video files and their terms before selecting a combined pool.
-
-- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
-- Agent status: CLEAR
-- Dependencies: none.
-- User-visible outcome: A deterministic source inventory identifies videos, provenance, rights
-  evidence, acquisition pins and unresolved facts for the two selected collections.
-- Scope boundary: Offline fixtures and metadata inspection; no real media download, assumed rights,
-  source approval, review or publication.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `contracts/`,
-  `$DATA_DIR/self-supervised-corpus/<run-id>/`.
-- Execution path: Specify and contract any interchangeable inventory; preserve Zenodo version and
-  archive checksum, Hugging Face dataset commit, per-video upstream paths, attribution and terms,
-  source and annotation references, known upstream splits, status and exclusions. Record unknown
-  provenance and terms explicitly; credentials never enter artifacts.
-- Acceptance gates: Network-free fixtures cover both collections, unresolved rights, duplicate paths,
-  deterministic output, valid contract examples and refusing a moving or missing revision; `make ci`
-  passes.
-- Documentation target: [Corpus](current/corpus.md).
-
 #### corpus-source-acquisition
 
 An approved source selection needs bounded, reproducible downloads without losing upstream identity.
 
 - Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: CLEAR
-- Dependencies: corpus-source-inventory.
+- Dependencies: none.
 - User-visible outcome: An operator can acquire selected authorized Zenodo and Hugging Face video
   inputs and reproduce their verified local source inventory.
 - Scope boundary: Network-free fixture implementation; no real download, cloud publication, secret
@@ -67,12 +45,15 @@ An approved source selection needs bounded, reproducible downloads without losin
   `$DATA_DIR/self-supervised-corpus/<run-id>/`, `$DATA_DIR/import/`.
 - Execution path: Support the pinned WetlandBirds v4 archive and selective Hugging Face dataset files
   at a resolved commit, preserving upstream checksums and local SHA-256, per-video terms, metadata
-  and an explicit selection. Check budgets, safely extract archives, resume or refuse conflicts, and
+  and an explicit selection. Inspect pinned provider metadata to enumerate video paths and populate
+  the source inventory, reporting incomplete or mismatched metadata instead of inventing it. Check
+  budgets, safely extract archives, resume or refuse conflicts, and
   use optional `HF_TOKEN` from the environment without persisting it. Place scratch and cache under
   `DATA_DIR`; import remains the existing source authority. Add only justified dependencies and
   frozen contracts for new interchangeable formats.
-- Acceptance gates: Offline fixtures cover both providers, hashes, unsafe archive entries, interrupted
-  and repeated acquisition, insufficient budget, conflicting bytes, unresolved rights, anonymous and
+- Acceptance gates: Offline fixtures cover both providers, metadata enumeration and mismatches,
+  hashes, unsafe archive entries, interrupted and repeated acquisition, insufficient budget,
+  conflicting bytes, unresolved rights, anonymous and
   authenticated access without secrets in outputs; `make ci` passes.
 - Documentation target: [Corpus](current/corpus.md).
 
@@ -82,7 +63,7 @@ Combining recordings needs a reproducible pool that preserves independent source
 
 - Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: CLEAR
-- Dependencies: corpus-source-inventory, corpus-source-acquisition.
+- Dependencies: corpus-source-acquisition.
 - User-visible outcome: A combined corpus can be prepared, audited and reused for future cases while
   tracing each recording to its collection, terms and upstream metadata.
 - Scope boundary: Fixture preparation and existing import, build, stage and link review; no real
@@ -2429,7 +2410,7 @@ cannot grant itself.
 
 - Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: HUMAN-GATED
-- Dependencies: corpus-source-inventory.
+- Dependencies: none.
 - User-visible outcome: The owner approves a source list, corpus size and diversity targets, permitted
   processing, compute and storage budgets, a baseline review budget, and use of the sibling code and
   model weights the [integration plan](current/corpus/sibling-integration.md#model-and-data-rights)

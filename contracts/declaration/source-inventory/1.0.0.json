@@ -1,0 +1,205 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ss-track:contract:declaration:source-inventory:1.0.0",
+  "title": "Source inventory",
+  "description": "An operator inventory of candidate source videos, upstream pins and unresolved rights; it authorizes no acquisition or processing.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "collections"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1,
+      "minimum": 0,
+      "x-unit": "1",
+      "description": "Declaration major."
+    },
+    "collections": {
+      "type": "array",
+      "description": "Inspected source collections.",
+      "items": {
+        "type": "object",
+        "description": "One collection and the videos inspected within it.",
+        "additionalProperties": false,
+        "required": [
+          "provider",
+          "collection_id",
+          "revision",
+          "archive_path",
+          "archive_md5",
+          "videos"
+        ],
+        "properties": {
+          "provider": {
+            "type": "string",
+            "description": "Upstream provider.",
+            "enum": [
+              "zenodo",
+              "huggingface"
+            ]
+          },
+          "collection_id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Zenodo record identifier or Hugging Face dataset repository identifier.",
+            "x-rules": {
+              "text": "A non-null text value contains a character other than whitespace."
+            }
+          },
+          "revision": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Pinned Zenodo record version or full Hugging Face commit.",
+            "x-rules": {
+              "text": "A non-null text value contains a character other than whitespace."
+            }
+          },
+          "archive_path": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "description": "Zenodo archive path; null if unavailable or not applicable.",
+            "x-rules": {
+              "text": "A non-null text value contains a character other than whitespace."
+            }
+          },
+          "archive_md5": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Zenodo published archive MD5; null when unavailable.",
+            "pattern": "^[0-9a-f]{32}$"
+          },
+          "videos": {
+            "type": "array",
+            "description": "Inspected video files in this collection.",
+            "items": {
+              "type": "object",
+              "description": "One candidate original video and its unresolved facts.",
+              "additionalProperties": false,
+              "required": [
+                "path",
+                "source_reference",
+                "annotation_reference",
+                "upstream_split",
+                "attribution",
+                "terms",
+                "terms_reference",
+                "status",
+                "exclusion_reason"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Relative upstream video path.",
+                  "x-rules": {
+                    "text": "A non-null text value contains a character other than whitespace."
+                  }
+                },
+                "source_reference": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "minLength": 1,
+                  "description": "Original source reference; null when unknown.",
+                  "x-rules": {
+                    "text": "A non-null text value contains a character other than whitespace."
+                  }
+                },
+                "annotation_reference": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "minLength": 1,
+                  "description": "Upstream annotation reference; null when unknown.",
+                  "x-rules": {
+                    "text": "A non-null text value contains a character other than whitespace."
+                  }
+                },
+                "upstream_split": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "minLength": 1,
+                  "description": "Upstream split; null when unknown.",
+                  "x-rules": {
+                    "text": "A non-null text value contains a character other than whitespace."
+                  }
+                },
+                "attribution": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "minLength": 1,
+                  "description": "Attribution; null when unknown.",
+                  "x-rules": {
+                    "text": "A non-null text value contains a character other than whitespace."
+                  }
+                },
+                "terms": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "minLength": 1,
+                  "description": "Per-video use and retention terms; null when unknown.",
+                  "x-rules": {
+                    "text": "A non-null text value contains a character other than whitespace."
+                  }
+                },
+                "terms_reference": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "minLength": 1,
+                  "description": "Evidence for terms; null when unknown.",
+                  "x-rules": {
+                    "text": "A non-null text value contains a character other than whitespace."
+                  }
+                },
+                "status": {
+                  "type": "string",
+                  "description": "Candidate, excluded or unknown; not an approval.",
+                  "enum": [
+                    "candidate",
+                    "excluded",
+                    "unknown"
+                  ]
+                },
+                "exclusion_reason": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "minLength": 1,
+                  "description": "Reason for exclusion; null when not excluded.",
+                  "x-rules": {
+                    "text": "A non-null text value contains a character other than whitespace."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "x-rules": {
+    "revision": "A Hugging Face revision is a full lowercase 40-character commit; a Zenodo revision is a numbered version.",
+    "paths": "Video paths are safe, relative and unique within a collection; collection identities are unique.",
+    "exclusions": "Excluded videos state a reason; other statuses have no exclusion reason.",
+    "secrets": "Credentials, tokens and signed query parameters are not accepted in the declaration."
+  }
+}

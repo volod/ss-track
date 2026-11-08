@@ -39,8 +39,8 @@ sealed from those decisions. Source permissions and the independent review of re
 human work in the plan. See the
 [corpus formation planning record](../records/0038-adhoc-self-supervised-corpus-plan.md).
 The selected future sources are Visual WetlandBirds v4 and the Hugging Face Drone Detection Dataset;
-their shared inventory, acquisition, combined pool and blinded review are planned, not yet supported
-as source-specific workflows. The [source architecture record](../records/0057-adhoc-corpus-source-architecture-plan.md)
+acquisition, combined pool and blinded review are planned, not yet supported as source-specific
+workflows. The [source architecture record](../records/0057-adhoc-corpus-source-architecture-plan.md)
 states their intended boundaries and routes the outstanding work. Existing import, build, stage and
 review interfaces remain authoritative; upstream annotations and predictions are not audit decisions.
 [Sibling integration](corpus/sibling-integration.md) records the pinned ss-video and ss-fusion
@@ -54,6 +54,37 @@ scores and the selection methods. [Leakage review](corpus/leakage-review.md) sta
 version that keeps related recordings apart. [Review and freeze](corpus/review-and-freeze.md) states
 `discover queue`, `discover export` and `corpus freeze`: the windows review offers, the reviewer's
 decisions, the declaration they make and the sealed freeze record.
+
+## Source inventory
+
+`ss-track discover inventory --file inventory.yaml --out inventory.json` validates and normalizes
+an operator's `declaration/source-inventory` 1.0.0. It records named Zenodo and Hugging Face
+collections, each video path and its source, annotation, split, attribution, terms and terms-evidence
+references, status and exclusion reason. Use null for unknown facts. The
+[contract example](../../../tests/schema/examples/declaration-source-inventory.json) shows both
+providers; its Hugging Face commit and video paths are fixtures, not a real source selection.
+
+Zenodo needs its numeric record identifier and numbered version such as `v4`; archive path and MD5
+may be null and missing archive facts are counted. A Hugging Face dataset needs `owner/repository`
+and a full lowercase 40-character commit. The reader checks revision syntax, not whether a remote
+commit exists. Paths are normalized relative POSIX paths and unique within a collection; each
+provider and collection pair is unique. `excluded` needs a reason and other statuses cannot have
+one. Status is not permission, and missing source evidence stays unknown. The command reads only
+its local declaration: it does not discover remote files, validate rights, acquire media or approve
+processing. [Source authorization](../plan.md#authorize-video-corpus-sources) and
+[source acquisition](../plan.md#corpus-source-acquisition) remain separate tasks.
+
+The output is canonical ASCII JSON, sorted by collection and video, with a SHA-256 in the command
+result. Repeating the same input reports `unchanged`; different bytes at an existing output path
+are refused. The result counts statuses and missing facts; `source_inventory.video_count` counts
+all listed videos, including excluded and unknown entries. References cannot contain URL user information,
+queries or fragments, and common credential patterns are refused without echoing them. This is not
+a general secret scanner: operators must not put credentials in any inventory field. Source paths
+and metadata can be sensitive even when free of credentials; handle the output under the source
+terms. The implementation is `corpus/sources/inventory.py`; tests are in
+`tests/corpus/sources/test_inventory.py`. The
+[task record](../records/0058-self-supervised-corpus-corpus-source-inventory.md) holds acceptance
+and the fixture run evidence.
 
 ## Selected development workload
 
