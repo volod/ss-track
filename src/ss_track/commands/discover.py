@@ -10,6 +10,7 @@ from ss_track.corpus.evaluation.report import evaluate
 from ss_track.corpus.links.run import LinkRequest, write_links
 from ss_track.corpus.review.export import export_review
 from ss_track.corpus.review.template import queue_review
+from ss_track.corpus.sources.acquisition import AcquisitionRequest, acquire
 from ss_track.corpus.sources.inventory import inventory_sources
 
 
@@ -23,6 +24,19 @@ def add_discover_commands(subcommands: Subcommands) -> None:
     inventory.add_argument("--file", type=Path, required=True, help="source inventory declaration")
     inventory.add_argument("--out", type=Path, required=True, help="normalized inventory path")
     inventory.set_defaults(handler=_inventory)
+    acquisition = commands.add_parser(
+        "acquire", help="acquire an authorized pinned source selection"
+    )
+    acquisition.add_argument("--inventory", type=Path, required=True)
+    acquisition.add_argument("--provider", choices=("zenodo", "huggingface"), required=True)
+    acquisition.add_argument("--collection", required=True)
+    acquisition.add_argument("--video", action="append", required=True)
+    acquisition.add_argument("--metadata", action="append", default=[])
+    acquisition.add_argument("--run-id", required=True)
+    acquisition.add_argument("--download-budget", type=int, required=True)
+    acquisition.add_argument("--extraction-budget", type=int, required=True)
+    acquisition.add_argument("--authorized", action="store_true")
+    acquisition.set_defaults(handler=_acquire)
     run = commands.add_parser(
         "run", help="embed staged frames, map ss-video hints and write one discovery run"
     )
@@ -106,3 +120,18 @@ def _evaluate(args: argparse.Namespace) -> int:
 
 def _inventory(args: argparse.Namespace) -> int:
     return reported(lambda: inventory_sources(args.file, args.out))
+
+
+def _acquire(args: argparse.Namespace) -> int:
+    request = AcquisitionRequest(
+        args.inventory,
+        args.provider,
+        args.collection,
+        args.video,
+        args.run_id,
+        args.download_budget,
+        args.extraction_budget,
+        args.authorized,
+        args.metadata,
+    )
+    return reported_on_data_root(lambda data_root: acquire(request, data_root))

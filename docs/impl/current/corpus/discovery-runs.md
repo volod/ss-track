@@ -151,11 +151,18 @@ killed and refused with the tail of its standard error.
 
 The guards neutralise the defects the [sibling study](sibling-integration.md#reproducibility)
 found in the pinned release. `tests/corpus/siblings/test_sibling_defects.py` probes the real
-environment when `SST_PERCEPTION_PYTHON` is set, and fails once a defect is gone:
+environment when `SST_PERCEPTION_PYTHON` is set, and fails once a defect is gone. `make test`,
+`make coverage` and `make ci` load `.env` and use an executable at
+`$DATA_DIR/cache/ss-perception-probes/bin/python` when no interpreter is specified. The environment
+must contain the pinned sibling and its dependencies; these workflows never install it. Without
+either interpreter the seven real-release probes remain skipped, while the fake-sibling guard tests
+still run. The probes simulate unavailable CUDA and a tiny DINO backbone, so they need neither a GPU
+nor cached model weights. The [task record](../../records/0060-adhoc-sibling-defect-test-skips.md)
+contains the host verification and regression evidence:
 
 | Defect | Guard | Refusal |
 | --- | --- | --- |
-| Settings import loads `.env` files and adds variables | Empty working directory; values ss-track set must come back unchanged | `EXTRACTOR_UNPINNED` |
+| Settings import loads `.env` files and adds variables | Empty working directory; the worker refuses opening `.env` or `.env.local` anywhere, and values ss-track set must come back unchanged | `EXTRACTOR_UNPINNED` |
 | torch.hub writes download lines on standard output | Descriptor 1 moves to standard error before any import; the protocol keeps a copy | none needed |
 | `DINO_CHECKPOINT` or `active_checkpoint.txt` loads unrecorded; a missing file keeps base weights | A set `DINO_CHECKPOINT` in the operator's environment, or any configured checkpoint in the worker | `EXTRACTOR_UNPINNED` |
 | `resolve_device` falls back to the CPU; CUDA out-of-memory moves the model to the CPU | Model device checked after loading and after every batch | `EXTRACTOR_INCOMPATIBLE` |

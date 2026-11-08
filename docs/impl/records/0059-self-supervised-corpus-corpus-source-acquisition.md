@@ -3,7 +3,7 @@
 ## Task and scope
 
 - Id / capability: `corpus-source-acquisition` / `self-supervised-corpus`
-- State: active
+- State: accepted
 - Source: plan task, start commit `58b2f88`; working tree clean.
 - Plan counts at start: 106 agent, 23 human; next agent `corpus-source-acquisition`, next human
   `define-locked-test-policy (optional)`.
@@ -42,32 +42,52 @@ An approved source selection needs bounded, reproducible downloads without losin
 
 ## Implementation
 
-Added the internal `corpus/sources/archive.py` helper for selecting files from ZIP archives. It
-checks all entry names and types, enforces a selected uncompressed-byte budget, hashes extracted
-bytes and refuses conflicting destinations. Matching files can be reused. It is not connected to
-an acquisition command and does not verify an upstream archive checksum itself.
+Added `discover acquire`, the `corpus/sources/acquisition*`, `provider_*` and `zenodo_splits`
+modules, the ZIP safety helper and the frozen `record/source-acquisition` 1.0.0 through 1.3.0.
+The operator selects one pinned collection, candidate video paths, optional Hugging Face metadata
+files, two byte budgets and an explicit authorization assertion. The command enumerates provider
+files, checks selected rights evidence and upstream identities, verifies the bytes and records their
+local SHA-256, preserves selected metadata and terms, and counts unknown inventory facts. It joins
+verified Zenodo split metadata, rejects mismatches, keeps scratch under the data root and verifies
+or refuses existing files. A killed run's scratch is cleared by the next lock holder. `HF_TOKEN`
+is not persisted and is stripped from cross-host redirects. Import remains the recording authority.
+No dependency or sibling interface changed. See [current corpus](../current/corpus.md#source-acquisition).
 
 The [Zenodo record](https://zenodo.org/records/15696105) lists `videos.zip` with MD5
-`95eae83aceb2d12803f5f567c31060a9`. The [Hugging Face dataset card](https://huggingface.co/datasets/wayneballard/drone-detection-dataset)
-describes video metadata and source links. The pinned provider API responses could not be inspected
-in this session. No media was downloaded.
+`95eae83aceb2d12803f5f567c31060a9` and exposes video paths and split metadata. The
+[Hugging Face dataset card](https://huggingface.co/datasets/wayneballard/drone-detection-dataset)
+describes per-video metadata and source links. Provider media was not downloaded; pinned network
+requests are tested with offline fixtures, not a real account or live source.
 
 ## Acceptance evidence
 
 | Gate | Exact command, test or artifact | Result and limit |
 | --- | --- | --- |
-| ZIP extraction | `.venv/bin/pytest -q tests/corpus/sources/test_archive.py` | pass: 8 offline tests; helper only |
-| Project checks | `make ci` | pass: 2285 passed, 7 skipped; does not cover the missing workflow |
+| Providers, metadata, rights, budget, hashes, replay and security | `.venv/bin/pytest -q tests/corpus/sources/test_acquisition.py tests/corpus/sources/test_acquisition_edges.py tests/corpus/sources/test_archive.py` | pass: network-free fixtures |
+| Fixture CLI runs and replay | `.venv/bin/python -m tests.corpus.sources._acquisition_fixture` | pass: fixture artifacts at `$DATA_DIR/self-supervised-corpus/acquisition-zenodo-fixture-v2-20261108/` and `$DATA_DIR/self-supervised-corpus/acquisition-hf-fixture-v2-20261108/` |
+| Contract example and provider parsing guard | `.venv/bin/pytest -q tests/schema/registry/test_baseline.py tests/schema/registry/test_check.py tests/corpus/records/test_sealed_reads.py` | pass in focused runs |
+| Required project gate | `make ci` | pass: 2309 passed, 7 skipped |
 | Documentation | `make lint-md` | pass |
-| Acquisition and inventory | Task acceptance gates | not run: provider integrations and workflow remain unimplemented |
 
 ## Audit handoff
 
-Pending completion of the acquisition workflow and its audit.
+- `AUD-corpus-source-acquisition-1`: selected Hugging Face YAML and source-link files are stored
+  and verified but not parsed or joined to videos. Their association and rights evidence can remain
+  unresolved, so source-specific attribution may be incomplete. The dataset card describes these
+  files; the network-free metadata fixture reproduces preservation. Owner: `corpus-combined-pool`,
+  which now requires evidence-backed association and visible missing or mismatched links.
+- Fixed: provider JSON parsing now rejects duplicate keys and non-finite values, with a restricted
+  metadata-only exception to the sealed-record parsing guard.
+- Fixed: interrupted runs now reserve their input and selection before network access, preventing
+  a different selection from reusing partial artifacts.
+- Fixed: fixture ZIPs originally included creation timestamps, causing a replay in a later process
+  to appear conflicting. Fixture entries now use fixed timestamps.
+- Dropped: no related repository change is needed for this acquisition boundary; no ss-video or
+  ss-fusion interfaces are invoked.
 
 ## Close or resume
 
-Active. Implement provider metadata enumeration, authorization and selection, bounded downloads,
-checksum verification, inventory and acquisition contracts, CLI integration, and the remaining
-fixture gates. Then run the full project gate, update current documentation, audit and close this
-record, and remove the completed task from the plan.
+All acceptance gates passed. The task has been removed from the plan and the current corpus and
+contracts pages describe the shipped behavior. The plan has 105 agent and 23 human tasks; the next
+agent task is `corpus-combined-pool` and the next human task is `define-locked-test-policy (optional)`.
+The `self-supervised-corpus` capability remains planned.

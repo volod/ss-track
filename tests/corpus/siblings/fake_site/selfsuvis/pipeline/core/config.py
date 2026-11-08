@@ -12,6 +12,8 @@ DEFECTS: dict[str, object] = (
 os.environ.setdefault("SAMPLE_FPS_MAX", "5")  # the real import adds 21 such defaults
 if "env" in DEFECTS:
     os.environ["OPENCLIP_MODEL"] = "ViT-L-14"  # what a loaded .env would do to a setting
+if "ancestor_dotenv" in DEFECTS:
+    (Path(os.environ["HF_HOME"]) / ".env").read_text(encoding="ascii")
 if "dotenv_checkpoint" in DEFECTS:
     os.environ["DINO_CHECKPOINT"] = "/missing/dino_ssl.pt"
 if "stdout" in DEFECTS:

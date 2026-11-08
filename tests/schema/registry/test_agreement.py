@@ -20,6 +20,7 @@ from ss_track.corpus.records.kinds import (
     FRAME_BUNDLE,
     FRAME_SET,
     HASH_COMPARISON,
+    SOURCE_ACQUISITION,
     SOURCE_MANIFEST,
     STAGED_HASHES,
     RecordFormat,
@@ -40,6 +41,7 @@ _WRITTEN = (
     FRAME_BUNDLE,
     FRAME_SET,
     HASH_COMPARISON,
+    SOURCE_ACQUISITION,
     SOURCE_MANIFEST,
     STAGED_HASHES,
 )

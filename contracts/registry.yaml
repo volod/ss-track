@@ -471,6 +471,44 @@ contracts:
       class: initial
       summary: The shipped format at major 1, with no record bytes changed.
 - family: record
+  id: source-acquisition
+  owner: self-supervised-corpus
+  status: active
+  description: Verified source acquisition and selection, linked to a source inventory.
+  versions:
+  - version: 1.0.0
+    file_sha256: 05d96882ff4eb2040059bc26a34f281725d44731a45793f11e95a7b68bc4390c
+    fingerprints:
+      structure: e66853b22e689403ed11b44f687c55d92a76693830b99ace098889fd6afe5214
+      meaning: bb901e327de653773850c2eb2478a91b8b0c814cde2f7579001672aff3212a74
+    change:
+      class: initial
+      summary: Initial source acquisition record.
+  - version: 1.1.0
+    file_sha256: 179e1415553934b144b87127e0f9a3dbb9be87f02610426a0b2b46fb14c13210
+    fingerprints:
+      structure: 37d328bf96126965755a3f0485bcffb1fecea269c8560c3e5512b0281510d92d
+      meaning: 5c52bfd49d980329c188d131902ae60ff1cffcdb64ee31425a906d5257fdaca9
+    change:
+      class: minor
+      summary: Pin the submitted inventory for repeat and conflict checks.
+  - version: 1.2.0
+    file_sha256: f4119ec9c9db80945972193fa9c8b8611b93791aac138e61ae5e7add73540365
+    fingerprints:
+      structure: b3d5c7be44876a795b892e96ad481405a7f1d92e949b349df003accc20f229c8
+      meaning: 75cf483935a3ea8bc44f7e926660451c9a1ea0da0f59d5ae4e152a61cf293d1e
+    change:
+      class: minor
+      summary: Pin inspected upstream split metadata.
+  - version: 1.3.0
+    file_sha256: f0ac82a521b1c7925a22b147abe2eef2c718804aeb9a42e0b0f49fde5ba036b8
+    fingerprints:
+      structure: 451b9cdeeb318d2a97d6d2995d636575b2adaa5bd5b850655a316b2de21310f9
+      meaning: 164a3b409d24343b174aee193bf3bb26c510fd300f4a90ac9771feb0a5ec126b
+    change:
+      class: minor
+      summary: Record selected upstream metadata files.
+- family: record
   id: source-manifest
   owner: corpus-provenance
   status: active

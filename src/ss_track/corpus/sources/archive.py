@@ -25,6 +25,7 @@ def _safe_name(info: zipfile.ZipInfo) -> str:
         or "\\" in name
         or path.is_absolute()
         or any(part in ("", ".", "..") for part in name.rstrip("/").split("/"))
+        or not path.parts
         or ":" in path.parts[0]
         or str(path) != name.rstrip("/")
     ):
@@ -56,6 +57,24 @@ def _entries(archive: zipfile.ZipFile, selection: set[str], budget: int) -> list
     return sorted(selected, key=lambda entry: entry.filename)
 
 
+def list_files(archive_path: Path) -> dict[str, int]:
+    """Enumerate regular entries after checking every entry and rejecting duplicate names."""
+    try:
+        with zipfile.ZipFile(archive_path) as archive:
+            entries: dict[str, int] = {}
+            seen: set[str] = set()
+            for info in archive.infolist():
+                name = _safe_name(info)
+                if name in seen:
+                    raise _invalid("archive contains duplicate paths")
+                seen.add(name)
+                if not info.is_dir():
+                    entries[name] = info.file_size
+            return entries
+    except (zipfile.BadZipFile, EOFError) as error:
+        raise _invalid("archive could not be safely inspected") from error
+
+
 def _target(root: Path, name: str) -> Path:
     target = root.joinpath(*PurePosixPath(name).parts)
     if not target.resolve().is_relative_to(root.resolve()):
@@ -68,12 +87,14 @@ def _target(root: Path, name: str) -> Path:
     return target
 
 
-def _copy(archive: zipfile.ZipFile, info: zipfile.ZipInfo, root: Path) -> tuple[str, str]:
+def _copy(
+    archive: zipfile.ZipFile, info: zipfile.ZipInfo, root: Path, scratch: Path | None
+) -> tuple[str, str]:
     target = _target(root, info.filename)
     target.parent.mkdir(parents=True, exist_ok=True)
     digest = hashlib.sha256()
-    fd, temporary = tempfile.mkstemp(prefix=".extract-", dir=target.parent)
-    scratch = Path(temporary)
+    fd, temporary = tempfile.mkstemp(prefix=".incoming-", dir=scratch or target.parent)
+    temporary_path = Path(temporary)
     try:
         with os.fdopen(fd, "wb") as out, archive.open(info) as source:
             count = 0
@@ -92,18 +113,18 @@ def _copy(archive: zipfile.ZipFile, info: zipfile.ZipInfo, root: Path) -> tuple[
                 raise CorpusRefusal(RefusalCode.IMPORT_CONFLICT, "archive destination conflicts")
         else:
             try:
-                os.link(scratch, target)
+                os.link(temporary_path, target)
             except FileExistsError as error:
                 raise CorpusRefusal(
                     RefusalCode.IMPORT_CONFLICT, "archive destination conflicts"
                 ) from error
         return info.filename, digest.hexdigest()
     finally:
-        scratch.unlink(missing_ok=True)
+        temporary_path.unlink(missing_ok=True)
 
 
 def extract_selected(
-    archive_path: Path, root: Path, selection: set[str], budget: int
+    archive_path: Path, root: Path, selection: set[str], budget: int, *, scratch: Path | None = None
 ) -> dict[str, str]:
     """Extract chosen regular files, refusing unsafe archives and existing conflicting bytes.
 
@@ -113,6 +134,6 @@ def extract_selected(
     try:
         with zipfile.ZipFile(archive_path) as archive:
             entries = _entries(archive, selection, budget)
-            return dict(_copy(archive, entry, root) for entry in entries)
+            return dict(_copy(archive, entry, root, scratch) for entry in entries)
     except (zipfile.BadZipFile, NotImplementedError, RuntimeError, EOFError) as error:
         raise _invalid("archive could not be safely extracted") from error

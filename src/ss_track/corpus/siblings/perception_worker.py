@@ -10,7 +10,7 @@ raw bytes it announces. Each guard below neutralises a defect the sibling study 
 release, and `tests/corpus/siblings/test_sibling_defects.py` fails once that release loses one:
 
 - Importing the sibling settings loads `.env` files and adds variables. Every value ss-track set
-  must come back unchanged, and the working directory must hold no `.env` file.
+  must come back unchanged, and opening `.env` or `.env.local` is refused at any path.
 - A weight or hub download writes its progress line on standard output (torch.hub does, even when
   the connection then fails). Descriptor 1 moves to standard error before anything is imported;
   the protocol keeps its own copy.
@@ -107,8 +107,13 @@ class OpenedWeights:
         self.active = False
 
     def audit(self, event: str, args: tuple[Any, ...]) -> None:
-        if self.active and event == "open" and args and isinstance(args[0], (str, os.PathLike)):
-            self.note(os.fspath(args[0]))
+        if event != "open" or not args or not isinstance(args[0], (str, bytes, os.PathLike)):
+            return
+        path = os.fsdecode(args[0])
+        if Path(path).name in {".env", ".env.local"}:
+            raise Refused(UNPINNED, "the sibling tried to read an environment file", {})
+        if self.active:
+            self.note(path)
 
     def note(self, path: str) -> None:
         if (path.endswith(WEIGHT_SUFFIXES) or hub_tree(path)) and path not in self.paths:

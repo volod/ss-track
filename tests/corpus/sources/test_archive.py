@@ -32,7 +32,7 @@ def test_select_retry_conflict_and_budget(tmp_path: Path) -> None:
         extract_selected(archive, root, {"videos/a.mp4"}, 3)
     assert refusal.value.code == RefusalCode.IMPORT_CONFLICT
     assert (root / "videos/a.mp4").read_bytes() == b"conflict"
-    assert not list(root.rglob(".extract-*"))
+    assert not list(root.rglob(".incoming-*"))
 
 
 @pytest.mark.parametrize(

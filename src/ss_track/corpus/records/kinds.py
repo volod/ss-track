@@ -21,6 +21,7 @@ CANDIDATE_INVENTORY_KIND = "ss-track.candidate-inventory"
 FEATURE_ROWS_KIND = "ss-track.feature-rows"
 CORPUS_LINKS_KIND = "ss-track.corpus-links"
 CORPUS_FREEZE_KIND = "ss-track.corpus-freeze"
+SOURCE_ACQUISITION_KIND = "ss-track.source-acquisition"
 
 
 @dataclass(frozen=True, slots=True)
@@ -46,3 +47,4 @@ CANDIDATE_INVENTORY = RecordFormat(CANDIDATE_INVENTORY_KIND, major=1)
 FEATURE_ROWS = RecordFormat(FEATURE_ROWS_KIND, major=1)
 CORPUS_LINKS = RecordFormat(CORPUS_LINKS_KIND, major=1)
 CORPUS_FREEZE = RecordFormat(CORPUS_FREEZE_KIND, major=1)
+SOURCE_ACQUISITION = RecordFormat(SOURCE_ACQUISITION_KIND, major=1)

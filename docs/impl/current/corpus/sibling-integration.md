@@ -102,7 +102,9 @@ Hazards in the inspected code that an adapter must neutralise:
   them `DATA_DIR=./.data`, which ss-track also reads. It also loads `.env`, `.data/.env` and
   `.data/.env.local` from a project root it takes from the working directory. Started in the
   ss-track checkout, that root is ss-track. Sibling code must therefore run in its own process,
-  with an explicit environment and a neutral working directory.
+  with an explicit environment and a neutral working directory. An installed sibling inside a
+  project can also find that project from its package path; the worker refuses opening `.env`
+  and `.env.local` regardless of location.
 - torch.hub, which the DINO loader calls, writes each `Downloading:` line on standard output, even
   when the connection then fails. That descriptor carries the one JSON record of an ss-track command
   and the worker protocol. With cached weights nothing else reaches standard output; sibling logs go

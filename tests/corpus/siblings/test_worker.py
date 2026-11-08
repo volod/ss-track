@@ -157,6 +157,19 @@ def test_each_sibling_defect_is_refused_never_recorded(
     assert message in refusal.message
 
 
+def test_a_sibling_cannot_read_ancestor_dotenv(
+    sibling_python: Path, caches: Caches, bundles: list[FrameBundle]
+) -> None:
+    """A sibling environment inside a project can discover that project's .env."""
+    caches.defects(ancestor_dotenv=True)
+    (caches.home / "hf" / ".env").write_text("SST_TEST_UNTRUSTED=1\n", encoding="ascii")
+    refusal = _refused(
+        RefusalCode.EXTRACTOR_UNPINNED, sibling_python, caches, bundles, clip_extractor(caches)
+    )
+    assert "environment file" in refusal.message
+    assert "SST_TEST_UNTRUSTED" not in str(refusal.to_record())
+
+
 def test_a_set_checkpoint_is_refused_before_any_worker_starts(
     caches: Caches, bundles: list[FrameBundle]
 ) -> None:

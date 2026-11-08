@@ -58,3 +58,11 @@ sst_load_env() {
   sst_export_tool_caches
   sst_export_uv_link_mode
 }
+
+sst_load_test_env() {
+  sst_load_env
+  local sibling_python="$DATA_DIR/cache/ss-perception-probes/bin/python"
+  if [ -z "${SST_PERCEPTION_PYTHON:-}" ] && [ -x "$sibling_python" ]; then
+    export SST_PERCEPTION_PYTHON="$sibling_python"
+  fi
+}

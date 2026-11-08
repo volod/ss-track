@@ -39,8 +39,8 @@ sealed from those decisions. Source permissions and the independent review of re
 human work in the plan. See the
 [corpus formation planning record](../records/0038-adhoc-self-supervised-corpus-plan.md).
 The selected future sources are Visual WetlandBirds v4 and the Hugging Face Drone Detection Dataset;
-acquisition, combined pool and blinded review are planned, not yet supported as source-specific
-workflows. The [source architecture record](../records/0057-adhoc-corpus-source-architecture-plan.md)
+source acquisition is available; the combined pool and blinded review remain planned. The
+[source architecture record](../records/0057-adhoc-corpus-source-architecture-plan.md)
 states their intended boundaries and routes the outstanding work. Existing import, build, stage and
 review interfaces remain authoritative; upstream annotations and predictions are not audit decisions.
 [Sibling integration](corpus/sibling-integration.md) records the pinned ss-video and ss-fusion
@@ -71,8 +71,8 @@ commit exists. Paths are normalized relative POSIX paths and unique within a col
 provider and collection pair is unique. `excluded` needs a reason and other statuses cannot have
 one. Status is not permission, and missing source evidence stays unknown. The command reads only
 its local declaration: it does not discover remote files, validate rights, acquire media or approve
-processing. [Source authorization](../plan.md#authorize-video-corpus-sources) and
-[source acquisition](../plan.md#corpus-source-acquisition) remain separate tasks.
+processing. [Source authorization](../plan.md#authorize-video-corpus-sources) remains a separate
+human task.
 
 The output is canonical ASCII JSON, sorted by collection and video, with a SHA-256 in the command
 result. Repeating the same input reports `unchanged`; different bytes at an existing output path
@@ -85,6 +85,43 @@ terms. The implementation is `corpus/sources/inventory.py`; tests are in
 `tests/corpus/sources/test_inventory.py`. The
 [task record](../records/0058-self-supervised-corpus-corpus-source-inventory.md) holds acceptance
 and the fixture run evidence.
+
+## Source acquisition
+
+`ss-track discover acquire` reads an inventory, one named collection and an explicit video selection.
+The operator must assert `--authorized`, and every selected video must be a candidate with attribution,
+terms and a terms reference. This assertion records the operator's selection; it does not establish
+rights or replace source authorization or `ss-track import`.
+
+```bash
+ss-track discover acquire --inventory inventory.yaml --provider huggingface \
+  --collection owner/dataset --video videos/example.mp4 --metadata metadata/example.yaml \
+  --run-id acquisition-1 --download-budget 500000000 --extraction-budget 500000000 --authorized
+```
+
+For Hugging Face, the inventory must pin a full commit. The command enumerates the paginated tree,
+checks paths and file metadata, and fetches only the selected videos and optional `--metadata` files.
+Git blob or LFS SHA-256 identifies upstream bytes; local SHA-256 identifies each saved file. Metadata
+files are preserved but not automatically associated with individual videos or parsed for rights:
+the [combined-pool task](../plan.md#corpus-combined-pool) owns that work. The optional `HF_TOKEN`
+environment variable is sent only to Hugging Face and is removed on cross-host redirects.
+
+For Zenodo the inventory pins a record, version, archive path and published MD5. The full archive
+is downloaded and verified before safe selective extraction. If the record includes `splits.json`,
+the command verifies and joins it by unique video stem, refusing conflicts. Any declared video absent
+from provider metadata is refused; newly found videos enter the inventory with unknown facts. Missing
+rights and provenance are counted in the command result rather than inferred from collection terms.
+
+`--download-budget` bounds selected file bytes, or the complete Zenodo archive plus split file;
+`--extraction-budget` bounds selected uncompressed video and metadata bytes. Provider API pages are
+independently bounded. Scratch, cache, media, the normalized input and output inventories, and the
+sealed `record/source-acquisition` 1.3.0 are under `$DATA_DIR/self-supervised-corpus/<run-id>/`.
+A retry verifies and reuses identical files; conflicting bytes or a different request for the same
+run are refused, including after an interruption. A retry clears scratch left by a killed run while
+holding its lock. Results are
+fixture-tested and do not by themselves approve processing, import media, or prove source rights.
+The [task record](../records/0059-self-supervised-corpus-corpus-source-acquisition.md) gives the fixture
+and acceptance evidence.
 
 ## Selected development workload
 

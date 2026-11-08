@@ -31,6 +31,7 @@ baseline scope and evidence. The installed set contains these document contracts
 | `record/frame-set` | `1.0.0` |
 | `record/staged-hashes` | `1.0.0` |
 | `record/hash-comparison` | `1.0.0` |
+| `record/source-acquisition` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0` |
 | `record/source-manifest` | `2.0.0`, `2.1.0`, `2.2.0`, `2.3.0` |
 | `result/command` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0`, `1.4.0`, `1.5.0`, `1.6.0`, `1.7.0`, `1.8.0`, `1.9.0`, `1.9.1`, `1.10.0`, `1.11.0`, `1.12.0`, `1.13.0`, `1.14.0`, `1.15.0`, `1.16.0`, `1.17.0`, `1.18.0`, `1.19.0`, `1.20.0` |
 
@@ -72,6 +73,11 @@ recipes and the label kinds `compression` and `timing`. `declaration/corpus` 3.2
 `result/command` 1.19.0 adds its status and missing-fact counts, and 1.20.0 adds its path,
 digest and totals. The
 [inventory reader](corpus.md#source-inventory) enforces cross-field and path rules.
+
+`record/source-acquisition` links the provider selection, verified local video hashes and normalized
+inventory. Minor versions add the input inventory hash, Zenodo split metadata hashes and selected
+upstream metadata files. The [acquisition workflow](corpus.md#source-acquisition) states the checks
+and rights boundary.
 
 `declaration/dataset` states the operator-supplied title, description, license, citation, address
 and publication date. It can be checked with `ss-track contracts validate` and is consumed by the

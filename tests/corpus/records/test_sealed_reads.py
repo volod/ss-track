@@ -35,7 +35,15 @@ _WORKER_PROTOCOL = {
 }
 _PACKAGE_METADATA_READER = Path("corpus/siblings/perception_worker.py")
 # The loader parses only the JSON it serialized itself, to validate a record as it will be written.
-_JSON_READERS = {_GATE, _CONTRACT_FILE_READER, _DEEP_PARSER, _DECLARATION_LOADER, *_WORKER_PROTOCOL}
+_PROVIDER_PARSER = Path("corpus/sources/provider_http.py")
+_JSON_READERS = {
+    _GATE,
+    _CONTRACT_FILE_READER,
+    _DEEP_PARSER,
+    _DECLARATION_LOADER,
+    _PROVIDER_PARSER,
+    *_WORKER_PROTOCOL,
+}
 _YAML_READERS = {_CONTRACT_FILE_READER, _DEEP_PARSER}
 _PARSER_USERS = {_DEEP_CHECK, _DECLARATION_LOADER}
 _LOADERS = {"json.load", "json.loads", "yaml.load", "yaml.safe_load"}
@@ -117,6 +125,40 @@ def _modules() -> list[Path]:
 @pytest.mark.parametrize("module", _modules(), ids=str)
 def test_no_module_reads_a_sealed_record_around_the_gate(module: Path) -> None:
     assert scan((_PACKAGE / module).read_text(encoding="utf-8"), module) == []
+
+
+def _provider_parser_calls(module: Path) -> list[tuple[str, str, str]]:
+    result: list[tuple[str, str, str]] = []
+    tree = ast.parse((_PACKAGE / module).read_text(encoding="utf-8"))
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef):
+            for call in ast.walk(node):
+                if isinstance(call, ast.Call) and _called_name(call) == "parse_json":
+                    result.append((str(module), node.name, ast.unparse(call)))
+    return result
+
+
+def test_provider_json_parser_is_limited_to_metadata_inputs() -> None:
+    """The provider protocol parses HTTP metadata and the verified Zenodo split file only."""
+    callers = [call for module in _modules() for call in _provider_parser_calls(module)]
+    assert callers == [
+        ("corpus/sources/provider_http.py", "read_json", "parse_json(data)"),
+        ("corpus/sources/zenodo_splits.py", "apply_splits", "parse_json(path.read_bytes())"),
+    ]
+
+
+def test_provider_json_decoder_only_in_parser() -> None:
+    tree = ast.parse((_PACKAGE / _PROVIDER_PARSER).read_text(encoding="utf-8"))
+    loads = [
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.FunctionDef)
+        and any(
+            isinstance(call, ast.Call) and _called_name(call) == "json.loads"
+            for call in ast.walk(node)
+        )
+    ]
+    assert loads == ["parse_json"]
 
 
 def test_every_read_of_a_record_file_goes_through_the_gate() -> None:

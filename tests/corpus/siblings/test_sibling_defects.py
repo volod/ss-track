@@ -3,8 +3,8 @@
 These tests run only when `SST_PERCEPTION_PYTHON` names the pinned environment, because the suite
 never installs or imports a sibling. Each runs a probe in that environment, from an empty working
 directory, and fails once the release no longer shows its defect, naming the guard to remove from
-`src/ss_track/corpus/siblings/perception_worker.py`. A probe that needs the cached weights skips
-without them, since the worker never downloads.
+`src/ss_track/corpus/siblings/perception_worker.py`. The probes do not download weights; the
+missing-checkpoint probe substitutes a tiny model.
 """
 
 import json
@@ -62,14 +62,17 @@ def test_importing_settings_loads_a_dotenv_and_adds_variables(tmp_path: Path) ->
     found: Any = _probe(
         tmp_path,
         """
-        import json, os
+        import json, os, ss_kit.paths
+        def no_project_root(*args, **kwargs):
+            raise FileNotFoundError("no marker")
+        ss_kit.paths.discover_project_root = no_project_root
         before = set(os.environ)
         import selfsuvis.pipeline.core.config
         print(json.dumps({"added": sorted(set(os.environ) - before)}))
         """,
     )
 
-    assert "SST_DEFECT_PROBE" in found["added"], _remove("working-directory .env")
+    assert "SST_DEFECT_PROBE" in found["added"], _remove("environment file access")
     assert "OPENCLIP_MODEL" in found["added"], _remove("environment comparison")
 
 
@@ -100,15 +103,19 @@ def test_a_download_attempt_writes_to_standard_output(tmp_path: Path) -> None:
 
 
 def test_a_missing_checkpoint_keeps_the_base_weights_silently(tmp_path: Path) -> None:
-    hub = Path(os.environ.get("HOME", "")) / ".cache/torch/hub/facebookresearch_dinov2_main"
-    if not hub.is_dir():
-        pytest.skip("the DINOv2 hub tree is not cached")
     found = _probe(
         tmp_path,
         """
-        import json
-        from selfsuvis.models.dino_model import DINOEmbedder
-        embedder = DINOEmbedder(model_name="dinov3_vitb14")
+        import json, torch
+        from selfsuvis.models import dino_model
+        class BaseModel(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.weight = torch.nn.Parameter(torch.ones(1))
+            def forward(self, images):
+                return torch.ones((images.shape[0], 768), device=images.device) * self.weight
+        dino_model.hub_load_dino = lambda *args, **kwargs: BaseModel()
+        embedder = dino_model.DINOEmbedder(model_name="dinov3_vitb14")
         print(json.dumps({"loaded": embedder.image_dim()}))
         """,
         DINO_CHECKPOINT=str(tmp_path / "missing.pt"),
@@ -139,13 +146,11 @@ def test_a_missing_device_falls_back_to_the_cpu(tmp_path: Path) -> None:
         tmp_path,
         """
         import json, torch
+        torch.cuda.is_available = lambda: False
         from selfsuvis.pipeline.core.gpu_utils import resolve_device
-        print(json.dumps({"cuda": torch.cuda.is_available(), "resolved": resolve_device("cuda")}))
+        print(json.dumps({"resolved": resolve_device("cuda")}))
         """,
     )
-    if found["cuda"]:
-        pytest.skip("this host has CUDA, so the fallback cannot be observed")
-
     assert found["resolved"] == "cpu", _remove("load-time device")
 
 
