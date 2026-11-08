@@ -322,3 +322,103 @@ def test_a_grid_whose_tiles_do_not_fit_the_frames_is_refused_before_anything_is_
 def read_plan_document(path: Path) -> dict[str, Any]:
     loaded: dict[str, Any] = yaml.safe_load(path.read_text(encoding="ascii"))
     return loaded
+
+
+def test_evaluation_reads_paired_reviews_and_withheld_audit_is_inconclusive(
+    media_plan: Path, caches: Caches, data_root: Path, environ: dict[str, str]
+) -> None:
+    from ss_track.corpus.evaluation.report import evaluate
+    from ss_track.corpus.review.queue import review_queue
+    from ss_track.corpus.versions.manifests import load_corpus_manifest
+
+    records = {
+        name: run_discovery(
+            _plan(media_plan, caches, selection, run_id=name), data_root, environ=environ
+        ).records
+        for name, selection in (("uniform", UNIFORM), ("diverse", DIVERSE))
+    }
+    pool = load_corpus_manifest("pilot-v1", data_root)
+    paths = {}
+    for name, run in records.items():
+        queue = review_queue(run, pool)
+        decisions = [
+            {
+                "stream_id": key[0],
+                "candidate_id": key[1],
+                "decision": "include",
+                "observation": "target_present" if key[0] == "one" else "confuser",
+            }
+            for key in queue.offered
+        ]
+        paths[name] = media_plan / f"{name}-review.yaml"
+        paths[name].write_text(
+            yaml.safe_dump(
+                {
+                    "schema_version": 1,
+                    "run_id": name,
+                    "reviewer": "fixture reviewer",
+                    "decisions": decisions,
+                }
+            ),
+            encoding="ascii",
+        )
+    report = evaluate(
+        data_root, "diverse", "uniform", paths["diverse"], paths["uniform"], None, None
+    ).to_record()
+    assert report["status"] == "inconclusive"
+    assert "one" in report["whole_stream_target_observed"]
+    assert any(
+        item["observation"] == "confuser" and item["motion"] is not None
+        for item in report["observations"]
+    )
+    assert any("unknown audit observations" in reason for reason in report["audit"]["reasons"])
+
+    document = yaml.safe_load(paths["uniform"].read_text(encoding="ascii"))
+    for decision in document["decisions"]:
+        if decision["stream_id"] == "one":
+            decision["observation"] = "target_absent"
+    paths["uniform"].write_text(yaml.safe_dump(document), encoding="ascii")
+    with pytest.raises(CorpusRefusal, match="conflicting observations"):
+        evaluate(data_root, "diverse", "uniform", paths["diverse"], paths["uniform"], None, None)
+
+
+def test_evaluation_refuses_different_budgets_and_audit_designs(
+    media_plan: Path, caches: Caches, data_root: Path, environ: dict[str, str]
+) -> None:
+    from copy import deepcopy
+
+    from ss_track.corpus.evaluation.inputs import Evidence, match
+
+    runs = {
+        name: run_discovery(
+            _plan(media_plan, caches, selection, run_id=name), data_root, environ=environ
+        ).records
+        for name, selection in (("uniform", UNIFORM), ("diverse", DIVERSE))
+    }
+    diverse = Evidence(runs["diverse"], {}, "reviewer", "hash")
+    changed = deepcopy(runs["uniform"])
+    selection: Any = changed.run["selection"]
+    selection["budget"] += 1
+    with pytest.raises(CorpusRefusal, match="different selection budgets"):
+        match(diverse, Evidence(changed, {}, "reviewer", "hash"))
+    changed = deepcopy(runs["uniform"])
+    audit: Any = changed.run["audit"]
+    audit["seed"] += 1
+    with pytest.raises(CorpusRefusal, match="audit design"):
+        match(diverse, Evidence(changed, {}, "reviewer", "hash"))
+
+    from ss_track.corpus.evaluation.report import compare
+
+    changed = deepcopy(runs["uniform"])
+    for inventory in changed.inventories.values():
+        items: Any = inventory["candidates"]
+        for item in items:
+            if item["selection"]["status"] == "selected":
+                item["selection"] = {"status": "not_selected", "probability": 0}
+                break
+        else:
+            continue
+        break
+    result = compare(diverse, Evidence(changed, {}, "reviewer", "hash")).to_record()
+    assert result["status"] == "inconclusive"
+    assert "actual selected counts differ" in result["audit"]["reasons"]

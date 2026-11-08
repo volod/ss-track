@@ -6,6 +6,7 @@ from pathlib import Path
 from ss_track.commands import Subcommands
 from ss_track.commands.report import reported_on_data_root
 from ss_track.corpus.discovery.run import run_discovery, verify_discovery_run
+from ss_track.corpus.evaluation.report import evaluate
 from ss_track.corpus.links.run import LinkRequest, write_links
 from ss_track.corpus.review.export import export_review
 from ss_track.corpus.review.template import queue_review
@@ -27,6 +28,14 @@ def add_discover_commands(subcommands: Subcommands) -> None:
     )
     verify.add_argument("--run-id", required=True, help="discovery run_id")
     verify.set_defaults(handler=_verify)
+    evaluation = commands.add_parser("evaluate", help="compare two reviewed selection runs")
+    evaluation.add_argument("--diverse-run", required=True)
+    evaluation.add_argument("--uniform-run", required=True)
+    for method in ("diverse", "uniform"):
+        evidence = evaluation.add_mutually_exclusive_group(required=True)
+        evidence.add_argument(f"--{method}-review", type=Path)
+        evidence.add_argument(f"--{method}-freeze")
+    evaluation.set_defaults(handler=_evaluate)
     links = commands.add_parser(
         "links", help="flag related recordings across groups and check reviewer decisions"
     )
@@ -72,5 +81,19 @@ def _export(args: argparse.Namespace) -> int:
     return reported_on_data_root(
         lambda data_root: export_review(
             args.review, args.corpus_id, args.out, data_root, supersedes=args.supersedes
+        )
+    )
+
+
+def _evaluate(args: argparse.Namespace) -> int:
+    return reported_on_data_root(
+        lambda data_root: evaluate(
+            data_root,
+            args.diverse_run,
+            args.uniform_run,
+            args.diverse_review,
+            args.uniform_review,
+            args.diverse_freeze,
+            args.uniform_freeze,
         )
     )

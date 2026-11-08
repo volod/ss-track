@@ -144,3 +144,17 @@ def test_the_command_reports_the_frozen_version(
     assert status == 0 and record["status"] == "frozen"
     assert record["review"]["included"] == 3
     assert record["manifest_path"] == str(freeze_path(cli_root, FROZEN))
+
+
+def test_evaluation_reads_freeze_observations_like_the_review(
+    pool: Any, data_root: Path, media: Path
+) -> None:
+    from ss_track.corpus.evaluation.inputs import read_evidence
+
+    review = staged(media, data_root)
+    freeze_corpus(FROZEN, review, review_links(data_root), data_root)
+    from_review = read_evidence(data_root, "discovery-1", review, None)
+    from_freeze = read_evidence(data_root, "discovery-1", None, FROZEN)
+    assert from_review.observations == from_freeze.observations
+    assert from_freeze.observations[("one", "pool-001")] == "unknown"
+    assert ("two", "pool-000") not in from_freeze.observations

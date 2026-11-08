@@ -378,6 +378,33 @@ proposal is not a verified species, ground-truth label, or proof that a negative
 bird. Existing annotation and reviewer authority remain the route to frozen labels. Integrations do
 not grant download, processing, model-weight, redistribution or storage rights.
 
+The operator can combine separately licensed source collections into one versioned pool while
+retaining each recording's upstream identity, terms and evidence. The initial sources are
+[Visual WetlandBirds version 4](https://zenodo.org/records/15696105) and the
+[Drone Detection Dataset](https://huggingface.co/datasets/wayneballard/drone-detection-dataset).
+WetlandBirds is acquired from its pinned Zenodo record and archive; the Hugging Face source is
+pinned to a resolved dataset commit and selected original videos and per-video provenance. An upstream
+folder name, model prediction or missing annotation does not establish the target or its absence.
+Source inventory and acquisition preserve upstream checksums, local content hashes, original metadata,
+per-recording terms and exclusions; credentials never enter records. Public source access does not
+itself approve an acquisition budget, a model, a redistribution, or a real-data run.
+
+Source adapters produce inputs for the existing import and corpus build interfaces, rather than
+creating a second corpus authority. A combined pool retains both source populations and source-specific
+reporting. Group related or duplicate recordings across collections before split assignment; expose
+unresolved links and upstream split information. No locked material is offered before custodian
+policy. Preserve original annotations as separate provenance-bearing evidence, not independent review
+or automatically accepted ss-track labels. The
+[WetlandBirds software](https://github.com/3dperceptionlab/Visual-WetlandBirds) can be inspected and
+used as a separately pinned, isolated analysis tool when its code, dependencies and weights have
+acceptable terms; it is not required to construct a corpus and its predictions are not labels.
+A blinded audit presents selected and independently sampled windows without selection reason, score,
+upstream annotation or source-derived target cues, while preserving a private key to the existing
+review and freeze records. Review independence and blinding, resource measurements and unknown
+observations remain visible; a report cannot establish population prevalence for curated footage.
+Hugging Face is a source service and versioned cache, not the authority for local corpus identity;
+any publication of derived data has separate terms and authorization.
+
 Each source and derivative must have authorized uses and retention; jobs are limited by an approved
 source list, resource envelope and access rules. ss-track cannot tell fixture media from authorized
 sources, so every discovery run names the owner's approval record and refuses to run without one.
@@ -417,7 +444,8 @@ target-absent, small-target and confuser cases, compare model-assisted selection
 predeclared random or uniform baseline under equal review cost. Report candidate yield, missed
 positives with uncertainty, diversity and duplication, reviewed negative coverage, time, compute,
 storage and unprocessed exposure; retain both selected and non-selected audit samples. Fixture
-checks prove deterministic membership, source/rights lineage, leakage refusal and resume behavior.
+checks prove deterministic membership, source/rights lineage, source-specific accounting, blinded
+review, leakage refusal and resume behavior.
 A useful result meets owner-declared corpus size and coverage targets without violating rights or
 split isolation. A valid negative states when selection misses targets, is no better than the
 baseline, available sources or resources are insufficient, or the sibling projects cannot integrate;

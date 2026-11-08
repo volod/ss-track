@@ -347,3 +347,37 @@ writers, and refuses a moved sibling window, altered vectors and rows naming oth
 holds the audit sample fixed across methods, and refuses a changed decision, a changed score and an
 unknown method on verify. `tests/corpus/selection/` checks tile geometry, coverage, the motion
 block rule, each score and both methods against hand-calculated values.
+
+## Evaluating selection
+
+`discover evaluate` compares verified `ssl-diverse` and `uniform` runs of the same pool, frame set,
+audit design and selection budget. Give each run either its review declaration or the identifier of
+a frozen corpus made from that review:
+
+```bash
+ss-track discover evaluate --diverse-run diverse-1 --uniform-run uniform-1 \
+  --diverse-review diverse-review.yaml --uniform-review uniform-review.yaml
+```
+
+`--diverse-freeze` and `--uniform-freeze` replace the respective review argument. The command
+verifies both runs and recomputes selection, checks each review against its queue, and refuses
+conflicting observations. It reports selected and offered counts, overlap with the audit draw,
+withheld windows, selection exclusions, distinct selected streams and groups, and individual
+observations with selection decisions and motion rank. A whole-stream target is reported only when
+all its pool windows have a target-present observation. Motion rank is descending among the distinct
+available motion scores, with ties sharing a rank. Compute cost and review independence and
+blinding are unavailable because the source records do not capture them.
+
+For each group, an audit observation receives weight `population / sample_size`. Weighted target
+counts yield recall for each selection and the paired difference. The approximate 95% intervals use
+stratified finite-population variance and a delta-method ratio; they are not guarantees, especially
+for small samples. No sample, an unknown or unreviewed audit window, no observed target, unavailable
+variance, or unequal actual selection counts makes the comparison inconclusive. Unknown observations
+are never treated as target absence. Weighted observation counts are explicitly marked incomplete
+when audit observations are missing. Observations are reviewer statements, not verified labels,
+species, or field accuracy. The [evaluation task](../../plan.md#corpus-selection-evaluation) remains
+open for a reviewed evaluation run.
+
+The reader and comparison are in `corpus/evaluation/inputs.py` and `report.py`; stratified estimates
+are in `statistics.py`. Verify the implementation with the evaluation, discovery selection and
+review freeze tests, and with `make ci`.

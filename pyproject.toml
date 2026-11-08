@@ -68,6 +68,7 @@ packages = [
   "ss_track.corpus.decoding",
   "ss_track.corpus.descriptors",
   "ss_track.corpus.discovery",
+  "ss_track.corpus.evaluation",
   "ss_track.corpus.hosts",
   "ss_track.corpus.links",
   "ss_track.corpus.records",

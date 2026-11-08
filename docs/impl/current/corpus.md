@@ -38,6 +38,11 @@ A reviewer then decides the windows a run offers, and a frozen corpus version is
 sealed from those decisions. Source permissions and the independent review of real footage remain
 human work in the plan. See the
 [corpus formation planning record](../records/0038-adhoc-self-supervised-corpus-plan.md).
+The selected future sources are Visual WetlandBirds v4 and the Hugging Face Drone Detection Dataset;
+their shared inventory, acquisition, combined pool and blinded review are planned, not yet supported
+as source-specific workflows. The [source architecture record](../records/0057-adhoc-corpus-source-architecture-plan.md)
+states their intended boundaries and routes the outstanding work. Existing import, build, stage and
+review interfaces remain authoritative; upstream annotations and predictions are not audit decisions.
 [Sibling integration](corpus/sibling-integration.md) records the pinned ss-video and ss-fusion
 interfaces, their frame mapping, rights and reproducibility, and the integration plan.
 [Discovery records](corpus/discovery-records.md) state the candidate inventory, discovery run and
