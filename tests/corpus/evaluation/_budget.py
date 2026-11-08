@@ -1,10 +1,12 @@
 """Build paired selection fixtures with hand-counted review queues."""
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
 from ss_track.corpus.discovery.records import DiscoveryRecords
 from ss_track.corpus.evaluation.inputs import Evidence
+from ss_track.corpus.evaluation.membership import BoundStream
 from ss_track.corpus.evaluation.report import compare
 
 STREAM = "stream"
@@ -98,6 +100,7 @@ def _evaluate(
     uniform_audit: str | None = None,
     diverse_minutes: int | None = 10,
     uniform_minutes: int | None = 10,
+    membership: Mapping[str, BoundStream] | None = None,
 ) -> dict[str, Any]:
     observations = {
         (STREAM, window.candidate_id): window.observation
@@ -124,7 +127,7 @@ def _evaluate(
         reviewer_minutes=uniform_minutes,
         audit_id=uniform_audit,
     )
-    return compare(diverse, uniform).to_record()
+    return compare(diverse, uniform, membership).to_record()
 
 
 def _budget(result: dict[str, Any]) -> dict[str, Any]:

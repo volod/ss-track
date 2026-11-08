@@ -31,6 +31,8 @@ _LIMITS = [
     "compute cost was not recorded by discovery",
     "recorded blinding is a declaration, and pictures may show the source",
     "unrecorded review minutes are unmeasured, not zero",
+    "a source without a reviewed sample is not zero, "
+    "and a per-source estimate is not field prevalence",
 ]
 
 
@@ -116,6 +118,7 @@ def _require_estimated(record: dict[str, object], blinding: str) -> None:
     audit = _object(record, "audit")
     assert audit["status"] == "estimated"
     assert audit["recall"] is not None
+    _require_source_exposure(record)
 
 
 def _require_inconclusive(record: dict[str, object]) -> None:
@@ -131,6 +134,18 @@ def _require_inconclusive(record: dict[str, object]) -> None:
     assert budget["recorded_effort"] == "unmeasured"
     assert audit["recall"] is None
     assert any("unknown audit observations" in reason for reason in reasons)
+    _require_source_exposure(record)
+
+
+def _require_source_exposure(record: dict[str, object]) -> None:
+    by_source = _object(record, "by_source")
+    assert by_source["weighting"] == "stratum_design"
+    assert by_source["provenance"] == "incomplete"
+    assert by_source["collections"] == []
+    assert by_source["reasons"] == []
+    incomplete = _object(by_source, "incomplete")
+    assert incomplete["pool_windows"] == 6
+    assert incomplete["reasons"] == ["source record has no origin"]
 
 
 def test_evaluate_logs_estimated_and_inconclusive_comparisons(

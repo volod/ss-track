@@ -37,7 +37,7 @@ baseline scope and evidence. The installed set contains these document contracts
 | `record/source-acquisition` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0` |
 | `record/corpus-pool` | `1.0.0` |
 | `record/source-manifest` | `2.0.0`, `2.1.0`, `2.2.0`, `2.3.0`, `2.4.0` |
-| `result/command` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0`, `1.4.0`, `1.5.0`, `1.6.0`, `1.7.0`, `1.8.0`, `1.9.0`, `1.9.1`, `1.10.0`, `1.11.0`, `1.12.0`, `1.13.0`, `1.14.0`, `1.15.0`, `1.16.0`, `1.17.0`, `1.18.0`, `1.19.0`, `1.20.0`, `1.21.0`, `1.22.0`, `1.23.0` |
+| `result/command` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0`, `1.4.0`, `1.5.0`, `1.6.0`, `1.7.0`, `1.8.0`, `1.9.0`, `1.9.1`, `1.10.0`, `1.11.0`, `1.12.0`, `1.13.0`, `1.14.0`, `1.15.0`, `1.16.0`, `1.17.0`, `1.18.0`, `1.19.0`, `1.20.0`, `1.21.0`, `1.22.0`, `1.23.0`, `1.24.0` |
 
 `result/command` `1.5.0` adds `redecoded`. `1.6.0` adds optional `unlinked` on a corpus build,
 present only when that data root has something to report. `1.7.0` adds optional `impact` when an
@@ -128,7 +128,11 @@ are declarations. They are not the `blind` counts. 1.23.0 adds optional `review_
 `sibling_offers`. `review_budget` states the declared protocol, the shared audit count, each
 queue, the additions beyond that shared count, and whether the comparable counts match. An
 unmatched or unmeasured budget is `inconclusive`. Unrecorded minutes stay unmeasured rather
-than zero.
+than zero. 1.24.0 adds optional `by_source` on `discover evaluate` and widens `limits` from four
+entries to five. `by_source` reports each sealed collection beside the combined population, using
+the stratum design weight, and states shared-stratum covariance. A missing collection stays null
+rather than zero. Commands other than `discover evaluate` omit `by_source`. `sources` remains the
+hash-comparison list.
 [review and freeze](corpus/review-and-freeze.md) states their rules, which `read_review`,
 `read_audit_review`, `read_blinding` and `read_freeze` enforce. A decision is a `oneOf` tagged by
 `decision`, so an `unreviewed` entry carries no observation.

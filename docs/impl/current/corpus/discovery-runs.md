@@ -389,7 +389,7 @@ and is not an offered window. A sibling window is an offer, and it stays out of 
 estimate because it has no inclusion probability. `review_budget.status` is `matched` only when
 the protocol's counts and the selected counts are equal.
 
-The log line is a `result/command` 1.23.0 record. `status` is `estimated` only when that budget
+The log line is a `result/command` 1.24.0 record. `status` is `estimated` only when that budget
 is matched and the comparison has recall and an interval. It is `inconclusive` when the budget
 is unmatched or unmeasured, evidence is missing, variance is unavailable, or the runs selected
 different counts. A gain left on an inconclusive comparison is descriptive. It is a matched-budget
@@ -397,6 +397,30 @@ result only when `review_budget.status` is `matched`. A negative gain stays vali
 matches. `review_blinding`, `review_independence` and `review_effort_minutes` belong to this
 comparison. They are not the `blind` counts from `discover blind` or `discover unblind`.
 `compute_cost` on each run is null. `recorded_effort` is `equal`, `unequal` or `unmeasured`.
+
+`by_source` names each collection on the sealed source origin and places it beside that combined
+population. A window keeps the weight of its whole stratum, `population / sample_size`, including
+windows of other collections. A collection is not reweighted as a sample of its own.
+`by_source.weighting` is `stratum_design`. A stratum that spans collections is listed in
+`shared_strata`, and the report gives the covariance of those target totals. That covariance is
+null when a shared stratum has no sample, an observation is unknown, or either collection has no
+reviewed sample. A census covariance of zero is a real zero. A collection with no reviewed sample,
+or one that sits in an unsampled stratum, has null weighted totals, recall and target total.
+Unknown or missing observations are not target absence. A reviewed sample with no target-present
+window reports a target total of zero and withholds the interval. A collection is `estimated` only
+when its gain has a variance and the review budget is matched. An unmatched budget keeps the
+computed gain and makes the collection inconclusive. Withheld windows and sibling offers are cost.
+A sibling has no inclusion probability. Recorded minutes do not change the window budget.
+
+Membership is the pinned source record. A stream with no origin, an unreadable pin, an unnamed
+inventory, or a disagreement between the paired runs stays unbound. The evaluator does not guess a
+collection, and it does not call those windows a collection named `unknown`. Combined-pool
+accounting uses that name for a different count. A window listed on two origins is counted in each
+collection, and `partitions_population` is then false. Counts for one collection can therefore
+exceed the unique windows. The combined `audit` estimate remains the unique population when a
+source is missing. `by_source.reasons` is empty when the sealed frame matches the pool. A
+per-source estimate is not field prevalence, species identity, or absence from an unreviewed
+window. The fifth `limits` entry says so.
 
 For each group, an audit observation receives weight `population / sample_size`. Weighted target
 counts yield recall for each selection and the paired difference. The approximate 95% intervals use
@@ -409,13 +433,18 @@ Observations are reviewer statements, not verified labels, species, or field acc
 [evaluation task](../../plan.md#corpus-selection-evaluation) remains open for a reviewed evaluation
 run.
 
-The reader and comparison are in `corpus/evaluation/inputs.py` and `report.py`. The workload is
-in `workload.py`, and stratified estimates are in `statistics.py`. Verify with
+The reader and comparison are in `corpus/evaluation/inputs.py` and `report.py`. Membership is in
+`membership.py`, the stratum frame in `domains.py`, collection recall in `collection_metrics.py`,
+shared-stratum covariance in `covariance.py`, and per-collection cost in `exposure.py`. The workload
+is in `workload.py`, and the combined stratified estimate is in `statistics.py`. Verify with
 `tests/corpus/evaluation/`, the discovery selection and review freeze tests, and `make ci`. The
 evaluation command test logs an estimated comparison, an inconclusive one, and one whose blinding
-declarations differ. The suite checks each log against the newest `result/command`.
+declarations differ. The suite checks each log against the newest `result/command`. Hand-calculated
+fixtures cover unequal weights, shared-stratum covariance, a source with no reviewed sample,
+incomplete provenance and a negative gain.
 
-The [workload record](../../records/0065-self-supervised-corpus-corpus-evaluation-review-budget.md)
-holds the decisions and acceptance evidence. The comparison fields `result/command` 1.22.0
-added are in that
+The [by-source record](../../records/0066-self-supervised-corpus-corpus-evaluation-by-source.md)
+holds the decisions and acceptance evidence. The
+[workload record](../../records/0065-self-supervised-corpus-corpus-evaluation-review-budget.md)
+holds the review-budget decisions. The comparison fields `result/command` 1.22.0 added are in that
 [record](../../records/0064-self-supervised-corpus-corpus-evaluation-result-contract.md).

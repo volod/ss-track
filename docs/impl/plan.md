@@ -30,30 +30,6 @@ extensions; none blocks M3. Fixture implementation proceeds without physical har
 
 ### Self-supervised video corpus -- `self-supervised-corpus`
 
-#### corpus-evaluation-by-source
-
-A combined result can conceal that selection misses a source or that a source has no reviewed sample.
-
-- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
-- Agent status: CLEAR
-- Dependencies: none.
-- User-visible outcome: The evaluator reports each collection's reviewed exposure, exclusions and
-  weighted selection metrics alongside the explicitly defined combined population.
-- Scope boundary: Verified source provenance and reviewed audit observations; no inference about
-  species, field prevalence or absence from unreviewed windows.
-- Data and artifact paths: `src/ss_track/corpus/evaluation/`, `tests/corpus/evaluation/`,
-  `contracts/`, `$DATA_DIR/self-supervised-corpus/<run-id>/`.
-- Execution path: Bind source membership to the sealed pool and stratum; report per-source sample
-  counts, weights, unknown and withheld exposure, costs, recall and uncertainty, plus the weighted
-  combined result. Use the paired review budget: equal selection counts are not equal review cost,
-  and an unmatched or unmeasured budget stays inconclusive. A stratum spanning sources must preserve
-  the sampling design rather than be silently treated as independent; explicitly report unavailable
-  estimates and uncertainty.
-- Acceptance gates: Hand-calculated mixed-source fixtures cover unequal sampling weights,
-  shared-stratum covariance, a source with no reviewed sample, incomplete provenance and negative
-  gains. Unavailable evidence is inconclusive, never zero; `make ci` passes.
-- Documentation target: [Discovery runs](current/corpus/discovery-runs.md#evaluating-selection).
-
 #### corpus-two-source-pilot
 
 The chosen sources need an approved, measured pool and paired runs before people can review them.
@@ -82,7 +58,7 @@ A larger selected pool may conceal missed small birds or exclude hard negatives.
 
 - Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: RUN NEEDED
-- Dependencies: corpus-two-source-pilot, review-video-corpus-sample, corpus-evaluation-by-source.
+- Dependencies: corpus-two-source-pilot, review-video-corpus-sample.
 - User-visible outcome: A report compares model-assisted selection with a random or uniform
   baseline and exposes missed cases and resource cost at a matched review budget.
 - Scope boundary: Independently reviewed audit samples and stratified uncertainty; no field accuracy,
@@ -99,9 +75,11 @@ A larger selected pool may conceal missed small birds or exclude hard negatives.
   confusers that motion ranks high. Record whether the audit review was independent and blinded.
   A review or freeze states that with `independence` and `blinding` when the reviewer declared it,
   and leaves both unrecorded when it does not. A stated value is a declaration, not a verification.
-  Capture measured compute cost alongside the comparison; discovery runs do not record it. Report
-  per-source estimates and accounting as well as the explicitly weighted combined population,
-  without implying field prevalence.
+  Capture measured compute cost alongside the comparison; discovery runs do not record it. The
+  comparison already reports each collection's estimates, shared-stratum covariance and the weighted
+  combined population
+  ([evaluating selection](current/corpus/discovery-runs.md#evaluating-selection)). Keep that report.
+  Do not reimplement it, and do not treat it as field prevalence.
 - Acceptance gates: Hand-calculated fixtures verify denominators, sampling weights, uncertainty and
   unavailable strata; empty or insufficient evidence produces an explicit inconclusive result.
   Negative gains remain valid and `make ci` passes.

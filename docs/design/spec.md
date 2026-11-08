@@ -456,7 +456,13 @@ predeclared random or uniform baseline under equal review cost. Equal review cos
 window the declared protocol offers once. A per-run review pays that run's queue. A shared
 blinded audit pays the audit windows both runs offer once, then each run's other offers. Equal
 selected counts are not that cost. A withheld window is counted apart and is not part of the
-cost. An unmatched or unmeasured budget is inconclusive and keeps its counts. Minutes a review
+cost. An unmatched or unmeasured budget is inconclusive and keeps its counts. Report each
+collection the sealed source names beside the combined population: sample counts, the stratum
+design weight, unknown and withheld exposure, exclusions, review cost, recall and uncertainty.
+A stratum that contains more than one collection keeps that stratum's weight and states the
+covariance of the collection totals. A collection with no reviewed sample, or a window whose
+collection is not named, stays inconclusive rather than zero. That report is not field
+prevalence. Minutes a review
 does not record stay unmeasured rather than zero, and a recorded independence, blinding or
 minute value stays a declaration. Report candidate yield, missed positives with uncertainty,
 diversity and duplication, reviewed negative coverage, time, compute, storage and unprocessed

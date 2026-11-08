@@ -151,7 +151,9 @@ operator split are `SPLIT_LEAKAGE`. A selection with nothing left to include is 
 Import each written recording, then build, stage and verify the corpus declaration with the
 existing commands. Link review uses its own run id. `account_corpus` counts later streams and cases
 once per collection named on the source origin, and once in the unique totals. A source with no
-origin counts as provider and collection `unknown`. The
+origin counts as provider and collection `unknown`. Selection evaluation does not use that name:
+an unnamed collection stays unbound
+([evaluating selection](corpus/discovery-runs.md#evaluating-selection)). The
 [task record](../records/0062-self-supervised-corpus-corpus-combined-pool.md) has the fixture
 evidence.
 

@@ -167,6 +167,17 @@ def _status(reasons: tuple[str, ...]) -> str:
     return BUDGET_MATCHED
 
 
+def apply_review_budget(metrics: dict[str, Any], budget: ReviewBudget) -> None:
+    """Keep a computed gain descriptive when the review budget is not matched."""
+    if budget.status == BUDGET_MATCHED:
+        return
+    metrics["status"] = "inconclusive"
+    reasons: Any = metrics["reasons"]
+    for reason in budget.reasons:
+        if reason not in reasons:
+            reasons.append(reason)
+
+
 def review_budget(
     diverse: Evidence,
     uniform: Evidence,

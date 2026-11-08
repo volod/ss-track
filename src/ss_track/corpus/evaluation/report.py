@@ -8,12 +8,13 @@ from typing import Any
 
 from ss_track.core.canonical import SEAL_FIELD
 from ss_track.core.refusal import JsonValue
+from ss_track.corpus.evaluation.exposure import source_report
 from ss_track.corpus.evaluation.inputs import Evidence, match, read_evidence
+from ss_track.corpus.evaluation.membership import BoundStream, paired_membership
 from ss_track.corpus.evaluation.statistics import AuditWindow, Stratum, estimate
 from ss_track.corpus.evaluation.workload import (
-    BUDGET_MATCHED,
-    ReviewBudget,
     RunWorkload,
+    apply_review_budget,
     review_budget,
 )
 from ss_track.corpus.review.queue import CandidateKey
@@ -23,6 +24,8 @@ COMPARISON_LIMITS = (
     "compute cost was not recorded by discovery",
     "recorded blinding is a declaration, and pictures may show the source",
     "unrecorded review minutes are unmeasured, not zero",
+    "a source without a reviewed sample is not zero, "
+    "and a per-source estimate is not field prevalence",
 )
 
 
@@ -142,24 +145,18 @@ class EvaluationResult:
         return self.report
 
 
-def _apply_budget(metrics: dict[str, Any], budget: ReviewBudget) -> None:
-    """Keep a computed gain descriptive when the review budget is not matched."""
-    if budget.status == BUDGET_MATCHED:
-        return
-    metrics["status"] = "inconclusive"
-    reasons: Any = metrics["reasons"]
-    for reason in budget.reasons:
-        if reason not in reasons:
-            reasons.append(reason)
-
-
-def compare(first: Evidence, second: Evidence) -> EvaluationResult:
+def compare(
+    first: Evidence,
+    second: Evidence,
+    membership: Mapping[str, BoundStream] | None = None,
+) -> EvaluationResult:
     """Compare two validated evidence sets without writing or inferring labels."""
     left, right, observations = match(first, second)
     budget = review_budget(first, second, left, right)
     run: Any = first.records.run
     metrics = estimate(_audit(left, right, observations, run))
-    _apply_budget(metrics, budget)
+    apply_review_budget(metrics, budget)
+    by_source = source_report(left, right, observations, run, first, second, membership, budget)
     diverse = _method(left, first, budget.diverse)
     uniform = _method(right, second, budget.uniform)
     streams: dict[str, list[CandidateKey]] = {}
@@ -207,6 +204,7 @@ def compare(first: Evidence, second: Evidence) -> EvaluationResult:
             "review_budget": budget.to_record(),
             "whole_stream_target_observed": whole,
             "audit": metrics,
+            "by_source": by_source,
             "observations": observed_rows,
             "audit_misses_by_observation": missed,
             "limits": list(COMPARISON_LIMITS),
@@ -226,4 +224,4 @@ def evaluate(
     """Read the paired runs and each one's review or freeze, then compare them."""
     first = read_evidence(data_root, diverse_run, diverse_review, diverse_freeze)
     second = read_evidence(data_root, uniform_run, uniform_review, uniform_freeze)
-    return compare(first, second)
+    return compare(first, second, paired_membership(first.records, second.records, data_root))

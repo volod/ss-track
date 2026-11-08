@@ -886,6 +886,15 @@ contracts:
     change:
       class: minor
       summary: Report the paired review workload and refuse an unmatched budget.
+  - version: 1.24.0
+    file_sha256: ffb62746473327d94129479f5c1378a16b56390ddc95f25d84f26b11475c06ee
+    fingerprints:
+      structure: a525d0d36aea431693918a54ed5fccc2b783e13782847250f2354665b9b4c02d
+      meaning: 9f07e5a5e7930ed55ee69d6b2b0b9a9eb32b2cfd2e20c41954060bee90492f79
+    change:
+      class: minor
+      summary: Add optional by_source on a selection comparison and allow a fifth
+        comparison limit.
 - family: shared
   id: types
   owner: data-contracts
