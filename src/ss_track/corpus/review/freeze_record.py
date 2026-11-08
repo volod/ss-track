@@ -79,13 +79,7 @@ def freeze_body(
             "status": links["status"],
             "unresolved_same_split": unresolved,
         },
-        "review": {
-            "reviewer": reviewed.review.reviewer,
-            "review_sha256": reviewed.review.review_sha256,
-            "offered_count": len(reviewed.queue.offered),
-            "decision_count": sum(len(member.candidates) for member in membership.members)
-            + len(membership.exclusions),
-        },
+        "review": _review(reviewed),
         "label_revision": None,
         "members": [_member(member) for member in membership.members],
         "exclusions": [_decided(item) for item in membership.exclusions],
@@ -94,6 +88,28 @@ def freeze_body(
         "sources": _sources(corpus),
         "superseded": superseded,
     }
+
+
+def _review(reviewed: Reviewed) -> dict[str, JsonValue]:
+    """Copy the review pin, and any independence, blinding or effort the review declared."""
+    review = reviewed.review
+    membership = reviewed.membership
+    record: dict[str, JsonValue] = {
+        "reviewer": review.reviewer,
+        "review_sha256": review.review_sha256,
+        "offered_count": len(reviewed.queue.offered),
+        "decision_count": sum(len(member.candidates) for member in membership.members)
+        + len(membership.exclusions),
+    }
+    if review.independence is not None:
+        record["independence"] = review.independence
+    if review.blinding is not None:
+        record["blinding"] = review.blinding
+    if review.reviewer_minutes is not None:
+        record["reviewer_minutes"] = review.reviewer_minutes
+    if review.audit_id is not None:
+        record["audit_id"] = review.audit_id
+    return record
 
 
 def _key(entry: Mapping[str, Any]) -> tuple[str, str]:

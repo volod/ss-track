@@ -30,29 +30,29 @@ extensions; none blocks M3. Fixture implementation proceeds without physical har
 
 ### Self-supervised video corpus -- `self-supervised-corpus`
 
-#### corpus-blinded-audit-review
+#### corpus-evaluation-result-contract
 
-The current review queue exposes scores and selection reasons to an auditor and cannot record blinding.
+`discover evaluate` logs a comparison the newest `result/command` contract refuses.
 
 - Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: CLEAR
 - Dependencies: none.
-- User-visible outcome: A reviewer can inspect the common audit sample without selection, source-label
-  or annotation cues, then submit traceable observations with independence and blinding provenance.
-- Scope boundary: Review of offered non-locked windows and recorded procedure; no automatic judgment,
-  review of locked footage, new ground-truth labels or claim that recorded blinding is verified.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `contracts/`,
+- User-visible outcome: The comparison `discover evaluate` prints is a command result a reader can
+  validate.
+- Scope boundary: The comparison the command already returns. No change to the statistics, and no
+  claim that a recorded blinding declaration was verified.
+- Data and artifact paths: `src/ss_track/corpus/evaluation/`, `tests/corpus/`, `contracts/`,
   `$DATA_DIR/self-supervised-corpus/<run-id>/`.
-- Execution path: Add a blinded presentation and stable private mapping back to existing review and
-  freeze candidates; hide score, method, offer reason, upstream labels and source-derived target cues.
-  Preserve audit eligibility and offer constraints, state whether independence and blinding were
-  declared, and report review effort. Contract any new interchangeable records and keep unblinding
-  and provenance reproducible. Hide filenames and source identifiers while recognizing that visual
-  content itself may reveal the source.
-- Acceptance gates: Deterministic fixtures show matched audit samples, unselected windows, withheld
-  locked material, no identifying metadata or scores in the blinded presentation, reversible mapping,
-  unknown observations and refusal of forged or mismatched inputs; `make ci` passes.
-- Documentation target: [Review and freeze](current/corpus/review-and-freeze.md).
+- Execution path: `corpus/evaluation/report.py` returns statuses `estimated` and `inconclusive` and
+  fields such as `audit`, `observations`, `review_blinding`, `review_independence`,
+  `review_effort_minutes` and `limits`. The newest `result/command` accepts none of those statuses
+  or fields. The production CLI does not check the result, so the command succeeds, and a pytest
+  run of the CLI fails the command-result hook. Add a minor of `result/command` for this comparison
+  and a CLI test. The presentation command already uses `blind` for its counts, so this comparison
+  keeps its metrics off that name.
+- Acceptance gates: `discover evaluate` results for an estimated and an inconclusive fixture
+  validate against the newest `result/command`, and `make ci` passes.
+- Documentation target: [Discovery runs](current/corpus/discovery-runs.md#evaluating-selection).
 
 #### corpus-evaluation-review-budget
 
@@ -61,7 +61,7 @@ Equal selection counts can offer different total numbers of windows when audit o
 
 - Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: CLEAR
-- Dependencies: corpus-blinded-audit-review.
+- Dependencies: none.
 - User-visible outcome: A comparison states the actual review workload and cannot present unequal
   review budgets as a matched-budget result.
 - Scope boundary: Queue-based and recorded review costs for paired runs; no estimation of unrecorded
@@ -105,7 +105,7 @@ The chosen sources need an approved, measured pool and paired runs before people
 
 - Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: RUN NEEDED
-- Dependencies: corpus-blinded-audit-review, authorize-video-corpus-sources.
+- Dependencies: authorize-video-corpus-sources.
 - User-visible outcome: An approved bounded subset of both collections is staged and offers a
   reproducible independent audit sample and matched selection runs, or an evidence-backed negative.
 - Scope boundary: Approved sources, rights, models, storage, compute and reviewer budget only; no
@@ -114,8 +114,8 @@ The chosen sources need an approved, measured pool and paired runs before people
   `$DATA_DIR/corpus/<corpus-id>/`.
 - Execution path: Resolve pins and terms per source, acquire only approved inputs, verify hashes,
   group cross-source related recordings, build and stage the pool, and run `ssl-diverse` and
-  `uniform` at one pool, audit seed and budget. Freeze the review protocol before presenting its
-  blinded queue; record source coverage, exclusions, resources, approvals and stopped runs.
+  `uniform` at one pool, audit seed and budget. Freeze the review protocol before `discover blind`;
+  record source coverage, exclusions, resources, approvals and stopped runs.
 - Acceptance gates: Inputs, staged frames, grouping, selection and sampling verify; the review queue
   includes eligible unselected windows, reports withheld exposure and retains reproducible evidence.
   Insufficient rights, targets or resources is an explicit valid negative; `make ci` passes.
@@ -141,10 +141,12 @@ A larger selected pool may conceal missed small birds or exclude hard negatives.
   Compare `ssl-diverse` with the `uniform` run of the same pool and audit seed
   ([selection](current/corpus/discovery-runs.md#selection)), report misses by kind, including a
   target present for a whole stream, which background deviation compares against itself, and
-  confusers that motion ranks high. Record whether the audit review was independent and blinded;
-  the current review format does not record either. Capture measured compute cost alongside the
-  comparison; discovery runs do not record it. Report per-source estimates and accounting as well
-  as the explicitly weighted combined population, without implying field prevalence.
+  confusers that motion ranks high. Record whether the audit review was independent and blinded.
+  A review or freeze states that with `independence` and `blinding` when the reviewer declared it,
+  and leaves both unrecorded when it does not. A stated value is a declaration, not a verification.
+  Capture measured compute cost alongside the comparison; discovery runs do not record it. Report
+  per-source estimates and accounting as well as the explicitly weighted combined population,
+  without implying field prevalence.
 - Acceptance gates: Hand-calculated fixtures verify denominators, sampling weights, uncertainty and
   unavailable strata; empty or insufficient evidence produces an explicit inconclusive result.
   Negative gains remain valid and `make ci` passes.
@@ -2393,8 +2395,9 @@ The usefulness and missed cases of self-supervised selection require independent
 - Data and artifact paths: `$DATA_DIR/self-supervised-corpus/<run-id>/`, `$DATA_DIR/corpus/<corpus-id>/labels/`.
 - Execution path: Freeze the baseline and sampling plan before review; reviewers record source and
   frame decisions, uncertainty, disagreements and time, and settle them under named authority. The
-  blinded audit presentation records independence, blinding and effort, then its mapped window
-  decisions go in a review file and are frozen with `corpus freeze`
+  blinded audit presentation from `discover blind` records independence, blinding and effort.
+  `discover unblind` maps its item decisions into one review file per run, and those files are
+  frozen with `corpus freeze`
   ([review and freeze](current/corpus/review-and-freeze.md)).
 - Acceptance gates: Reviewed samples and exclusions are frozen and hashed; absent or uncertain labels
   stay unknown, unreviewed exposure is reported, and insufficient sample size is inconclusive.

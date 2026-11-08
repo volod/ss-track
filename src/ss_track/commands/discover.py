@@ -8,6 +8,7 @@ from ss_track.commands.report import reported, reported_on_data_root
 from ss_track.corpus.discovery.run import run_discovery, verify_discovery_run
 from ss_track.corpus.evaluation.report import evaluate
 from ss_track.corpus.links.run import LinkRequest, write_links
+from ss_track.corpus.review.blind import present_audit, unblind_audit
 from ss_track.corpus.review.export import export_review
 from ss_track.corpus.review.template import queue_review
 from ss_track.corpus.sources.acquisition import AcquisitionRequest, acquire
@@ -16,7 +17,7 @@ from ss_track.corpus.sources.pool import prepare_pool
 
 
 def add_discover_commands(subcommands: Subcommands) -> None:
-    """Add `discover` with `run`, `verify`, `links`, `queue` and `export` under it."""
+    """Add `discover` and the commands that acquire, select, review and compare."""
     discover = subcommands.add_parser(
         "discover", help="propose candidate windows of staged frames for review"
     )
@@ -82,6 +83,20 @@ def add_discover_commands(subcommands: Subcommands) -> None:
     export.add_argument("--supersedes", help="corpus_id the frozen version supersedes")
     export.add_argument("--out", type=Path, required=True, help="corpus declaration to write")
     export.set_defaults(handler=_export)
+    blind = commands.add_parser(
+        "blind", help="present the common audit sample without selection or source cues"
+    )
+    blind.add_argument("--audit-id", required=True, help="id of this blinded audit")
+    blind.add_argument("--run-id", action="append", required=True, dest="run_ids")
+    blind.add_argument("--out", type=Path, required=True, help="directory to give the reviewer")
+    blind.set_defaults(handler=_blind)
+    unblind = commands.add_parser(
+        "unblind", help="map a blinded audit review back to per-run review files"
+    )
+    unblind.add_argument("--audit-id", required=True)
+    unblind.add_argument("--review", type=Path, required=True, help="completed blinded review")
+    unblind.add_argument("--out", type=Path, required=True, help="directory of per-run reviews")
+    unblind.set_defaults(handler=_unblind)
 
 
 def _run(args: argparse.Namespace) -> int:
@@ -99,6 +114,18 @@ def _links(args: argparse.Namespace) -> int:
 
 def _queue(args: argparse.Namespace) -> int:
     return reported_on_data_root(lambda data_root: queue_review(args.run_id, data_root, args.out))
+
+
+def _blind(args: argparse.Namespace) -> int:
+    return reported_on_data_root(
+        lambda data_root: present_audit(args.audit_id, args.run_ids, args.out, data_root)
+    )
+
+
+def _unblind(args: argparse.Namespace) -> int:
+    return reported_on_data_root(
+        lambda data_root: unblind_audit(args.audit_id, args.review, args.out, data_root)
+    )
 
 
 def _export(args: argparse.Namespace) -> int:

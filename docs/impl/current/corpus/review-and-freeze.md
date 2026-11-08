@@ -5,9 +5,11 @@ corpus version is made from those decisions through the existing build, stage an
 `ss-track discover queue` shows what a run offers and writes a review file to fill in,
 `ss-track discover export` writes the corpus declaration a review makes, and `ss-track corpus
 freeze` seals the built and staged version with its decision provenance once its terms, its
-membership, its [link review](leakage-review.md) and its frames all hold. A frozen version holds
-membership only: no observation a reviewer records is a label, and labels come only from the
-annotation contract. The
+membership, its [link review](leakage-review.md) and its frames all hold. `ss-track discover blind`
+presents the common audit sample without selection, score or source cues, and `ss-track discover
+unblind` maps the reviewer's item decisions back to the review file freeze already reads. A frozen
+version holds membership only: no observation a reviewer records is a label, and labels come only
+from the annotation contract. The
 [task record](../../records/0055-self-supervised-corpus-corpus-review-and-freeze.md) holds the
 decisions and acceptance evidence.
 
@@ -56,9 +58,62 @@ The template lists every offered window as `unreviewed`, each after a comment st
 why it was offered, what selection and the audit decided, and its scores. Its `reviewer` is empty,
 which the contract refuses, so a template cannot pass as a review until someone is named.
 
+## Blinded audit
+
+`discover queue` stays the review of everything a run offers, comments and all. `discover blind`
+is the other presentation: the common audit sample of one or more runs that share a pool, frame
+set and audit design. Selected and unselected sampled windows are shown together. A window the
+sample did not draw, and every sibling window, stays out. A sampled window of a locked stream is
+withheld. The packet states how many and `locked_without_policy`. The stream id stays in the
+private mapping.
+
+```bash
+ss-track discover blind --audit-id audit-1 --run-id discovery-1 --out packet/
+# fill packet/review.yaml; pictures are packet/items/<item-id>/<offset>.png
+ss-track discover unblind --audit-id audit-1 --review packet/review.yaml --out reviews/
+# reviews/<run-id>.yaml is a corpus review that export and freeze already read
+```
+
+Item ids are `item-000` onward, ordered by a SHA-256 of the frame set, the audit seed, the stream
+and the candidate. The same runs always assign the same ids. The order is neither frame order nor
+a selection rank. A picture file is named by its offset in the window, and its bytes are the staged
+frame encoded as PNG. The private mapping stores the SHA-256 of those bytes in display order. A
+picture can still show where the footage came from. The packet names no recording, filename, model,
+score, method or reason a window was offered.
+
+The template is `declaration/audit-review` 1.0.0. Its reviewer is empty and `reviewer_minutes` is
+absent, so it is not a review until both are set. `independence` and `blinding` are `declared` or
+`not_declared`. Either value is what was declared. Reading it does not check that the procedure was
+followed. An observation is still not a label.
+
+`unblind` requires every item of the mapping and no other item. It writes one corpus review per
+named run, copying the declaration, the minutes and the audit id. A review submitted without its
+`items/` directory is still read. A directory that is present and whose pictures differ from the
+stored hashes is `RECORD_INVALID`.
+
+The private mapping is `record/audit-blinding` 1.0.0 at
+`$DATA_DIR/self-supervised-corpus/<audit-id>/blinding.json`. That directory is the discovery-run
+namespace, so an audit id that already holds a discovery run, or a different mapping, is
+`CORPUS_CONFLICT`. The packet is written apart from that directory. Writing it inside is
+`STORAGE_FAILED`. Reading the mapping recomputes the sample and the picture hashes from the runs
+and the staged frames. A sealed record that names other windows is `RECORD_INVALID`. A missing file
+and a byte that no longer seals are `RECORD_TAMPERED`. The same mapping and the same packet again
+report `unchanged`. A path that already holds other bytes is `CORPUS_CONFLICT` and is left as it
+was. Runs that differ in pool, frame set, audit design or sampled windows are `MANIFEST_INVALID`
+and write nothing.
+
+`discover blind` reports `presented`. Its `blind` object counts windows presented, withheld, outside
+the sample, runs, and presented windows at least one named run did not select. It also reports the
+review file's SHA-256 and the mapping's path and seal. `discover unblind` reports `unblinded`, the
+same counts, the declared independence, blinding and minutes, and one path per mapped review.
+Neither success record names a stream, a score or an offer reason.
+
+The [task record](../../records/0063-self-supervised-corpus-corpus-blinded-audit-review.md) holds
+the decisions and acceptance evidence.
+
 ## Decisions
 
-`declaration/corpus-review` 1.0.0:
+`declaration/corpus-review` 1.0.0, with optional provenance from 1.1.0:
 
 ```yaml
 schema_version: 1
@@ -76,6 +131,9 @@ decisions:
 | `decision` | `include`: the window's frames join the frozen version. `exclude`: they stay out. `unreviewed`: no one decided; the same as leaving the window out of the file |
 | `observation` | Required on include and exclude: `target_present`, `target_absent` (no target seen, not a verified absence), `confuser` (no target, but a moving object that could pass for one) or `unknown` |
 | `reason` | Required on exclude: `no_value`, `quality`, `sensitive`, `rights`, `duplicate` or `other`, which needs a `note` |
+| `independence`, `blinding` | Optional. `declared` or `not_declared`. Absent when the review does not state it. A stated value is a declaration, not a verification |
+| `reviewer_minutes` | Optional minutes the reviewer recorded. Absent when effort was not recorded |
+| `audit_id` | Optional id of the blinded audit the decisions were mapped from |
 
 A candidate is decided at most once. A review of another run, one that includes nothing, and one
 that excludes a frame another decision includes are `MANIFEST_INVALID`.
@@ -104,6 +162,11 @@ members, and generated cases are never exported.
 | Freeze | `LINKS_UNRESOLVED` | The link review leaves a link across splits undecided; details list each |
 | Freeze | `SPLIT_LEAKAGE` | A recording sits in another split than a related recording a superseded version held |
 | Freeze | `FRAME_CORRUPTED` and the other [verify](../corpus.md#verification) refusals | A frame, bundle or frame set does not hold |
+| Blind, unblind | `MANIFEST_INVALID` | The runs do not share a sample, the review names another audit, an item is missing, repeated or unexpected, or a mapped review fails the corpus-review contract |
+| Blind, unblind | `CORPUS_CONFLICT` | The audit id already holds another run or mapping, or the output path holds other bytes |
+| Blind | `STORAGE_FAILED` | The packet would be written inside the private mapping's directory |
+| Unblind | `RECORD_TAMPERED` | No blinding record, or its bytes no longer seal |
+| Unblind | `RECORD_INVALID` | The mapping does not match the runs and frames, or pictures beside the review differ |
 
 Freezing reads the link review with `read_links`, so a forged review is `RECORD_INVALID`. A link
 review covers one version, so a related decision naming a recording the version does not hold is
@@ -114,14 +177,16 @@ and is counted as `unresolved_same_split`.
 
 ## Record
 
-`corpus/<corpus-id>/freeze.json` is `record/corpus-freeze` 1.0.0, sealed beside the manifest:
+`corpus/<corpus-id>/freeze.json` is `record/corpus-freeze` 1.1.0, sealed beside the manifest.
+A review that states no provenance still freezes without those fields, so an older review keeps
+its record shape:
 
 | Field | Holds |
 | --- | --- |
 | `corpus_manifest_sha256`, `frame_set_sha256` | The frozen version and its staged frames |
 | `discovery` | The run, its seal, and the pool version and frame set it read |
 | `links` | The link review, its seal, its status and its undecided links inside one split |
-| `review` | The reviewer, the SHA-256 of the review's canonical JSON, windows offered and decisions made |
+| `review` | The reviewer, the SHA-256 of the review's canonical JSON, windows offered and decisions made. Independence, blinding, minutes and `audit_id` are copied only when the review stated them |
 | `label_revision` | Always null: a frozen version holds no label |
 | `members` | Each frozen stream with its pool stream, group, split, window and the included candidates, each with its offers, observation and note |
 | `exclusions`, `unreviewed` | Each excluded candidate with its observation, reason and note; each offered candidate left undecided |
@@ -152,12 +217,17 @@ writes the same record: the test replays a review on a second data root and comp
   frames stay on disk until its frozen versions are frozen.
 - Related decisions apply along the declared chain only; a version no chain links to is compared by
   the build's [near-duplicate report](../corpus.md#near-duplicates) alone.
+- The queue template still shows frames, offers, selection and scores. The blinded packet does not.
+  Its pictures may still show the source, and a declared independence or blinding is not a check
+  that the reviewer was kept from the queue or the mapping.
+- Reviewer minutes are recorded only when the review states them. Discovery does not record compute
+  cost.
 
 ## Interfaces
 
 | Module | Does |
 | --- | --- |
-| `commands/discover.py` | `discover queue`, `discover export` |
+| `commands/discover.py` | `discover queue`, `discover export`, `discover blind`, `discover unblind` |
 | `commands/corpus.py` | `corpus freeze` |
 | `corpus/review/queue.py` | `review_queue`: offered, withheld and unoffered windows |
 | `corpus/review/decisions.py` | `read_review` |
@@ -168,6 +238,11 @@ writes the same record: the test replays a review on a second data root and comp
 | `corpus/review/freeze.py` | `freeze_corpus`: replay, link and term checks, verify, seal, publish |
 | `corpus/review/freeze_record.py` | The record body and `read_freeze` |
 | `corpus/review/result.py` | Queue, export and freeze results |
+| `corpus/review/blind.py` | `present_audit`, `unblind_audit` |
+| `corpus/review/blind_sample.py` | The common audit sample and its item ids |
+| `corpus/review/blind_packet.py` | The cue-free template and the picture files |
+| `corpus/review/blind_key.py` | The sealed private mapping |
+| `corpus/review/blind_review.py` | `read_audit_review`, and the mapped corpus reviews |
 
 ## Verification
 
@@ -186,4 +261,7 @@ stock review and checks every record section, that no observation reaches the ma
 a conflicting review, and a replay on a second data root. `test_freeze_refusals.py` covers a
 hand-edited declaration, another version's link review, an undecided link across splits and its
 decision, a related recording a superseded version held in another split, changed terms, ended
-retention and a forged record.
+retention and a forged record. `test_blind.py` presents a packet with no source cue, matches item
+ids across two runs of one audit sample, withholds the locked stream, restores an `unknown`
+observation, and refuses a forged mapping, a mismatched sample, a repeated item and a review that
+names a stream.

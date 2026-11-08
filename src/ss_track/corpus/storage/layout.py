@@ -25,6 +25,7 @@ VECTORS_SUFFIX = ".f32"
 MANIFEST_NAME = "manifest.json"
 FRAME_SET_NAME = "frame-set.json"
 FREEZE_NAME = "freeze.json"
+BLINDING_NAME = "blinding.json"
 FREEZE_LOCK = ".freeze.lock"
 _REPLACED_SUFFIX = ".json"
 
@@ -117,6 +118,11 @@ def pool_corpus_path(data_root: Path, run_id: str) -> Path:
 def pool_recording_path(data_root: Path, run_id: str, stream_id: str) -> Path:
     """Return one recording declaration written for a combined-pool stream."""
     return pool_directory(data_root, run_id) / POOL_RECORDINGS_DIRECTORY / f"{stream_id}.yaml"
+
+
+def blinding_path(data_root: Path, audit_id: str) -> Path:
+    """Return one blinded audit's private mapping, in the discovery namespace of run ids."""
+    return discovery_run_directory(data_root, audit_id) / BLINDING_NAME
 
 
 def links_path(data_root: Path, run_id: str) -> Path:

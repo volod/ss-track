@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "audit_id": "audit-1",
+  "reviewer": "site lead",
+  "independence": "declared",
+  "blinding": "not_declared",
+  "reviewer_minutes": 12,
+  "observations": [
+    {
+      "item_id": "item-000",
+      "decision": "include",
+      "observation": "unknown"
+    },
+    {
+      "item_id": "item-001",
+      "decision": "exclude",
+      "observation": "unknown",
+      "reason": "other",
+      "note": "not useful"
+    },
+    {
+      "item_id": "item-002",
+      "decision": "unreviewed"
+    }
+  ]
+}

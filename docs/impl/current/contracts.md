@@ -16,14 +16,16 @@ baseline scope and evidence. The installed set contains these document contracts
 | `declaration/corpus` | `3.0.0`, `3.1.0`, `3.2.0` |
 | `declaration/dataset` | `1.0.0`, `1.1.0` |
 | `declaration/discovery-plan` | `1.0.0`, `1.1.0` |
-| `declaration/corpus-review` | `1.0.0` |
+| `declaration/audit-review` | `1.0.0` |
+| `declaration/corpus-review` | `1.0.0`, `1.1.0` |
 | `declaration/link-decisions` | `1.0.0` |
 | `declaration/source-inventory` | `1.0.0` |
 | `declaration/corpus-pool` | `1.0.0` |
 | `declaration/recording` | `2.0.0`, `2.1.0`, `2.2.0`, `2.3.0`, `2.4.0` |
 | `declaration/video-hints` | `1.0.0` |
 | `record/candidate-inventory` | `1.0.0` |
-| `record/corpus-freeze` | `1.0.0` |
+| `record/audit-blinding` | `1.0.0` |
+| `record/corpus-freeze` | `1.0.0`, `1.1.0` |
 | `record/corpus-links` | `1.0.0` |
 | `record/corpus-manifest` | `3.0.0`, `3.1.0`, `3.2.0`, `3.3.0`, `3.4.0` |
 | `record/discovery-run` | `1.0.0`, `1.1.0`, `1.2.0` |
@@ -35,7 +37,7 @@ baseline scope and evidence. The installed set contains these document contracts
 | `record/source-acquisition` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0` |
 | `record/corpus-pool` | `1.0.0` |
 | `record/source-manifest` | `2.0.0`, `2.1.0`, `2.2.0`, `2.3.0`, `2.4.0` |
-| `result/command` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0`, `1.4.0`, `1.5.0`, `1.6.0`, `1.7.0`, `1.8.0`, `1.9.0`, `1.9.1`, `1.10.0`, `1.11.0`, `1.12.0`, `1.13.0`, `1.14.0`, `1.15.0`, `1.16.0`, `1.17.0`, `1.18.0`, `1.19.0`, `1.20.0` |
+| `result/command` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0`, `1.4.0`, `1.5.0`, `1.6.0`, `1.7.0`, `1.8.0`, `1.9.0`, `1.9.1`, `1.10.0`, `1.11.0`, `1.12.0`, `1.13.0`, `1.14.0`, `1.15.0`, `1.16.0`, `1.17.0`, `1.18.0`, `1.19.0`, `1.20.0`, `1.21.0` |
 
 `result/command` `1.5.0` adds `redecoded`. `1.6.0` adds optional `unlinked` on a corpus build,
 present only when that data root has something to report. `1.7.0` adds optional `impact` when an
@@ -113,10 +115,16 @@ capability, state a [discovery run's plan and an ss-video hint file](corpus/disc
 hold a link review of one version and a reviewer's decisions on pairs of recordings; the
 [leakage review](corpus/leakage-review.md) states their rules, which `read_links` enforces.
 `declaration/corpus-review` and `record/corpus-freeze` hold a reviewer's decisions on the windows a
-discovery run offers and the sealed export of the version frozen from them;
-[review and freeze](corpus/review-and-freeze.md) states their rules, which `read_review` and
-`read_freeze` enforce. A decision is a `oneOf` tagged by `decision`, so an `unreviewed` entry
-carries no observation.
+discovery run offers and the sealed export of the version frozen from them.
+`declaration/corpus-review` 1.1.0 and the freeze record's review object in 1.1.0 add optional
+`independence`, `blinding`, `reviewer_minutes` and `audit_id`. A review that omits them still
+validates, and a freeze copies a field only when the review stated it.
+`declaration/audit-review` 1.0.0 is the cue-free review of one blinded audit sample, and
+`record/audit-blinding` 1.0.0 is the private mapping back to the candidates. `result/command`
+1.21.0 adds `presented`, `unblinded` and the `blind` counts.
+[review and freeze](corpus/review-and-freeze.md) states their rules, which `read_review`,
+`read_audit_review`, `read_blinding` and `read_freeze` enforce. A decision is a `oneOf` tagged by
+`decision`, so an `unreviewed` entry carries no observation.
 
 `shared/types` supplies hashes and identifiers. Every shipped document format has a frozen contract,
 and every frame-set reference resolves at its annotated schema pointer. Capture fields preserve

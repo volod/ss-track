@@ -1,0 +1,178 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ss-track:contract:record:audit-blinding:1.0.0",
+  "title": "Audit blinding",
+  "description": "The private mapping from a blinded audit item back to the discovery candidate it shows. The reviewer packet does not include this record. Picture hashes cover the blinded frames. They are not a source filename. A record that does not match its discovery runs and staged frames is not evidence.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind",
+    "schema_version",
+    "manifest_sha256",
+    "audit_id",
+    "corpus_id",
+    "frame_set_sha256",
+    "runs",
+    "items",
+    "withheld",
+    "outside_sample"
+  ],
+  "properties": {
+    "kind": {
+      "type": "string",
+      "const": "ss-track.audit-blinding",
+      "description": "Record kind."
+    },
+    "schema_version": {
+      "type": "integer",
+      "const": 1,
+      "minimum": 0,
+      "x-unit": "1",
+      "description": "Record major."
+    },
+    "manifest_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Seal of every other field."
+    },
+    "audit_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "The blinded audit this mapping belongs to."
+    },
+    "corpus_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "Corpus version the discovery runs read."
+    },
+    "frame_set_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Frame set the discovery runs read."
+    },
+    "runs": {
+      "type": "array",
+      "description": "Discovery runs whose common audit sample this mapping names, ascending by run id.",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "description": "One discovery run.",
+        "additionalProperties": false,
+        "required": [
+          "run_id",
+          "run_sha256"
+        ],
+        "properties": {
+          "run_id": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+            "description": "Discovery run."
+          },
+          "run_sha256": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+            "description": "Seal of that run."
+          }
+        }
+      }
+    },
+    "items": {
+      "type": "array",
+      "description": "Presented windows in blinded item order.",
+      "minItems": 0,
+      "items": {
+        "type": "object",
+        "description": "One presented window and the candidate it maps to.",
+        "additionalProperties": false,
+        "required": [
+          "item_id",
+          "stream_id",
+          "candidate_id",
+          "window",
+          "frame_sha256"
+        ],
+        "properties": {
+          "item_id": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+            "description": "Blinded item id. It does not name the stream or the candidate."
+          },
+          "stream_id": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+            "description": "Pool stream. Private to this mapping."
+          },
+          "candidate_id": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+            "description": "Candidate in that stream's inventory. Private to this mapping."
+          },
+          "window": {
+            "type": "object",
+            "description": "Half-open source frame window.",
+            "additionalProperties": false,
+            "required": [
+              "start_frame",
+              "end_frame"
+            ],
+            "properties": {
+              "start_frame": {
+                "type": "integer",
+                "minimum": 0,
+                "x-unit": "1",
+                "description": "First source frame."
+              },
+              "end_frame": {
+                "type": "integer",
+                "minimum": 1,
+                "x-unit": "1",
+                "description": "Frame after the last source frame."
+              }
+            },
+            "x-rules": {
+              "order": "start_frame is strictly before end_frame."
+            }
+          },
+          "frame_sha256": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+            "description": "SHA-256 of the item's picture bytes in display order. The pictures are not a source filename."
+          }
+        }
+      }
+    },
+    "withheld": {
+      "type": "array",
+      "description": "Locked streams whose audit-sample windows were withheld, ascending by stream.",
+      "minItems": 0,
+      "items": {
+        "type": "object",
+        "description": "One withheld stream.",
+        "additionalProperties": false,
+        "required": [
+          "stream_id",
+          "reason",
+          "count"
+        ],
+        "properties": {
+          "stream_id": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+            "description": "Pool stream. Private to this mapping."
+          },
+          "reason": {
+            "type": "string",
+            "description": "locked_without_policy: the stream is in the locked split and no custodian policy allows its review.",
+            "enum": [
+              "locked_without_policy"
+            ]
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 1,
+            "x-unit": "1",
+            "description": "Audit-sample windows withheld."
+          }
+        }
+      }
+    },
+    "outside_sample": {
+      "type": "integer",
+      "minimum": 0,
+      "x-unit": "1",
+      "description": "Pool windows the audit sample did not draw."
+    }
+  },
+  "x-rules": {
+    "matched": "The items, picture hashes, withheld windows and runs are exactly what the named discovery runs and staged frames produce."
+  }
+}

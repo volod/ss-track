@@ -1,6 +1,23 @@
 schema_version: 1
 contracts:
 - family: declaration
+  id: audit-review
+  owner: self-supervised-corpus
+  status: active
+  description: A reviewer's decisions on the common audit sample, named by item id.
+    The file carries no stream, candidate, score, method, offer reason, filename or
+    source identifier. Independence and blinding record what was declared. They do
+    not verify that the procedure was followed. An observation is not a label.
+  versions:
+  - version: 1.0.0
+    file_sha256: 55601864bcff24356c55f75902ab482ff9244d40b61a4786595b445c4a4c2ed2
+    fingerprints:
+      structure: 4bc8235b7da6b98ff24c544fe109fcf72989d16e92e93b16b686297c9011f7e2
+      meaning: e21f369c071b0930d13fa64f30b6516d8572d5c113cbcbf3f4a967601bd31848
+    change:
+      class: initial
+      summary: Initial contract.
+- family: declaration
   id: corpus
   owner: corpus-provenance
   status: active
@@ -79,6 +96,15 @@ contracts:
     change:
       class: initial
       summary: Initial contract.
+  - version: 1.1.0
+    file_sha256: 6e09c511a7e0b20e241bac457ac3d40ca4b33cecc735d7694e909388d2e02010
+    fingerprints:
+      structure: fa7faeb5b8eae887851db121d6b4655bbf2634546601082dbca446a2255e75d3
+      meaning: 66aab3e25b611ff0ff4c67672227112583cba90000c9b4f991911a771e31bc40
+    change:
+      class: minor
+      summary: Record declared independence, blinding, review effort and the blinded
+        audit id.
 - family: declaration
   id: dataset
   owner: data-contracts
@@ -233,6 +259,23 @@ contracts:
       class: initial
       summary: Initial contract.
 - family: record
+  id: audit-blinding
+  owner: self-supervised-corpus
+  status: active
+  description: The private mapping from a blinded audit item back to the discovery
+    candidate it shows. The reviewer packet does not include this record. Picture
+    hashes cover the blinded frames. They are not a source filename. A record that
+    does not match its discovery runs and staged frames is not evidence.
+  versions:
+  - version: 1.0.0
+    file_sha256: 1a02242451a767b6f00b009b276ff52524287ab6d1b4b3b14d3cc7b042e7841a
+    fingerprints:
+      structure: 9ee81e84d10f929d88785a950012c293a707d6d5d812fa0242769220ddca0ad6
+      meaning: ac5d0bc3a28041782f4d6caaa4f2a4471c1fe3242f55f70459efda279436c0ad
+    change:
+      class: initial
+      summary: Initial contract.
+- family: record
   id: candidate-inventory
   owner: self-supervised-corpus
   status: active
@@ -268,6 +311,15 @@ contracts:
     change:
       class: initial
       summary: Initial contract.
+  - version: 1.1.0
+    file_sha256: dfc91fef2975b042a6838b3bbda77b4050dc3c0925c21ead55f64b8f422863e7
+    fingerprints:
+      structure: 9847348f060ee7bf809a4eb069d685d9c3488744b383b5358d30f79ba80a386c
+      meaning: dd353ffd83ac37ca16b437226272f4004ae13604636995c1a43b0974522c1ab5
+    change:
+      class: minor
+      summary: Copy declared independence, blinding, review effort and the blinded
+        audit id.
 - family: record
   id: corpus-links
   owner: self-supervised-corpus
@@ -810,6 +862,14 @@ contracts:
     change:
       class: minor
       summary: Add source inventory location, digest and totals.
+  - version: 1.21.0
+    file_sha256: d6779e07f558d2492f743b7c5515de81bc9ba59cb5a832405daa672c2222cb27
+    fingerprints:
+      structure: 3cc2ad9772bcfabba6b1d905ba7c8f8cda3f6338353870c6279182c0adf63c54
+      meaning: 81bc573eaed55a101237613c31650bc4af4d8aa38c806beedd628a7edc65e22f
+    change:
+      class: minor
+      summary: Report a blinded audit presentation and its unblinding.
 - family: shared
   id: types
   owner: data-contracts

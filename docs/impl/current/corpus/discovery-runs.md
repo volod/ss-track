@@ -373,8 +373,10 @@ conflicting observations. It reports selected and offered counts, overlap with t
 withheld windows, selection exclusions, distinct selected streams and groups, and individual
 observations with selection decisions and motion rank. A whole-stream target is reported only when
 all its pool windows have a target-present observation. Motion rank is descending among the distinct
-available motion scores, with ties sharing a rank. Compute cost and review independence and
-blinding are unavailable because the source records do not capture them.
+available motion scores, with ties sharing a rank. When a review or freeze states independence,
+blinding and reviewer minutes, the comparison reports those declarations. A review that omits them
+stays unrecorded. A stated value is not a verification that the procedure was followed, and pictures
+may still show the source. Compute cost stays unrecorded because discovery does not capture it.
 
 For each group, an audit observation receives weight `population / sample_size`. Weighted target
 counts yield recall for each selection and the paired difference. The approximate 95% intervals use

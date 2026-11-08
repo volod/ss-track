@@ -21,6 +21,8 @@ INCLUDE = "include"
 EXCLUDE = "exclude"
 UNREVIEWED = "unreviewed"
 OTHER_REASON = "other"
+DECLARED = "declared"
+NOT_DECLARED = "not_declared"
 
 
 @dataclass(frozen=True, slots=True)
@@ -47,12 +49,20 @@ class Decision:
 
 @dataclass(frozen=True, slots=True)
 class Review:
-    """Every decision of one review, keyed by candidate, who made them and the document's hash."""
+    """Every decision of one review, keyed by candidate, who made them and the document's hash.
+
+    Independence, blinding and minutes are present only when the review states them. A stated
+    value is the reviewer's declaration, not a check that the procedure was followed.
+    """
 
     run_id: str
     reviewer: str
     decisions: dict[CandidateKey, Decision]
     review_sha256: str
+    independence: str | None = None
+    blinding: str | None = None
+    reviewer_minutes: int | None = None
+    audit_id: str | None = None
 
     def decided(self, decision: str) -> list[Decision]:
         """Return the decisions of one kind, ascending by stream and candidate."""
@@ -88,4 +98,8 @@ def read_review(path: Path) -> Review:
         fields.text("reviewer"),
         decisions,
         sha256_bytes(canonical_json(document)),
+        fields.text("independence") if fields.has("independence") else None,
+        fields.text("blinding") if fields.has("blinding") else None,
+        fields.index("reviewer_minutes") if fields.has("reviewer_minutes") else None,
+        fields.text("audit_id") if fields.has("audit_id") else None,
     )

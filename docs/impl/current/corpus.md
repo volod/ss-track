@@ -39,7 +39,8 @@ sealed from those decisions. Source permissions and the independent review of re
 human work in the plan. See the
 [corpus formation planning record](../records/0038-adhoc-self-supervised-corpus-plan.md).
 The selected future sources are Visual WetlandBirds v4 and the Hugging Face Drone Detection Dataset;
-source acquisition and the combined pool are available; blinded review remains planned. The
+source acquisition, the combined pool and blinded review of the common audit sample are available.
+The
 [source architecture record](../records/0057-adhoc-corpus-source-architecture-plan.md)
 states their intended boundaries and routes the outstanding work. Existing import, build, stage and
 review interfaces remain authoritative; upstream annotations and predictions are not audit decisions.
@@ -52,8 +53,9 @@ declarations, the embedding worker and its guards against sibling defects, tiled
 scores and the selection methods. [Leakage review](corpus/leakage-review.md) states
 `discover links`: likely related recordings across groups, reviewer decisions, and the refusal of a
 version that keeps related recordings apart. [Review and freeze](corpus/review-and-freeze.md) states
-`discover queue`, `discover export` and `corpus freeze`: the windows review offers, the reviewer's
-decisions, the declaration they make and the sealed freeze record.
+`discover queue`, `discover blind`, `discover unblind`, `discover export` and `corpus freeze`: the
+windows review offers, the blinded audit sample, the reviewer's decisions, the declaration they
+make and the sealed freeze record.
 
 ## Source inventory
 
@@ -351,6 +353,7 @@ the import, the encounter, the repeated import, the group and lineage refusals. 
 | `$DATA_DIR/corpus/<corpus-id>/manifest.json` | Sealed corpus manifest |
 | `$DATA_DIR/corpus/<corpus-id>/frame-set.json` | Sealed record of every staged bundle |
 | `$DATA_DIR/corpus/<corpus-id>/freeze.json` | Sealed [freeze record](corpus/review-and-freeze.md#record) of a version frozen from review |
+| `$DATA_DIR/self-supervised-corpus/<audit-id>/blinding.json` | Sealed private mapping of a [blinded audit](corpus/review-and-freeze.md#blinded-audit). The reviewer packet does not include it |
 | `$DATA_DIR/corpus/<corpus-id>/frames/<stream-id>/` | One read-only frame bundle |
 | `$DATA_DIR/corpus/<corpus-id>/frames/<case-id>/` | One read-only bundle of a generated case |
 | `$DATA_DIR/run/<run-id>/staged-hashes.json` | Sealed record of what one host staged |

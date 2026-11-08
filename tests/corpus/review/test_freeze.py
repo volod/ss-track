@@ -41,6 +41,7 @@ def test_freezing_seals_membership_exclusions_and_decision_provenance(
     assert record["discovery"]["corpus_id"] == POOL
     assert record["links"]["status"] == "clear"
     assert record["review"]["reviewer"] == "site lead"
+    assert {"independence", "blinding", "reviewer_minutes", "audit_id"}.isdisjoint(record["review"])
     assert (record["review"]["offered_count"], record["review"]["decision_count"]) == (6, 4)
     joined, single = record["members"]
     assert (joined["stream_id"], joined["window"]) == (

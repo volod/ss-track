@@ -13,6 +13,19 @@ from ss_track.corpus.evaluation.statistics import AuditWindow, Stratum, estimate
 from ss_track.corpus.review.queue import CandidateKey
 
 
+def claim(left: str | None, right: str | None) -> str:
+    """Return one shared declaration, unrecorded when both omit it, or mixed when they differ.
+
+    A value other than unrecorded is what the reviews stated. It is not a check that the
+    procedure was followed.
+    """
+    if left is None and right is None:
+        return "unrecorded"
+    if left == right:
+        return str(left)
+    return "mixed"
+
+
 def _selected(candidate: Mapping[str, Any]) -> bool:
     return bool(candidate["selection"]["status"] == "selected")
 
@@ -165,13 +178,18 @@ def compare(first: Evidence, second: Evidence) -> EvaluationResult:
             },
             "unique_reviewed_pool_windows": len(set(left) & observations.keys()),
             "unique_offered_windows": len(first.offered | second.offered),
-            "review_blinding": "unrecorded",
-            "review_independence": "unrecorded",
+            "review_blinding": claim(first.blinding, second.blinding),
+            "review_independence": claim(first.independence, second.independence),
+            "review_effort_minutes": [first.reviewer_minutes, second.reviewer_minutes],
             "whole_stream_target_observed": whole,
             "audit": metrics,
             "observations": observed_rows,
             "audit_misses_by_observation": missed,
-            "limits": ["observations are not labels", "compute cost was not recorded by discovery"],
+            "limits": [
+                "observations are not labels",
+                "compute cost was not recorded by discovery",
+                "recorded blinding is a declaration, and pictures may show the source",
+            ],
         }
     )
 

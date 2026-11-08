@@ -67,5 +67,6 @@ Copy the [template](template.md) using the
 | 0060 | `sibling-defect-test-skips` | [0060-adhoc-sibling-defect-test-skips](0060-adhoc-sibling-defect-test-skips.md) |
 | 0061 | `lightweight-ci-tests` | [0061-adhoc-lightweight-ci-tests](0061-adhoc-lightweight-ci-tests.md) |
 | 0062 | `corpus-combined-pool` | [0062-self-supervised-corpus-corpus-combined-pool](0062-self-supervised-corpus-corpus-combined-pool.md) |
+| 0063 | `corpus-blinded-audit-review` | [0063-self-supervised-corpus-corpus-blinded-audit-review](0063-self-supervised-corpus-corpus-blinded-audit-review.md) |
 
-Next unused sequence: `0063`.
+Next unused sequence: `0064`.

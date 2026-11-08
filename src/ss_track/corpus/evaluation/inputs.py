@@ -26,6 +26,9 @@ class Evidence:
     evidence_sha256: str
     offered: frozenset[CandidateKey] = frozenset()
     withheld: frozenset[CandidateKey] = frozenset()
+    independence: str | None = None
+    blinding: str | None = None
+    reviewer_minutes: int | None = None
 
 
 def candidates(records: DiscoveryRecords) -> dict[CandidateKey, Mapping[str, Any]]:
@@ -66,6 +69,9 @@ def read_evidence(
             review.review_sha256,
             frozenset(queue.offered),
             queue.withheld,
+            review.independence,
+            review.blinding,
+            review.reviewer_minutes,
         )
     assert freeze_id is not None
     freeze = read_freeze(data_root, load_corpus_manifest(freeze_id, data_root))
@@ -81,7 +87,20 @@ def read_evidence(
         str(freeze[SEAL_FIELD]),
         frozenset(queue.offered),
         queue.withheld,
+        _text(review_info, "independence"),
+        _text(review_info, "blinding"),
+        _minutes(review_info),
     )
+
+
+def _text(record: Mapping[str, Any], key: str) -> str | None:
+    value = record.get(key)
+    return value if isinstance(value, str) else None
+
+
+def _minutes(record: Mapping[str, Any]) -> int | None:
+    value = record.get("reviewer_minutes")
+    return value if type(value) is int else None
 
 
 def _freeze_observations(freeze: Mapping[str, Any], queue: ReviewQueue) -> dict[CandidateKey, str]:

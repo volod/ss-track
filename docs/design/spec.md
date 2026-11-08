@@ -405,10 +405,14 @@ provenance-bearing evidence, not independent review or automatically accepted ss
 [WetlandBirds software](https://github.com/3dperceptionlab/Visual-WetlandBirds) can be inspected and
 used as a separately pinned, isolated analysis tool when its code, dependencies and weights have
 acceptable terms; it is not required to construct a corpus and its predictions are not labels.
-A blinded audit presents selected and independently sampled windows without selection reason, score,
-upstream annotation or source-derived target cues, while preserving a private key to the existing
-review and freeze records. Review independence and blinding, resource measurements and unknown
-observations remain visible; a report cannot establish population prevalence for curated footage.
+A blinded audit presents the common audit sample: selected and unselected sampled windows together,
+without selection reason, score, method, offer reason, filename or source identifier. A private
+mapping keeps the path back to the existing review and freeze records. Windows the sample did not
+draw, and sibling windows, stay out of that packet. Locked sampled windows are withheld. Recorded
+independence, blinding and review effort are declarations, not a verification that the procedure
+was followed, and the pictures may still show the source. Unknown observations remain visible. A
+report cannot establish population prevalence for curated footage. Discovery does not record
+compute cost.
 Hugging Face is a source service and versioned cache, not the authority for local corpus identity;
 any publication of derived data has separate terms and authorization.
 

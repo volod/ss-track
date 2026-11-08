@@ -25,9 +25,12 @@ One run is one directory under `$DATA_DIR/self-supervised-corpus/<run-id>/`:
 | `inventories/<stream-id>.json` | `record/candidate-inventory` 1.0.0 | Every candidate window of one stream |
 | `features/<extractor-id>/<stream-id>.json` | `record/feature-rows` 1.0.0 | One extractor's row keys for one stream, and the seal of the vector file beside it |
 
-The run seals each inventory and each feature record by hash, as a frame set seals its bundles. A
-run is built in scratch and published by one rename under a lock, so a reader meets a whole run or
-none. A run id never holds two different runs: repeating the same records changes nothing, and
+A blinded audit stores `blinding.json` in this same directory namespace, so its audit id cannot be
+a discovery run id.
+[Review and freeze](review-and-freeze.md#blinded-audit) states that record. The run seals each
+inventory and each feature record by hash, as a frame set seals its bundles. A run is built in
+scratch and published by one rename under a lock, so a reader meets a whole run or none.
+A run id never holds two different runs: repeating the same records changes nothing, and
 different records are `CORPUS_CONFLICT`. Version 1.1.0 adds `source_approval`, `feature_rows` and a
 hint source's `matches`, each optional, so a 1.0.0 record still validates. Version 1.2.0 adds the
 crop `tiled` and an extractor's `tile`. One inventory per stream
