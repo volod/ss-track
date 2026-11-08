@@ -452,9 +452,15 @@ field-safety claim, or promotion of pseudo-labels to truth is implied.
 
 Evaluation: on an independently reviewed, grouped reference sample with target-present,
 target-absent, small-target and confuser cases, compare model-assisted selection with a
-predeclared random or uniform baseline under equal review cost. Report candidate yield, missed
-positives with uncertainty, diversity and duplication, reviewed negative coverage, time, compute,
-storage and unprocessed exposure; retain both selected and non-selected audit samples. Fixture
+predeclared random or uniform baseline under equal review cost. Equal review cost counts each
+window the declared protocol offers once. A per-run review pays that run's queue. A shared
+blinded audit pays the audit windows both runs offer once, then each run's other offers. Equal
+selected counts are not that cost. A withheld window is counted apart and is not part of the
+cost. An unmatched or unmeasured budget is inconclusive and keeps its counts. Minutes a review
+does not record stay unmeasured rather than zero, and a recorded independence, blinding or
+minute value stays a declaration. Report candidate yield, missed positives with uncertainty,
+diversity and duplication, reviewed negative coverage, time, compute, storage and unprocessed
+exposure; retain both selected and non-selected audit samples. Fixture
 checks prove deterministic membership, source/rights lineage, source-specific accounting, blinded
 review, leakage refusal and resume behavior.
 A useful result meets owner-declared corpus size and coverage targets without violating rights or

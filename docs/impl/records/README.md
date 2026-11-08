@@ -69,5 +69,6 @@ Copy the [template](template.md) using the
 | 0062 | `corpus-combined-pool` | [0062-self-supervised-corpus-corpus-combined-pool](0062-self-supervised-corpus-corpus-combined-pool.md) |
 | 0063 | `corpus-blinded-audit-review` | [0063-self-supervised-corpus-corpus-blinded-audit-review](0063-self-supervised-corpus-corpus-blinded-audit-review.md) |
 | 0064 | `corpus-evaluation-result-contract` | [0064-self-supervised-corpus-corpus-evaluation-result-contract](0064-self-supervised-corpus-corpus-evaluation-result-contract.md) |
+| 0065 | `corpus-evaluation-review-budget` | [0065-self-supervised-corpus-corpus-evaluation-review-budget](0065-self-supervised-corpus-corpus-evaluation-review-budget.md) |
 
-Next unused sequence: `0065`.
+Next unused sequence: `0066`.

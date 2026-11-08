@@ -46,13 +46,14 @@ SHA-256 and the same `review` counts. A retry of export or freeze with the same 
 ## What review offers
 
 Review is bounded by the run. It offers the windows selection ranked, every window the audit sample
-drew and every sibling window, so its cost is the selection budget plus the audit sample, and an
-unselected window reaches a reviewer only through the independent audit sample. A window of a
-stream in the `locked` split is never offered while no custodian policy allows it, although the
-audit sample draws from locked groups' strata: the queue, the template and the freeze record name
-each such stream with reason `locked_without_policy` and the windows it withheld. A decision on a
-withheld or unoffered window is `MANIFEST_INVALID`, naming each under `locked_without_policy` or
-`not_offered`.
+drew and every sibling window. A window named more than once is offered once, so the cost is that
+distinct count, not the selection budget plus the audit sample. An unselected window reaches a
+reviewer only through the independent audit sample. A withheld window is not part of that cost. A
+window of a stream in the `locked` split is never offered while no custodian policy allows it,
+although the audit sample draws from locked groups' strata: the queue, the template and the freeze
+record name each such stream with reason `locked_without_policy` and the windows it withheld. A
+decision on a withheld or unoffered window is `MANIFEST_INVALID`, naming each under
+`locked_without_policy` or `not_offered`.
 
 The template lists every offered window as `unreviewed`, each after a comment stating its frames,
 why it was offered, what selection and the audit decided, and its scores. Its `reviewer` is empty,

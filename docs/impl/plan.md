@@ -30,36 +30,13 @@ extensions; none blocks M3. Fixture implementation proceeds without physical har
 
 ### Self-supervised video corpus -- `self-supervised-corpus`
 
-#### corpus-evaluation-review-budget
-
-Equal selection counts can offer different total numbers of windows when audit overlaps differ, but
-`discover evaluate` currently marks such a comparison estimated without checking total review cost.
-
-- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
-- Agent status: CLEAR
-- Dependencies: none.
-- User-visible outcome: A comparison states the actual review workload and cannot present unequal
-  review budgets as a matched-budget result.
-- Scope boundary: Queue-based and recorded review costs for paired runs; no estimation of unrecorded
-  human time or changing the independent audit design.
-- Data and artifact paths: `src/ss_track/corpus/evaluation/`, `tests/corpus/evaluation/`,
-  `contracts/`, `$DATA_DIR/self-supervised-corpus/<run-id>/`.
-- Execution path: Define comparable per-method and shared audit review workload before computing
-  gains; count unique offered windows, audit overlaps, sibling offers and withheld windows. Compare
-  the workload under the declared review protocol, and mark unmatched or unmeasured budgets
-  inconclusive while retaining descriptive counts. Keep resource and independence claims explicit.
-- Acceptance gates: A fixture with equal selection counts but different audit overlap reproduces the
-  false matched result and now becomes inconclusive; matched, missing, sibling and withheld cases
-  have hand-calculated counts and valid negative gains stay valid; `make ci` passes.
-- Documentation target: [Discovery runs](current/corpus/discovery-runs.md#evaluating-selection).
-
 #### corpus-evaluation-by-source
 
 A combined result can conceal that selection misses a source or that a source has no reviewed sample.
 
 - Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: CLEAR
-- Dependencies: corpus-evaluation-review-budget.
+- Dependencies: none.
 - User-visible outcome: The evaluator reports each collection's reviewed exposure, exclusions and
   weighted selection metrics alongside the explicitly defined combined population.
 - Scope boundary: Verified source provenance and reviewed audit observations; no inference about
@@ -68,8 +45,10 @@ A combined result can conceal that selection misses a source or that a source ha
   `contracts/`, `$DATA_DIR/self-supervised-corpus/<run-id>/`.
 - Execution path: Bind source membership to the sealed pool and stratum; report per-source sample
   counts, weights, unknown and withheld exposure, costs, recall and uncertainty, plus the weighted
-  combined result. A stratum spanning sources must preserve the sampling design rather than be
-  silently treated as independent; explicitly report unavailable estimates and uncertainty.
+  combined result. Use the paired review budget: equal selection counts are not equal review cost,
+  and an unmatched or unmeasured budget stays inconclusive. A stratum spanning sources must preserve
+  the sampling design rather than be silently treated as independent; explicitly report unavailable
+  estimates and uncertainty.
 - Acceptance gates: Hand-calculated mixed-source fixtures cover unequal sampling weights,
   shared-stratum covariance, a source with no reviewed sample, incomplete provenance and negative
   gains. Unavailable evidence is inconclusive, never zero; `make ci` passes.

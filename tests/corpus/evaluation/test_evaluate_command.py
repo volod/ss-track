@@ -21,12 +21,16 @@ from tests.corpus.conftest import (
 from tests.corpus.discovery._plan import plan_document, worker_environ
 from tests.corpus.siblings._fake_sibling import Caches
 
-DIVERSE = {"method": "ssl-diverse", "budget": 2, "score_ids": ["clip-b16.deviation", "motion"]}
-UNIFORM = {"method": "uniform", "budget": 2, "seed": 11}
+# Six windows tile the two clips. Both methods then select the whole pool, so the audit
+# overlap and the offered queues match. A smaller budget can select equal counts with
+# different overlap, which is not a matched review budget.
+DIVERSE = {"method": "ssl-diverse", "budget": 6, "score_ids": ["clip-b16.deviation", "motion"]}
+UNIFORM = {"method": "uniform", "budget": 6, "seed": 11}
 _LIMITS = [
     "observations are not labels",
     "compute cost was not recorded by discovery",
     "recorded blinding is a declaration, and pictures may show the source",
+    "unrecorded review minutes are unmeasured, not zero",
 ]
 
 
@@ -100,6 +104,15 @@ def _require_estimated(record: dict[str, object], blinding: str) -> None:
     assert record["review_effort_minutes"] == [12, 15]
     assert record["limits"] == _LIMITS
     assert _object(_object(record, "runs"), "diverse")["compute_cost"] is None
+    budget = _object(record, "review_budget")
+    assert budget["status"] == "matched"
+    assert budget["protocol"] == "per_run"
+    assert budget["recorded_effort"] == "unequal"
+    diverse = _object(_object(record, "runs"), "diverse")
+    uniform = _object(_object(record, "runs"), "uniform")
+    assert diverse["offered_windows"] == uniform["offered_windows"]
+    assert diverse["sibling_offers"] == uniform["sibling_offers"] == 0
+    assert diverse["selected"] == uniform["selected"]
     audit = _object(record, "audit")
     assert audit["status"] == "estimated"
     assert audit["recall"] is not None
@@ -113,6 +126,9 @@ def _require_inconclusive(record: dict[str, object]) -> None:
     assert record["review_blinding"] == "unrecorded"
     assert record["review_independence"] == "unrecorded"
     assert record["review_effort_minutes"] == [None, None]
+    budget = _object(record, "review_budget")
+    assert budget["status"] == "matched"
+    assert budget["recorded_effort"] == "unmeasured"
     assert audit["recall"] is None
     assert any("unknown audit observations" in reason for reason in reasons)
 
@@ -169,6 +185,12 @@ def test_evaluate_logs_estimated_and_inconclusive_comparisons(
 
     assert main(_evaluate(known["diverse"], known["uniform"])) == 0
     estimated = last_record(caplog)
+    for name in ("diverse", "uniform"):
+        reported = _object(_object(estimated, "runs"), name)
+        assert reported["offered_windows"] == len(queues[name].offered)
+        assert reported["withheld_windows"] == len(queues[name].withheld)
+    offered = set(queues["diverse"].offered) | set(queues["uniform"].offered)
+    assert estimated["unique_offered_windows"] == len(offered)
 
     unknown = {name: media / f"{name}-unknown.yaml" for name in ("diverse", "uniform")}
     for name in ("diverse", "uniform"):

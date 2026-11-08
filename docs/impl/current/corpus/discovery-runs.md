@@ -369,36 +369,53 @@ ss-track discover evaluate --diverse-run diverse-1 --uniform-run uniform-1 \
 
 `--diverse-freeze` and `--uniform-freeze` replace the respective review argument. The command
 verifies both runs and recomputes selection, checks each review against its queue, and refuses
-conflicting observations. It reports selected and offered counts, overlap with the audit draw,
-withheld windows, selection exclusions, distinct selected streams and groups, and individual
-observations with selection decisions and motion rank. A whole-stream target is reported only when
-all its pool windows have a target-present observation. Motion rank is descending among the distinct
-available motion scores, with ties sharing a rank. When a review or freeze states independence,
-blinding and reviewer minutes, the comparison reports those declarations. A review that omits them
-stays unrecorded. A stated value is not a verification that the procedure was followed, and pictures
-may still show the source. Compute cost stays unrecorded because discovery does not capture it.
+conflicting observations. It reports the review workload beside selected and offered counts,
+overlap with the audit draw, sibling offers, withheld windows, selection exclusions, distinct
+selected streams and groups, and individual observations with selection decisions and motion
+rank. A whole-stream target is reported only when all its pool windows have a target-present
+observation. Motion rank is descending among the distinct available motion scores, with ties
+sharing a rank. When a review or freeze states independence, blinding and reviewer minutes, the
+comparison reports those declarations. A review that omits them stays unrecorded. A stated
+value is not a verification that the procedure was followed, and pictures may still show the
+source. Compute cost stays unrecorded because discovery does not capture it. Minutes a review
+does not record stay unmeasured rather than zero.
 
-The log line is a `result/command` 1.22.0 record. `status` is `estimated` when the comparison has
-recall and an interval, and `inconclusive` when evidence is missing, variance is unavailable, or the
-runs selected different counts. `review_blinding`, `review_independence` and
-`review_effort_minutes` belong to this comparison. They are not the `blind` counts from
-`discover blind` or `discover unblind`. `compute_cost` on each run is null.
+The review budget counts each offered window once. `per_run`, when neither review names an
+`audit_id`, compares the two queues. `shared_audit`, when both name the same `audit_id`,
+compares the windows each run offers beyond the audit windows both offer, and states that shared
+count once. Any other pairing is `unrecorded`: the counts stay and the budget is unmeasured.
+Equal selected counts with different audit overlap are unmatched. A withheld window is reported
+and is not an offered window. A sibling window is an offer, and it stays out of the population
+estimate because it has no inclusion probability. `review_budget.status` is `matched` only when
+the protocol's counts and the selected counts are equal.
+
+The log line is a `result/command` 1.23.0 record. `status` is `estimated` only when that budget
+is matched and the comparison has recall and an interval. It is `inconclusive` when the budget
+is unmatched or unmeasured, evidence is missing, variance is unavailable, or the runs selected
+different counts. A gain left on an inconclusive comparison is descriptive. It is a matched-budget
+result only when `review_budget.status` is `matched`. A negative gain stays valid when the budget
+matches. `review_blinding`, `review_independence` and `review_effort_minutes` belong to this
+comparison. They are not the `blind` counts from `discover blind` or `discover unblind`.
+`compute_cost` on each run is null. `recorded_effort` is `equal`, `unequal` or `unmeasured`.
 
 For each group, an audit observation receives weight `population / sample_size`. Weighted target
 counts yield recall for each selection and the paired difference. The approximate 95% intervals use
 stratified finite-population variance and a delta-method ratio; they are not guarantees, especially
 for small samples. No sample, an unknown or unreviewed audit window, no observed target, unavailable
-variance, or unequal actual selection counts makes the comparison inconclusive. Unknown observations
-are never treated as target absence. Weighted observation counts are explicitly marked incomplete
-when audit observations are missing. Observations are reviewer statements, not verified labels,
-species, or field accuracy. The [evaluation task](../../plan.md#corpus-selection-evaluation) remains
-open for a reviewed evaluation run.
+variance, an unmatched or unmeasured review budget, or unequal actual selection counts makes the
+comparison inconclusive. Unknown observations are never treated as target absence. Weighted
+observation counts are explicitly marked incomplete when audit observations are missing.
+Observations are reviewer statements, not verified labels, species, or field accuracy. The
+[evaluation task](../../plan.md#corpus-selection-evaluation) remains open for a reviewed evaluation
+run.
 
-The reader and comparison are in `corpus/evaluation/inputs.py` and `report.py`; stratified estimates
-are in `statistics.py`. Verify with `tests/corpus/evaluation/`, the discovery selection and review
-freeze tests, and `make ci`. The evaluation command test logs an estimated comparison, an
-inconclusive one, and one whose blinding declarations differ. The suite checks each log against the
-newest `result/command`.
+The reader and comparison are in `corpus/evaluation/inputs.py` and `report.py`. The workload is
+in `workload.py`, and stratified estimates are in `statistics.py`. Verify with
+`tests/corpus/evaluation/`, the discovery selection and review freeze tests, and `make ci`. The
+evaluation command test logs an estimated comparison, an inconclusive one, and one whose blinding
+declarations differ. The suite checks each log against the newest `result/command`.
 
-The [task record](../../records/0064-self-supervised-corpus-corpus-evaluation-result-contract.md)
-holds the decisions and acceptance evidence.
+The [workload record](../../records/0065-self-supervised-corpus-corpus-evaluation-review-budget.md)
+holds the decisions and acceptance evidence. The comparison fields `result/command` 1.22.0
+added are in that
+[record](../../records/0064-self-supervised-corpus-corpus-evaluation-result-contract.md).

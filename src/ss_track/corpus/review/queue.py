@@ -1,11 +1,12 @@
 """The candidate windows one discovery run offers a reviewer, and the ones review withholds.
 
 Review is bounded by the run: it offers the windows selection ranked, the windows the audit sample
-drew and the sibling windows, and nothing else, so its cost is the budget plus the audit sample and
-an excluded or unselected window reaches a reviewer only through the independent audit sample. A
-window of a stream in the locked split is never offered while no custodian policy allows it, even
-though the audit sample draws from locked groups' strata; the queue names each such stream and how
-many windows it withheld.
+drew and the sibling windows, and nothing else. A window named by more than one of those reasons
+is offered once, so the cost is the number of distinct offered windows, not the budget plus the
+audit sample. An excluded or unselected window reaches a reviewer only through the independent
+audit sample. A window of a stream in the locked split is never offered while no custodian policy
+allows it, even though the audit sample draws from locked groups' strata; the queue names each
+such stream and how many windows it withheld. A withheld window is not part of the offered cost.
 """
 
 from collections import Counter

@@ -10,7 +10,20 @@ from ss_track.core.canonical import SEAL_FIELD
 from ss_track.core.refusal import JsonValue
 from ss_track.corpus.evaluation.inputs import Evidence, match, read_evidence
 from ss_track.corpus.evaluation.statistics import AuditWindow, Stratum, estimate
+from ss_track.corpus.evaluation.workload import (
+    BUDGET_MATCHED,
+    ReviewBudget,
+    RunWorkload,
+    review_budget,
+)
 from ss_track.corpus.review.queue import CandidateKey
+
+COMPARISON_LIMITS = (
+    "observations are not labels",
+    "compute cost was not recorded by discovery",
+    "recorded blinding is a declaration, and pictures may show the source",
+    "unrecorded review minutes are unmeasured, not zero",
+)
 
 
 def claim(left: str | None, right: str | None) -> str:
@@ -30,7 +43,11 @@ def _selected(candidate: Mapping[str, Any]) -> bool:
     return bool(candidate["selection"]["status"] == "selected")
 
 
-def _method(items: Mapping[CandidateKey, Mapping[str, Any]], evidence: Evidence) -> dict[str, Any]:
+def _method(
+    items: Mapping[CandidateKey, Mapping[str, Any]],
+    evidence: Evidence,
+    counts: RunWorkload,
+) -> dict[str, Any]:
     picked = [key for key, item in items.items() if _selected(item)]
     excluded = Counter(
         item["selection"]["reason"]
@@ -44,12 +61,8 @@ def _method(items: Mapping[CandidateKey, Mapping[str, Any]], evidence: Evidence)
         "groups": len(groups),
         "exclusions": dict(sorted(excluded.items())),
         "reviewed_pool_windows": len(set(items) & evidence.observations.keys()),
-        "offered_windows": len(evidence.offered),
-        "withheld_windows": len(evidence.withheld),
-        "audit_selected_overlap": sum(
-            _selected(item) and item["audit"]["status"] == "sampled" for item in items.values()
-        ),
         "compute_cost": None,
+        **counts.counts(),
     }
 
 
@@ -129,16 +142,26 @@ class EvaluationResult:
         return self.report
 
 
+def _apply_budget(metrics: dict[str, Any], budget: ReviewBudget) -> None:
+    """Keep a computed gain descriptive when the review budget is not matched."""
+    if budget.status == BUDGET_MATCHED:
+        return
+    metrics["status"] = "inconclusive"
+    reasons: Any = metrics["reasons"]
+    for reason in budget.reasons:
+        if reason not in reasons:
+            reasons.append(reason)
+
+
 def compare(first: Evidence, second: Evidence) -> EvaluationResult:
     """Compare two validated evidence sets without writing or inferring labels."""
     left, right, observations = match(first, second)
+    budget = review_budget(first, second, left, right)
     run: Any = first.records.run
     metrics = estimate(_audit(left, right, observations, run))
-    diverse, uniform = _method(left, first), _method(right, second)
-    if diverse["selected"] != uniform["selected"]:
-        metrics["status"] = "inconclusive"
-        reasons: Any = metrics["reasons"]
-        reasons.append("actual selected counts differ")
+    _apply_budget(metrics, budget)
+    diverse = _method(left, first, budget.diverse)
+    uniform = _method(right, second, budget.uniform)
     streams: dict[str, list[CandidateKey]] = {}
     for key in left:
         streams.setdefault(key[0], []).append(key)
@@ -177,19 +200,16 @@ def compare(first: Evidence, second: Evidence) -> EvaluationResult:
                 },
             },
             "unique_reviewed_pool_windows": len(set(left) & observations.keys()),
-            "unique_offered_windows": len(first.offered | second.offered),
+            "unique_offered_windows": budget.unique_offered_windows,
             "review_blinding": claim(first.blinding, second.blinding),
             "review_independence": claim(first.independence, second.independence),
             "review_effort_minutes": [first.reviewer_minutes, second.reviewer_minutes],
+            "review_budget": budget.to_record(),
             "whole_stream_target_observed": whole,
             "audit": metrics,
             "observations": observed_rows,
             "audit_misses_by_observation": missed,
-            "limits": [
-                "observations are not labels",
-                "compute cost was not recorded by discovery",
-                "recorded blinding is a declaration, and pictures may show the source",
-            ],
+            "limits": list(COMPARISON_LIMITS),
         }
     )
 

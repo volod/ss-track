@@ -18,7 +18,11 @@ from ss_track.corpus.versions.manifests import load_corpus_manifest
 
 @dataclass(frozen=True, slots=True)
 class Evidence:
-    """A verified run with observations from a review or a freeze."""
+    """A verified run with observations from a review or a freeze.
+
+    `audit_id` is present only when the review names the blinded audit it came from. Minutes are
+    present only when the review recorded them.
+    """
 
     records: DiscoveryRecords
     observations: dict[CandidateKey, str]
@@ -29,6 +33,7 @@ class Evidence:
     independence: str | None = None
     blinding: str | None = None
     reviewer_minutes: int | None = None
+    audit_id: str | None = None
 
 
 def candidates(records: DiscoveryRecords) -> dict[CandidateKey, Mapping[str, Any]]:
@@ -72,6 +77,7 @@ def read_evidence(
             review.independence,
             review.blinding,
             review.reviewer_minutes,
+            review.audit_id,
         )
     assert freeze_id is not None
     freeze = read_freeze(data_root, load_corpus_manifest(freeze_id, data_root))
@@ -90,6 +96,7 @@ def read_evidence(
         _text(review_info, "independence"),
         _text(review_info, "blinding"),
         _minutes(review_info),
+        _text(review_info, "audit_id"),
     )
 
 

@@ -878,6 +878,14 @@ contracts:
     change:
       class: minor
       summary: Report a paired selection comparison as estimated or inconclusive.
+  - version: 1.23.0
+    file_sha256: 2d6490b29a821f219587ba668bb55ba67c08e8a7b27c395082a03c2b3e1a83b9
+    fingerprints:
+      structure: 6df1cff0f01bb4de373b915704350cd0d928b374b26c63089b1e93e20da87612
+      meaning: bd85c826e8a629c3d095d84fac78168a693dd7e52b6f7db990c1aecfdf10bf4a
+    change:
+      class: minor
+      summary: Report the paired review workload and refuse an unmatched budget.
 - family: shared
   id: types
   owner: data-contracts
