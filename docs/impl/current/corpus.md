@@ -33,9 +33,10 @@ tasks, their decisions and their acceptance evidence:
 
 The available corpus path imports declared sources and stages reviewed selections. `ss-track discover`
 proposes candidate windows of staged frames from pinned sibling embeddings and ss-video hints, scores
-them and ranks pool windows for review under a seeded uniform baseline or a model-assisted method,
-but does not yet freeze a corpus from reviewed candidates. The specification and plan define
-that future work, including source permissions and independent review. See the
+them and ranks pool windows for review under a seeded uniform baseline or a model-assisted method.
+A reviewer then decides the windows a run offers, and a frozen corpus version is built, staged and
+sealed from those decisions. Source permissions and the independent review of real footage remain
+human work in the plan. See the
 [corpus formation planning record](../records/0038-adhoc-self-supervised-corpus-plan.md).
 [Sibling integration](corpus/sibling-integration.md) records the pinned ss-video and ss-fusion
 interfaces, their frame mapping, rights and reproducibility, and the integration plan.
@@ -45,7 +46,9 @@ validators. [Discovery runs](corpus/discovery-runs.md) states the commands, the 
 declarations, the embedding worker and its guards against sibling defects, tiled coverage, the
 scores and the selection methods. [Leakage review](corpus/leakage-review.md) states
 `discover links`: likely related recordings across groups, reviewer decisions, and the refusal of a
-version that keeps related recordings apart.
+version that keeps related recordings apart. [Review and freeze](corpus/review-and-freeze.md) states
+`discover queue`, `discover export` and `corpus freeze`: the windows review offers, the reviewer's
+decisions, the declaration they make and the sealed freeze record.
 
 ## Selected development workload
 
@@ -94,6 +97,9 @@ ss-track corpus preview --corpus pilot-v1 --stream enc01-cam0 --frame 0 --out sh
 ss-track discover run --plan plan.yaml
 ss-track discover verify --run-id discovery-1
 ss-track discover links --corpus pilot-v1 --run-id links-1 --features discovery-1 --decisions decisions.yaml
+ss-track discover queue --run-id discovery-1 --out review.yaml
+ss-track discover export --review review.yaml --corpus-id frozen-v1 --out frozen-v1.yaml
+ss-track corpus freeze --corpus frozen-v1 --review review.yaml --links links-frozen-v1
 ```
 
 Each command logs one JSON record and exits 0. A refusal exits 1 and has this form:
@@ -239,6 +245,7 @@ the import, the encounter, the repeated import, the group and lineage refusals. 
 | `$DATA_DIR/import/.import.lock` | Empty lock that imports share while their scratch exists |
 | `$DATA_DIR/corpus/<corpus-id>/manifest.json` | Sealed corpus manifest |
 | `$DATA_DIR/corpus/<corpus-id>/frame-set.json` | Sealed record of every staged bundle |
+| `$DATA_DIR/corpus/<corpus-id>/freeze.json` | Sealed [freeze record](corpus/review-and-freeze.md#record) of a version frozen from review |
 | `$DATA_DIR/corpus/<corpus-id>/frames/<stream-id>/` | One read-only frame bundle |
 | `$DATA_DIR/corpus/<corpus-id>/frames/<case-id>/` | One read-only bundle of a generated case |
 | `$DATA_DIR/run/<run-id>/staged-hashes.json` | Sealed record of what one host staged |
@@ -1559,8 +1566,8 @@ accepted task, its decisions and its evidence.
 | `TIMESTAMP_CLAIM_UNSUPPORTED` | Capture-clock evidence was declared without complete PTS |
 | `SELECTION_OUT_OF_RANGE` | A selection runs past the end of its sequence |
 | `SOURCE_NOT_IMPORTED` | A corpus names a source with no import record |
-| `SOURCE_RECORD_CHANGED` | A source's record differs from the one its corpus pinned, at stage or verify |
-| `SPLIT_LEAKAGE` | A group, encounter, stream or case name is declared in two splits, two groups share a source, a file, or a run of identical frames, or a source, file or group sits elsewhere than a declared predecessor placed it |
+| `SOURCE_RECORD_CHANGED` | A source's record differs from the one its corpus pinned, at stage or verify, or from the one a discovery run read, at review export or freeze |
+| `SPLIT_LEAKAGE` | A group, encounter, stream or case name is declared in two splits, two groups share a source, a file, or a run of identical frames, or a source, file or group sits elsewhere than a declared predecessor placed it; a reviewer decided two recordings in different groups related, or a frozen recording sits in another split than a related one a superseded version held |
 | `STREAM_OVERLAP` | Two streams use the same frames of one source, or two streams of one group share a run of identical frames |
 | `RIGHTS_CONFLICT` | Scenario sharing/sensitivity conflicts or a generated case lacks derivation permission |
 | `RETENTION_EXPIRED` | The evaluation day is after a source's inclusive retention deadline |
@@ -1571,7 +1578,7 @@ accepted task, its decisions and its evidence.
 | `RECORD_SCHEMA_UNSUPPORTED` | [Any sealed record](#reading-sealed-records) is of a major or stated shape this code does not serve as evidence, including at a re-import or rebuild over it and a corpus without source terms, or an amendment or a [redecode](#redecoding-under-a-new-policy) finds a record it cannot write forward |
 | `DECODE_POLICY_MISMATCH` | A source or pin uses a decode policy other than the installed one |
 | `IMPORT_CONFLICT` | The same source was imported at the current major with another declaration or decoder, or an amendment or a redecode names bytes with no record or changes more than terms |
-| `CORPUS_CONFLICT` | The `corpus_id` already exists with different content, or a superseded version differs from the seal its successor pinned, at build, stage or verify |
+| `CORPUS_CONFLICT` | The `corpus_id` already exists with different content, or a superseded version differs from the seal its successor pinned, at build, stage or verify; a version to freeze is not the one its review makes, is already frozen from other decisions, or an output file holds other bytes |
 | `CORPUS_NOT_BUILT` | The named corpus version or a version of its declared chain does not exist, or the identifier cannot name one |
 | `DECODE_DRIFT` | A staging decode disagrees with the import record of its source |
 | `BUNDLE_NOT_STAGED` | A stream has no staged frame bundle, or preview names a stream the corpus does not declare |
@@ -1587,6 +1594,7 @@ accepted task, its decisions and its evidence.
 | `EXTRACTOR_INCOMPATIBLE` | An extractor's architecture, row length, device type, precision or preprocessing is not what its plan states or the adapter records, its model changed device, a bundle is not `rgb24`, or a tile grid does not fit a stream's frames or would be cropped by a non-square model input |
 | `WORKER_FAILED` | The embedding worker could not start, stopped, missed its deadline, broke the protocol, or returned rows for other frames, a partial batch or rows that are not finite unit vectors; `SST_PERCEPTION_PYTHON` is unset |
 | `DISCOVERY_IN_PROGRESS` | Another command is writing this discovery run id |
+| `LINKS_UNRESOLVED` | [Freezing](corpus/review-and-freeze.md#refusals) meets a link review that leaves a link across splits undecided |
 | `INTERRUPTED` | SIGINT stopped the command. Import and stage leave no scratch |
 | `STORAGE_FAILED` | The data root cannot be written, lacks the space for raw frames, or a preview PNG cannot be written outside the corpus directory |
 

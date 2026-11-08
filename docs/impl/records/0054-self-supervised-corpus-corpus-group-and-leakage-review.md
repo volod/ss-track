@@ -3,7 +3,7 @@
 ## Task and scope
 
 - Id / capability: `corpus-group-and-leakage-review` / `self-supervised-corpus`
-- State: active.
+- State: accepted.
 - Source: plan task; starting HEAD `33ad4ae` on branch `st-06-self-supervised-corpus`, clean tree.
 - Plan counts at start: 124 tasks, 101 agent and 23 human. Next agent
   `corpus-group-and-leakage-review`; next human `define-locked-test-policy (optional)`.
@@ -96,8 +96,8 @@ decision scripts; `results/background-pairs.json` the per-pair similarities.
 | Reproducible record | `test_the_same_review_again_is_unchanged_...`; `read_links` tests | pass: retry `unchanged`; forged status and link fields `RECORD_INVALID` |
 | Background cosine | `test_evidence.py` against hand-calculated rows | pass: tile averaging, unit mean, threshold boundary, `no_threshold`, `no_feature_rows` |
 | Resources | `results/links-review.err`; `results/run-features.err` | measured: review 12 s, 92 MB peak; embedding 9 min 53 s, 1.56 GB peak on this host's CPU |
-| Contract evolution | `make lint-contracts` | see final gate |
-| `make ci` passes | `make ci` | see final gate |
+| Contract evolution | `make lint-contracts` | pass, run in the `corpus-review-and-freeze` change with this code unchanged |
+| `make ci` passes | `make ci` | pass, run in the `corpus-review-and-freeze` change with this code unchanged |
 
 ## Audit handoff
 
@@ -127,4 +127,6 @@ documentation and the real run.
 
 ## Close or resume
 
-In progress.
+Every gate passed. This record was left open when its task left the plan; the
+[review and freeze record](0055-self-supervised-corpus-corpus-review-and-freeze.md) closed it after
+its `make ci`. The [leakage review](../current/corpus/leakage-review.md) page holds the behavior.

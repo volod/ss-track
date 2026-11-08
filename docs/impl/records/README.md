@@ -59,5 +59,6 @@ Copy the [template](template.md) using the
 | 0052 | `corpus-video-index-adapter` | [0052-self-supervised-corpus-corpus-video-index-adapter](0052-self-supervised-corpus-corpus-video-index-adapter.md) |
 | 0053 | `corpus-ssl-selection` | [0053-self-supervised-corpus-corpus-ssl-selection](0053-self-supervised-corpus-corpus-ssl-selection.md) |
 | 0054 | `corpus-group-and-leakage-review` | [0054-self-supervised-corpus-corpus-group-and-leakage-review](0054-self-supervised-corpus-corpus-group-and-leakage-review.md) |
+| 0055 | `corpus-review-and-freeze` | [0055-self-supervised-corpus-corpus-review-and-freeze](0055-self-supervised-corpus-corpus-review-and-freeze.md) |
 
-Next unused sequence: `0055`.
+Next unused sequence: `0056`.

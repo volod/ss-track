@@ -47,6 +47,25 @@ contracts:
     migration: Set schema_version 3 and state scenario_rights; groups, encounters
       and streams keep their form.
 - family: declaration
+  id: corpus-review
+  owner: self-supervised-corpus
+  status: active
+  description: 'A reviewer''s decisions on the candidate windows one discovery run
+    offers for review: the selected windows, the audit sample and the sibling windows,
+    never a window of a locked stream while no custodian policy allows it. An included
+    window''s frames join a frozen corpus version under its stream''s group and split.
+    An observation records what the reviewer saw and is not a label: labels come only
+    from the annotation contract.'
+  versions:
+  - version: 1.0.0
+    file_sha256: f81d2ab3c2e377bb5132fcb8eb3c1ade1604f3317e69ff9d87fb44a566bf8430
+    fingerprints:
+      structure: 81a365d68ecfe2a0a5fc6b103fa65c86013245ce435301d529b8fa226894eeaa
+      meaning: ce95ec67db00b531f63c0e9769db1e5682a663c82a26427749dca28c2e63058f
+    change:
+      class: initial
+      summary: Initial contract.
+- family: declaration
   id: dataset
   owner: data-contracts
   status: active
@@ -191,6 +210,24 @@ contracts:
     fingerprints:
       structure: ef5a90dffe5cad6beba91f6cd6f733867cd79b1e30d2a1c540ad246c4e083b79
       meaning: 4c2b79e303fb56a5c3810fd7a1ffdd5bb01ed0318f4159c1853892779ca26de5
+    change:
+      class: initial
+      summary: Initial contract.
+- family: record
+  id: corpus-freeze
+  owner: self-supervised-corpus
+  status: active
+  description: 'The sealed export of one frozen corpus version: which reviewed candidate
+    windows became its streams, under which group, split and source terms, what was
+    excluded and why, what stayed unreviewed or withheld, and the discovery run, link
+    review and reviewer decisions it rests on. Freezing holds no label: an observation
+    is what a reviewer saw, and labels come only from a frozen annotation revision.'
+  versions:
+  - version: 1.0.0
+    file_sha256: b702ba90a317d64dbc692be1af0d9ccca91c0c7644d21c333aa63748d8a4d110
+    fingerprints:
+      structure: 7b2c699a6de3e4fde8cb5dbd044f7e6f0a5574ec344a916abe8d45a7bc2e0b43
+      meaning: fed37313db6201fb0fc2b8e80f3abf30398d8394292fbcbae8a55ed39fe14135
     change:
       class: initial
       summary: Initial contract.
@@ -650,6 +687,15 @@ contracts:
     change:
       class: minor
       summary: Add links, the counts of a link review.
+  - version: 1.18.0
+    file_sha256: aaeb62d7b0a43949330b38594a2fad48575cfdb1362b6ee59c0004d264d92e7d
+    fingerprints:
+      structure: 8e7826f5ac3964be84bdbaaca636635182324a2005d6feccecd5f050407f03d7
+      meaning: bab79f42da3502f85fd0b8f4240d9af6d5fc65703b3ea9949044e2c3f6d34465
+    change:
+      class: minor
+      summary: Add the queue, review and superseded results of review and freeze,
+        the declaration path and hash, and LINKS_UNRESOLVED.
 - family: shared
   id: types
   owner: data-contracts

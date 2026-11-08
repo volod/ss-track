@@ -155,9 +155,10 @@ status against its decision, and the review's status against its links. A forged
 ## Limits
 
 - A review covers one version. Another version on the data root is compared only by the build's
-  near-duplicate report and, along its chain, by the shared-frame check. Applying decisions across
-  the versions a frozen corpus supersedes belongs to
-  [review and freeze](../../plan.md#corpus-review-and-freeze).
+  near-duplicate report and, along its chain, by the shared-frame check. A decision naming a
+  recording the version does not hold is kept under `decisions_outside_links`, and
+  [freezing](review-and-freeze.md#refusals) applies its related decisions to every version the
+  frozen one supersedes.
 - The thresholds rest on one real recording and synthetic scenes. A related pair below them, such as
   two sessions of one site in other light, is not flagged, and the
   [scale pilot](../../plan.md#corpus-scale-pilot) measures them on reviewed real footage.
@@ -167,8 +168,8 @@ status against its decision, and the review's status against its links. A forged
   on another host's arithmetic, which the scale pilot's second-host check covers.
 - The fingerprint compares every pair of windows in Python, so its cost grows with the square of the
   stream count; the scale pilot measures it at its stream count.
-- An undecided link is written, not refused: refusing a version with unresolved links across splits
-  is the freeze's rule.
+- An undecided link is written, not refused: [freezing](review-and-freeze.md#refusals) refuses a
+  version whose link review leaves a link across splits undecided, as `LINKS_UNRESOLVED`.
 
 ## Interfaces
 

@@ -43,7 +43,8 @@ and the bundle's half-open frame window. A run binds only to streams: a generate
 material, not discovered video. The writer and `verify_discovery` refuse a run whose frame set,
 bundles, source records, groups or windows differ from what its corpus version staged on this data
 root. The source-record seal names the terms the run read; current terms, such as an expired
-`retain_until`, are checked when a corpus is frozen from reviewed candidates, not here.
+`retain_until`, are checked when a corpus is [exported and frozen](review-and-freeze.md#refusals)
+from reviewed candidates, not here.
 
 ### Windows
 

@@ -30,33 +30,6 @@ extensions; none blocks M3. Fixture implementation proceeds without physical har
 
 ### Self-supervised video corpus -- `self-supervised-corpus`
 
-#### corpus-review-and-freeze
-
-Large candidate inventories need bounded human decisions before they become benchmark inputs.
-
-- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
-- Agent status: CLEAR
-- Dependencies: none.
-- User-visible outcome: Reviewers can inspect candidates and export a frozen, reproducible corpus
-  version with source terms, group, split, exclusions and decision provenance.
-- Scope boundary: Review and source-to-corpus manifest export; label adjudication uses the existing
-  annotation contract and the locked split requires its existing custodian policy. Selection never
-  ranks a locked stream, but the audit sample, which depends only on origin, draws from locked
-  groups' strata; review offers none of those windows without that policy and says why.
-- Data and artifact paths: `contracts/`, `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/corpus/<corpus-id>/`.
-- Execution path: Provide bounded review decisions and manifest generation through existing import,
-  corpus build, stage and verify flows, with refusal on expired terms or unresolved split conflicts.
-  An unresolved split conflict is a link across splits that the version's
-  [link review](current/corpus/leakage-review.md) left undecided: freezing reads the review with
-  `read_links`, requires it to name the frozen version's manifest and frame set, and refuses an
-  unresolved link across splits. A link review covers one version, so freezing also applies the
-  reviewer's link decisions to every version the frozen one supersedes and refuses a related
-  recording held in another split there.
-- Acceptance gates: Replaying frozen reviewed decisions yields the same membership and hashes;
-  rejected, unknown or unreviewed cases cannot masquerade as verified labels; denied, expired and
-  conflicting sources refuse. Fixture tests and `make ci` pass.
-- Documentation target: [Corpus](current/corpus.md).
-
 #### corpus-selection-evaluation
 
 A larger selected pool may conceal missed small birds or exclude hard negatives.
@@ -71,6 +44,9 @@ A larger selected pool may conceal missed small birds or exclude hard negatives.
 - Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/self-supervised-corpus/<run-id>/`.
 - Execution path: Define a reproducible evaluation protocol before running, score reviewed random
   samples including unselected material, and report diversity, negatives, recall, cost and exclusions.
+  Read each window's reviewed observation from its `declaration/corpus-review` or freeze record
+  ([review and freeze](current/corpus/review-and-freeze.md#decisions)); `unknown` and unreviewed
+  windows count as unknown, never as absent.
   Compare `ssl-diverse` with the `uniform` run of the same pool and audit seed
   ([selection](current/corpus/discovery-runs.md#selection)), report misses by kind, including a
   target present for a whole stream, which background deviation compares against itself, and
@@ -87,8 +63,8 @@ A large corpus needs evidence that selection can run within the owner's availabl
 - Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: RUN NEEDED
 - Research: yes
-- Dependencies: corpus-review-and-freeze, corpus-selection-evaluation,
-  authorize-video-corpus-sources, review-video-corpus-sample.
+- Dependencies: corpus-selection-evaluation, authorize-video-corpus-sources,
+  review-video-corpus-sample.
 - User-visible outcome: An authorized pilot produces a measured, reproducible corpus or explains why
   available video, quality, cost or resources do not support it.
 - Scope boundary: Only approved sources, processing and storage budgets; no acquisition beyond the
@@ -108,7 +84,9 @@ A large corpus needs evidence that selection can run within the owner's availabl
   other light and the tile grid the pilot chooses, and revise the table under a new method revision
   when a related pair falls below it; repeat the review on the second host and quantize its
   similarity too if a flag flips. The fingerprint compares every pair of windows in Python, so
-  measure its time at the pilot's stream count with the build's report and the review.
+  measure its time at the pilot's stream count with the build's report and the review. Freezing
+  verifies the discovery run against its pool version's staged frames, so measure the storage of
+  keeping the pool's frames until its frozen versions are frozen.
 - Acceptance gates: Corpus verification, rights and grouping checks pass; the report states selection
   recall, uncertainty, negative coverage and matched-budget baseline results, including missing
   evidence. Insufficient resources or a negative selection result is a valid negative; `make ci` passes.
@@ -398,7 +376,10 @@ noticing.
   with disk access, and it creates no locked test.
 - Data and artifact paths: `src/ss_track/runner/`, `tests/runner/`, `$DATA_DIR/run/<run-id>/`.
 - Execution path: Check split membership when a run starts, and add refused, approved and re-scored
-  fixtures.
+  fixtures. Review now withholds every locked window as `locked_without_policy`
+  ([review and freeze](current/corpus/review-and-freeze.md#what-review-offers)); once a custodian
+  policy exists, let a review that names the policy's hash decide locked windows, and leave the same
+  access record.
 - Acceptance gates: A locked stream in a development scenario is `RUNNER_INVALID`. Each approved
   read and re-score leaves one record, and output never calls a stream held-out without a declared
   custodian policy. A corpus version with no declared predecessor is reported as having no lineage,
@@ -2286,14 +2267,16 @@ The usefulness and missed cases of self-supervised selection require independent
 
 - Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: HUMAN-GATED
-- Dependencies: authorize-video-corpus-sources, corpus-selection-evaluation, corpus-review-and-freeze.
+- Dependencies: authorize-video-corpus-sources, corpus-selection-evaluation.
 - User-visible outcome: Reviewers adjudicate selected and independently sampled unselected material,
   including negative windows, confusers and small or uncertain birds.
 - Scope boundary: A predeclared independent audit sample, grouping decisions and reviewer time; the
   existing annotation authority owns final labels and a locked set needs its custodian.
 - Data and artifact paths: `$DATA_DIR/self-supervised-corpus/<run-id>/`, `$DATA_DIR/corpus/<corpus-id>/labels/`.
 - Execution path: Freeze the baseline and sampling plan before review; reviewers record source and
-  frame decisions, uncertainty, disagreements and time, and settle them under named authority.
+  frame decisions, uncertainty, disagreements and time, and settle them under named authority. The
+  window decisions go in a review file from `discover queue` and are frozen with `corpus freeze`
+  ([review and freeze](current/corpus/review-and-freeze.md)).
 - Acceptance gates: Reviewed samples and exclusions are frozen and hashed; absent or uncertain labels
   stay unknown, unreviewed exposure is reported, and insufficient sample size is inconclusive.
 - Documentation target: [Corpus](current/corpus.md).

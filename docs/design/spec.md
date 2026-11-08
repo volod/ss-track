@@ -397,6 +397,16 @@ stream background finds alike, at thresholds measured per backbone and crop that
 truth. A reviewer decides each pair `related` or `unrelated`; a decision names two recordings, not a
 version. A version that keeps related recordings in different groups is refused, an undecided link
 is exposed as unresolved and never merged, and freezing refuses an unresolved link across splits.
+Review is bounded by the run: it offers the selected windows, the audit sample and the sibling
+windows, and withholds every window of a locked stream while no custodian policy allows it, saying
+why. A reviewer includes or excludes each offered window with what they saw and, for an exclusion, a
+reason from a closed list; an undecided window stays unreviewed and is reported as exposure. The
+included windows become a corpus declaration that the ordinary build, stage and verify flows turn
+into a version, one stream per run of included windows in its pool stream's group and split.
+Freezing seals that version only when its current source terms hold, it is exactly what replaying
+the review makes, its link review names its manifest and frame set, and no related recording sits
+in another split of a version it supersedes. A frozen version holds membership and decision
+provenance, never a label: a reviewer's observation is not one.
 Discovery-only model data remains distinct from reviewed labels and frozen corpus membership. An
 unavailable external service, model, permission or insufficient budget must be visible, not silently
 replaced by invented results. No arbitrary video acquisition, autonomous approval of sources,

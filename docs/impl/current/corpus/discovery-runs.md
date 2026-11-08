@@ -223,7 +223,8 @@ classifier does not have. Values are rounded to ten decimals. Each score's metho
 Only pool windows are ranked: a sibling window keeps its scores for review and is `not_selected`
 with probability 0. A pool window of a stream in the `locked` split is `operator_excluded` under
 every method that ranks, because no locked-test custodian policy exists to allow it; it still
-stays in the audit pool. `discover verify` recomputes every score and decision from the feature rows
+stays in the audit pool, and [review](review-and-freeze.md#what-review-offers) withholds it.
+`discover verify` recomputes every score and decision from the feature rows
 and the staged frames and refuses a difference, or a method it does not know, as `RECORD_INVALID`
 with a `selection` finding. Scores compare as written, so verification holds on the host that wrote
 the run.

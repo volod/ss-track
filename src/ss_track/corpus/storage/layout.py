@@ -21,6 +21,8 @@ FEATURES_DIRECTORY = "features"
 VECTORS_SUFFIX = ".f32"
 MANIFEST_NAME = "manifest.json"
 FRAME_SET_NAME = "frame-set.json"
+FREEZE_NAME = "freeze.json"
+FREEZE_LOCK = ".freeze.lock"
 _REPLACED_SUFFIX = ".json"
 
 
@@ -62,6 +64,11 @@ def frames_root(data_root: Path, corpus_id: str) -> Path:
 def frame_set_path(data_root: Path, corpus_id: str) -> Path:
     """Return a corpus version's frame set, beside its manifest."""
     return corpus_directory(data_root, corpus_id) / FRAME_SET_NAME
+
+
+def freeze_path(data_root: Path, corpus_id: str) -> Path:
+    """Return a frozen corpus version's freeze record, beside its manifest."""
+    return corpus_directory(data_root, corpus_id) / FREEZE_NAME
 
 
 def descriptions_directory(data_root: Path, corpus_id: str) -> Path:

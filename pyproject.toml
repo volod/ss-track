@@ -71,6 +71,7 @@ packages = [
   "ss_track.corpus.hosts",
   "ss_track.corpus.links",
   "ss_track.corpus.records",
+  "ss_track.corpus.review",
   "ss_track.corpus.selection",
   "ss_track.corpus.siblings",
   "ss_track.corpus.sources",

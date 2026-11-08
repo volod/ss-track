@@ -1,0 +1,38 @@
+{
+  "decisions": [
+    {
+      "candidate_id": "pool-000",
+      "decision": "include",
+      "observation": "target_present",
+      "stream_id": "one"
+    },
+    {
+      "candidate_id": "pool-001",
+      "decision": "include",
+      "observation": "unknown",
+      "stream_id": "one"
+    },
+    {
+      "candidate_id": "pool-002",
+      "decision": "exclude",
+      "note": "blurred",
+      "observation": "unknown",
+      "reason": "quality",
+      "stream_id": "one"
+    },
+    {
+      "candidate_id": "pool-002",
+      "decision": "include",
+      "observation": "confuser",
+      "stream_id": "two"
+    },
+    {
+      "stream_id": "two",
+      "candidate_id": "pool-000",
+      "decision": "unreviewed"
+    }
+  ],
+  "reviewer": "site lead",
+  "run_id": "discovery-1",
+  "schema_version": 1
+}

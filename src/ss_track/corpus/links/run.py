@@ -96,7 +96,7 @@ def _body(
     return body
 
 
-def _frame_set(corpus_id: str, data_root: Path) -> dict[str, JsonValue]:
+def staged_frame_set(corpus_id: str, data_root: Path) -> dict[str, JsonValue]:
     """Return the version's frame set; a version whose staging never finished is not reviewed."""
     if not frame_set_path(data_root, corpus_id).is_file():
         raise CorpusRefusal(
@@ -115,7 +115,7 @@ def build_links(request: LinkRequest, data_root: Path) -> dict[str, JsonValue]:
     streams: list[dict[str, Any]] = list(manifest["streams"])
     require_separate_sources(streams)
     shared = require_unshared_frames(corpus, data_root)
-    frame_set = _frame_set(request.corpus_id, data_root)
+    frame_set = staged_frame_set(request.corpus_id, data_root)
     background, features = _features(request, streams, data_root)
     evidence = [luma_evidence(request.corpus_id, streams, data_root)]
     if background is not None:

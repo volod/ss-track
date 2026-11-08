@@ -20,6 +20,7 @@ DISCOVERY_RUN_KIND = "ss-track.discovery-run"
 CANDIDATE_INVENTORY_KIND = "ss-track.candidate-inventory"
 FEATURE_ROWS_KIND = "ss-track.feature-rows"
 CORPUS_LINKS_KIND = "ss-track.corpus-links"
+CORPUS_FREEZE_KIND = "ss-track.corpus-freeze"
 
 
 @dataclass(frozen=True, slots=True)
@@ -44,3 +45,4 @@ DISCOVERY_RUN = RecordFormat(DISCOVERY_RUN_KIND, major=1)
 CANDIDATE_INVENTORY = RecordFormat(CANDIDATE_INVENTORY_KIND, major=1)
 FEATURE_ROWS = RecordFormat(FEATURE_ROWS_KIND, major=1)
 CORPUS_LINKS = RecordFormat(CORPUS_LINKS_KIND, major=1)
+CORPUS_FREEZE = RecordFormat(CORPUS_FREEZE_KIND, major=1)
