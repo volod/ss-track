@@ -19,7 +19,8 @@ baseline scope and evidence. The installed set contains these document contracts
 | `declaration/corpus-review` | `1.0.0` |
 | `declaration/link-decisions` | `1.0.0` |
 | `declaration/source-inventory` | `1.0.0` |
-| `declaration/recording` | `2.0.0`, `2.1.0`, `2.2.0`, `2.3.0` |
+| `declaration/corpus-pool` | `1.0.0` |
+| `declaration/recording` | `2.0.0`, `2.1.0`, `2.2.0`, `2.3.0`, `2.4.0` |
 | `declaration/video-hints` | `1.0.0` |
 | `record/candidate-inventory` | `1.0.0` |
 | `record/corpus-freeze` | `1.0.0` |
@@ -32,7 +33,8 @@ baseline scope and evidence. The installed set contains these document contracts
 | `record/staged-hashes` | `1.0.0` |
 | `record/hash-comparison` | `1.0.0` |
 | `record/source-acquisition` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0` |
-| `record/source-manifest` | `2.0.0`, `2.1.0`, `2.2.0`, `2.3.0` |
+| `record/corpus-pool` | `1.0.0` |
+| `record/source-manifest` | `2.0.0`, `2.1.0`, `2.2.0`, `2.3.0`, `2.4.0` |
 | `result/command` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0`, `1.4.0`, `1.5.0`, `1.6.0`, `1.7.0`, `1.8.0`, `1.9.0`, `1.9.1`, `1.10.0`, `1.11.0`, `1.12.0`, `1.13.0`, `1.14.0`, `1.15.0`, `1.16.0`, `1.17.0`, `1.18.0`, `1.19.0`, `1.20.0` |
 
 `result/command` `1.5.0` adds `redecoded`. `1.6.0` adds optional `unlinked` on a corpus build,
@@ -45,7 +47,11 @@ optional `content_sha256` on a stream, present only when that stream's source id
 file hash. `declaration/recording` 2.2.0 adds optional
 `source.video_stream_index`. `record/source-manifest` 2.2.0 adds optional
 `sequence.video_stream_index`, absent when the decoded stream is the first.
-`declaration/recording` 2.3.0 adds optional `color.matrix`. `record/source-manifest` 2.3.0 and
+`declaration/recording` 2.3.0 adds optional `color.matrix`. `declaration/recording` 2.4.0 and
+`record/source-manifest` 2.4.0 add optional `origin`, omitted when a recording names no upstream
+collection. Origin on a source manifest is sensitive, so a public descriptor omits it.
+`declaration/corpus-pool` 1.0.0 and `record/corpus-pool` 1.0.0 state a combined-pool selection and
+its sealed result. `record/source-manifest` 2.3.0 and
 `record/frame-bundle` 3.2.0 add optional `declared_color`, present only when conversion used that
 declaration. `result/command` 1.10.0 adds `COLOR_TAG_CONFLICT`. `1.11.0` adds
 `DECODE_TIME_EXCEEDED` and `INTERRUPTED`. `1.12.0` adds optional `near_duplicates` on a corpus

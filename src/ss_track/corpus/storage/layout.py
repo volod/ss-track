@@ -16,6 +16,9 @@ DISCOVERY_DIRECTORY = "self-supervised-corpus"
 DISCOVERY_RUN_NAME = "run.json"
 DISCOVERY_PUBLISH_LOCK = ".publish.lock"
 LINKS_NAME = "links.json"
+POOL_RECORD_NAME = "pool.json"
+POOL_CORPUS_NAME = "corpus.yaml"
+POOL_RECORDINGS_DIRECTORY = "recordings"
 INVENTORIES_DIRECTORY = "inventories"
 FEATURES_DIRECTORY = "features"
 VECTORS_SUFFIX = ".f32"
@@ -94,6 +97,26 @@ def discovery_run_directory(data_root: Path, run_id: str) -> Path:
 def discovery_run_path(data_root: Path, run_id: str) -> Path:
     """Return one discovery run's sealed run record."""
     return discovery_run_directory(data_root, run_id) / DISCOVERY_RUN_NAME
+
+
+def pool_directory(data_root: Path, run_id: str) -> Path:
+    """Return the discovery-run directory that holds one prepared combined pool."""
+    return discovery_run_directory(data_root, run_id)
+
+
+def pool_record_path(data_root: Path, run_id: str) -> Path:
+    """Return one combined pool's sealed record."""
+    return pool_directory(data_root, run_id) / POOL_RECORD_NAME
+
+
+def pool_corpus_path(data_root: Path, run_id: str) -> Path:
+    """Return the corpus declaration written for one combined pool."""
+    return pool_directory(data_root, run_id) / POOL_CORPUS_NAME
+
+
+def pool_recording_path(data_root: Path, run_id: str, stream_id: str) -> Path:
+    """Return one recording declaration written for a combined-pool stream."""
+    return pool_directory(data_root, run_id) / POOL_RECORDINGS_DIRECTORY / f"{stream_id}.yaml"
 
 
 def links_path(data_root: Path, run_id: str) -> Path:

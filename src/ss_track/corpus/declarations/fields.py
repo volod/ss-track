@@ -61,6 +61,12 @@ class Fields:
     def optional_text(self, key: str) -> str | None:
         return self.text(key) if self.has(key) else None
 
+    def nullable_text(self, key: str) -> str | None:
+        """Read a required string or an explicit null, refusing text that is only whitespace."""
+        if self._raw[key] is None:
+            return None
+        return self.text(key)
+
     def nullable_date(self, key: str) -> str | None:
         """Read a required ISO date, quoted or as YAML wrote it, or an explicit null."""
         value = self._raw[key]

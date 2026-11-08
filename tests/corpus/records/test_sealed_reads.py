@@ -44,7 +44,10 @@ _JSON_READERS = {
     _PROVIDER_PARSER,
     *_WORKER_PROTOCOL,
 }
-_YAML_READERS = {_CONTRACT_FILE_READER, _DEEP_PARSER}
+# Acquired collection metadata is provider YAML, not a sealed record. The unique-key loader is its
+# only parser; corpus/sources/metadata_join.py calls that function and does not load YAML itself.
+_METADATA_YAML = Path("core/strict_yaml.py")
+_YAML_READERS = {_CONTRACT_FILE_READER, _DEEP_PARSER, _METADATA_YAML}
 _PARSER_USERS = {_DEEP_CHECK, _DECLARATION_LOADER}
 _LOADERS = {"json.load", "json.loads", "yaml.load", "yaml.safe_load"}
 _READS = {"read_sealed", "read_stated", "read_comparable"}

@@ -47,6 +47,20 @@ contracts:
     migration: Set schema_version 3 and state scenario_rights; groups, encounters
       and streams keep their form.
 - family: declaration
+  id: corpus-pool
+  owner: self-supervised-corpus
+  status: active
+  description: An operator selection of acquired videos for one combined corpus.
+  versions:
+  - version: 1.0.0
+    file_sha256: fa5a23e69ca11a086758ac704d68e16f052b69e22e3e95ddffa2a3e4e2c17b69
+    fingerprints:
+      structure: 63288759e4b581acb45352f436a7ebf1c2accc1bff77e2163a98b87ef5009128
+      meaning: ebffba73f3662144d874648294784231aff62de7bab5783cc5f4a0640319627f
+    change:
+      class: initial
+      summary: Initial contract.
+- family: declaration
   id: corpus-review
   owner: self-supervised-corpus
   status: active
@@ -171,6 +185,14 @@ contracts:
     change:
       class: minor
       summary: Add optional color.matrix for a source that stores no color matrix.
+  - version: 2.4.0
+    file_sha256: 83dd40c33b652cf21b2d5e6f2dcc7c22907af5de78bbe532cced277e939d875f
+    fingerprints:
+      structure: e51c8ecfab392e0130efd40c942978b78dc2c01d98ccc7c05b9c6d3324edab59
+      meaning: a28f33267dd5ba97c05cd6e0614f9e51b4cd3ae3923ad720f3a1878862cde71a
+    change:
+      class: minor
+      summary: Record optional upstream collection membership on a recording.
   retired_majors:
   - major: 1
     status: retired
@@ -329,6 +351,21 @@ contracts:
       for this major.
     migration: Build a new corpus version under a new corpus_id that names this one
       in supersedes; lineage and shared frames compare it through this major's projection.
+- family: record
+  id: corpus-pool
+  owner: self-supervised-corpus
+  status: active
+  description: The prepared selection, its groups, unresolved metadata and per-collection
+    accounting.
+  versions:
+  - version: 1.0.0
+    file_sha256: 24b5cc2e432fa68d8e30289bd5d84961a256851cf8c723e4b6136803f5c27169
+    fingerprints:
+      structure: 23c5bdcd81392dbe5be618f6cd225132dee2b9f7ea0135950e6700b340aec527
+      meaning: ded9a84193416ecfc5323dfbb127c15f2854465c87014774cb863fa7bfc01b00
+    change:
+      class: initial
+      summary: Initial contract.
 - family: record
   id: discovery-run
   owner: self-supervised-corpus
@@ -549,6 +586,14 @@ contracts:
     change:
       class: minor
       summary: Record an operator-declared color matrix when the source stores none.
+  - version: 2.4.0
+    file_sha256: e40728b6ce1c0cc50bedc9b5d36a06b9500facf8dfee876a504c4de5fbc60d6f
+    fingerprints:
+      structure: e3cce8db121207b8772366b9875c46c80acdad9c8a9789083297ff974237ef6e
+      meaning: d76161668b39a2e3218fb0547258e4699b000f551ceac5732360a274629f0779
+    change:
+      class: minor
+      summary: Record optional upstream collection membership on a source.
   retired_majors:
   - major: 1
     status: facts

@@ -22,6 +22,7 @@ FEATURE_ROWS_KIND = "ss-track.feature-rows"
 CORPUS_LINKS_KIND = "ss-track.corpus-links"
 CORPUS_FREEZE_KIND = "ss-track.corpus-freeze"
 SOURCE_ACQUISITION_KIND = "ss-track.source-acquisition"
+CORPUS_POOL_KIND = "ss-track.corpus-pool"
 
 
 @dataclass(frozen=True, slots=True)
@@ -48,3 +49,4 @@ FEATURE_ROWS = RecordFormat(FEATURE_ROWS_KIND, major=1)
 CORPUS_LINKS = RecordFormat(CORPUS_LINKS_KIND, major=1)
 CORPUS_FREEZE = RecordFormat(CORPUS_FREEZE_KIND, major=1)
 SOURCE_ACQUISITION = RecordFormat(SOURCE_ACQUISITION_KIND, major=1)
+CORPUS_POOL = RecordFormat(CORPUS_POOL_KIND, major=1)

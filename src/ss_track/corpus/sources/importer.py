@@ -100,6 +100,13 @@ def _import_into(
     )
 
 
+def _origin(declaration: RecordingDeclaration) -> dict[str, JsonValue]:
+    """Return upstream membership when the declaration records it, and nothing otherwise."""
+    if not declaration.origin:
+        return {}
+    return {"origin": [item.to_record() for item in declaration.origin]}
+
+
 def _manifest_body(
     declaration: RecordingDeclaration,
     policy: DecodePolicy,
@@ -120,6 +127,7 @@ def _manifest_body(
             "stored_name": stored.name,
         },
         **declared_terms(declaration),
+        **_origin(declaration),
         "capture": declaration.capture,
         "sequence": decoded_sequence(inspection, quality, evidence, declaration.color_matrix),
         **policy.record_fields(),

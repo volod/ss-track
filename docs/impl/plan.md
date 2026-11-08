@@ -30,39 +30,13 @@ extensions; none blocks M3. Fixture implementation proceeds without physical har
 
 ### Self-supervised video corpus -- `self-supervised-corpus`
 
-#### corpus-combined-pool
-
-Combining recordings needs a reproducible pool that preserves independent source and split boundaries.
-
-- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
-- Agent status: CLEAR
-- Dependencies: none.
-- User-visible outcome: A combined corpus can be prepared, audited and reused for future cases while
-  tracing each recording to its collection, terms and upstream metadata.
-- Scope boundary: Fixture preparation and existing import, build, stage and link review; no real
-  source acquisition, automatic split adjudication, new label authority or locked access.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `contracts/`,
-  `$DATA_DIR/import/`, `$DATA_DIR/corpus/<corpus-id>/`.
-- Execution path: Map approved source selections into existing recording and corpus declarations;
-  preserve original video, collection and upstream split identity and separate annotation evidence.
-  Group related and duplicate footage across sources before assigning splits, expose unresolved
-  links, and retain rights and source-specific accounting in later versions and cases. Acquisition
-  stores selected Hugging Face metadata files but does not associate or parse their YAML and source
-  links per video. Inspect fixture metadata and join only evidenced matches; report missing or
-  conflicting associations, which otherwise obscure source attribution and rights evidence.
-- Acceptance gates: Network-free two-source fixtures build, stage, verify and replay; source and
-  license lineage survive, per-video metadata associations and mismatches are reproduced from
-  pinned metadata and unresolved associations remain visible, duplicates cannot cross splits, and
-  missing origin or terms refuses rather than fabricates facts; `make ci` passes.
-- Documentation target: [Corpus](current/corpus.md).
-
 #### corpus-blinded-audit-review
 
 The current review queue exposes scores and selection reasons to an auditor and cannot record blinding.
 
 - Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: CLEAR
-- Dependencies: corpus-combined-pool.
+- Dependencies: none.
 - User-visible outcome: A reviewer can inspect the common audit sample without selection, source-label
   or annotation cues, then submit traceable observations with independence and blinding provenance.
 - Scope boundary: Review of offered non-locked windows and recorded procedure; no automatic judgment,
@@ -109,7 +83,7 @@ A combined result can conceal that selection misses a source or that a source ha
 
 - Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: CLEAR
-- Dependencies: corpus-combined-pool, corpus-evaluation-review-budget.
+- Dependencies: corpus-evaluation-review-budget.
 - User-visible outcome: The evaluator reports each collection's reviewed exposure, exclusions and
   weighted selection metrics alongside the explicitly defined combined population.
 - Scope boundary: Verified source provenance and reviewed audit observations; no inference about
@@ -131,8 +105,7 @@ The chosen sources need an approved, measured pool and paired runs before people
 
 - Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: RUN NEEDED
-- Dependencies: corpus-combined-pool, corpus-blinded-audit-review,
-  authorize-video-corpus-sources.
+- Dependencies: corpus-blinded-audit-review, authorize-video-corpus-sources.
 - User-visible outcome: An approved bounded subset of both collections is staged and offers a
   reproducible independent audit sample and matched selection runs, or an evidence-backed negative.
 - Scope boundary: Approved sources, rights, models, storage, compute and reviewer budget only; no
@@ -219,7 +192,7 @@ WetlandBirds annotations and software can inform future cases, but their outputs
 
 - Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: CLEAR
-- Dependencies: corpus-combined-pool.
+- Dependencies: none.
 - User-visible outcome: An operator can inspect and map WetlandBirds annotations and, when suitable,
   run its software as separately identified evidence for future corpus cases.
 - Scope boundary: Fixture-based mapping and an isolated, pinned optional integration; no promotion

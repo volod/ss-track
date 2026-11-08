@@ -71,4 +71,11 @@ def changed_facts(record: Mapping[str, Any], declaration: RecordingDeclaration) 
         changed.append(f"sequence.{VIDEO_STREAM_INDEX}")
     if isinstance(sequence, Mapping) and declaration_changed(sequence, declaration.color_matrix):
         changed.append(DECLARED_COLOR_FACT)
+    declared_origin = [item.to_record() for item in declaration.origin]
+    stored_origin = record.get("origin")
+    if declared_origin:
+        if stored_origin != declared_origin:
+            changed.append("origin")
+    elif stored_origin is not None:
+        changed.append("origin")
     return changed

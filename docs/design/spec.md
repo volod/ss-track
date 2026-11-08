@@ -392,9 +392,16 @@ itself approve an acquisition budget, a model, a redistribution, or a real-data 
 Source adapters produce inputs for the existing import and corpus build interfaces, rather than
 creating a second corpus authority. A combined pool retains both source populations and source-specific
 reporting. Group related or duplicate recordings across collections before split assignment; expose
-unresolved links and upstream split information. No locked material is offered before custodian
-policy. Preserve original annotations as separate provenance-bearing evidence, not independent review
-or automatically accepted ss-track labels. The
+unresolved links and upstream split information. A metadata file joins a video when a YAML or CSV
+row names that video's path, a sibling file has that video's stem, or a source-link line names the
+path or that video's recorded source reference. A license code and an upstream annotation remain
+evidence on the recording's origin. Rights, basis and labels stay with the operator's declaration
+and the existing review path. The operator assigns `development` or `calibration`. An upstream
+`test`, `test_set` or `locked` split is withheld, and footage that shares its bytes or source is
+withheld with it. Missing attribution, terms, terms evidence or the acquisition itself refuses the
+pool. Later corpus versions and generated cases keep this lineage through the imported source. No
+locked material is offered before custodian policy. Preserve original annotations as separate
+provenance-bearing evidence, not independent review or automatically accepted ss-track labels. The
 [WetlandBirds software](https://github.com/3dperceptionlab/Visual-WetlandBirds) can be inspected and
 used as a separately pinned, isolated analysis tool when its code, dependencies and weights have
 acceptable terms; it is not required to construct a corpus and its predictions are not labels.

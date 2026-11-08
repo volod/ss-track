@@ -39,7 +39,7 @@ sealed from those decisions. Source permissions and the independent review of re
 human work in the plan. See the
 [corpus formation planning record](../records/0038-adhoc-self-supervised-corpus-plan.md).
 The selected future sources are Visual WetlandBirds v4 and the Hugging Face Drone Detection Dataset;
-source acquisition is available; the combined pool and blinded review remain planned. The
+source acquisition and the combined pool are available; blinded review remains planned. The
 [source architecture record](../records/0057-adhoc-corpus-source-architecture-plan.md)
 states their intended boundaries and routes the outstanding work. Existing import, build, stage and
 review interfaces remain authoritative; upstream annotations and predictions are not audit decisions.
@@ -102,8 +102,8 @@ ss-track discover acquire --inventory inventory.yaml --provider huggingface \
 For Hugging Face, the inventory must pin a full commit. The command enumerates the paginated tree,
 checks paths and file metadata, and fetches only the selected videos and optional `--metadata` files.
 Git blob or LFS SHA-256 identifies upstream bytes; local SHA-256 identifies each saved file. Metadata
-files are preserved but not automatically associated with individual videos or parsed for rights:
-the [combined-pool task](../plan.md#corpus-combined-pool) owns that work. The optional `HF_TOKEN`
+files are stored and hash-checked. [Combined pool](#combined-pool) joins them to individual videos.
+The optional `HF_TOKEN`
 environment variable is sent only to Hugging Face and is removed on cross-host redirects.
 
 For Zenodo the inventory pins a record, version, archive path and published MD5. The full archive
@@ -122,6 +122,36 @@ holding its lock. Results are
 fixture-tested and do not by themselves approve processing, import media, or prove source rights.
 The [task record](../records/0059-self-supervised-corpus-corpus-source-acquisition.md) gives the fixture
 and acceptance evidence.
+
+## Combined pool
+
+`ss-track discover pool --declaration pool.yaml --run-id pool-combined` prepares one corpus from
+acquired collections. The declaration's `run_id` matches the command and differs from every
+acquisition run it names. The command writes recording and corpus declarations under
+`$DATA_DIR/self-supervised-corpus/<run-id>/` and seals `record/corpus-pool` 1.0.0 as `pool.json`.
+The same declaration reports `unchanged`. A different declaration for that run is
+`CORPUS_CONFLICT` and leaves the published files in place.
+
+Each selected video is a candidate in its acquisition, with attribution, terms and a terms
+reference. The operator's rights and sensitivity are copied onto the recording. A license code
+stays on `origin` and leaves those fields unchanged. YAML, CSV and source-link files join a video
+by an exact path, a unique sibling stem, or a source line that names the path or that video's
+source reference. A query, fragment, credential or non-ASCII value stays unresolved and is omitted
+from the record. Published Drone Detection CSV names such as `no_drone/birds_only/rgb/1` do not
+equal paths under `videos/no_drone_footage/` and stay unresolved until a file names the path.
+Disagreeing claims mark that video `association_conflict` and exclude it. An upstream split of
+`test`, `test_set` or `locked` is `withheld_locked`. Footage that shares those bytes or that source
+is `withheld_related`. The operator's `development` or `calibration` value is the corpus split.
+Included copies of the same bytes become one recording whose `origin` lists each collection.
+Different rights on those bytes are `RIGHTS_CONFLICT`. Related recordings that disagree on the
+operator split are `SPLIT_LEAKAGE`. A selection with nothing left to include is refused.
+
+Import each written recording, then build, stage and verify the corpus declaration with the
+existing commands. Link review uses its own run id. `account_corpus` counts later streams and cases
+once per collection named on the source origin, and once in the unique totals. A source with no
+origin counts as provider and collection `unknown`. The
+[task record](../records/0062-self-supervised-corpus-corpus-combined-pool.md) has the fixture
+evidence.
 
 ## Selected development workload
 
@@ -167,6 +197,7 @@ ss-track corpus verify --corpus pilot-v1
 ss-track corpus hashes --corpus pilot-v1 --run-id host-a
 ss-track corpus compare --left a/staged-hashes.json --right b/staged-hashes.json --run-id compare-1
 ss-track corpus preview --corpus pilot-v1 --stream enc01-cam0 --frame 0 --out sheet.png
+ss-track discover pool --declaration pool.yaml --run-id pool-combined
 ss-track discover run --plan plan.yaml
 ss-track discover verify --run-id discovery-1
 ss-track discover links --corpus pilot-v1 --run-id links-1 --features discovery-1 --decisions decisions.yaml
@@ -193,10 +224,11 @@ traceback. Import and stage remove their scratch before that record is written:
 
 ## Declarations
 
-Each file is checked in full against its contract on read, `declaration/recording` 2.3.0 and
-`declaration/corpus` 3.2.0, before any reader takes a value from it. Both reject unknown fields,
-repeated keys, non-finite numbers and any other schema version, so a misspelled key cannot silently
-drop a fact. A recording is schema 2 and a corpus is schema 3. There are no defaults for rights,
+Each file is checked in full against its contract on read, `declaration/recording` 2.4.0 and
+`declaration/corpus` 3.2.0, before any reader takes a value from it. Recording 2.4.0 adds optional
+`origin`. An import omits it when the declaration has none, and an amendment or redecode that drops
+a recorded origin is refused. Both contracts reject unknown fields, repeated keys, non-finite
+numbers and any other schema version, so a misspelled key cannot silently drop a fact. A recording is schema 2 and a corpus is schema 3. There are no defaults for rights,
 sensitivity, split or scenario rights: a declaration without them is refused, and `basis` has no
 `unknown` value. A refusal names the contract version and the first violation by JSON pointer, a wrong
 `schema_version` before anything else, and its details list up to 20 violations, as

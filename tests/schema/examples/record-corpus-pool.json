@@ -1,0 +1,66 @@
+{
+  "kind": "ss-track.corpus-pool",
+  "schema_version": 1,
+  "corpus_id": "combined-v1",
+  "run_id": "pool-combined",
+  "declaration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "scenario_rights": {
+    "sharing": "restricted",
+    "max_sensitivity": "moderate"
+  },
+  "videos": [
+    {
+      "run_id": "acq-zenodo",
+      "path": "videos/bird.mkv",
+      "provider": "zenodo",
+      "collection_id": "15696105",
+      "provider_version": "v4",
+      "content_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "split": "development",
+      "upstream_split": "train_set",
+      "source_reference": "https://example.com/bird",
+      "annotation_reference": null,
+      "attribution": "Fixture",
+      "terms": "fixture terms",
+      "terms_reference": "https://example.com/terms",
+      "license": null,
+      "license_reference": null,
+      "metadata_sha256": null,
+      "association": "missing",
+      "status": "included",
+      "group_id": "group-1"
+    }
+  ],
+  "groups": [
+    {
+      "group_id": "group-1",
+      "split": "development",
+      "streams": [
+        {
+          "stream_id": "stream-1",
+          "encounter_id": "enc-1",
+          "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "members": [
+            {
+              "run_id": "acq-zenodo",
+              "path": "videos/bird.mkv"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "unresolved": [],
+  "accounting": [
+    {
+      "provider": "zenodo",
+      "collection_id": "15696105",
+      "included": 1,
+      "withheld_locked": 0,
+      "association_conflict": 0,
+      "withheld_related": 0,
+      "missing_metadata": 1
+    }
+  ],
+  "manifest_sha256": "fcfa9028023a90ad87c97998b58ef24ad48f8f1757ade25d5f815a0d8502f993"
+}

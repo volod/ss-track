@@ -4,11 +4,28 @@ from pathlib import Path
 
 import pytest
 
-from ss_track.corpus import ImportResult, RefusalCode, amend_source_terms
+from ss_track.corpus import ImportResult, RefusalCode, amend_source_terms, import_source
 from ss_track.corpus.records.sealing import sha256_file
 from tests.corpus._amending import evidence, read_source, refused
-from tests.corpus._media import write_clip
+from tests.corpus._media import WIDTH, write_clip
 from tests.corpus.conftest import WriteRecording, imported_names, reseal
+
+_ORIGIN = {
+    "provider": "huggingface",
+    "collection_id": "owner/dataset",
+    "provider_version": "a" * 40,
+    "video_path": "videos/clip.mkv",
+    "content_sha256": "a" * 64,
+    "upstream_split": None,
+    "source_reference": None,
+    "annotation_reference": None,
+    "attribution": "Fixture Operator",
+    "terms": "fixture terms",
+    "terms_reference": "https://example.com/terms",
+    "license": None,
+    "license_reference": None,
+    "metadata_sha256": None,
+}
 
 
 @pytest.mark.parametrize(
@@ -17,6 +34,7 @@ from tests.corpus.conftest import WriteRecording, imported_names, reseal
         ({"capture": {"camera": "bench camera"}}, ["capture"]),
         ({"timestamps": {"capture_clock_evidence": "clock"}}, ["sequence.capture_clock_evidence"]),
         ({"color": {"matrix": "bt709"}}, ["sequence.declared_color"]),
+        ({"origin": [_ORIGIN]}, ["origin"]),
     ],
 )
 def test_an_amendment_that_changes_capture_facts_records_nothing(
@@ -34,6 +52,30 @@ def test_an_amendment_that_changes_capture_facts_records_nothing(
 
     assert refusal.details == {"source_sha256": imported.source_sha256, "changed_facts": facts}
     assert evidence(directory) == before
+
+
+def test_an_amendment_keeps_origin_and_cannot_drop_it(
+    media: Path, write_recording: WriteRecording, data_root: Path
+) -> None:
+    write_clip(media / "origin.mkv", width=WIDTH + 7)
+    imported = import_source(write_recording("origin.mkv", origin=[_ORIGIN]), data_root)
+    before = imported.manifest_path.read_bytes()
+
+    refusal = refused(
+        lambda: amend_source_terms(
+            write_recording("origin.mkv", sensitivity={"level": "high"}), data_root
+        ),
+        RefusalCode.IMPORT_CONFLICT,
+    )
+    assert refusal.details == {"source_sha256": imported.source_sha256, "changed_facts": ["origin"]}
+    assert imported.manifest_path.read_bytes() == before
+
+    amended = amend_source_terms(
+        write_recording("origin.mkv", origin=[_ORIGIN], sensitivity={"level": "high"}),
+        data_root,
+    )
+    assert amended.changed_terms == ["sensitivity.level"]
+    assert read_source(imported.manifest_path)["origin"] == [_ORIGIN]
 
 
 def test_an_amendment_cannot_change_or_import_a_file(

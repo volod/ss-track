@@ -1,4 +1,4 @@
-"""`ss-track discover`: discovery runs, links between recordings, and review of a run's windows."""
+"""`ss-track discover`: source acquisition, combined pools, discovery runs and link review."""
 
 import argparse
 from pathlib import Path
@@ -12,6 +12,7 @@ from ss_track.corpus.review.export import export_review
 from ss_track.corpus.review.template import queue_review
 from ss_track.corpus.sources.acquisition import AcquisitionRequest, acquire
 from ss_track.corpus.sources.inventory import inventory_sources
+from ss_track.corpus.sources.pool import prepare_pool
 
 
 def add_discover_commands(subcommands: Subcommands) -> None:
@@ -37,6 +38,10 @@ def add_discover_commands(subcommands: Subcommands) -> None:
     acquisition.add_argument("--extraction-budget", type=int, required=True)
     acquisition.add_argument("--authorized", action="store_true")
     acquisition.set_defaults(handler=_acquire)
+    pool = commands.add_parser("pool", help="prepare a combined corpus from acquired collections")
+    pool.add_argument("--declaration", type=Path, required=True, help="corpus pool declaration")
+    pool.add_argument("--run-id", required=True, help="discovery-run id that stores the pool")
+    pool.set_defaults(handler=_pool)
     run = commands.add_parser(
         "run", help="embed staged frames, map ss-video hints and write one discovery run"
     )
@@ -120,6 +125,12 @@ def _evaluate(args: argparse.Namespace) -> int:
 
 def _inventory(args: argparse.Namespace) -> int:
     return reported(lambda: inventory_sources(args.file, args.out))
+
+
+def _pool(args: argparse.Namespace) -> int:
+    return reported_on_data_root(
+        lambda data_root: prepare_pool(args.declaration, args.run_id, data_root)
+    )
 
 
 def _acquire(args: argparse.Namespace) -> int:

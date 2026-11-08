@@ -40,6 +40,7 @@ def test_import_writes_a_hashed_manifest_with_every_required_field(
         "sharing": "restricted",
     }
     assert manifest["sensitivity"] == {"level": "low", "notes": None}
+    assert "origin" not in manifest
     assert sequence["timestamp_quality"] == "derived"
     assert sequence["frame_count"] == FRAME_COUNT
     assert sequence["pts"] == [index * 40 for index in range(FRAME_COUNT)]

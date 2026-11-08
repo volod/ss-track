@@ -82,7 +82,7 @@ def test_real_recording_preserves_descriptions_numbers_and_dates(tmp_path: Path)
         "range: {status: estimated, value_m: 'about 3', method: visual}}\n"
     )
     path.write_text(text)
-    assert validate_file(path, contract_name="declaration/recording").version == "2.3.0"
+    assert validate_file(path, contract_name="declaration/recording").version == "2.4.0"
     assert path.read_text() == text
     path.write_text(text.replace("camera: 42", "camera: null"))
     with pytest.raises(CorpusRefusal) as caught:
