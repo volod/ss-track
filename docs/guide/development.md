@@ -17,11 +17,16 @@ include the resulting `uv.lock` change.
 
 `make ci` is the required fast gate and is the command GitHub Actions runs on Python 3.12 and 3.13.
 It checks formatting, Ruff rules, mypy, complexity, shell scripts, documentation links, specification
-and plan integrity, frozen contracts, and tests.
+and plan integrity, frozen contracts, and the lightweight test group.
 
-`make quality` adds branch coverage, Markdown style, and source/wheel builds. Run it before release
-or after changing project infrastructure. `make quality-report` reports files over the 250-line soft
-limit without turning cohesion into a numeric failure.
+Tests are two groups. `make test-light` runs tests that do not copy or recheck the shipped contract
+set, rebuild a Git history of that set, or need the optional sibling interpreter or Croissant
+package. `make test-external` runs that other group. `make test` runs both. GitHub Actions calls
+`make ci`, which uses the lightweight group.
+
+`make quality` adds branch coverage over both groups, Markdown style, and source/wheel builds. Run
+it before release or after changing project infrastructure. `make quality-report` reports files over
+the 250-line soft limit without turning cohesion into a numeric failure.
 
 To compare two hosts by hand, write the sources once and carry them, because writing media again gives
 other bytes:

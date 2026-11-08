@@ -65,5 +65,6 @@ Copy the [template](template.md) using the
 | 0058 | `corpus-source-inventory` | [0058-self-supervised-corpus-corpus-source-inventory](0058-self-supervised-corpus-corpus-source-inventory.md) |
 | 0059 | `corpus-source-acquisition` | [0059-self-supervised-corpus-corpus-source-acquisition](0059-self-supervised-corpus-corpus-source-acquisition.md) |
 | 0060 | `sibling-defect-test-skips` | [0060-adhoc-sibling-defect-test-skips](0060-adhoc-sibling-defect-test-skips.md) |
+| 0061 | `lightweight-ci-tests` | [0061-adhoc-lightweight-ci-tests](0061-adhoc-lightweight-ci-tests.md) |
 
-Next unused sequence: `0061`.
+Next unused sequence: `0062`.

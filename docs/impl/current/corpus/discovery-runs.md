@@ -151,14 +151,15 @@ killed and refused with the tail of its standard error.
 
 The guards neutralise the defects the [sibling study](sibling-integration.md#reproducibility)
 found in the pinned release. `tests/corpus/siblings/test_sibling_defects.py` probes the real
-environment when `SST_PERCEPTION_PYTHON` is set, and fails once a defect is gone. `make test`,
-`make coverage` and `make ci` load `.env` and use an executable at
-`$DATA_DIR/cache/ss-perception-probes/bin/python` when no interpreter is specified. The environment
-must contain the pinned sibling and its dependencies; these workflows never install it. Without
-either interpreter the seven real-release probes remain skipped, while the fake-sibling guard tests
-still run. The probes simulate unavailable CUDA and a tiny DINO backbone, so they need neither a GPU
-nor cached model weights. The [task record](../../records/0060-adhoc-sibling-defect-test-skips.md)
-contains the host verification and regression evidence:
+environment when `SST_PERCEPTION_PYTHON` is set, and fails once a defect is gone. `make test` and
+`make coverage` load `.env` and use an executable at
+`$DATA_DIR/cache/ss-perception-probes/bin/python` when no interpreter is specified. Those probes are
+in the external test group, so `make ci` does not run them. The environment must contain the pinned
+sibling and its dependencies; these workflows never install it. Without either interpreter the seven
+real-release probes remain skipped under `make test`, while the fake-sibling guard tests still run.
+The probes simulate unavailable CUDA and a tiny DINO backbone, so they need neither a GPU nor cached
+model weights. The [task record](../../records/0060-adhoc-sibling-defect-test-skips.md) contains the
+host verification and regression evidence:
 
 | Defect | Guard | Refusal |
 | --- | --- | --- |

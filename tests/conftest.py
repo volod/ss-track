@@ -20,6 +20,8 @@ from ss_track.schema.registry.contract import Contract
 from ss_track.schema.registry.store import load_contract_set
 from ss_track.schema.validation.strict import violations
 
+pytest_plugins = ["tests.grouping"]
+
 
 def _require_retired_archive(path: Path, record: Mapping[str, Any], contract: Contract) -> None:
     """An amendment copies historic evidence; it does not emit it as a current record."""
