@@ -30,30 +30,6 @@ extensions; none blocks M3. Fixture implementation proceeds without physical har
 
 ### Self-supervised video corpus -- `self-supervised-corpus`
 
-#### corpus-evaluation-result-contract
-
-`discover evaluate` logs a comparison the newest `result/command` contract refuses.
-
-- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
-- Agent status: CLEAR
-- Dependencies: none.
-- User-visible outcome: The comparison `discover evaluate` prints is a command result a reader can
-  validate.
-- Scope boundary: The comparison the command already returns. No change to the statistics, and no
-  claim that a recorded blinding declaration was verified.
-- Data and artifact paths: `src/ss_track/corpus/evaluation/`, `tests/corpus/`, `contracts/`,
-  `$DATA_DIR/self-supervised-corpus/<run-id>/`.
-- Execution path: `corpus/evaluation/report.py` returns statuses `estimated` and `inconclusive` and
-  fields such as `audit`, `observations`, `review_blinding`, `review_independence`,
-  `review_effort_minutes` and `limits`. The newest `result/command` accepts none of those statuses
-  or fields. The production CLI does not check the result, so the command succeeds, and a pytest
-  run of the CLI fails the command-result hook. Add a minor of `result/command` for this comparison
-  and a CLI test. The presentation command already uses `blind` for its counts, so this comparison
-  keeps its metrics off that name.
-- Acceptance gates: `discover evaluate` results for an estimated and an inconclusive fixture
-  validate against the newest `result/command`, and `make ci` passes.
-- Documentation target: [Discovery runs](current/corpus/discovery-runs.md#evaluating-selection).
-
 #### corpus-evaluation-review-budget
 
 Equal selection counts can offer different total numbers of windows when audit overlaps differ, but

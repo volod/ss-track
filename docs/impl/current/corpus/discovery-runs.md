@@ -378,6 +378,12 @@ blinding and reviewer minutes, the comparison reports those declarations. A revi
 stays unrecorded. A stated value is not a verification that the procedure was followed, and pictures
 may still show the source. Compute cost stays unrecorded because discovery does not capture it.
 
+The log line is a `result/command` 1.22.0 record. `status` is `estimated` when the comparison has
+recall and an interval, and `inconclusive` when evidence is missing, variance is unavailable, or the
+runs selected different counts. `review_blinding`, `review_independence` and
+`review_effort_minutes` belong to this comparison. They are not the `blind` counts from
+`discover blind` or `discover unblind`. `compute_cost` on each run is null.
+
 For each group, an audit observation receives weight `population / sample_size`. Weighted target
 counts yield recall for each selection and the paired difference. The approximate 95% intervals use
 stratified finite-population variance and a delta-method ratio; they are not guarantees, especially
@@ -389,5 +395,10 @@ species, or field accuracy. The [evaluation task](../../plan.md#corpus-selection
 open for a reviewed evaluation run.
 
 The reader and comparison are in `corpus/evaluation/inputs.py` and `report.py`; stratified estimates
-are in `statistics.py`. Verify the implementation with the evaluation, discovery selection and
-review freeze tests, and with `make ci`.
+are in `statistics.py`. Verify with `tests/corpus/evaluation/`, the discovery selection and review
+freeze tests, and `make ci`. The evaluation command test logs an estimated comparison, an
+inconclusive one, and one whose blinding declarations differ. The suite checks each log against the
+newest `result/command`.
+
+The [task record](../../records/0064-self-supervised-corpus-corpus-evaluation-result-contract.md)
+holds the decisions and acceptance evidence.

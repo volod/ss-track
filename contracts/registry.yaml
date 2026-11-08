@@ -870,6 +870,14 @@ contracts:
     change:
       class: minor
       summary: Report a blinded audit presentation and its unblinding.
+  - version: 1.22.0
+    file_sha256: c0b2d166c2d9ee0986b21738da2320c309373064fed7d46016b9e9c93214fe80
+    fingerprints:
+      structure: 9e8547cf2996a92f4053b45517a8ef853018b8c9bf82bba29d47b728befd78bc
+      meaning: d372d2206f90c178e499834eaf6d0dc77e51c437dabbf392f1a2ca40da55a061
+    change:
+      class: minor
+      summary: Report a paired selection comparison as estimated or inconclusive.
 - family: shared
   id: types
   owner: data-contracts

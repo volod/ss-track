@@ -68,5 +68,6 @@ Copy the [template](template.md) using the
 | 0061 | `lightweight-ci-tests` | [0061-adhoc-lightweight-ci-tests](0061-adhoc-lightweight-ci-tests.md) |
 | 0062 | `corpus-combined-pool` | [0062-self-supervised-corpus-corpus-combined-pool](0062-self-supervised-corpus-corpus-combined-pool.md) |
 | 0063 | `corpus-blinded-audit-review` | [0063-self-supervised-corpus-corpus-blinded-audit-review](0063-self-supervised-corpus-corpus-blinded-audit-review.md) |
+| 0064 | `corpus-evaluation-result-contract` | [0064-self-supervised-corpus-corpus-evaluation-result-contract](0064-self-supervised-corpus-corpus-evaluation-result-contract.md) |
 
-Next unused sequence: `0064`.
+Next unused sequence: `0065`.
