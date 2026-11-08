@@ -63,5 +63,6 @@ Copy the [template](template.md) using the
 | 0056 | `corpus-selection-evaluation` | [0056-self-supervised-corpus-corpus-selection-evaluation](0056-self-supervised-corpus-corpus-selection-evaluation.md) |
 | 0057 | `corpus-source-architecture-plan` | [0057-adhoc-corpus-source-architecture-plan](0057-adhoc-corpus-source-architecture-plan.md) |
 | 0058 | `corpus-source-inventory` | [0058-self-supervised-corpus-corpus-source-inventory](0058-self-supervised-corpus-corpus-source-inventory.md) |
+| 0059 | `corpus-source-acquisition` | [0059-self-supervised-corpus-corpus-source-acquisition](0059-self-supervised-corpus-corpus-source-acquisition.md) |
 
-Next unused sequence: `0059`.
+Next unused sequence: `0060`.
