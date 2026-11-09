@@ -71,5 +71,11 @@ Copy the [template](template.md) using the
 | 0064 | `corpus-evaluation-result-contract` | [0064-self-supervised-corpus-corpus-evaluation-result-contract](0064-self-supervised-corpus-corpus-evaluation-result-contract.md) |
 | 0065 | `corpus-evaluation-review-budget` | [0065-self-supervised-corpus-corpus-evaluation-review-budget](0065-self-supervised-corpus-corpus-evaluation-review-budget.md) |
 | 0066 | `corpus-evaluation-by-source` | [0066-self-supervised-corpus-corpus-evaluation-by-source](0066-self-supervised-corpus-corpus-evaluation-by-source.md) |
+| 0067 | `corpus-two-source-pilot` | [0067-self-supervised-corpus-corpus-two-source-pilot](0067-self-supervised-corpus-corpus-two-source-pilot.md) |
+| 0068 | `authorize-video-corpus-sources` | [0068-self-supervised-corpus-authorize-video-corpus-sources](0068-self-supervised-corpus-authorize-video-corpus-sources.md) |
+| 0069 | `corpus-motion-parallelism` | [0069-self-supervised-corpus-corpus-motion-parallelism](0069-self-supervised-corpus-corpus-motion-parallelism.md) |
+| 0070 | `corpus-balanced-review-budget` | [0070-self-supervised-corpus-corpus-balanced-review-budget](0070-self-supervised-corpus-corpus-balanced-review-budget.md) |
+| 0071 | `corpus-interactive-link-review` | [0071-self-supervised-corpus-corpus-interactive-link-review](0071-self-supervised-corpus-corpus-interactive-link-review.md) |
+| 0072 | `remote-link-review-plan` | [0072-adhoc-remote-link-review-plan](0072-adhoc-remote-link-review-plan.md) |
 
-Next unused sequence: `0067`.
+Next unused sequence: `0073`.

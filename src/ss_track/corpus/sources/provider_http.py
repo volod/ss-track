@@ -33,11 +33,13 @@ class _SafeRedirect(HTTPRedirectHandler):
         return redirected
 
 
-def _request(url: str, token: str | None) -> Any:
+def _request(url: str, token: str | None, accept: str | None = None) -> Any:
     parsed = urlsplit(url)
     if parsed.scheme != "https" or parsed.username or parsed.password:
         raise CorpusRefusal(RefusalCode.SOURCE_UNREADABLE, "provider URL is unsafe")
     headers = {"User-Agent": "ss-track-source-acquisition/1.0"}
+    if accept is not None:
+        headers["Accept"] = accept
     if token and parsed.hostname == "huggingface.co":
         headers["Authorization"] = f"Bearer {token}"
     try:
@@ -56,10 +58,13 @@ def parse_json(payload: bytes) -> Any:
     )
 
 
-def read_json(url: str, token: str | None = None) -> tuple[Any, str | None]:
+def read_json(
+    url: str, token: str | None = None, *, accept: str | None = None
+) -> tuple[Any, str | None]:
     """Fetch one bounded JSON page and return its next-page Link header."""
     try:
-        with _request(url, token) as response:
+        request = _request(url, token, accept) if accept is not None else _request(url, token)
+        with request as response:
             data = response.read(_METADATA_LIMIT + 1)
             if len(data) > _METADATA_LIMIT:
                 raise CorpusRefusal(RefusalCode.SOURCE_DAMAGED, "provider metadata exceeds limit")

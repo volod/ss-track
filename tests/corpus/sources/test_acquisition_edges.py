@@ -15,6 +15,71 @@ from ss_track.corpus.sources.provider_metadata import hf_files
 from ss_track.corpus.sources.zenodo_splits import apply_splits
 
 
+def test_zenodo_version_uses_native_index_when_legacy_label_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    record = {
+        "id": 15696105,
+        "metadata": {},
+        "files": [{"key": "videos.zip", "size": 4, "checksum": "md5:abcd"}],
+    }
+    monkeypatch.setattr(provider_listing, "read_json", lambda url: (record, None))
+    monkeypatch.setattr(
+        provider_listing,
+        "read_native_zenodo",
+        lambda url: {"id": "15696105", "metadata": {}, "versions": {"index": 4}},
+    )
+    size, original = provider_listing.zenodo_listing("15696105", "v4", "videos.zip", "abcd")
+    assert size == 4
+    assert original == record
+    with pytest.raises(CorpusRefusal):
+        provider_listing.zenodo_listing("15696105", "v3", "videos.zip", "abcd")
+    monkeypatch.setattr(
+        provider_listing,
+        "read_native_zenodo",
+        lambda url: {"id": "999", "metadata": {}, "versions": {"index": 4}},
+    )
+    with pytest.raises(CorpusRefusal):
+        provider_listing.zenodo_listing("15696105", "v4", "videos.zip", "abcd")
+
+
+@pytest.mark.parametrize("index", [None, 0, True, "4"])
+def test_zenodo_native_version_requires_a_positive_integer(
+    monkeypatch: pytest.MonkeyPatch, index: object
+) -> None:
+    record = {
+        "id": 15696105,
+        "metadata": {},
+        "files": [{"key": "videos.zip", "size": 4, "checksum": "md5:abcd"}],
+    }
+    monkeypatch.setattr(provider_listing, "read_json", lambda url: (record, None))
+    monkeypatch.setattr(
+        provider_listing,
+        "read_native_zenodo",
+        lambda url: {"id": "15696105", "metadata": {}, "versions": {"index": index}},
+    )
+    with pytest.raises(CorpusRefusal):
+        provider_listing.zenodo_listing("15696105", "v4", "videos.zip", "abcd")
+
+
+def test_native_zenodo_read_requests_native_representation(monkeypatch: pytest.MonkeyPatch) -> None:
+    class Response(io.BytesIO):
+        def __init__(self, data: bytes) -> None:
+            super().__init__(data)
+            self.headers: dict[str, str] = {}
+
+    def request(url: str, token: str | None, accept: str) -> Response:
+        assert url == "https://zenodo.org/api/records/15696105"
+        assert token is None
+        assert accept == "application/vnd.inveniordm.v1+json"
+        return Response(b'{"id":"15696105"}')
+
+    monkeypatch.setattr(provider_http, "_request", request)
+    assert provider_listing.read_native_zenodo("https://zenodo.org/api/records/15696105") == {
+        "id": "15696105"
+    }
+
+
 def test_interruption_removes_scratch_and_retries(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

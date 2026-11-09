@@ -30,13 +30,41 @@ extensions; none blocks M3. Fixture implementation proceeds without physical har
 
 ### Self-supervised video corpus -- `self-supervised-corpus`
 
+#### corpus-portable-link-review
+
+Reviewing on another computer currently requires manually assembling matching source media,
+sealed records, software and checkpoint files. A missed file, changed byte or concurrent copy can
+prevent review or silently replace a reviewer's decisions.
+
+- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
+- Agent status: CLEAR
+- Dependencies: none.
+- User-visible outcome: An operator prepares a minimal verified review handoff, runs and resumes it
+  on another host, and returns the decisions without silently overwriting work.
+- Scope boundary: Local portable artifacts and explicit operator-controlled transfer; no remote
+  credentials, unattended network transfer, rights grant, publication, distributed locking,
+  automatic adjudication or changes to the blinded window audit.
+- Data and artifact paths: `src/ss_track/corpus/links/`, `src/ss_track/commands/`, `contracts/`,
+  `tests/corpus/links/` and `$DATA_DIR/self-supervised-corpus/<run-id>/`.
+- Execution path: Define and freeze any new interchange contract, export the required corpus and
+  link records, source records and permitted media plus any existing checkpoint, and verify their
+  identities and terms when importing into an isolated data root. Provide an explicit return path
+  for reviewer decisions that detects stale, divergent or conflicting local checkpoints, retains
+  uncertainty, and never silently merges or overwrites review work. Document installation, transfer,
+  resume, return and recovery on two hosts.
+- Acceptance gates: Network-free tests round-trip an interrupted review between two data roots and
+  feed returned decisions to `discover links`; omitted, corrupted, expired, unauthorized and
+  conflicting inputs are refused without changing existing decisions. The handoff excludes unrelated
+  staged frames and model weights, exposes transfer size, and `make ci` passes.
+- Documentation target: [Leakage review](current/corpus/leakage-review.md#review-on-another-host).
+
 #### corpus-two-source-pilot
 
 The chosen sources need an approved, measured pool and paired runs before people can review them.
 
 - Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: RUN NEEDED
-- Dependencies: authorize-video-corpus-sources.
+- Dependencies: authorize-video-corpus-sources, review-pilot-recording-links.
 - User-visible outcome: An approved bounded subset of both collections is staged and offers a
   reproducible independent audit sample and matched selection runs, or an evidence-backed negative.
 - Scope boundary: Approved sources, rights, models, storage, compute and reviewer budget only; no
@@ -46,10 +74,44 @@ The chosen sources need an approved, measured pool and paired runs before people
 - Execution path: Resolve pins and terms per source, acquire only approved inputs, verify hashes,
   group cross-source related recordings, build and stage the pool, and run `ssl-diverse` and
   `uniform` at one pool, audit seed and budget. Freeze the review protocol before `discover blind`;
-  record source coverage, exclusions, resources, approvals and stopped runs.
+  record source coverage, exclusions, resources, approvals and stopped runs. Select device, batch
+  size and resource limits for the host and record them; hold the sampling, tile grid and audit
+  settings fixed when comparing hosts, since those settings change the experiment. Resolve or
+  explicitly withhold uncertain per-recording provenance and flagged cross-group links before
+  relying on groups as independent; check untagged source color matrices and report the effect of
+  any required fallback. Report an evidence-backed negative when evidence cannot be resolved.
 - Acceptance gates: Inputs, staged frames, grouping, selection and sampling verify; the review queue
   includes eligible unselected windows, reports withheld exposure and retains reproducible evidence.
   Insufficient rights, targets or resources is an explicit valid negative; `make ci` passes.
+- Documentation target: [Corpus](current/corpus.md).
+
+#### corpus-balanced-review-budget
+
+Equal selection counts can have unequal review cost when the selections overlap a shared audit
+sample differently. For example, 100 selections with audit overlaps of 15 and 13 add 85 and 87
+windows respectively. The current queues cannot add work to the smaller arm, so an otherwise
+usable paired comparison is inconclusive even when two extra windows could balance review effort.
+
+- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
+- Agent status: CLEAR
+- Research: yes
+- Dependencies: none.
+- User-visible outcome: A reviewer can follow a predeclared, reproducible matched-workload protocol
+  without changing the random baseline or treating extra review work as audit evidence.
+- Scope boundary: Paired review queues and workload accounting; repeated reviews or padding never
+  change selection or independent audit weights, and unavailable work stays inconclusive. Do not
+  hide findings from extra windows or represent selected-only recall as total review yield.
+- Data and artifact paths: `src/ss_track/corpus/review/`, `src/ss_track/corpus/evaluation/`,
+  `tests/corpus/`, `contracts/`, and `$DATA_DIR/self-supervised-corpus/<run-id>/`.
+- Execution path: Evaluate separately recorded repeated selection passes and deterministic padding;
+  choose and contract a pre-review protocol that proves completed work and preserves independent
+  audit observations. Define how disagreements and findings in extra windows are handled. Make
+  review and freeze validate the work and report its cost, preserving existing compatibility.
+- Acceptance gates: Hand-counted fixtures cover the 85-versus-87 example, equal and unmatchable
+  workloads, withheld windows, replay, tampering, independence from audit estimates and old review
+  compatibility. The report distinguishes added work from selection and shows its findings;
+  an evidence-backed decision that padding cannot support a fair comparison is a valid negative.
+  `make ci` passes.
 - Documentation target: [Corpus](current/corpus.md).
 
 #### corpus-selection-evaluation
@@ -58,7 +120,7 @@ A larger selected pool may conceal missed small birds or exclude hard negatives.
 
 - Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: RUN NEEDED
-- Dependencies: corpus-two-source-pilot, review-video-corpus-sample.
+- Dependencies: corpus-two-source-pilot, review-video-corpus-sample, corpus-balanced-review-budget.
 - User-visible outcome: A report compares model-assisted selection with a random or uniform
   baseline and exposes missed cases and resource cost at a matched review budget.
 - Scope boundary: Independently reviewed audit samples and stratified uncertainty; no field accuracy,
@@ -143,6 +205,51 @@ WetlandBirds annotations and software can inform future cases, but their outputs
   provenance, isolation and refusal of missing terms; upstream labels cannot affect blinded audit or
   become frozen truth. An evidence-backed decision not to execute the software is valid; `make ci`
   passes.
+- Documentation target: [Corpus](current/corpus.md).
+
+#### corpus-motion-memory-pressure (optional)
+
+Adaptive motion scoring checks memory before scheduling streams, but already-running workers can
+continue after unrelated processes consume the reserved headroom. A long high-resolution stream can
+therefore exhaust memory before the next scheduling check; the current policy is an estimate, not a
+hard memory guarantee.
+
+- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
+- Agent status: CLEAR
+- Dependencies: none.
+- User-visible outcome: The operator can bound or stop motion work when memory pressure rises during
+  a stream, with a structured refusal rather than silently accepting partial scores.
+- Scope boundary: Local worker resource enforcement and cancellation; preserve integer scores,
+  sealed results and a serial fallback on hosts without enforceable limits.
+- Data and artifact paths: `src/ss_track/core/`, `src/ss_track/corpus/selection/`,
+  `tests/corpus/selection/`, and `$DATA_DIR/self-supervised-corpus/` for measured evidence.
+- Execution path: Evaluate portable process supervision or operating-system memory limits; detect
+  pressure while a stream is active, stop safely when needed, and document platform limitations.
+- Acceptance gates: Deterministic tests simulate falling headroom and worker termination, prove no
+  partial result is accepted or child left running, and retain serial/parallel score equality;
+  `make ci` passes.
+- Documentation target: [Corpus](current/corpus.md).
+
+#### corpus-discovery-progress (optional)
+
+A real discovery run can occupy the GPU for hours without reporting its phase or progress. During
+`pilot-diverse-v2-20261109`, only external GPU sampling showed activity, so an operator could not
+tell which extractor or stream was running or estimate remaining work.
+
+- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
+- Agent status: CLEAR
+- Dependencies: none.
+- User-visible outcome: An operator can see the current discovery phase and completed versus total
+  work while a long run is active, with unknown quantities clearly marked.
+- Scope boundary: Local, bounded progress reporting; no change to scores, selection, deterministic
+  artifacts, the single command-result record, or disclosure of blinded review decisions.
+- Data and artifact paths: `src/ss_track/corpus/discovery/`, `src/ss_track/corpus/siblings/`,
+  `tests/corpus/`, and the operator's configured output; no new external service.
+- Execution path: Instrument extraction and scoring at useful phase and stream or batch boundaries;
+  keep progress separate from the command result and ensure disabled or unavailable progress does
+  not change the run or block it.
+- Acceptance gates: Network-free tests exercise progress, disabled output, failures and unchanged
+  sealed records; the existing command-result contract and `make ci` pass.
 - Documentation target: [Corpus](current/corpus.md).
 
 #### self-supervised-corpus-audit (optional)
@@ -2306,13 +2413,37 @@ cannot grant itself.
 - Execution path: Record each source's terms, allowed uses, retention and handling, and select an
   explicit resource envelope before acquiring or running over the sources.
 - Acceptance gates: Every selected source has verifiable rights and retention, a named owner of the
-  approval, approved model use and cost limits, and target coverage and negative cases. ss-fusion
-  carries no licence, so its pinned tag needs a licence or a recorded grant, and each weight needs
+  approval, approved model use and cost limits, and target coverage and negative cases. The pinned
+  ss-fusion tag needs a licence or a recorded grant, and each weight needs
   an approved revision (a Hugging Face snapshot commit or a torch.hub tree digest, as
   [discovery plans](current/corpus/discovery-runs.md#plan) pin them) and use terms. The approval
   has a reference that every discovery plan names. No eligible
   source or inadequate budget is a recorded valid negative and authorizes no acquisition.
 - Documentation target: [Corpus](current/corpus.md).
+
+#### review-pilot-recording-links
+
+The pilot's flagged recording relationships need human judgment before its encounter groups can
+be treated as independent, including when the reviewer works on a different host.
+
+- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
+- Agent status: HUMAN-GATED
+- Dependencies: authorize-video-corpus-sources.
+- User-visible outcome: A named reviewer can resume the pilot relationship review on another host
+  and return the resulting decisions to the pilot operator.
+- Scope boundary: Human decisions on flagged source relationships; uncertain pairs remain undecided,
+  and this review does not replace the independent blinded window audit.
+- Data and artifact paths: `$DATA_DIR/import/`, `$DATA_DIR/corpus/<corpus-id>/manifest.json`,
+  `$DATA_DIR/self-supervised-corpus/<run-id>/links.json` and `link-review/decisions.yaml`.
+- Execution path: Transfer an authorized copy of the required source records and media with the
+  sealed corpus and links records, then run the [other-host review instructions](current/corpus/leakage-review.md#review-on-another-host).
+  Return the checkpoint to the pilot host and apply it in a new link review; group related sources
+  before relying on independence. Retain unresolved cases and record an evidence-backed negative
+  when the available information cannot establish the relationships.
+- Acceptance gates: The reviewer identity and checkpoint are retained; decisions validate with
+  `discover links`, related groups are reconciled or explicitly withheld, and remaining undecided
+  pairs and their effect on independence are reported.
+- Documentation target: [Leakage review](current/corpus/leakage-review.md#review-on-another-host).
 
 #### review-video-corpus-sample
 

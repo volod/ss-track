@@ -113,6 +113,11 @@ is downloaded and verified before safe selective extraction. If the record inclu
 the command verifies and joins it by unique video stem, refusing conflicts. Any declared video absent
 from provider metadata is refused; newly found videos enter the inventory with unknown facts. Missing
 rights and provenance are counted in the command result rather than inferred from collection terms.
+When the legacy Zenodo API omits the version label, acquisition checks the same record's native API
+version index and refuses a mismatched or unavailable index. An explicit version label remains
+authoritative; archive identity, size and checksum are still checked independently. The
+[pilot record](../records/0067-self-supervised-corpus-corpus-two-source-pilot.md) holds the
+real-provider evidence.
 
 `--download-budget` bounds selected file bytes, or the complete Zenodo archive plus split file;
 `--extraction-budget` bounds selected uncompressed video and metadata bytes. Provider API pages are
@@ -232,7 +237,8 @@ Each file is checked in full against its contract on read, `declaration/recordin
 `declaration/corpus` 3.2.0, before any reader takes a value from it. Recording 2.4.0 adds optional
 `origin`. An import omits it when the declaration has none, and an amendment or redecode that drops
 a recorded origin is refused. Both contracts reject unknown fields, repeated keys, non-finite
-numbers and any other schema version, so a misspelled key cannot silently drop a fact. A recording is schema 2 and a corpus is schema 3. There are no defaults for rights,
+numbers and any other schema version, so a misspelled key cannot silently drop a fact. A recording
+is schema 2 and a corpus is schema 3. There are no defaults for rights,
 sensitivity, split or scenario rights: a declaration without them is refused, and `basis` has no
 `unknown` value. A refusal names the contract version and the first violation by JSON pointer, a wrong
 `schema_version` before anything else, and its details list up to 20 violations, as

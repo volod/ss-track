@@ -18,7 +18,7 @@ baseline scope and evidence. The installed set contains these document contracts
 | `declaration/discovery-plan` | `1.0.0`, `1.1.0` |
 | `declaration/audit-review` | `1.0.0` |
 | `declaration/corpus-review` | `1.0.0`, `1.1.0` |
-| `declaration/link-decisions` | `1.0.0` |
+| `declaration/link-decisions` | `1.0.0`, `1.1.0` |
 | `declaration/source-inventory` | `1.0.0` |
 | `declaration/corpus-pool` | `1.0.0` |
 | `declaration/recording` | `2.0.0`, `2.1.0`, `2.2.0`, `2.3.0`, `2.4.0` |
@@ -26,7 +26,7 @@ baseline scope and evidence. The installed set contains these document contracts
 | `record/candidate-inventory` | `1.0.0` |
 | `record/audit-blinding` | `1.0.0` |
 | `record/corpus-freeze` | `1.0.0`, `1.1.0` |
-| `record/corpus-links` | `1.0.0` |
+| `record/corpus-links` | `1.0.0`, `1.1.0` |
 | `record/corpus-manifest` | `3.0.0`, `3.1.0`, `3.2.0`, `3.3.0`, `3.4.0` |
 | `record/discovery-run` | `1.0.0`, `1.1.0`, `1.2.0` |
 | `record/feature-rows` | `1.0.0` |

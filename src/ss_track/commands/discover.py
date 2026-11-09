@@ -7,6 +7,7 @@ from ss_track.commands import Subcommands
 from ss_track.commands.report import reported, reported_on_data_root
 from ss_track.corpus.discovery.run import run_discovery, verify_discovery_run
 from ss_track.corpus.evaluation.report import evaluate
+from ss_track.corpus.links.interactive import review_interactively
 from ss_track.corpus.links.run import LinkRequest, write_links
 from ss_track.corpus.review.blind import present_audit, unblind_audit
 from ss_track.corpus.review.export import export_review
@@ -69,6 +70,12 @@ def add_discover_commands(subcommands: Subcommands) -> None:
     links.add_argument("--features", help="discovery run_id whose feature rows to compare")
     links.add_argument("--decisions", type=Path, help="reviewer link decisions (YAML)")
     links.set_defaults(handler=_links)
+    review_links = commands.add_parser(
+        "review-links", help="interactively review recording relationships and resume safely"
+    )
+    review_links.add_argument("--run-id", required=True, help="undecided link-review run id")
+    review_links.add_argument("--reviewer", required=True, help="name of the human reviewer")
+    review_links.set_defaults(handler=_review_links)
     queue = commands.add_parser(
         "queue", help="report the windows a run offers for review and write a review file"
     )
@@ -110,6 +117,12 @@ def _verify(args: argparse.Namespace) -> int:
 def _links(args: argparse.Namespace) -> int:
     request = LinkRequest(args.run_id, args.corpus, args.features, args.decisions)
     return reported_on_data_root(lambda data_root: write_links(request, data_root))
+
+
+def _review_links(args: argparse.Namespace) -> int:
+    return reported_on_data_root(
+        lambda data_root: review_interactively(args.run_id, args.reviewer, data_root)
+    )
 
 
 def _queue(args: argparse.Namespace) -> int:

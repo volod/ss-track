@@ -15,14 +15,14 @@ the commands and results.
 | Project | Tag | Commit | Declared version | Licence |
 | --- | --- | --- | --- | --- |
 | ss-video | `v0.2.0` | `703e3c943dbc960a16cbc859680172c5a7ba5255` | `selfsuvis` 0.1.0 | MIT |
-| ss-fusion | `v0.2.0` | `12cb0861af8f6ae6562d2cf5211547e284c5b40d` | every package 0.2.1 | none |
+| ss-fusion, studied | `v0.2.0` | `12cb0861af8f6ae6562d2cf5211547e284c5b40d` | every package 0.2.1 | none |
+| ss-fusion, pilot pin | `v0.2.1` | `75debcfed31a3c148d2f194a8ae2345e4b7508f1` | every package 0.2.1 | MIT |
 | ss-common | `v0.2.1` | `255837301437c84c253627499c2f8ae9c9953c03` | 0.2.1 | MIT |
 
-Both `v0.2.0` tags point at the head of each default branch. ss-video pins ss-fusion `v0.2.0` and
-both pin ss-common `v0.2.1`, so they use one tree. The 0.2.0 and 0.2.1 labels are not a code
-mismatch: the ss-fusion `v0.2.0` tag holds packages that declare 0.2.1. Package metadata alone
-therefore cannot identify the revision. An installer that records the commit (`uv` writes it to
-`direct_url.json`) can.
+The original study used ss-video and ss-fusion `v0.2.0`; both pin ss-common `v0.2.1`. The pilot
+uses ss-fusion `v0.2.1`, whose files from the studied tree are byte-identical and which adds an MIT
+licence. Package metadata alone cannot identify the revision: both ss-fusion tags declare package
+version 0.2.1. An installer that records the commit (`uv` writes it to `direct_url.json`) can.
 
 ## Interfaces
 
@@ -72,15 +72,14 @@ version and `SAMPLE_FPS_MAX`. Candidate records must name ss-track frames.
 
 | Item | Revision used | Licence | Note |
 | --- | --- | --- | --- |
-| ss-fusion code, ss-perception included | `v0.2.0` | none in the repository | No licence grants use, copying or redistribution. Running it needs the owner's grant |
+| ss-fusion code, ss-perception included | `v0.2.1` | MIT | The earlier studied `v0.2.0` tag has no licence |
 | OpenCLIP code | `open_clip_torch` 4.2.1 | MIT-style | |
 | CLIP ViT-B/16 `openai` weights | Hugging Face `timm/vit_base_patch16_clip_224.openai`, `main` resolved to `977e3dd0` | tagged Apache-2.0; OpenAI CLIP repository MIT | The OpenAI model card puts any deployed use out of scope. Downloaded from `main` with no pinned revision |
 | DINO "dinov3" weights | `dinov2_vitb14_reg` via `torch.hub` `facebookresearch/dinov2` `main` | Apache-2.0 | ss-perception aliases every `dinov3_*` name to a DINOv2 `_reg` model |
 | Video sources | none | - | Owned by [source authorization](../../plan.md#authorize-video-corpus-sources) |
 
-No tool here may treat an ss-fusion install as licensed. The
-[source authorization task](../../plan.md#authorize-video-corpus-sources) owns that grant along with
-model approval.
+The [source authorization task](../../plan.md#authorize-video-corpus-sources) owns approval of the
+chosen revision and model weights; a package version by itself is not a commit pin.
 
 ## Reproducibility
 

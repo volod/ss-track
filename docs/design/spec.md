@@ -371,8 +371,9 @@ provides perception packages and a research pipeline with SSL adaptation. The
 the ss-perception embedders out of process, in a pinned environment, over frames it staged itself.
 It neither imports sibling code into its own process nor depends on a running ss-video. A sibling
 timestamp names a window of source frames, never a frame. An adapted checkpoint is used only when
-its manifest names development-only training sources. ss-fusion carries no licence, so running it
-needs the owner's recorded grant. ss-track owns rights decisions, candidate and corpus provenance,
+its manifest names development-only training sources. The ss-fusion revision used must have a
+verifiable licence or an owner's recorded grant; `v0.2.1` is MIT licensed. ss-track owns rights
+decisions, candidate and corpus provenance,
 encounter grouping, split membership, audit samples and immutable benchmark inputs. A candidate
 proposal is not a verified species, ground-truth label, or proof that a negative segment has no
 bird. Existing annotation and reviewer authority remain the route to frozen labels. Integrations do
@@ -413,6 +414,14 @@ independence, blinding and review effort are declarations, not a verification th
 was followed, and the pictures may still show the source. Unknown observations remain visible. A
 report cannot establish population prevalence for curated footage. Discovery does not record
 compute cost.
+When equal selection budgets produce unequal unique review queues because their selections overlap
+the shared audit differently, an operator may predeclare a matched-workload protocol. A separate
+selection-review pass may review selected windows again after the independent audit, so repeated
+exposures are actual recorded work. Alternatively, deterministic padding adds review cost without
+changing the selection or independent audit draw. Any findings in padded windows remain visible:
+a comparison must not ignore useful discoveries to make an arm appear less effective. The chosen
+protocol and completed work must be recorded; audit-weighted estimates use only the independent
+audit, disagreements require explicit handling, and an unmatchable workload remains inconclusive.
 Hugging Face is a source service and versioned cache, not the authority for local corpus identity;
 any publication of derived data has separate terms and authorization.
 
@@ -428,6 +437,14 @@ inclusion probability, never is. Selection ranks only pool windows, never one of
 locked split while no custodian policy allows it, and a run records every score and decision so they
 can be recomputed from its feature rows and staged frames. Scores rank windows for review; they do
 not detect a bird, and model-assisted selection is always compared with a seeded uniform baseline.
+Long discovery runs should expose their current phase and bounded progress to an operator without
+changing the deterministic run or its single command-result record, exposing review outcomes, or
+requiring a network service.
+Motion scoring may distribute independent recordings across locally configured CPU workers, while
+preserving exact scores, frame-integrity refusals and the reproducibility of sealed results. The
+operator must be able to limit worker count; adaptive concurrency respects available CPU and memory
+and falls back safely when a resource limit cannot be determined. Memory estimates do not guarantee
+against unrelated processes consuming resources during a run.
 Group related and duplicate footage before assigning splits; never train or tune on a locked test.
 A link review of a staged version first applies the source and shared-frame refusals, then flags
 pairs of recordings in different groups that the perceptual fingerprint or a frozen backbone's
@@ -435,6 +452,17 @@ stream background finds alike, at thresholds measured per backbone and crop that
 truth. A reviewer decides each pair `related` or `unrelated`; a decision names two recordings, not a
 version. A version that keeps related recordings in different groups is refused, an undecided link
 is exposed as unresolved and never merged, and freezing refuses an unresolved link across splits.
+An interactive local review command can guide a reviewer through a sealed link record, navigate in
+both directions and save each explicit decision durably. Restarting resumes from undecided work;
+uncertain pairs remain undecided. The command produces the existing link-decisions declaration,
+does not infer human judgment from similarity, and does not present a blinded selection audit.
+An operator needs to move this review to another authorized host and return its decisions without
+copying unrelated staged data. A portable handoff must identify and verify the sealed records,
+source media and optional checkpoint it needs, preserve reviewer and source identities, and refuse
+conflicting or incomplete handoffs rather than overwriting decisions. It does not grant source
+rights, coordinate simultaneous reviewers across hosts, or publish footage. Evaluation uses a
+round trip between isolated data roots, including interrupted, incomplete, corrupted and conflicting
+handoffs; an explicit refusal is a valid result when integrity or permissions cannot be established.
 Review is bounded by the run: it offers the selected windows, the audit sample and the sibling
 windows, and withholds every window of a locked stream while no custodian policy allows it, saying
 why. A reviewer includes or excludes each offered window with what they saw and, for an exclusion, a

@@ -1,5 +1,6 @@
 """`discover links` over staged versions: known leakage refuses, uncertain links are written."""
 
+import io
 import json
 from pathlib import Path
 from typing import Any
@@ -9,6 +10,8 @@ import pytest
 from ss_track.cli import main
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
 from ss_track.corpus import ImportResult, build_corpus, import_source, stage_corpus
+from ss_track.corpus.links.interactive import conduct_review
+from ss_track.corpus.links.interactive_state import save_checkpoint
 from ss_track.corpus.links.records import read_links
 from ss_track.corpus.links.run import LinkRequest, write_links
 from ss_track.corpus.records.kinds import CORPUS_LINKS
@@ -27,6 +30,28 @@ from tests.corpus.conftest import (
 from tests.corpus.links._links import decided, write_decisions
 
 CORPUS = "pilot-v1"
+
+
+def test_interactive_checkpoint_is_accepted_by_link_checker(
+    staged: tuple[ImportResult, ImportResult], data_root: Path, tmp_path: Path
+) -> None:
+    write_links(LinkRequest("links-original", CORPUS), data_root)
+    record: Any = read_links(data_root, "links-original")
+    checkpoint = tmp_path / "decisions.yaml"
+    save_checkpoint(checkpoint, "Reviewer", {})
+    write_links(LinkRequest("links-empty", CORPUS, decisions_path=checkpoint), data_root)
+    assert read_links(data_root, "links-empty")["status"] == "unresolved"
+    conduct_review(
+        record["links"],
+        "Reviewer",
+        checkpoint,
+        io.StringIO("u\nseparate dates\nq\n"),
+        io.StringIO(),
+        lambda identity: identity,
+        lambda identity: True,
+    )
+    write_links(LinkRequest("links-reviewed", CORPUS, decisions_path=checkpoint), data_root)
+    assert read_links(data_root, "links-reviewed")["status"] == "clear"
 
 
 def _other_scene(index: int, width: int, height: int) -> bytes:

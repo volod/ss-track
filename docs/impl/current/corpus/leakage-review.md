@@ -17,6 +17,129 @@ ss-track discover links --corpus pilot-v1 --run-id links-2 --features discovery-
   --decisions decisions.yaml
 ```
 
+### Interactive review
+
+Run the review in a terminal with the run ID of a sealed link record and the reviewer's name:
+
+```bash
+ss-track discover review-links --run-id pilot-links-features-v2-20261109 --reviewer "Your name"
+```
+
+The command explains the controls on startup. Use `a` and `b` to play the recordings using
+`ffplay`, `r` or `u` to decide related or unrelated, `n` and `p` to navigate, `j` to jump, `c` to
+clear a decision, and `q` to quit. Notes are optional ASCII. The display includes source identities,
+available origin information, local paths, and the similarity evidence. If `ffplay` is unavailable,
+open the displayed path with a local player. Locked recordings are not displayed or played. Review
+only what you can establish; leave uncertain links undecided. This is not a blinded selection audit.
+
+Every change is atomically replaced, with the file and its directory synchronized. The checkpoint is
+`$DATA_DIR/self-supervised-corpus/<run-id>/link-review/decisions.yaml`; restart with the same run ID
+and reviewer to resume at the first undecided link. Only one review of a run can write at a time.
+The initial empty checkpoint asserts no relationships. The reviewer identity must match a prior
+checkpoint or existing decisions in the link record, which are preserved, including decisions outside
+the flagged links. The command emits one JSON result; the terminal interaction uses the controlling
+terminal. Use the checkpoint as `--decisions` in a new `discover links` run with the same corpus and
+feature run. Related sources in separate groups must first be grouped in a new corpus version.
+
+The [interactive review record](../../records/0071-self-supervised-corpus-corpus-interactive-link-review.md)
+contains implementation and acceptance evidence.
+
+### Review on another host
+
+These commands prepare the current two-source pilot for review on a second computer. They transfer
+the imported source records and media, the corpus manifest and the sealed link record. They do not
+need the staged frames or the GPU models. Both computers need network access between them, `ssh` and
+`rsync`; the reviewing computer also needs Git, Make, uv, Python 3.12 or newer, and `ffplay` for
+in-command playback in a graphical session. The review computer needs enough free disk for the
+selected files and the Python environment. Transfer the data only to a computer authorized for the
+source terms.
+The [portable review task](../../plan.md#corpus-portable-link-review) covers an automated, verified
+handoff; the steps below are manual and the local checkpoint lock does not extend across computers.
+The [handoff planning record](../../records/0072-adhoc-remote-link-review-plan.md) records the
+verification of these instructions.
+
+On the pilot computer, from the project root, choose a remote login and a new, empty directory on
+the review computer. Use a directory path without spaces or single quotes for these commands. The
+checkout copied below includes current uncommitted implementation and contract files, so it does
+not depend on a commit having been created. If `DATA_DIR` or other private material is inside the
+checkout under another name, add an exclusion for it before copying the checkout.
+
+```bash
+REVIEW_HOST="reviewer@example-host"
+REVIEW_DIR="review/ss-track"
+source scripts/shared/common.sh
+sst_load_env
+
+ssh "$REVIEW_HOST" "mkdir -p '$REVIEW_DIR/.data'"
+rsync -a --exclude='/.git/' --exclude='/.venv/' --exclude='/.data/' \
+  --exclude='/.env*' --exclude='/.agents/' --exclude='/.codex/' --exclude='/.aws/' \
+  --exclude='/.pytest_cache/' --exclude='/.mypy_cache/' --exclude='/.ruff_cache/' \
+  --exclude='**/__pycache__/' \
+  ./ "$REVIEW_HOST:$REVIEW_DIR/"
+(
+  cd "$DATA_DIR"
+  rsync -aR import/ corpus/pilot-two-source-v2-20261109/manifest.json \
+    self-supervised-corpus/pilot-links-features-v2-20261109/links.json \
+    "$REVIEW_HOST:$REVIEW_DIR/.data/"
+)
+```
+
+If resuming an existing review, stop the review first. With a new empty destination, copy its
+checkpoint as well:
+
+```bash
+(
+  cd "$DATA_DIR"
+  rsync -aR \
+    self-supervised-corpus/pilot-links-features-v2-20261109/link-review/decisions.yaml \
+    "$REVIEW_HOST:$REVIEW_DIR/.data/"
+)
+```
+
+If the destination already has a checkpoint, inspect it first and do not overwrite it. Do not run
+independent reviews against copies of the same checkpoint: the local lock does not coordinate
+computers and one copy can overwrite another's decisions. On the second computer, run the following
+from the transferred checkout:
+
+```bash
+cd ~/review/ss-track  # use REVIEW_DIR chosen above
+export DATA_DIR="$PWD/.data"
+make bootstrap
+.venv/bin/ss-track discover review-links \
+  --run-id pilot-links-features-v2-20261109 --reviewer "Your name"
+```
+
+Use the same reviewer name to resume. A source or seal refusal indicates that the copied files are
+missing, changed, or no longer meet their recorded terms; repair the transfer or investigate the
+terms before reviewing. The command verifies the source bytes when displaying or playing them.
+For this pilot the reviewer starts with 136 flagged pairs. Leave uncertain pairs undecided.
+
+When finished or pausing, stop the command. On the pilot computer, retrieve the checkpoint to a
+separate directory so it cannot overwrite a local review:
+
+```bash
+source scripts/shared/common.sh
+sst_load_env
+mkdir -p "$DATA_DIR/self-supervised-corpus/pilot-links-features-v2-20261109/returned"
+REVIEW_RUN_PATH="$REVIEW_DIR/.data/self-supervised-corpus/pilot-links-features-v2-20261109"
+rsync -a \
+  "$REVIEW_HOST:$REVIEW_RUN_PATH/link-review/decisions.yaml" \
+  "$DATA_DIR/self-supervised-corpus/pilot-links-features-v2-20261109/returned/decisions.yaml"
+```
+
+Keep `REVIEW_HOST` and `REVIEW_DIR` set as above, or set them again in the new shell. To apply the
+returned file on the pilot computer, use a fresh run ID:
+
+```bash
+.venv/bin/ss-track discover links --corpus pilot-two-source-v2-20261109 \
+  --run-id pilot-links-reviewed-1 --features pilot-diverse-v2-20261109 \
+  --decisions "$DATA_DIR/self-supervised-corpus/pilot-links-features-v2-20261109/returned/decisions.yaml"
+```
+
+The link checker refuses related sources in different groups; group them in a new corpus version
+before rerunning, or retain the refusal and unresolved evidence as the pilot's result. The complete
+staged frames and discovery feature run remain necessary on the pilot computer for this check.
+
 `--features` names a [discovery run](discovery-runs.md) over the same staged version, whose feature
 rows the `background-cosine` method compares; without it only the fingerprint runs.
 `--decisions` names the reviewer's decisions file. The command logs one JSON record:
@@ -112,7 +235,7 @@ decisions listed as `same_group`.
 
 ## Decisions
 
-`declaration/link-decisions` 1.0.0:
+`declaration/link-decisions` 1.1.0 (1.0.0 remains readable):
 
 ```yaml
 schema_version: 1
@@ -123,7 +246,8 @@ decisions:
   note: same flight, second battery # optional
 ```
 
-A pair is decided once, in either order, and never with itself; either is `MANIFEST_INVALID`. A
+A decisions list may be empty, meaning no relationship was decided. A pair is decided once, in
+either order, and never with itself; either is `MANIFEST_INVALID`. A
 decided pair across groups is a link even when no method flagged it, so a reviewer can state what
 they know from capture notes. A decision whose sources this version does not both hold, or whose
 group already holds both, is listed under `decisions_outside_links` as `not_in_corpus` or
@@ -131,7 +255,7 @@ group already holds both, is listed under `decisions_outside_links` as `not_in_c
 
 ## Record
 
-`self-supervised-corpus/<run-id>/links.json` is `record/corpus-links` 1.0.0:
+`self-supervised-corpus/<run-id>/links.json` is `record/corpus-links` 1.1.0 (1.0.0 remains readable):
 
 | Field | Holds |
 | --- | --- |
@@ -175,7 +299,9 @@ status against its decision, and the review's status against its links. A forged
 
 | Module | Does |
 | --- | --- |
-| `commands/discover.py` | `discover links` |
+| `commands/discover.py` | `discover links` and `discover review-links` |
+| `corpus/links/interactive.py` | Terminal review, navigation, playback, and validation |
+| `corpus/links/interactive_state.py` | Atomic, synchronized decision checkpoints |
 | `corpus/links/run.py` | `write_links`, `build_links`: checks, flags, decisions, seal and publish |
 | `corpus/links/evidence.py` | `luma_evidence`, `background_evidence` and the threshold table |
 | `corpus/links/review.py` | `review_links`, `require_no_related_links` |
@@ -199,3 +325,6 @@ real clips: a lookalike pair across splits is written unresolved while an unrela
 linked, a remux in another group and a related decision refuse and write nothing, an unstaged version
 and bad or held run ids refuse, a retry is unchanged, and a forged record is refused.
 `test_links_features.py` reads a fake-sibling discovery run and refuses one of another version.
+`test_interactive.py` and `test_interactive_state.py` cover terminal navigation, playback selection,
+restart, interruption, checkpoint durability, and conflicts. The link-run tests check that empty and
+decided checkpoints are accepted by the link checker.

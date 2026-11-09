@@ -3,7 +3,7 @@
 ## Task and scope
 
 - Id / capability: `corpus-selection-evaluation` / `self-supervised-corpus`
-- State: active
+- State: blocked
 - Source: plan task; start commit `e6623c7`; working tree clean.
 - Plan counts at start: 99 agent, 23 human; next agent `corpus-selection-evaluation`, next human
   `define-locked-test-policy (optional)`.
@@ -72,6 +72,82 @@ A larger selected pool may conceal missed small birds or exclude hard negatives.
 - Documentation target: [Corpus](current/corpus.md).
 ```
 
+- Amendment: the current plan incorporates the delivered review declarations and per-source
+  comparison; the requested reviewed run still depends on the pilot and human review. Current task:
+
+```markdown
+#### corpus-selection-evaluation
+
+A larger selected pool may conceal missed small birds or exclude hard negatives.
+
+- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
+- Agent status: RUN NEEDED
+- Dependencies: corpus-two-source-pilot, review-video-corpus-sample.
+- User-visible outcome: A report compares model-assisted selection with a random or uniform
+  baseline and exposes missed cases and resource cost at a matched review budget.
+- Scope boundary: Independently reviewed audit samples and stratified uncertainty; no field accuracy,
+  generalization or verified species claim from model proposals alone.
+- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/self-supervised-corpus/<run-id>/`.
+- Execution path: Define a reproducible evaluation protocol before running, score reviewed random
+  samples including unselected material, and report diversity, negatives, recall, cost and exclusions.
+  Read each window's reviewed observation from its `declaration/corpus-review` or freeze record
+  ([review and freeze](current/corpus/review-and-freeze.md#decisions)); `unknown` and unreviewed
+  windows count as unknown, never as absent.
+  Compare `ssl-diverse` with the `uniform` run of the same pool and audit seed
+  ([selection](current/corpus/discovery-runs.md#selection)), report misses by kind, including a
+  target present for a whole stream, which background deviation compares against itself, and
+  confusers that motion ranks high. Record whether the audit review was independent and blinded.
+  A review or freeze states that with `independence` and `blinding` when the reviewer declared it,
+  and leaves both unrecorded when it does not. A stated value is a declaration, not a verification.
+  Capture measured compute cost alongside the comparison; discovery runs do not record it. The
+  comparison already reports each collection's estimates, shared-stratum covariance and the weighted
+  combined population
+  ([evaluating selection](current/corpus/discovery-runs.md#evaluating-selection)). Keep that report.
+  Do not reimplement it, and do not treat it as field prevalence.
+- Acceptance gates: Hand-calculated fixtures verify denominators, sampling weights, uncertainty and
+  unavailable strata; empty or insufficient evidence produces an explicit inconclusive result.
+  Negative gains remain valid and `make ci` passes.
+- Documentation target: [Corpus](current/corpus.md).
+```
+
+- Amendment: the real paired queues have unequal review workloads and need reproducible padding
+  before a matched-budget evaluation. Revised task:
+
+```markdown
+#### corpus-selection-evaluation
+
+A larger selected pool may conceal missed small birds or exclude hard negatives.
+
+- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
+- Agent status: RUN NEEDED
+- Dependencies: corpus-two-source-pilot, review-video-corpus-sample, corpus-balanced-review-budget.
+- User-visible outcome: A report compares model-assisted selection with a random or uniform
+  baseline and exposes missed cases and resource cost at a matched review budget.
+- Scope boundary: Independently reviewed audit samples and stratified uncertainty; no field accuracy,
+  generalization or verified species claim from model proposals alone.
+- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/self-supervised-corpus/<run-id>/`.
+- Execution path: Define a reproducible evaluation protocol before running, score reviewed random
+  samples including unselected material, and report diversity, negatives, recall, cost and exclusions.
+  Read each window's reviewed observation from its `declaration/corpus-review` or freeze record
+  ([review and freeze](current/corpus/review-and-freeze.md#decisions)); `unknown` and unreviewed
+  windows count as unknown, never as absent.
+  Compare `ssl-diverse` with the `uniform` run of the same pool and audit seed
+  ([selection](current/corpus/discovery-runs.md#selection)), report misses by kind, including a
+  target present for a whole stream, which background deviation compares against itself, and
+  confusers that motion ranks high. Record whether the audit review was independent and blinded.
+  A review or freeze states that with `independence` and `blinding` when the reviewer declared it,
+  and leaves both unrecorded when it does not. A stated value is a declaration, not a verification.
+  Capture measured compute cost alongside the comparison; discovery runs do not record it. The
+  comparison already reports each collection's estimates, shared-stratum covariance and the weighted
+  combined population
+  ([evaluating selection](current/corpus/discovery-runs.md#evaluating-selection)). Keep that report.
+  Do not reimplement it, and do not treat it as field prevalence.
+- Acceptance gates: Hand-calculated fixtures verify denominators, sampling weights, uncertainty and
+  unavailable strata; empty or insufficient evidence produces an explicit inconclusive result.
+  Negative gains remain valid and `make ci` passes.
+- Documentation target: [Corpus](current/corpus.md).
+```
+
 ## Protocol defined before evaluation
 
 Compare verified `ssl-diverse` and `uniform` discovery runs of the same sealed pool and frame set,
@@ -130,6 +206,9 @@ evaluation is not run. The first `make ci` found the missing wheel package, fixe
 change; `pytest tests/test_packaging.py` then passed. The full `make ci` rerun passed: 2265 passed
 and 7 skipped.
 
+On the current tree, `make ci` passed: 2272 tests passed, 112 deselected. The reviewed
+real-footage evaluation and its measured comparison remain not run.
+
 ## Audit handoff
 
 The blinded review is owned by `corpus-blinded-audit-review`; resource measurements and paired
@@ -140,4 +219,8 @@ has been established.
 
 ## Close or resume
 
-In progress. Run the reviewed evaluation after its pilot and human-review dependencies.
+Blocked on `corpus-two-source-pilot` and `review-video-corpus-sample`: source authorization,
+paired real-source runs and independent human decisions are not available. The existing measured
+selection run uses synthetic fixtures and cannot establish the requested reviewed comparison. Run
+the evaluation after those dependencies, retain measured compute cost alongside the report, and
+then perform the completion audit and close this record.

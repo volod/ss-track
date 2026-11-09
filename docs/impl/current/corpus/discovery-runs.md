@@ -47,6 +47,27 @@ input. The same plan over the same staged frames writes the same bytes, so a ret
 `unchanged`. Another plan under a used run id is `CORPUS_CONFLICT`. `verify` reports `verified`
 with the same fields.
 
+Motion scoring for `discover run` and `discover verify` uses independent stream processes when the
+host can support them. `SST_MOTION_WORKERS=auto` is the default; set it to a positive integer to
+lower the worker cap, or `1` to force serial execution. The cap is at most half the effective
+logical CPU capacity and at most the number of streams. On Linux, the calculation considers CPU affinity,
+cgroup v2 CPU quotas, available RAM and remaining cgroup memory. It reserves 2 GiB for the host
+and estimates each worker at 256 MiB plus 128 bytes per pixel of the largest frame. It rechecks
+resources before scheduling more streams and restricts worker CPU affinity; unknown resource
+limits fall back to serial. When available memory is known to be below the estimate for one worker,
+the command refuses before starting more motion work. The estimate cannot prevent another process
+from consuming memory after work starts, or cancel already-running streams when memory falls. The
+[parallel-motion record](../../records/0069-self-supervised-corpus-corpus-motion-parallelism.md)
+holds the measurements and verification. The setting affects execution only: integer scores and
+sealed records stay identical across worker counts.
+
+On the pilot's 12-logical-CPU host, a six-stream sample including 4K footage took 86.1 s with one
+worker and 48.8 s with the adaptive six-worker cap; the scores matched exactly. Sampled summed
+process-tree RSS peaked at 408 MiB and 1093 MiB respectively. The runs were sequential, so cache
+effects and other host activity limit the timing comparison. The results are in
+`$DATA_DIR/self-supervised-corpus/two-source-pilot-20261109/motion-benchmark-{serial,auto}-v2.json`.
+A larger host has not been measured.
+
 ## Plan
 
 `declaration/discovery-plan` 1.1.0 states one run. Extractors, weights and hint files are listed in
@@ -307,9 +328,18 @@ targets, not how selection performs on real footage.
 - Rows are float32 only; a GPU mixed-precision mode is a contract minor that the
   [scale pilot](../../plan.md#corpus-scale-pilot) owns if it needs one.
 - A tiled grid multiplies embedding compute by its tile count.
-- Running over real sources waits for the
-  [source authorization](../../plan.md#authorize-video-corpus-sources) grant for the sibling code
-  and weights.
+- Real-source runs require [source authorization](../../plan.md#authorize-video-corpus-sources),
+  including the selected sibling revision, weights and source terms.
+
+The two-source pilot has verified paired runs, but their grouping and review budget remain
+unresolved. Its 31 recordings form 29 provisional groups after three near-duplicate gull clips were
+grouped. Background review flagged 136 other possible links; visual similarity does not prove common
+origin. Each method selected 100 windows, but overlap with the shared 232-window audit leaves queues
+of 317 and 319 windows. The current evaluator therefore reports an unmatched budget. Thirteen streams
+also lacked color-matrix tags and used the documented BT.601 fallback. The
+[pilot record](../../records/0067-self-supervised-corpus-corpus-two-source-pilot.md) holds the
+artifacts and unresolved decisions; these runs do not establish field performance or independent
+grouping.
 
 ## Interfaces
 

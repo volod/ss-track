@@ -55,8 +55,38 @@ def huggingface_listing(
 
 def zenodo_listing(identity: str, revision: str, archive: str, md5: str) -> tuple[int, Any]:
     """Validate Zenodo's pinned record and its archive checksum."""
-    record, _ = read_json(f"https://zenodo.org/api/records/{identity}")
-    return zenodo_archive(record, identity, revision, archive, md5), record
+    url = f"https://zenodo.org/api/records/{identity}"
+    record, _ = read_json(url)
+    checked = record
+    if (
+        isinstance(record, dict)
+        and isinstance(record.get("metadata"), dict)
+        and record["metadata"].get("version") is None
+    ):
+        native = read_native_zenodo(url)
+        versions = native.get("versions") if isinstance(native, dict) else None
+        metadata = native.get("metadata") if isinstance(native, dict) else None
+        if (
+            not isinstance(native, dict)
+            or str(native.get("id")) != identity
+            or not isinstance(metadata, dict)
+            or metadata.get("version") is not None
+            or not isinstance(versions, dict)
+            or type(versions.get("index")) is not int
+            or versions["index"] < 1
+        ):
+            raise _invalid()
+        checked = {
+            **record,
+            "metadata": {**record["metadata"], "version": f"v{versions['index']}"},
+        }
+    return zenodo_archive(checked, identity, revision, archive, md5), record
+
+
+def read_native_zenodo(url: str) -> Any:
+    """Read the native record when the legacy representation has no version label."""
+    record, _ = read_json(url, accept="application/vnd.inveniordm.v1+json")
+    return record
 
 
 def huggingface_url(repository: str, revision: str, path: str) -> str:

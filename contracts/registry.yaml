@@ -170,6 +170,14 @@ contracts:
     change:
       class: initial
       summary: Initial contract.
+  - version: 1.1.0
+    file_sha256: a68fac783eea155d586fb64be6dd3f59f8b9dafbe2fa9c694bb6c75d2eaa45c9
+    fingerprints:
+      structure: f21aa06754045f801db06b5aff3cf6acd81656bedc456158b9d0d83db675f0c7
+      meaning: a7118cdd7bba6eb98147115962bce5fcc226de6ab43d1ea67bd5d0296ca1310e
+    change:
+      class: minor
+      summary: Allow empty checkpoints without asserting any relationship.
 - family: declaration
   id: recording
   owner: corpus-provenance
@@ -339,6 +347,14 @@ contracts:
     change:
       class: initial
       summary: Initial contract.
+  - version: 1.1.0
+    file_sha256: f1c5dab9d689b3ad9dc100f712db933050f675f81893abcfc6a4489005a8caf3
+    fingerprints:
+      structure: 637395381b38cda0374e9cb42f00456e70399a3d4c32a18b96e0e92a68f88efa
+      meaning: d776a60a5fe07d9978a7a78214142ac42fd7b850f091bfff1b53dcabbc10a84c
+    change:
+      class: minor
+      summary: Allow an empty review checkpoint with no decisions.
 - family: record
   id: corpus-manifest
   owner: corpus-provenance

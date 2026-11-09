@@ -8,12 +8,14 @@ import pytest
 import yaml
 
 from ss_track.cli import main
+from ss_track.core.motion_resources import HostResources
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
 from ss_track.corpus import ImportResult, build_corpus, stage_corpus
 from ss_track.corpus.discovery.plan import read_discovery_plan
 from ss_track.corpus.discovery.records import DiscoveryRecords, seal_discovery, write_discovery
 from ss_track.corpus.discovery.result import DiscoveryResult
 from ss_track.corpus.discovery.run import build_discovery, run_discovery, verify_discovery_run
+from ss_track.corpus.selection import motion
 from tests.corpus.conftest import (
     WriteCorpus,
     encounter_of,
@@ -303,6 +305,23 @@ def test_the_command_reports_the_selection_it_verified(
         "excluded": [{"reason": "operator_excluded", "count": 3}],
     }
     assert written["coverage"] == verified["coverage"]
+
+
+def test_parallel_motion_preserves_sealed_discovery_records(
+    media_plan: Path,
+    caches: Caches,
+    data_root: Path,
+    environ: dict[str, str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    plan = read_discovery_plan(_plan(media_plan, caches, UNIFORM))
+    monkeypatch.setattr(motion, "host_resources", lambda: HostResources(4, 8 * 1024**3))
+    monkeypatch.setenv("SST_MOTION_WORKERS", "1")
+    serial = build_discovery(plan, data_root, environ=environ)
+    monkeypatch.setenv("SST_MOTION_WORKERS", "2")
+    parallel = build_discovery(plan, data_root, environ=environ)
+    assert serial.run == parallel.run
+    assert serial.inventories == parallel.inventories
 
 
 def test_a_grid_whose_tiles_do_not_fit_the_frames_is_refused_before_anything_is_written(
