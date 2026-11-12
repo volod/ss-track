@@ -457,12 +457,17 @@ both directions and save each explicit decision durably. Restarting resumes from
 uncertain pairs remain undecided. The command produces the existing link-decisions declaration,
 does not infer human judgment from similarity, and does not present a blinded selection audit.
 An operator needs to move this review to another authorized host and return its decisions without
-copying unrelated staged data. A portable handoff must identify and verify the sealed records,
-source media and optional checkpoint it needs, preserve reviewer and source identities, and refuse
-conflicting or incomplete handoffs rather than overwriting decisions. It does not grant source
-rights, coordinate simultaneous reviewers across hosts, or publish footage. Evaluation uses a
-round trip between isolated data roots, including interrupted, incomplete, corrupted and conflicting
-handoffs; an explicit refusal is a valid result when integrity or permissions cannot be established.
+copying a dataset between hosts. Each host independently acquires, imports, builds and stages the
+same pinned source selection from portable text recipe inputs. A media-free handoff carries those
+inputs, the sealed link record, one host's staged-hash evidence and an optional checkpoint. Before
+accepting review work, the receiving host verifies its local sources and frames and compares their
+identities with the exporting host down to each staged frame. The handoff preserves the reviewer,
+source identities and checkpoint branch point, and refuses expired, unauthorized, incomplete,
+corrupted or divergent work rather than overwriting decisions. It carries no source media, staged
+frames, feature rows or model weights; does not grant source rights, execute recipe files,
+coordinate simultaneous reviewers, or publish footage. Evaluation uses a round trip between
+independently created isolated data roots. An explicit refusal is a valid result when integrity or
+permissions cannot be established.
 Review is bounded by the run: it offers the selected windows, the audit sample and the sibling
 windows, and withholds every window of a locked stream while no custodian policy allows it, saying
 why. A reviewer includes or excludes each offered window with what they saw and, for an exclusion, a

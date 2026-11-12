@@ -1,0 +1,39 @@
+{
+  "base_checkpoint_sha256": null,
+  "checkpoint_sha256": null,
+  "corpus_id": "hawk-drone-pilot-v1",
+  "corpus_manifest_sha256": "c72336d23640d84e3989e4350b6090d029bb1ebbec2239dee6bda5b71cafb860",
+  "expires_on": "2026-12-31",
+  "files": [
+    {
+      "path": "recipes/001-recording.yaml",
+      "role": "recipe",
+      "sha256": "b915bc4e79a08e80f70f83c3f6227d1d5651c3f43cdf1cfaa2319642e8d220a4",
+      "size": 442
+    },
+    {
+      "path": "recipes/002-corpus.yaml",
+      "role": "recipe",
+      "sha256": "d88a3b1b7d95dcfabef1911a6b4e9d45e8e13fad8567aef49b37966238df54be",
+      "size": 691
+    },
+    {
+      "path": "records/links.json",
+      "role": "links",
+      "sha256": "99e1635acc0fa141f0922e47dda63424ff63c8fb0e52f4dc1dd559ec58c2951d",
+      "size": 699
+    },
+    {
+      "path": "records/staged-hashes.json",
+      "role": "staged_hashes",
+      "sha256": "3970327cd5d224312e8bb8519509aa59cde1b2eabeb1511042e66a5fd9642a69",
+      "size": 38786
+    }
+  ],
+  "frame_set_sha256": "209a49b4fd30deeaffe24ca46c446948bd1ba7fefb532f02f33182ed17bf8dd4",
+  "kind": "ss-track.link-review-handoff",
+  "links_manifest_sha256": "b8a7356c26d4c7cab6736f1d6d84304385f15bd07cd108ad7e13529f344c9dd7",
+  "links_run_id": "portable-hawk-links",
+  "manifest_sha256": "420d2e1b3cce1d74fc127361e9de0eabace0f03fe767c777099595bb0fcafdf5",
+  "schema_version": 1
+}

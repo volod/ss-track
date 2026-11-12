@@ -46,99 +46,98 @@ contains implementation and acceptance evidence.
 
 ### Review on another host
 
-These commands prepare the current two-source pilot for review on a second computer. They transfer
-the imported source records and media, the corpus manifest and the sealed link record. They do not
-need the staged frames or the GPU models. Both computers need network access between them, `ssh` and
-`rsync`; the reviewing computer also needs Git, Make, uv, Python 3.12 or newer, and `ffplay` for
-in-command playback in a graphical session. The review computer needs enough free disk for the
-selected files and the Python environment. Transfer the data only to a computer authorized for the
-source terms.
-The [portable review task](../../plan.md#corpus-portable-link-review) covers an automated, verified
-handoff; the steps below are manual and the local checkpoint lock does not extend across computers.
-The [handoff planning record](../../records/0072-adhoc-remote-link-review-plan.md) records the
-verification of these instructions.
+Do not copy or reconstruct the dataset from another host. Every host acquires the authorized pinned
+sources and runs the ordinary inventory, acquisition, pool, import, build and stage commands in
+[Corpus](../corpus.md) against its own data root. Keep the source inventory, pool declaration and a
+text file containing the exact acquisition commands and byte limits as the creation recipe. Recipe
+files are instructions and inputs: `ss-track` verifies and extracts them but never executes them.
 
-On the pilot computer, from the project root, choose a remote login and a new, empty directory on
-the review computer. Use a directory path without spaces or single quotes for these commands. The
-checkout copied below includes current uncommitted implementation and contract files, so it does
-not depend on a commit having been created. If `DATA_DIR` or other private material is inside the
-checkout under another name, add an exclusion for it before copying the checkout.
+On the originating host, verify the corpus and pack its recipe, link record, staged-hash evidence
+and current checkpoint. The tar contains no source media, imported source copies, staged frames,
+feature rows or model weights. `--expires-on` is the last UTC date the recipient may open it.
 
 ```bash
-REVIEW_HOST="reviewer@example-host"
-REVIEW_DIR="review/ss-track"
 source scripts/shared/common.sh
 sst_load_env
-
-ssh "$REVIEW_HOST" "mkdir -p '$REVIEW_DIR/.data'"
-rsync -a --exclude='/.git/' --exclude='/.venv/' --exclude='/.data/' \
-  --exclude='/.env*' --exclude='/.agents/' --exclude='/.codex/' --exclude='/.aws/' \
-  --exclude='/.pytest_cache/' --exclude='/.mypy_cache/' --exclude='/.ruff_cache/' \
-  --exclude='**/__pycache__/' \
-  ./ "$REVIEW_HOST:$REVIEW_DIR/"
-(
-  cd "$DATA_DIR"
-  rsync -aR import/ corpus/pilot-two-source-v2-20261109/manifest.json \
-    self-supervised-corpus/pilot-links-features-v2-20261109/links.json \
-    "$REVIEW_HOST:$REVIEW_DIR/.data/"
-)
+.venv/bin/ss-track discover review-pack \
+  --run-id pilot-links-features-v2-20261109 \
+  --corpus pilot-two-source-v2-20261109 \
+  --identity-run pilot-origin-hashes-1 \
+  --expires-on 2026-12-31 --reviewer "Your name" \
+  --recipe path/to/source-inventory.json \
+  --recipe path/to/pool.yaml \
+  --recipe path/to/create-local.txt \
+  --out pilot-link-review.tar
 ```
 
-If resuming an existing review, stop the review first. With a new empty destination, copy its
-checkpoint as well:
+Transfer only `pilot-link-review.tar` using an operator-controlled channel. On the review host,
+check out the same software revision, run `make bootstrap`, and unpack the creation inputs. The
+explicit `--authorized` assertion records that the operator permits this host to receive the recipe;
+it does not grant source rights.
 
 ```bash
-(
-  cd "$DATA_DIR"
-  rsync -aR \
-    self-supervised-corpus/pilot-links-features-v2-20261109/link-review/decisions.yaml \
-    "$REVIEW_HOST:$REVIEW_DIR/.data/"
-)
+.venv/bin/ss-track discover review-unpack --archive pilot-link-review.tar \
+  --out local-review-recipe --authorized
 ```
 
-If the destination already has a checkpoint, inspect it first and do not overwrite it. Do not run
-independent reviews against copies of the same checkpoint: the local lock does not coordinate
-computers and one copy can overwrite another's decisions. On the second computer, run the following
-from the transferred checkout:
+Use the extracted inventory, pool and command file to acquire and stage the dataset locally. Then
+accept the handoff. This command verifies the complete local corpus, writes this host's
+`staged-hashes.json`, compares it with the archive's record, and only after an identical result
+installs the sealed link record and checkpoint. Different source sets, decode policies, corpus
+manifests, frame sets or individual frame bytes refuse. An expired, damaged or unauthorized archive
+also refuses without changing review decisions.
 
 ```bash
-cd ~/review/ss-track  # use REVIEW_DIR chosen above
-export DATA_DIR="$PWD/.data"
-make bootstrap
+.venv/bin/ss-track discover review-accept --archive pilot-link-review.tar \
+  --identity-run pilot-reviewer-hashes-1 \
+  --comparison-run pilot-origin-reviewer-compare-1 \
+  --reviewer "Your name" --authorized
 .venv/bin/ss-track discover review-links \
   --run-id pilot-links-features-v2-20261109 --reviewer "Your name"
 ```
 
-Use the same reviewer name to resume. A source or seal refusal indicates that the copied files are
-missing, changed, or no longer meet their recorded terms; repair the transfer or investigate the
-terms before reviewing. The command verifies the source bytes when displaying or playing them.
-For this pilot the reviewer starts with 136 flagged pairs. Leave uncertain pairs undecided.
-
-When finished or pausing, stop the command. On the pilot computer, retrieve the checkpoint to a
-separate directory so it cannot overwrite a local review:
+Use the same reviewer name to resume. Leave uncertain pairs undecided. When pausing or finishing,
+pack a new archive on the review host with the same recipe inputs. The accepted handoff retained the
+incoming checkpoint identity as the branch point, so the returned archive can distinguish a clean
+continuation from concurrent edits.
 
 ```bash
-source scripts/shared/common.sh
-sst_load_env
-mkdir -p "$DATA_DIR/self-supervised-corpus/pilot-links-features-v2-20261109/returned"
-REVIEW_RUN_PATH="$REVIEW_DIR/.data/self-supervised-corpus/pilot-links-features-v2-20261109"
-rsync -a \
-  "$REVIEW_HOST:$REVIEW_RUN_PATH/link-review/decisions.yaml" \
-  "$DATA_DIR/self-supervised-corpus/pilot-links-features-v2-20261109/returned/decisions.yaml"
+.venv/bin/ss-track discover review-pack \
+  --run-id pilot-links-features-v2-20261109 \
+  --corpus pilot-two-source-v2-20261109 \
+  --identity-run pilot-reviewer-return-hashes-1 \
+  --expires-on 2026-12-31 --reviewer "Your name" \
+  --recipe local-review-recipe/source-inventory.json \
+  --recipe local-review-recipe/pool.yaml \
+  --recipe local-review-recipe/create-local.txt \
+  --out pilot-link-review-returned.tar
 ```
 
-Keep `REVIEW_HOST` and `REVIEW_DIR` set as above, or set them again in the new shell. To apply the
-returned file on the pilot computer, use a fresh run ID:
+Return only that tar. On the origin, `review-accept` compares the independently created local corpus
+again and replaces the checkpoint only when the local checkpoint still equals the returned
+archive's branch point. A divergent local checkpoint is `IMPORT_CONFLICT`; neither side is merged or
+overwritten. After acceptance, apply the checkpoint in a fresh link run:
 
 ```bash
+.venv/bin/ss-track discover review-accept --archive pilot-link-review-returned.tar \
+  --identity-run pilot-origin-return-hashes-1 \
+  --comparison-run pilot-return-compare-1 \
+  --reviewer "Your name" --authorized
 .venv/bin/ss-track discover links --corpus pilot-two-source-v2-20261109 \
   --run-id pilot-links-reviewed-1 --features pilot-diverse-v2-20261109 \
-  --decisions "$DATA_DIR/self-supervised-corpus/pilot-links-features-v2-20261109/returned/decisions.yaml"
+  --decisions "$DATA_DIR/self-supervised-corpus/pilot-links-features-v2-20261109/link-review/decisions.yaml"
 ```
 
 The link checker refuses related sources in different groups; group them in a new corpus version
 before rerunning, or retain the refusal and unresolved evidence as the pilot's result. The complete
 staged frames and discovery feature run remain necessary on the pilot computer for this check.
+The local lock still does not coordinate simultaneous reviewers across hosts; the checkpoint branch
+comparison detects their divergence when an archive returns.
+
+The [portable review record](../../records/0073-self-supervised-corpus-corpus-portable-link-review.md)
+contains implementation and acceptance evidence. The earlier
+[manual-transfer planning record](../../records/0072-adhoc-remote-link-review-plan.md) is historical;
+copying media between hosts is no longer the supported workflow.
 
 `--features` names a [discovery run](discovery-runs.md) over the same staged version, whose feature
 rows the `background-cosine` method compares; without it only the fingerprint runs.

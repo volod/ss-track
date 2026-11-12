@@ -8,6 +8,8 @@ from ss_track.commands.report import reported, reported_on_data_root
 from ss_track.corpus.discovery.run import run_discovery, verify_discovery_run
 from ss_track.corpus.evaluation.report import evaluate
 from ss_track.corpus.links.interactive import review_interactively
+from ss_track.corpus.links.portable import export_handoff, unpack_handoff
+from ss_track.corpus.links.portable_accept import accept_handoff
 from ss_track.corpus.links.run import LinkRequest, write_links
 from ss_track.corpus.review.blind import present_audit, unblind_audit
 from ss_track.corpus.review.export import export_review
@@ -76,6 +78,41 @@ def add_discover_commands(subcommands: Subcommands) -> None:
     review_links.add_argument("--run-id", required=True, help="undecided link-review run id")
     review_links.add_argument("--reviewer", required=True, help="name of the human reviewer")
     review_links.set_defaults(handler=_review_links)
+    review_pack = commands.add_parser(
+        "review-pack", help="pack a media-free review handoff for an independently built corpus"
+    )
+    review_pack.add_argument("--run-id", required=True, help="link-review run id")
+    review_pack.add_argument("--corpus", required=True, help="locally built corpus id")
+    review_pack.add_argument("--identity-run", required=True, help="run for this host's hashes")
+    review_pack.add_argument("--expires-on", required=True, help="last permitted UTC date")
+    review_pack.add_argument("--out", type=Path, required=True, help="portable tar archive")
+    review_pack.add_argument(
+        "--recipe",
+        type=Path,
+        action="append",
+        required=True,
+        help="local creation input to include",
+    )
+    review_pack.add_argument("--reviewer", required=True, help="checkpoint reviewer identity")
+    review_pack.set_defaults(handler=_review_pack)
+    review_unpack = commands.add_parser(
+        "review-unpack", help="extract creation inputs from a verified media-free handoff"
+    )
+    review_unpack.add_argument("--archive", type=Path, required=True)
+    review_unpack.add_argument("--out", type=Path, required=True)
+    review_unpack.add_argument("--authorized", action="store_true")
+    review_unpack.set_defaults(handler=_review_unpack)
+    review_accept = commands.add_parser(
+        "review-accept", help="compare a local corpus and safely accept a review handoff"
+    )
+    review_accept.add_argument("--archive", type=Path, required=True)
+    review_accept.add_argument("--identity-run", required=True, help="run for local staged hashes")
+    review_accept.add_argument(
+        "--comparison-run", required=True, help="run for comparison evidence"
+    )
+    review_accept.add_argument("--reviewer", required=True)
+    review_accept.add_argument("--authorized", action="store_true")
+    review_accept.set_defaults(handler=_review_accept)
     queue = commands.add_parser(
         "queue", help="report the windows a run offers for review and write a review file"
     )
@@ -122,6 +159,38 @@ def _links(args: argparse.Namespace) -> int:
 def _review_links(args: argparse.Namespace) -> int:
     return reported_on_data_root(
         lambda data_root: review_interactively(args.run_id, args.reviewer, data_root)
+    )
+
+
+def _review_pack(args: argparse.Namespace) -> int:
+    return reported_on_data_root(
+        lambda data_root: export_handoff(
+            data_root,
+            args.run_id,
+            args.corpus,
+            args.identity_run,
+            args.expires_on,
+            args.out,
+            args.recipe,
+            args.reviewer,
+        )
+    )
+
+
+def _review_unpack(args: argparse.Namespace) -> int:
+    return reported(lambda: unpack_handoff(args.archive, args.out, args.authorized))
+
+
+def _review_accept(args: argparse.Namespace) -> int:
+    return reported_on_data_root(
+        lambda data_root: accept_handoff(
+            data_root,
+            args.archive,
+            args.identity_run,
+            args.comparison_run,
+            args.reviewer,
+            args.authorized,
+        )
     )
 
 

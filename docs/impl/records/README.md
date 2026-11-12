@@ -77,5 +77,6 @@ Copy the [template](template.md) using the
 | 0070 | `corpus-balanced-review-budget` | [0070-self-supervised-corpus-corpus-balanced-review-budget](0070-self-supervised-corpus-corpus-balanced-review-budget.md) |
 | 0071 | `corpus-interactive-link-review` | [0071-self-supervised-corpus-corpus-interactive-link-review](0071-self-supervised-corpus-corpus-interactive-link-review.md) |
 | 0072 | `remote-link-review-plan` | [0072-adhoc-remote-link-review-plan](0072-adhoc-remote-link-review-plan.md) |
+| 0073 | `corpus-portable-link-review` | [0073-self-supervised-corpus-corpus-portable-link-review](0073-self-supervised-corpus-corpus-portable-link-review.md) |
 
-Next unused sequence: `0073`.
+Next unused sequence: `0074`.

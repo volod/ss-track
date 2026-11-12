@@ -34,6 +34,7 @@ baseline scope and evidence. The installed set contains these document contracts
 | `record/frame-set` | `1.0.0` |
 | `record/staged-hashes` | `1.0.0` |
 | `record/hash-comparison` | `1.0.0` |
+| `record/link-review-handoff` | `1.0.0` |
 | `record/source-acquisition` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0` |
 | `record/corpus-pool` | `1.0.0` |
 | `record/source-manifest` | `2.0.0`, `2.1.0`, `2.2.0`, `2.3.0`, `2.4.0` |
@@ -114,6 +115,10 @@ capability, state a [discovery run's plan and an ss-video hint file](corpus/disc
 `selection`. `record/corpus-links` and `declaration/link-decisions`, owned by the same capability,
 hold a link review of one version and a reviewer's decisions on pairs of recordings; the
 [leakage review](corpus/leakage-review.md) states their rules, which `read_links` enforces.
+`record/link-review-handoff` is the sealed manifest inside a media-free portable review tar. It
+binds the corpus, frame set, link record, optional checkpoint branch and every archive member by
+size and SHA-256. Recipe members are text inputs only; media, staged frames, feature rows and model
+weights remain local to independently prepared hosts.
 `declaration/corpus-review` and `record/corpus-freeze` hold a reviewer's decisions on the windows a
 discovery run offers and the sealed export of the version frozen from them.
 `declaration/corpus-review` 1.1.0 and the freeze record's review object in 1.1.0 add optional

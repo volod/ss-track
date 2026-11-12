@@ -576,6 +576,21 @@ contracts:
       class: initial
       summary: The shipped format at major 1, with no record bytes changed.
 - family: record
+  id: link-review-handoff
+  owner: self-supervised-corpus
+  status: active
+  description: A media-free archive manifest for reproducing and comparing a link-review
+    corpus on another host.
+  versions:
+  - version: 1.0.0
+    file_sha256: a6e88acbb4cd4abc22ba43b1443f2f3164c483e16a9d2f7c4612ae80bf9556af
+    fingerprints:
+      structure: ceaa0ccb8b5a975df4b430c314db525ad5a7d7c87cff8c54191ff90db841002c
+      meaning: 8ebf87bee0b741360eae04c7bef8e29a98d1295688f47adac9af78004637c755
+    change:
+      class: initial
+      summary: Initial contract.
+- family: record
   id: source-acquisition
   owner: self-supervised-corpus
   status: active

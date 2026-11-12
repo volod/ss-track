@@ -24,6 +24,7 @@ CORPUS_FREEZE_KIND = "ss-track.corpus-freeze"
 SOURCE_ACQUISITION_KIND = "ss-track.source-acquisition"
 CORPUS_POOL_KIND = "ss-track.corpus-pool"
 AUDIT_BLINDING_KIND = "ss-track.audit-blinding"
+LINK_REVIEW_HANDOFF_KIND = "ss-track.link-review-handoff"
 
 
 @dataclass(frozen=True, slots=True)
@@ -52,3 +53,4 @@ CORPUS_FREEZE = RecordFormat(CORPUS_FREEZE_KIND, major=1)
 SOURCE_ACQUISITION = RecordFormat(SOURCE_ACQUISITION_KIND, major=1)
 CORPUS_POOL = RecordFormat(CORPUS_POOL_KIND, major=1)
 AUDIT_BLINDING = RecordFormat(AUDIT_BLINDING_KIND, major=1)
+LINK_REVIEW_HANDOFF = RecordFormat(LINK_REVIEW_HANDOFF_KIND, major=1)

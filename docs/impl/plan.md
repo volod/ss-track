@@ -30,34 +30,6 @@ extensions; none blocks M3. Fixture implementation proceeds without physical har
 
 ### Self-supervised video corpus -- `self-supervised-corpus`
 
-#### corpus-portable-link-review
-
-Reviewing on another computer currently requires manually assembling matching source media,
-sealed records, software and checkpoint files. A missed file, changed byte or concurrent copy can
-prevent review or silently replace a reviewer's decisions.
-
-- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
-- Agent status: CLEAR
-- Dependencies: none.
-- User-visible outcome: An operator prepares a minimal verified review handoff, runs and resumes it
-  on another host, and returns the decisions without silently overwriting work.
-- Scope boundary: Local portable artifacts and explicit operator-controlled transfer; no remote
-  credentials, unattended network transfer, rights grant, publication, distributed locking,
-  automatic adjudication or changes to the blinded window audit.
-- Data and artifact paths: `src/ss_track/corpus/links/`, `src/ss_track/commands/`, `contracts/`,
-  `tests/corpus/links/` and `$DATA_DIR/self-supervised-corpus/<run-id>/`.
-- Execution path: Define and freeze any new interchange contract, export the required corpus and
-  link records, source records and permitted media plus any existing checkpoint, and verify their
-  identities and terms when importing into an isolated data root. Provide an explicit return path
-  for reviewer decisions that detects stale, divergent or conflicting local checkpoints, retains
-  uncertainty, and never silently merges or overwrites review work. Document installation, transfer,
-  resume, return and recovery on two hosts.
-- Acceptance gates: Network-free tests round-trip an interrupted review between two data roots and
-  feed returned decisions to `discover links`; omitted, corrupted, expired, unauthorized and
-  conflicting inputs are refused without changing existing decisions. The handoff excludes unrelated
-  staged frames and model weights, exposes transfer size, and `make ci` passes.
-- Documentation target: [Leakage review](current/corpus/leakage-review.md#review-on-another-host).
-
 #### corpus-two-source-pilot
 
 The chosen sources need an approved, measured pool and paired runs before people can review them.
@@ -70,7 +42,7 @@ The chosen sources need an approved, measured pool and paired runs before people
 - Scope boundary: Approved sources, rights, models, storage, compute and reviewer budget only; no
   unattended spend, public upload, held-out access or field-prevalence claim.
 - Data and artifact paths: `$DATA_DIR/self-supervised-corpus/<run-id>/`, `$DATA_DIR/import/`,
-  `$DATA_DIR/corpus/<corpus-id>/`.
+  `$DATA_DIR/corpus/<corpus-id>/`, `docs/impl/workloads/two-source-pilot/`.
 - Execution path: Resolve pins and terms per source, acquire only approved inputs, verify hashes,
   group cross-source related recordings, build and stage the pool, and run `ssl-diverse` and
   `uniform` at one pool, audit seed and budget. Freeze the review protocol before `discover blind`;
@@ -79,10 +51,15 @@ The chosen sources need an approved, measured pool and paired runs before people
   settings fixed when comparing hosts, since those settings change the experiment. Resolve or
   explicitly withhold uncertain per-recording provenance and flagged cross-group links before
   relying on groups as independent; check untagged source color matrices and report the effect of
-  any required fallback. Report an evidence-backed negative when evidence cannot be resolved.
+  any required fallback. Publish a media-free creation recipe with the pinned inventory, exact
+  selections, acquisition commands and byte limits, and pool declaration so every authorized host
+  can independently acquire and stage the same corpus. Report an evidence-backed negative when
+  evidence cannot be resolved.
 - Acceptance gates: Inputs, staged frames, grouping, selection and sampling verify; the review queue
   includes eligible unselected windows, reports withheld exposure and retains reproducible evidence.
-  Insufficient rights, targets or resources is an explicit valid negative; `make ci` passes.
+  A fresh authorized data root recreates the same source, corpus and frame-set identities from the
+  media-free recipe, or records an explicit valid negative. Insufficient rights, targets or resources
+  is an explicit valid negative; `make ci` passes.
 - Documentation target: [Corpus](current/corpus.md).
 
 #### corpus-balanced-review-budget
@@ -2429,20 +2406,24 @@ be treated as independent, including when the reviewer works on a different host
 - Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: HUMAN-GATED
 - Dependencies: authorize-video-corpus-sources.
-- User-visible outcome: A named reviewer can resume the pilot relationship review on another host
-  and return the resulting decisions to the pilot operator.
+- User-visible outcome: A named reviewer independently creates the pinned pilot dataset on another
+  host, verifies it against the operator's identities, resumes the relationship review and returns
+  the resulting decisions.
 - Scope boundary: Human decisions on flagged source relationships; uncertain pairs remain undecided,
   and this review does not replace the independent blinded window audit.
 - Data and artifact paths: `$DATA_DIR/import/`, `$DATA_DIR/corpus/<corpus-id>/manifest.json`,
-  `$DATA_DIR/self-supervised-corpus/<run-id>/links.json` and `link-review/decisions.yaml`.
-- Execution path: Transfer an authorized copy of the required source records and media with the
-  sealed corpus and links records, then run the [other-host review instructions](current/corpus/leakage-review.md#review-on-another-host).
-  Return the checkpoint to the pilot host and apply it in a new link review; group related sources
+  `$DATA_DIR/self-supervised-corpus/<run-id>/links.json`, `link-review/decisions.yaml` and the
+  media-free portable review tar.
+- Execution path: Use the [other-host review instructions](current/corpus/leakage-review.md#review-on-another-host)
+  to unpack the pinned text recipe, independently acquire and stage the authorized dataset, compare
+  its sealed staged identities, and only then accept and resume the review checkpoint. Return a
+  media-free archive to the pilot host and apply it in a new link review; group related sources
   before relying on independence. Retain unresolved cases and record an evidence-backed negative
   when the available information cannot establish the relationships.
-- Acceptance gates: The reviewer identity and checkpoint are retained; decisions validate with
-  `discover links`, related groups are reconciled or explicitly withheld, and remaining undecided
-  pairs and their effect on independence are reported.
+- Acceptance gates: The reviewer host's independently created dataset compares identical before the
+  reviewer identity and checkpoint are accepted; decisions validate with `discover links`, related
+  groups are reconciled or explicitly withheld, and remaining undecided pairs and their effect on
+  independence are reported.
 - Documentation target: [Leakage review](current/corpus/leakage-review.md#review-on-another-host).
 
 #### review-video-corpus-sample

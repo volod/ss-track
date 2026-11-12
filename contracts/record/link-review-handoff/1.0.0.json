@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ss-track:contract:record:link-review-handoff:1.0.0",
+  "title": "Link review handoff",
+  "description": "A media-free archive manifest for reproducing and comparing a link-review corpus on another host.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind",
+    "schema_version",
+    "manifest_sha256",
+    "expires_on",
+    "corpus_id",
+    "corpus_manifest_sha256",
+    "frame_set_sha256",
+    "links_run_id",
+    "links_manifest_sha256",
+    "base_checkpoint_sha256",
+    "checkpoint_sha256",
+    "files"
+  ],
+  "properties": {
+    "kind": {
+      "type": "string",
+      "description": "Names this record format.",
+      "const": "ss-track.link-review-handoff"
+    },
+    "schema_version": {
+      "type": "integer",
+      "description": "The format major.",
+      "x-unit": "1",
+      "const": 1,
+      "minimum": 0
+    },
+    "manifest_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Seal of this manifest, excluding this field."
+    },
+    "expires_on": {
+      "type": "string",
+      "description": "Last UTC calendar day on which a recipient may open this handoff.",
+      "format": "date"
+    },
+    "corpus_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "Corpus version each host creates locally."
+    },
+    "corpus_manifest_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Seal of the corpus manifest used by the exporting host."
+    },
+    "frame_set_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Verified frame-set identity used for cross-host comparison."
+    },
+    "links_run_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "Link-review run carried by the archive."
+    },
+    "links_manifest_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Seal of the carried link record."
+    },
+    "base_checkpoint_sha256": {
+      "type": ["string", "null"],
+      "description": "Checkpoint identity accepted before this review branch, or null when none existed.",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "checkpoint_sha256": {
+      "type": ["string", "null"],
+      "description": "Checkpoint identity carried now, or null when no checkpoint exists.",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "files": {
+      "type": "array",
+      "description": "Every non-manifest archive member in ascending path order.",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "description": "One fixed archive member and its identity.",
+        "additionalProperties": false,
+        "required": ["path", "role", "size", "sha256"],
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Safe relative POSIX path inside the archive.",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]{0,255}$"
+          },
+          "role": {
+            "type": "string",
+            "description": "Purpose of this member.",
+            "enum": ["links", "staged_hashes", "checkpoint", "recipe"]
+          },
+          "size": {
+            "type": "integer",
+            "description": "Member byte length.",
+            "x-unit": "byte",
+            "minimum": 0
+          },
+          "sha256": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+            "description": "SHA-256 of the exact member bytes."
+          }
+        }
+      }
+    }
+  },
+  "x-rules": {
+    "seal": "manifest_sha256 is SHA-256 of the record excluding that key, serialized as sorted-key JSON with ASCII escapes and no whitespace.",
+    "files": "Files are sorted by path, paths are unique and exactly match archive members other than manifest.json. Exactly one links and one staged_hashes member exist, and checkpoint presence agrees with checkpoint_sha256.",
+    "checkpoint": "base_checkpoint_sha256 identifies the imported branch point. A receiver replaces its checkpoint only when its current identity equals the base or the carried identity.",
+    "contents": "Recipes contain only operator-selected creation inputs. Source media, staged frames, feature rows and model weights are absent."
+  }
+}
