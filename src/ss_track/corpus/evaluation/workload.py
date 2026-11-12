@@ -3,7 +3,9 @@
 Equal selected counts are not equal review cost. The queue offers each window once, whether
 selection, the audit draw, a sibling hint, or several of those name it. A per-run review pays
 each queue. A shared blinded audit pays the audit windows both runs offer once, then each run's
-other offers. A withheld window is counted apart and is not an offered window. Minutes a review
+other offers. A selection pass, recorded in both reviews over one shared audit, pays each
+run's selected windows once more, so its work does not depend on how the audit draw overlaps the
+selections. A withheld window is counted apart and is not an offered window. Minutes a review
 does not record stay unmeasured rather than zero.
 """
 
@@ -14,10 +16,17 @@ from typing import Any
 from ss_track.corpus.discovery.records import DiscoveryRecords
 from ss_track.corpus.discovery.run_rules import SAMPLED, SELECTED
 from ss_track.corpus.evaluation.inputs import Evidence
+from ss_track.corpus.evaluation.passes import (
+    PassAccount,
+    disagreements,
+    pass_account,
+    pass_report,
+)
 from ss_track.corpus.review.queue import OFFER_AUDIT, OFFER_SIBLING, CandidateKey, offers_of
 
 PROTOCOL_PER_RUN = "per_run"
 PROTOCOL_SHARED = "shared_audit"
+PROTOCOL_PASS = "selection_pass"
 PROTOCOL_UNRECORDED = "unrecorded"
 BUDGET_MATCHED = "matched"
 BUDGET_UNMATCHED = "unmatched"
@@ -29,6 +38,9 @@ REASON_SELECTED = "actual selected counts differ"
 REASON_WORKLOAD = "review workloads differ"
 REASON_PROTOCOL = "review protocol is unrecorded"
 REASON_MISSING = "withheld window is missing from the run"
+REASON_PASS_UNPAIRED = "selection passes are not recorded in both reviews of one shared audit"
+REASON_PASS_INCOMPLETE = "a selection pass leaves a selected window unreviewed"
+_UNMEASURED = (REASON_MISSING, REASON_PROTOCOL, REASON_PASS_UNPAIRED, REASON_PASS_INCOMPLETE)
 
 
 @dataclass(frozen=True, slots=True)
@@ -67,10 +79,11 @@ class ReviewBudget:
     unique_offered_windows: int
     diverse: RunWorkload
     uniform: RunWorkload
+    passes: dict[str, Any] | None = None
 
     def to_record(self) -> dict[str, Any]:
-        """Return the budget a command result can carry."""
-        return {
+        """Return the budget a command result can carry; `selection_pass` only when recorded."""
+        record: dict[str, Any] = {
             "protocol": self.protocol,
             "status": self.status,
             "shared_audit_windows": self.shared_audit_windows,
@@ -80,6 +93,9 @@ class ReviewBudget:
             "recorded_effort": self.recorded_effort,
             "reasons": list(self.reasons),
         }
+        if self.passes is not None:
+            record["selection_pass"] = self.passes
+        return record
 
 
 def _windows(records: DiscoveryRecords) -> dict[CandidateKey, Mapping[str, Any]]:
@@ -117,12 +133,20 @@ def _workload(
     return RunWorkload(selected, frozenset(offered), siblings, overlap, len(withheld), missing)
 
 
-def _protocol(left: str | None, right: str | None) -> str:
+def _protocol(diverse: Evidence, uniform: Evidence) -> tuple[str, tuple[str, ...]]:
+    """Return the declared protocol, with the reason an unrecorded one cannot be compared."""
+    left, right = diverse.audit_id, uniform.audit_id
+    shared = left is not None and left == right
+    passes = (diverse.selection_pass is not None, uniform.selection_pass is not None)
+    if all(passes) and shared:
+        return PROTOCOL_PASS, ()
+    if any(passes):
+        return PROTOCOL_UNRECORDED, (REASON_PASS_UNPAIRED,)
     if left is None and right is None:
-        return PROTOCOL_PER_RUN
-    if left is not None and left == right:
-        return PROTOCOL_SHARED
-    return PROTOCOL_UNRECORDED
+        return PROTOCOL_PER_RUN, ()
+    if shared:
+        return PROTOCOL_SHARED, ()
+    return PROTOCOL_UNRECORDED, (REASON_PROTOCOL,)
 
 
 def _effort(left: int | None, right: int | None) -> str:
@@ -140,16 +164,18 @@ def _audit_offered(
 
 
 def _reasons(
-    protocol: str,
+    unrecorded: tuple[str, ...],
     diverse: RunWorkload,
     uniform: RunWorkload,
     comparable: Mapping[str, int],
+    accounts: tuple[PassAccount | None, PassAccount | None],
 ) -> tuple[str, ...]:
     found: list[str] = []
     if diverse.missing_withheld or uniform.missing_withheld:
         found.append(REASON_MISSING)
-    if protocol == PROTOCOL_UNRECORDED:
-        found.append(REASON_PROTOCOL)
+    found.extend(unrecorded)
+    if not unrecorded and any(item is not None and not item.complete for item in accounts):
+        found.append(REASON_PASS_INCOMPLETE)
     if found:
         return tuple(found)
     if diverse.selected != uniform.selected:
@@ -160,7 +186,7 @@ def _reasons(
 
 
 def _status(reasons: tuple[str, ...]) -> str:
-    if REASON_MISSING in reasons or REASON_PROTOCOL in reasons:
+    if any(reason in _UNMEASURED for reason in reasons):
         return BUDGET_UNMEASURED
     if reasons:
         return BUDGET_UNMATCHED
@@ -194,14 +220,23 @@ def review_budget(
     left = _workload(diverse_windows, diverse_pool, diverse.withheld)
     right = _workload(uniform_windows, uniform_pool, uniform.withheld)
     shared = _audit_offered(left, diverse_windows) & _audit_offered(right, uniform_windows)
-    protocol = _protocol(diverse.audit_id, uniform.audit_id)
+    protocol, unrecorded = _protocol(diverse, uniform)
     per_method = {"diverse": len(left.offered), "uniform": len(right.offered)}
     additions = {
         "diverse": len(left.offered - shared),
         "uniform": len(right.offered - shared),
     }
-    comparable = additions if protocol == PROTOCOL_SHARED else per_method
-    reasons = _reasons(protocol, left, right, comparable)
+    accounts = (pass_account(diverse, diverse_windows), pass_account(uniform, uniform_windows))
+    comparable = per_method
+    if protocol == PROTOCOL_SHARED:
+        comparable = additions
+    elif protocol == PROTOCOL_PASS:
+        comparable = {
+            side: account.reviewed
+            for side, account in zip(("diverse", "uniform"), accounts, strict=True)
+            if account is not None
+        }
+    reasons = _reasons(unrecorded, left, right, comparable, accounts)
     return ReviewBudget(
         protocol,
         _status(reasons),
@@ -214,4 +249,11 @@ def review_budget(
         len(left.offered | right.offered),
         left,
         right,
+        pass_report(
+            protocol == PROTOCOL_PASS,
+            len(shared),
+            accounts,
+            disagreements("diverse", diverse, diverse_windows)
+            + disagreements("uniform", uniform, uniform_windows),
+        ),
     )

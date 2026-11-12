@@ -4,8 +4,9 @@ The template is a review declaration with every offered window `unreviewed`, eac
 comment that states its window, why it was offered, what selection and the audit decided, and its
 scores, so a reviewer can inspect a candidate with `corpus preview` and decide it in place. Its
 reviewer is empty, which the contract refuses, so a template cannot pass as a review until someone
-names who decided. Values are written as JSON strings, which YAML reads as the same text, so an
-identifier such as `001` stays text.
+names who decided. A commented selection-pass block lists every selected window for a reviewer
+who reviews them again. Values are written as JSON strings, which YAML reads as the same text, so
+an identifier such as `001` stays text.
 """
 
 import json
@@ -18,6 +19,7 @@ from ss_track.corpus.review.decisions import REVIEW_SCHEMA_VERSION, UNREVIEWED
 from ss_track.corpus.review.export import write_once
 from ss_track.corpus.review.queue import Offered, ReviewQueue, review_queue
 from ss_track.corpus.review.result import QueueResult
+from ss_track.corpus.review.selection_pass import PASS_FIELD, expected_windows
 from ss_track.corpus.versions.manifests import load_corpus_manifest
 
 _GUIDE = (
@@ -25,6 +27,13 @@ _GUIDE = (
     "target_absent, confuser or unknown. An observation is what you saw, never a label.",
     "An exclusion also states a reason: no_value, quality, sensitive, rights, duplicate,",
     "or other with a note. Leave a window you did not decide unreviewed.",
+)
+_PASS_GUIDE = (
+    "Selection pass, for a matched comparison over one shared blinded audit: remove the",
+    'leading "# " of the block below, name its reviewer and give every listed window an',
+    "observation. It lists every selected window, including windows the audit showed;",
+    "copy it into the review that unblinding wrote for this run. Leaving a window out",
+    "makes the pass incomplete. Its observations never replace the audit's.",
 )
 
 
@@ -79,7 +88,22 @@ def template_text(queue: ReviewQueue, corpus_id: str) -> str:
             f"  candidate_id: {_quoted(offered.candidate_id)}",
             f"  decision: {UNREVIEWED}",
         ]
-    return "\n".join(lines) + "\n"
+    return "\n".join(lines + _pass_lines(queue)) + "\n"
+
+
+def _pass_lines(queue: ReviewQueue) -> list[str]:
+    """Return the commented selection-pass block of every selected window, or nothing."""
+    selected = sorted(expected_windows(queue))
+    if not selected:
+        return []
+    lines = [f"# {line}" for line in _PASS_GUIDE]
+    lines += [f"# {PASS_FIELD}:", '#   reviewer: ""', "#   windows:"]
+    lines += [
+        f"#   - {{stream_id: {_quoted(stream_id)}, candidate_id: {_quoted(candidate_id)}, "
+        'observation: ""}'
+        for stream_id, candidate_id in selected
+    ]
+    return lines
 
 
 def queue_review(run_id: str, data_root: Path, out: Path | None = None) -> QueueResult:

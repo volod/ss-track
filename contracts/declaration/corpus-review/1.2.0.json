@@ -1,0 +1,266 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ss-track:contract:declaration:corpus-review:1.2.0",
+  "title": "Corpus review",
+  "description": "A reviewer's decisions on the candidate windows one discovery run offers for review: the selected windows, the audit sample and the sibling windows, never a window of a locked stream while no custodian policy allows it. An included window's frames join a frozen corpus version under its stream's group and split. An observation records what the reviewer saw and is not a label: labels come only from the annotation contract.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "reviewer",
+    "decisions"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1,
+      "minimum": 0,
+      "x-unit": "1",
+      "description": "Declaration major."
+    },
+    "run_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "The discovery run whose candidates were reviewed."
+    },
+    "reviewer": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Who made these decisions: a person or a role the owner recognizes.",
+      "x-rules": {
+        "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+      }
+    },
+    "decisions": {
+      "type": "array",
+      "description": "Decisions in any order. A candidate is decided at most once.",
+      "minItems": 0,
+      "items": {
+        "description": "One decision on one offered candidate window.",
+        "oneOf": [
+          {
+            "type": "object",
+            "description": "A include decision.",
+            "properties": {
+              "stream_id": {
+                "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                "description": "The stream of the discovery run whose inventory holds the candidate."
+              },
+              "candidate_id": {
+                "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                "description": "The candidate, as its inventory names it."
+              },
+              "decision": {
+                "type": "string",
+                "description": "include: the window's frames join the frozen corpus version.",
+                "const": "include"
+              },
+              "observation": {
+                "type": "string",
+                "description": "What the reviewer saw in the window. target_present: a target in at least one frame. target_absent: no target seen, which is a review, not a verified absence. confuser: no target seen, but a moving object a model or a reviewer could mistake for one. unknown: the reviewer could not tell. An observation is never a label.",
+                "enum": [
+                  "target_present",
+                  "target_absent",
+                  "confuser",
+                  "unknown"
+                ]
+              },
+              "note": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Why, in the reviewer's words. Optional, except for the reason other.",
+                "x-rules": {
+                  "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+                }
+              }
+            },
+            "required": [
+              "stream_id",
+              "candidate_id",
+              "decision",
+              "observation"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "description": "A exclude decision.",
+            "properties": {
+              "stream_id": {
+                "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                "description": "The stream of the discovery run whose inventory holds the candidate."
+              },
+              "candidate_id": {
+                "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                "description": "The candidate, as its inventory names it."
+              },
+              "decision": {
+                "type": "string",
+                "description": "exclude: the window's frames stay out of the frozen corpus version.",
+                "const": "exclude"
+              },
+              "observation": {
+                "type": "string",
+                "description": "What the reviewer saw in the window. target_present: a target in at least one frame. target_absent: no target seen, which is a review, not a verified absence. confuser: no target seen, but a moving object a model or a reviewer could mistake for one. unknown: the reviewer could not tell. An observation is never a label.",
+                "enum": [
+                  "target_present",
+                  "target_absent",
+                  "confuser",
+                  "unknown"
+                ]
+              },
+              "reason": {
+                "type": "string",
+                "description": "Why the window stays out. no_value: nothing the corpus needs. quality: blur, damage or compression make it unusable. sensitive: it shows people, plates or other sensitive content. rights: its terms do not cover this use. duplicate: it repeats material already included. other: stated in the note.",
+                "enum": [
+                  "no_value",
+                  "quality",
+                  "sensitive",
+                  "rights",
+                  "duplicate",
+                  "other"
+                ]
+              },
+              "note": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Why, in the reviewer's words. Optional, except for the reason other.",
+                "x-rules": {
+                  "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+                }
+              }
+            },
+            "required": [
+              "stream_id",
+              "candidate_id",
+              "decision",
+              "observation",
+              "reason"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "description": "A unreviewed decision.",
+            "properties": {
+              "stream_id": {
+                "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                "description": "The stream of the discovery run whose inventory holds the candidate."
+              },
+              "candidate_id": {
+                "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                "description": "The candidate, as its inventory names it."
+              },
+              "decision": {
+                "type": "string",
+                "description": "unreviewed: the reviewer has not decided the window; it stays out and is reported as unreviewed exposure.",
+                "const": "unreviewed"
+              }
+            },
+            "required": [
+              "stream_id",
+              "candidate_id",
+              "decision"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    },
+    "independence": {
+      "type": "string",
+      "description": "Whether independence of selection was declared. Absent when the review does not state it. A declaration is not a verification.",
+      "enum": [
+        "declared",
+        "not_declared"
+      ]
+    },
+    "blinding": {
+      "type": "string",
+      "description": "Whether blinding to selection, scores, offer reasons and source labels was declared. Absent when the review does not state it. A declaration is not a verification.",
+      "enum": [
+        "declared",
+        "not_declared"
+      ]
+    },
+    "reviewer_minutes": {
+      "type": "integer",
+      "minimum": 0,
+      "x-unit": "min",
+      "description": "Minutes the reviewer recorded. Absent when effort was not recorded."
+    },
+    "audit_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "Blinded audit these decisions were mapped from. Absent for a review written directly."
+    },
+    "selection_pass": {
+      "type": "object",
+      "description": "A selection pass: every window the run selected and offers, reviewed again, including windows the audit sample also showed. It makes each run's selection work its selected count, whatever the audit overlap. It never changes selection, the audit draw or the audit weights. Absent when no pass was recorded.",
+      "additionalProperties": false,
+      "required": [
+        "reviewer",
+        "windows"
+      ],
+      "properties": {
+        "reviewer": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Who reviewed the selected windows again: a person or a role the owner recognizes.",
+          "x-rules": {
+            "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+          }
+        },
+        "reviewer_minutes": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "min",
+          "description": "Minutes the pass reviewer recorded. Absent when effort was not recorded."
+        },
+        "windows": {
+          "type": "array",
+          "minItems": 0,
+          "description": "Reviewed windows. A window is listed at most once. A selected window left out makes the pass incomplete.",
+          "items": {
+            "type": "object",
+            "description": "One selected window reviewed again in the pass.",
+            "additionalProperties": false,
+            "required": [
+              "stream_id",
+              "candidate_id",
+              "observation"
+            ],
+            "properties": {
+              "stream_id": {
+                "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                "description": "The stream of the discovery run whose inventory holds the candidate."
+              },
+              "candidate_id": {
+                "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                "description": "The candidate, as its inventory names it."
+              },
+              "observation": {
+                "type": "string",
+                "description": "What the pass reviewer saw in the window, with the meanings a decision's observation has. It is reported as review yield and never replaces the audit observation of the window in an estimate. An observation is never a label.",
+                "enum": [
+                  "target_present",
+                  "target_absent",
+                  "confuser",
+                  "unknown"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "x-rules": {
+        "selected": "Each selection pass window names a window the run selected and offers, of a stream outside the locked split, at most once."
+      }
+    }
+  },
+  "x-rules": {
+    "once": "A stream and candidate pair is decided at most once.",
+    "offered": "Each decision names a candidate the run offers for review: selected, audit-sampled or a sibling window, of a stream outside the locked split.",
+    "other-note": "An exclude decision with the reason other states a note.",
+    "consistent": "No source frame lies in both an included and an excluded window."
+  }
+}

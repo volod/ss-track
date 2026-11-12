@@ -13,6 +13,12 @@ from ss_track.corpus.discovery.selection_check import require_reproduced
 from ss_track.corpus.review.decisions import read_review
 from ss_track.corpus.review.freeze_record import read_freeze
 from ss_track.corpus.review.queue import CandidateKey, ReviewQueue, review_queue
+from ss_track.corpus.review.selection_pass import (
+    SelectionPass,
+    expected_windows,
+    pass_from_record,
+    require_pass_windows,
+)
 from ss_track.corpus.versions.manifests import load_corpus_manifest
 
 
@@ -21,7 +27,8 @@ class Evidence:
     """A verified run with observations from a review or a freeze.
 
     `audit_id` is present only when the review names the blinded audit it came from. Minutes are
-    present only when the review recorded them.
+    present only when the review recorded them. `selection_pass` is present only when the review
+    recorded one; its observations are never part of `observations`.
     """
 
     records: DiscoveryRecords
@@ -34,6 +41,7 @@ class Evidence:
     blinding: str | None = None
     reviewer_minutes: int | None = None
     audit_id: str | None = None
+    selection_pass: SelectionPass | None = None
 
 
 def candidates(records: DiscoveryRecords) -> dict[CandidateKey, Mapping[str, Any]]:
@@ -67,6 +75,7 @@ def read_evidence(
             for key, decision in review.decisions.items()
             if decision.observation is not None
         }
+        require_pass_windows(review.selection_pass, expected_windows(queue), queue.withheld, run_id)
         return Evidence(
             records,
             observations,
@@ -78,6 +87,7 @@ def read_evidence(
             review.blinding,
             review.reviewer_minutes,
             review.audit_id,
+            review.selection_pass,
         )
     assert freeze_id is not None
     freeze = read_freeze(data_root, load_corpus_manifest(freeze_id, data_root))
@@ -86,6 +96,8 @@ def read_evidence(
         raise invalid("freeze does not identify this discovery run and its seal")
     observations = _freeze_observations(freeze, queue)
     review_info: Any = freeze["review"]
+    selection_pass = pass_from_record(review_info.get("selection_pass"))
+    require_pass_windows(selection_pass, expected_windows(queue), queue.withheld, run_id)
     return Evidence(
         records,
         observations,
@@ -97,6 +109,7 @@ def read_evidence(
         _text(review_info, "blinding"),
         _minutes(review_info),
         _text(review_info, "audit_id"),
+        selection_pass,
     )
 
 

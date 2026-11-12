@@ -17,7 +17,7 @@ baseline scope and evidence. The installed set contains these document contracts
 | `declaration/dataset` | `1.0.0`, `1.1.0` |
 | `declaration/discovery-plan` | `1.0.0`, `1.1.0` |
 | `declaration/audit-review` | `1.0.0` |
-| `declaration/corpus-review` | `1.0.0`, `1.1.0` |
+| `declaration/corpus-review` | `1.0.0`, `1.1.0`, `1.2.0` |
 | `declaration/link-decisions` | `1.0.0`, `1.1.0` |
 | `declaration/source-inventory` | `1.0.0` |
 | `declaration/corpus-pool` | `1.0.0` |
@@ -25,7 +25,7 @@ baseline scope and evidence. The installed set contains these document contracts
 | `declaration/video-hints` | `1.0.0` |
 | `record/candidate-inventory` | `1.0.0` |
 | `record/audit-blinding` | `1.0.0` |
-| `record/corpus-freeze` | `1.0.0`, `1.1.0` |
+| `record/corpus-freeze` | `1.0.0`, `1.1.0`, `1.2.0` |
 | `record/corpus-links` | `1.0.0`, `1.1.0` |
 | `record/corpus-manifest` | `3.0.0`, `3.1.0`, `3.2.0`, `3.3.0`, `3.4.0` |
 | `record/discovery-run` | `1.0.0`, `1.1.0`, `1.2.0` |
@@ -38,7 +38,7 @@ baseline scope and evidence. The installed set contains these document contracts
 | `record/source-acquisition` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0` |
 | `record/corpus-pool` | `1.0.0` |
 | `record/source-manifest` | `2.0.0`, `2.1.0`, `2.2.0`, `2.3.0`, `2.4.0` |
-| `result/command` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0`, `1.4.0`, `1.5.0`, `1.6.0`, `1.7.0`, `1.8.0`, `1.9.0`, `1.9.1`, `1.10.0`, `1.11.0`, `1.12.0`, `1.13.0`, `1.14.0`, `1.15.0`, `1.16.0`, `1.17.0`, `1.18.0`, `1.19.0`, `1.20.0`, `1.21.0`, `1.22.0`, `1.23.0`, `1.24.0` |
+| `result/command` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0`, `1.4.0`, `1.5.0`, `1.6.0`, `1.7.0`, `1.8.0`, `1.9.0`, `1.9.1`, `1.10.0`, `1.11.0`, `1.12.0`, `1.13.0`, `1.14.0`, `1.15.0`, `1.16.0`, `1.17.0`, `1.18.0`, `1.19.0`, `1.20.0`, `1.21.0`, `1.22.0`, `1.23.0`, `1.24.0`, `1.25.0` |
 
 `result/command` `1.5.0` adds `redecoded`. `1.6.0` adds optional `unlinked` on a corpus build,
 present only when that data root has something to report. `1.7.0` adds optional `impact` when an
@@ -123,7 +123,9 @@ weights remain local to independently prepared hosts.
 discovery run offers and the sealed export of the version frozen from them.
 `declaration/corpus-review` 1.1.0 and the freeze record's review object in 1.1.0 add optional
 `independence`, `blinding`, `reviewer_minutes` and `audit_id`. A review that omits them still
-validates, and a freeze copies a field only when the review stated it.
+validates, and a freeze copies a field only when the review stated it. 1.2.0 of both adds an
+optional `selection_pass`: the pass reviewer, optional minutes, and an observation for each
+selected window the run offers. It is absent when no pass was recorded.
 `declaration/audit-review` 1.0.0 is the cue-free review of one blinded audit sample, and
 `record/audit-blinding` 1.0.0 is the private mapping back to the candidates. `result/command`
 1.21.0 adds `presented`, `unblinded` and the `blind` counts. 1.22.0 adds `estimated` and
@@ -137,7 +139,10 @@ than zero. 1.24.0 adds optional `by_source` on `discover evaluate` and widens `l
 entries to five. `by_source` reports each sealed collection beside the combined population, using
 the stratum design weight, and states shared-stratum covariance. A missing collection stays null
 rather than zero. Commands other than `discover evaluate` omit `by_source`. `sources` remains the
-hash-comparison list.
+hash-comparison list. 1.25.0 adds the `selection_pass` value of `review_budget.protocol`, and an
+optional `review_budget.selection_pass` with each run's pass work and yield, the windows reviewers
+looked at in all and each pass observation that disagrees with the run's review. It is absent
+when neither review recorded a pass, so a comparison without one is still a 1.24.0 record.
 [review and freeze](corpus/review-and-freeze.md) states their rules, which `read_review`,
 `read_audit_review`, `read_blinding` and `read_freeze` enforce. A decision is a `oneOf` tagged by
 `decision`, so an `unreviewed` entry carries no observation.

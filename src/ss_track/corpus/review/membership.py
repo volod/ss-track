@@ -19,6 +19,7 @@ from ss_track.corpus.declarations.declaration import CORPUS_SCHEMA_VERSION
 from ss_track.corpus.declarations.fields import invalid
 from ss_track.corpus.review.decisions import EXCLUDE, INCLUDE, Decision, Review
 from ss_track.corpus.review.queue import CandidateKey, Offered, ReviewQueue
+from ss_track.corpus.review.selection_pass import expected_windows, require_pass_windows
 from ss_track.schema.validation.enforce import is_shared_type
 
 type Decided = tuple[Offered, Decision]
@@ -144,6 +145,9 @@ def _require_consistent(members: Sequence[Member], exclusions: Sequence[Decided]
 def review_membership(queue: ReviewQueue, review: Review, corpus: Mapping[str, Any]) -> Membership:
     """Return the frozen streams, exclusions and unreviewed windows a review makes of its run."""
     _require_offered(queue, review)
+    require_pass_windows(
+        review.selection_pass, expected_windows(queue), queue.withheld, queue.run_id
+    )
     pool = {str(stream["stream_id"]): stream for stream in corpus["streams"]}
     included = [(queue.offered[item.key], item) for item in review.decided(INCLUDE)]
     exclusions = tuple((queue.offered[item.key], item) for item in review.decided(EXCLUDE))

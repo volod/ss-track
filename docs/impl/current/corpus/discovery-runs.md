@@ -413,13 +413,28 @@ does not record stay unmeasured rather than zero.
 The review budget counts each offered window once. `per_run`, when neither review names an
 `audit_id`, compares the two queues. `shared_audit`, when both name the same `audit_id`,
 compares the windows each run offers beyond the audit windows both offer, and states that shared
-count once. Any other pairing is `unrecorded`: the counts stay and the budget is unmeasured.
+count once. `selection_pass`, when both name the same `audit_id` and each records a
+[selection pass](review-and-freeze.md#selection-pass), compares each pass's reviewed windows. That
+is each run's selected count, whatever the audit overlap. Any other pairing is `unrecorded`: the
+counts stay and the budget is unmeasured. A pass in only one review, or passes without one shared
+audit, are unrecorded too, and an incomplete pass leaves the budget unmeasured.
 Equal selected counts with different audit overlap are unmatched. A withheld window is reported
 and is not an offered window. A sibling window is an offer, and it stays out of the population
 estimate because it has no inclusion probability. `review_budget.status` is `matched` only when
 the protocol's counts and the selected counts are equal.
 
-The log line is a `result/command` 1.24.0 record. `status` is `estimated` only when that budget
+With a pass, `review_budget.selection_pass` reports each run's `expected_windows`,
+`reviewed_windows`, `missing_windows`, the `audit_repeats` it reviewed again, its observations, and
+`targets_outside_audit`. That last count is target-present windows the estimate never sees: they are
+findings, not recall. `review_exposures` is the shared audit plus both passes, and it is null
+unless the protocol is `selection_pass`. `disagreements` lists each pass window whose observation
+differs from the run's review of it. An unknown on either side is not a disagreement. The review
+observation stays the one the estimate uses. A pass changes no recall, gain, interval or
+observation row. In the pilot's shape, 100 selections overlap a 232-window audit by 15 and 13.
+`shared_audit` compares 85 with 87 and is unmatched. `selection_pass` compares 100 with 100,
+reports 15 and 13 repeats and 432 exposures, and is matched.
+
+The log line is a `result/command` 1.25.0 record. `status` is `estimated` only when that budget
 is matched and the comparison has recall and an interval. It is `inconclusive` when the budget
 is unmatched or unmeasured, evidence is missing, variance is unavailable, or the runs selected
 different counts. A gain left on an inconclusive comparison is descriptive. It is a matched-budget
@@ -466,15 +481,23 @@ run.
 The reader and comparison are in `corpus/evaluation/inputs.py` and `report.py`. Membership is in
 `membership.py`, the stratum frame in `domains.py`, collection recall in `collection_metrics.py`,
 shared-stratum covariance in `covariance.py`, and per-collection cost in `exposure.py`. The workload
-is in `workload.py`, and the combined stratified estimate is in `statistics.py`. Verify with
+is in `workload.py`, selection-pass work and disagreements in `passes.py`, and the combined
+stratified estimate is in `statistics.py`. Verify with
 `tests/corpus/evaluation/`, the discovery selection and review freeze tests, and `make ci`. The
 evaluation command test logs an estimated comparison, an inconclusive one, and one whose blinding
 declarations differ. The suite checks each log against the newest `result/command`. Hand-calculated
 fixtures cover unequal weights, shared-stratum covariance, a source with no reviewed sample,
-incomplete provenance and a negative gain.
+incomplete provenance and a negative gain. `test_selection_pass_budget.py` hand-counts the pilot's
+85-versus-87 workload under `shared_audit` and under complete passes. It also covers findings
+outside the audit, disagreements that leave the estimate unchanged, an incomplete pass, a pass in
+one review only or without a shared audit, unequal selections, a withheld selection and a pass
+replayed onto the other run. The command test logs a matched `selection_pass` comparison, and checks
+that a comparison without a pass is still a 1.24.0 record.
 
 The [by-source record](../../records/0066-self-supervised-corpus-corpus-evaluation-by-source.md)
 holds the decisions and acceptance evidence. The
 [workload record](../../records/0065-self-supervised-corpus-corpus-evaluation-review-budget.md)
-holds the review-budget decisions. The comparison fields `result/command` 1.22.0 added are in that
+holds the review-budget decisions, and the
+[selection-pass record](../../records/0070-self-supervised-corpus-corpus-balanced-review-budget.md)
+holds the matched-workload protocol. The comparison fields `result/command` 1.22.0 added are in that
 [record](../../records/0064-self-supervised-corpus-corpus-evaluation-result-contract.md).

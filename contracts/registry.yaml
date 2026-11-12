@@ -105,6 +105,15 @@ contracts:
       class: minor
       summary: Record declared independence, blinding, review effort and the blinded
         audit id.
+  - version: 1.2.0
+    file_sha256: 24ed9f4fe65069545e03400bff4b9497deec2be97e701c01e09cc83265e66f75
+    fingerprints:
+      structure: 6867a2e724f0ea875b6fe75c1abcd0fce4c28d52c8f4dba9c250a27b4ff57be4
+      meaning: 4807fee8ee046b0f4334127eb856c17cd38039ea1aff3472db0129ee9bc54655
+    change:
+      class: minor
+      summary: 'Record an optional selection pass: every selected window of the run
+        reviewed again, with its observations.'
 - family: declaration
   id: dataset
   owner: data-contracts
@@ -328,6 +337,14 @@ contracts:
       class: minor
       summary: Copy declared independence, blinding, review effort and the blinded
         audit id.
+  - version: 1.2.0
+    file_sha256: b016dd4d0109b9afe17216331e51c14795fee4a1ff972525fa1314a370e40388
+    fingerprints:
+      structure: b26cce061cf169fc30888a6348909ed4ffd83e43e2ef66dd318530ab8144f429
+      meaning: 02c55371ba192ed71b9cf9534ab0aa82aeaeb04056aeb4c4fd04fb44e6a886ac
+    change:
+      class: minor
+      summary: Carry the review's selection pass.
 - family: record
   id: corpus-links
   owner: self-supervised-corpus
@@ -926,6 +943,15 @@ contracts:
       class: minor
       summary: Add optional by_source on a selection comparison and allow a fifth
         comparison limit.
+  - version: 1.25.0
+    file_sha256: ac06c48826c656b9246ac7e74500fa03a383ab5b2bb6810eda46967d264a8e0e
+    fingerprints:
+      structure: d8897b8656bdf7ba704de2b8b0287bd53f01d48ebe6399908412ae20b2902a99
+      meaning: 363f804f81695b4e636ed004192ba9e87cdd0caa54140ce0f77586f9d89c5881
+    change:
+      class: minor
+      summary: Report the selection_pass review protocol, each pass's work and yield,
+        and pass disagreements.
 - family: shared
   id: types
   owner: data-contracts

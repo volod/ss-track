@@ -13,6 +13,7 @@ from ss_track.core.canonical import canonical_json, sha256_bytes
 from ss_track.core.refusal import JsonValue
 from ss_track.corpus.declarations.fields import Fields, invalid
 from ss_track.corpus.review.queue import CandidateKey
+from ss_track.corpus.review.selection_pass import SelectionPass, read_pass
 from ss_track.schema.validation.enforce import read_declaration
 
 REVIEW_CONTRACT = "declaration/corpus-review"
@@ -52,7 +53,8 @@ class Review:
     """Every decision of one review, keyed by candidate, who made them and the document's hash.
 
     Independence, blinding and minutes are present only when the review states them. A stated
-    value is the reviewer's declaration, not a check that the procedure was followed.
+    value is the reviewer's declaration, not a check that the procedure was followed. A selection
+    pass is present only when the review records one.
     """
 
     run_id: str
@@ -63,6 +65,7 @@ class Review:
     blinding: str | None = None
     reviewer_minutes: int | None = None
     audit_id: str | None = None
+    selection_pass: SelectionPass | None = None
 
     def decided(self, decision: str) -> list[Decision]:
         """Return the decisions of one kind, ascending by stream and candidate."""
@@ -102,4 +105,5 @@ def read_review(path: Path) -> Review:
         fields.text("blinding") if fields.has("blinding") else None,
         fields.index("reviewer_minutes") if fields.has("reviewer_minutes") else None,
         fields.text("audit_id") if fields.has("audit_id") else None,
+        read_pass(fields),
     )

@@ -415,13 +415,15 @@ was followed, and the pictures may still show the source. Unknown observations r
 report cannot establish population prevalence for curated footage. Discovery does not record
 compute cost.
 When equal selection budgets produce unequal unique review queues because their selections overlap
-the shared audit differently, an operator may predeclare a matched-workload protocol. A separate
-selection-review pass may review selected windows again after the independent audit, so repeated
-exposures are actual recorded work. Alternatively, deterministic padding adds review cost without
-changing the selection or independent audit draw. Any findings in padded windows remain visible:
-a comparison must not ignore useful discoveries to make an arm appear less effective. The chosen
-protocol and completed work must be recorded; audit-weighted estimates use only the independent
-audit, disagreements require explicit handling, and an unmatchable workload remains inconclusive.
+the shared audit differently, an operator may predeclare the selection-pass protocol. After the
+independent audit, a recorded pass reviews every selected window of each run again, so each run's
+work is its selected count and repeated exposures are actual recorded work. Pass findings stay
+visible, including targets outside the audit: a comparison must not ignore useful discoveries to
+make an arm appear less effective. Audit-weighted estimates use only the independent audit, a pass
+that disagrees with the run's review is listed without being resolved, and an incomplete pass or
+an unmatchable workload remains inconclusive. Deterministic padding is not offered: it pays for
+windows neither method chose, its findings belong to no method, and the amount it needs depends on
+the audit draw rather than on the methods.
 Hugging Face is a source service and versioned cache, not the authority for local corpus identity;
 any publication of derived data has separate terms and authorization.
 

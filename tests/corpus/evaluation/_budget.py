@@ -8,6 +8,7 @@ from ss_track.corpus.discovery.records import DiscoveryRecords
 from ss_track.corpus.evaluation.inputs import Evidence
 from ss_track.corpus.evaluation.membership import BoundStream
 from ss_track.corpus.evaluation.report import compare
+from ss_track.corpus.review.selection_pass import SelectionPass
 
 STREAM = "stream"
 _HASH = "a" * 64
@@ -101,6 +102,8 @@ def _evaluate(
     diverse_minutes: int | None = 10,
     uniform_minutes: int | None = 10,
     membership: Mapping[str, BoundStream] | None = None,
+    diverse_pass: SelectionPass | None = None,
+    uniform_pass: SelectionPass | None = None,
 ) -> dict[str, Any]:
     observations = {
         (STREAM, window.candidate_id): window.observation
@@ -116,6 +119,7 @@ def _evaluate(
         diverse_withheld,
         reviewer_minutes=diverse_minutes,
         audit_id=diverse_audit,
+        selection_pass=diverse_pass,
     )
     uniform = Evidence(
         _records("uniform", "uniform", windows),
@@ -126,6 +130,7 @@ def _evaluate(
         uniform_withheld,
         reviewer_minutes=uniform_minutes,
         audit_id=uniform_audit,
+        selection_pass=uniform_pass,
     )
     return compare(diverse, uniform, membership).to_record()
 

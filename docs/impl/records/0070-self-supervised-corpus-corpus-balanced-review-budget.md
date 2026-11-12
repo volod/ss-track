@@ -3,7 +3,7 @@
 ## Task and scope
 
 - Id / capability: `corpus-balanced-review-budget` / `self-supervised-corpus`
-- State: active
+- State: accepted
 - Source: real two-source pilot comparison; start commit
   `21dae935e84a00431257617804114e65a4cb546d`. Existing working-tree changes belong to active
   pilot, authorization, evaluation, progress and adaptive-motion work.
@@ -127,9 +127,58 @@ merely relabeling existing unique queue counts would invent review work.
 The grouping review is also unresolved, so no blinded audit has been presented and the eventual
 paired runs and their overlap may change.
 
+Decision: the selection-pass protocol is chosen and padding is rejected. Padding pays for windows
+neither method chose, and its findings belong to no method. The amount it needs follows the audit
+draw, not the methods: in the pilot it is two windows, and another audit seed would change it.
+Counting its findings would credit a method with random review, and ignoring them would hide
+discoveries. Under a selection pass, each run's work is its selected count by construction. The
+audit stays the only input to the estimate, and every pass finding is reported. That includes
+targets outside the audit and windows that disagree with the run's review. The protocol has no
+seed and nothing to tune, so it is fixed before review.
+
+Implementation:
+
+- `declaration/corpus-review` 1.2.0 and `record/corpus-freeze` 1.2.0 add an optional
+  `selection_pass`: the reviewer, optional minutes, and one observation per window.
+  `corpus/review/selection_pass.py` reads it and bounds it to the selected windows the run offers.
+  Export, freeze and evaluation refuse a repeated, unselected or withheld window
+  (`MANIFEST_INVALID`), so a pass cannot be replayed onto another run. Freeze copies the pass
+  with its windows ascending, and `read_freeze` refuses a resealed record whose pass windows are
+  out of order or repeated.
+- `result/command` 1.25.0 adds the `selection_pass` protocol and `review_budget.selection_pass`.
+  `corpus/evaluation/passes.py` counts expected, reviewed and missing windows, audit repeats,
+  observations, targets outside the audit, disagreements and total exposures. `workload.py`
+  compares pass counts, and treats an incomplete pass, a pass in one review only, or passes
+  without one shared audit as unmeasured.
+- `discover queue` appends a commented selection-pass block that lists every selected window
+  with a blank observation, so the protocol can be followed without writing window ids by hand.
+- The spec, review-and-freeze, discovery-runs and contracts pages state the protocol. The plan
+  removes this task, drops it from `corpus-selection-evaluation`'s dependencies, and names the
+  protocol in the pilot, evaluation and human review tasks.
+
+No real-data run was possible in this change. The pilot's link review is unresolved, so no blinded
+audit or pass has been reviewed, and the pilot data root is not on this host. The protocol
+was run end to end through `discover run`, `discover evaluate` and `corpus freeze` on staged
+fixtures.
+
 ## Acceptance evidence
 
-Pending.
+- `tests/corpus/evaluation/test_selection_pass_budget.py` hand-counts the pilot's 85-versus-87
+  shape: 500 windows, a 232-window audit, and 100 selections overlapping it by 15 and 13.
+  `shared_audit` is unmatched at 85 versus 87. Complete passes are matched at 100 versus 100, with
+  15 and 13 repeats and 432 exposures, and recall, gain and strata stay unchanged. It also covers
+  findings outside the audit, disagreements and unknowns, an incomplete pass, a pass in one review
+  only or without a shared audit, unequal selections (98 versus 100), a withheld selection, and a
+  pass replayed onto the other run.
+- `tests/corpus/review/test_selection_pass.py` covers the template block, a blank pass, freeze
+  carry-through without adding an observation, unselected and locked windows, a repeat, an edited
+  (`RECORD_TAMPERED`) and a resealed (`RECORD_INVALID`) freeze record, and old-review compatibility
+  against corpus-review and corpus-freeze 1.1.0.
+- `tests/corpus/evaluation/test_evaluate_command.py` logs a matched `selection_pass` comparison
+  checked against `result/command` 1.25.0. It also checks that a comparison without a pass is still
+  a 1.24.0 record.
+- `make ci`: 2337 passed, 112 deselected. `make lint-md`, `make lint-spec-plan` and
+  `make lint-doc-links` pass.
 
 ## Audit handoff
 
@@ -137,8 +186,23 @@ Pending.
   padding if only the 100 selected windows count toward yield. The open
   `corpus-balanced-review-budget` task owns a defensible protocol, visibility of padding findings
   and the associated contracts and tests.
-- Further audit is pending.
+- `AUD-corpus-balanced-review-budget-1` is resolved by this change. Pass findings, including
+  targets outside the audit, are reported and never hidden, and selected-only recall is not
+  presented as review yield.
+- `AUD-corpus-two-source-pilot-2` (the 317 versus 319 queues) is resolved by the `selection_pass`
+  protocol. `corpus-two-source-pilot` now freezes that protocol before `discover blind`.
+- `AUD-corpus-balanced-review-budget-2`: pass disagreements compare each pass with its own run's
+  review. A window both runs selected outside the audit, which no review observed, is not
+  compared across the two passes. Owner: `corpus-selection-evaluation`, whose execution path and
+  acceptance gates now state it.
+- `AUD-corpus-balanced-review-budget-3`: `tests/corpus/links/test_interactive.py` read the pty
+  once and could see only the echoed `q` before the banner. It failed once in `make ci`. Fixed in
+  this change by draining the terminal; dropped.
+- Dropped: `corpus/evaluation/workload.py` is 260 lines. Pass accounting already moved to
+  `passes.py`, and the rest is one cohesive protocol rule.
 
 ## Close or resume
 
-In progress.
+Accepted. All gates passed. The task left the plan; 103 agent and 24 human tasks remain. The next
+agent task is `corpus-two-source-pilot`; the next human task is
+`define-locked-test-policy (optional)`. The capability remains planned.

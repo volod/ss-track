@@ -114,7 +114,8 @@ the decisions and acceptance evidence.
 
 ## Decisions
 
-`declaration/corpus-review` 1.0.0, with optional provenance from 1.1.0:
+`declaration/corpus-review` 1.0.0, with optional provenance from 1.1.0 and an optional
+[selection pass](#selection-pass) from 1.2.0:
 
 ```yaml
 schema_version: 1
@@ -135,9 +136,60 @@ decisions:
 | `independence`, `blinding` | Optional. `declared` or `not_declared`. Absent when the review does not state it. A stated value is a declaration, not a verification |
 | `reviewer_minutes` | Optional minutes the reviewer recorded. Absent when effort was not recorded |
 | `audit_id` | Optional id of the blinded audit the decisions were mapped from |
+| `selection_pass` | Optional. Every selected window reviewed again, with the pass reviewer and optional minutes. See [selection pass](#selection-pass) |
 
 A candidate is decided at most once. A review of another run, one that includes nothing, and one
 that excludes a frame another decision includes are `MANIFEST_INVALID`.
+
+## Selection pass
+
+A shared blinded audit reviews its sample once for both runs of a comparison. Each run then pays
+only for its selected windows outside that sample, so two runs that select equally can still cost
+different work. In the two-source pilot, 100 selections each overlapped the 232-window audit by
+15 and 13, which left 85 and 87 windows to review. A selection pass removes that dependence on the
+audit draw. The reviewer looks at every window the run selected and offers, including the ones the
+audit already showed, and records an observation for each. Each run's pass is then exactly its
+selected count of exposures, and the paired comparison counts that work under the
+[`selection_pass` protocol](discovery-runs.md#evaluating-selection).
+
+```yaml
+selection_pass:
+  reviewer: second reviewer
+  reviewer_minutes: 25          # optional; absent is unmeasured, not zero
+  windows:
+  - {stream_id: one, candidate_id: pool-003, observation: target_present}
+  - {stream_id: two, candidate_id: pool-001, observation: unknown}
+```
+
+The protocol is fixed before review and has no seed or tuning: review every selected window of
+each run, over one shared blinded audit. `discover queue` writes the block commented out at the end
+of its template, listing each selected window with a blank observation. The block cannot pass
+until its reviewer is named and every observation is set. In the blinded workflow, copy it into the
+review `discover unblind` wrote for that run. The pass is not blinded, because its reviewer knows
+the windows were selected.
+
+A pass changes neither selection, the audit draw nor any audit weight. Its observations never enter
+the population estimate. The audit observation of a window stays authoritative, and a pass that
+disagrees with the run's review is listed, not resolved. Its findings are reported as the run's
+review yield. That includes targets in selected windows the audit never sampled, which the
+estimate cannot see. A pass that leaves a selected window out is incomplete, and the comparison
+then treats the work as unmeasured. `unknown` is a reviewed window and counts as work.
+
+A pass window must be a selected window the run offers, listed at most once. A window of a locked
+stream is withheld and cannot be in a pass. Either mistake is `MANIFEST_INVALID` at export, freeze
+and evaluation, with details `not_selected` and `locked_without_policy`. A pass therefore cannot be
+replayed onto another run. A freeze record carries the pass with its windows ascending, so editing
+it breaks the seal (`RECORD_TAMPERED`). A resealed record whose pass windows are out of order or
+repeated is `RECORD_INVALID`.
+
+Padding was the alternative considered and rejected. It adds deterministic unselected windows to
+the smaller arm until the two workloads are equal. It pays for windows neither method chose, and
+its findings belong to no method. The amount it needs follows the audit draw rather than the
+methods, so a different audit seed changes it. Counting its findings would credit a method with
+random review. Ignoring them would hide discoveries.
+
+The [selection-pass record](../../records/0070-self-supervised-corpus-corpus-balanced-review-budget.md)
+holds the decision and acceptance evidence.
 
 ## Membership
 
@@ -163,6 +215,7 @@ members, and generated cases are never exported.
 | Freeze | `LINKS_UNRESOLVED` | The link review leaves a link across splits undecided; details list each |
 | Freeze | `SPLIT_LEAKAGE` | A recording sits in another split than a related recording a superseded version held |
 | Freeze | `FRAME_CORRUPTED` and the other [verify](../corpus.md#verification) refusals | A frame, bundle or frame set does not hold |
+| Export, freeze, evaluate | `MANIFEST_INVALID` | A selection pass names a window twice, an unselected or unoffered window (`not_selected`) or a withheld one (`locked_without_policy`) |
 | Blind, unblind | `MANIFEST_INVALID` | The runs do not share a sample, the review names another audit, an item is missing, repeated or unexpected, or a mapped review fails the corpus-review contract |
 | Blind, unblind | `CORPUS_CONFLICT` | The audit id already holds another run or mapping, or the output path holds other bytes |
 | Blind | `STORAGE_FAILED` | The packet would be written inside the private mapping's directory |
@@ -178,7 +231,7 @@ and is counted as `unresolved_same_split`.
 
 ## Record
 
-`corpus/<corpus-id>/freeze.json` is `record/corpus-freeze` 1.1.0, sealed beside the manifest.
+`corpus/<corpus-id>/freeze.json` is `record/corpus-freeze` 1.2.0, sealed beside the manifest.
 A review that states no provenance still freezes without those fields, so an older review keeps
 its record shape:
 
@@ -187,7 +240,7 @@ its record shape:
 | `corpus_manifest_sha256`, `frame_set_sha256` | The frozen version and its staged frames |
 | `discovery` | The run, its seal, and the pool version and frame set it read |
 | `links` | The link review, its seal, its status and its undecided links inside one split |
-| `review` | The reviewer, the SHA-256 of the review's canonical JSON, windows offered and decisions made. Independence, blinding, minutes and `audit_id` are copied only when the review stated them |
+| `review` | The reviewer, the SHA-256 of the review's canonical JSON, windows offered and decisions made. Independence, blinding, minutes, `audit_id` and the [selection pass](#selection-pass) are copied only when the review stated them; pass windows are ascending |
 | `label_revision` | Always null: a frozen version holds no label |
 | `members` | Each frozen stream with its pool stream, group, split, window and the included candidates, each with its offers, observation and note |
 | `exclusions`, `unreviewed` | Each excluded candidate with its observation, reason and note; each offered candidate left undecided |
@@ -223,6 +276,11 @@ writes the same record: the test replays a review on a second data root and comp
   that the reviewer was kept from the queue or the mapping.
 - Reviewer minutes are recorded only when the review states them. Discovery does not record compute
   cost.
+- Pass disagreements compare each pass with its own run's review. A window both runs selected
+  outside the audit, which no review observed, is not compared across the two passes; the
+  [evaluation task](../../plan.md#corpus-selection-evaluation) owns that report.
+- A selection pass is not blinded, and nothing checks that its reviewer worked apart from the audit
+  reviewer. A pass reviewer who also reviewed the audit sees every selected window the audit drew twice.
 
 ## Interfaces
 
@@ -232,6 +290,7 @@ writes the same record: the test replays a review on a second data root and comp
 | `commands/corpus.py` | `corpus freeze` |
 | `corpus/review/queue.py` | `review_queue`: offered, withheld and unoffered windows |
 | `corpus/review/decisions.py` | `read_review` |
+| `corpus/review/selection_pass.py` | `SelectionPass`, `read_pass`, `expected_windows` and `require_pass_windows` |
 | `corpus/review/membership.py` | `review_membership`, `corpus_document` |
 | `corpus/review/template.py` | `queue_review`, the review template |
 | `corpus/review/export.py` | `export_review`, `apply_review`, current terms |
@@ -253,7 +312,11 @@ writes the same record: the test replays a review on a second data root and comp
 make ci
 ```
 
-`test_membership.py` covers joined and separate windows, the declaration, include and exclude
+`test_selection_pass.py` covers the commented template block, a blank pass, a pass carried through
+freeze and evaluation without adding an observation, an unselected or locked window, a repeat, an
+edited and a resealed freeze record, and a review with no pass that still validates against the
+1.1.0 contracts. `test_membership.py` covers joined and separate windows, the declaration,
+include and exclude
 conflicts, withheld and unoffered decisions, an unnoted `other`, a repeat, another run and a name
 too long. `test_queue_and_export.py` stages three clips in three splits and runs discovery: the
 queue withholds the locked stream, the template needs a reviewer, export repeats byte for byte and

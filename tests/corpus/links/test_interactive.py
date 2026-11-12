@@ -3,6 +3,7 @@
 import io
 import os
 import pty
+import select
 import subprocess
 from pathlib import Path
 
@@ -26,6 +27,7 @@ def _link(first: str, second: str) -> dict[str, object]:
 
 
 LINKS = [_link(A, B), _link(A, C), _link(C, D)]
+_DRAIN_SECONDS = 0.2  # output is complete once the review returns; this only ends the loop
 
 
 def _run(path: Path, text: str, output: io.StringIO, played: list[str]) -> int:
@@ -152,6 +154,17 @@ def test_prior_decisions_survive_initialization_and_clear(tmp_path: Path) -> Non
     assert read_decisions(path).by_pair == {}
 
 
+def _drain(descriptor: int) -> bytes:
+    """Read everything the terminal holds: one read may return only the echoed input line."""
+    found = b""
+    while select.select([descriptor], [], [], _DRAIN_SECONDS)[0]:
+        chunk = os.read(descriptor, 16384)
+        if not chunk:
+            break
+        found += chunk
+    return found
+
+
 def test_review_uses_controlling_terminal(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(interactive, "read_links", lambda root, run: {"corpus_id": "corpus"})
     monkeypatch.setattr(interactive, "_validate_record", lambda record, reviewer, root: LINKS)
@@ -172,7 +185,7 @@ def test_review_uses_controlling_terminal(tmp_path: Path, monkeypatch: pytest.Mo
         result = interactive.review_interactively("links-1", "Reviewer", tmp_path)
         assert result.count == 0
         assert read_decisions(result.checkpoint).by_pair == {}
-        assert b"Recording relationship review" in os.read(master, 16384)
+        assert b"Recording relationship review" in _drain(master)
     finally:
         os.close(master)
         os.close(slave)

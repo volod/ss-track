@@ -45,7 +45,8 @@ The chosen sources need an approved, measured pool and paired runs before people
   `$DATA_DIR/corpus/<corpus-id>/`, `docs/impl/workloads/two-source-pilot/`.
 - Execution path: Resolve pins and terms per source, acquire only approved inputs, verify hashes,
   group cross-source related recordings, build and stage the pool, and run `ssl-diverse` and
-  `uniform` at one pool, audit seed and budget. Freeze the review protocol before `discover blind`;
+  `uniform` at one pool, audit seed and budget. Freeze the review protocol, including a selection
+  pass of each run over the one shared audit, before `discover blind`;
   record source coverage, exclusions, resources, approvals and stopped runs. Select device, batch
   size and resource limits for the host and record them; hold the sampling, tile grid and audit
   settings fixed when comparing hosts, since those settings change the experiment. Resolve or
@@ -62,42 +63,13 @@ The chosen sources need an approved, measured pool and paired runs before people
   is an explicit valid negative; `make ci` passes.
 - Documentation target: [Corpus](current/corpus.md).
 
-#### corpus-balanced-review-budget
-
-Equal selection counts can have unequal review cost when the selections overlap a shared audit
-sample differently. For example, 100 selections with audit overlaps of 15 and 13 add 85 and 87
-windows respectively. The current queues cannot add work to the smaller arm, so an otherwise
-usable paired comparison is inconclusive even when two extra windows could balance review effort.
-
-- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
-- Agent status: CLEAR
-- Research: yes
-- Dependencies: none.
-- User-visible outcome: A reviewer can follow a predeclared, reproducible matched-workload protocol
-  without changing the random baseline or treating extra review work as audit evidence.
-- Scope boundary: Paired review queues and workload accounting; repeated reviews or padding never
-  change selection or independent audit weights, and unavailable work stays inconclusive. Do not
-  hide findings from extra windows or represent selected-only recall as total review yield.
-- Data and artifact paths: `src/ss_track/corpus/review/`, `src/ss_track/corpus/evaluation/`,
-  `tests/corpus/`, `contracts/`, and `$DATA_DIR/self-supervised-corpus/<run-id>/`.
-- Execution path: Evaluate separately recorded repeated selection passes and deterministic padding;
-  choose and contract a pre-review protocol that proves completed work and preserves independent
-  audit observations. Define how disagreements and findings in extra windows are handled. Make
-  review and freeze validate the work and report its cost, preserving existing compatibility.
-- Acceptance gates: Hand-counted fixtures cover the 85-versus-87 example, equal and unmatchable
-  workloads, withheld windows, replay, tampering, independence from audit estimates and old review
-  compatibility. The report distinguishes added work from selection and shows its findings;
-  an evidence-backed decision that padding cannot support a fair comparison is a valid negative.
-  `make ci` passes.
-- Documentation target: [Corpus](current/corpus.md).
-
 #### corpus-selection-evaluation
 
 A larger selected pool may conceal missed small birds or exclude hard negatives.
 
 - Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: RUN NEEDED
-- Dependencies: corpus-two-source-pilot, review-video-corpus-sample, corpus-balanced-review-budget.
+- Dependencies: corpus-two-source-pilot, review-video-corpus-sample.
 - User-visible outcome: A report compares model-assisted selection with a random or uniform
   baseline and exposes missed cases and resource cost at a matched review budget.
 - Scope boundary: Independently reviewed audit samples and stratified uncertainty; no field accuracy,
@@ -109,7 +81,11 @@ A larger selected pool may conceal missed small birds or exclude hard negatives.
   ([review and freeze](current/corpus/review-and-freeze.md#decisions)); `unknown` and unreviewed
   windows count as unknown, never as absent.
   Compare `ssl-diverse` with the `uniform` run of the same pool and audit seed
-  ([selection](current/corpus/discovery-runs.md#selection)), report misses by kind, including a
+  ([selection](current/corpus/discovery-runs.md#selection)) under the `selection_pass` review
+  protocol ([selection pass](current/corpus/review-and-freeze.md#selection-pass)), keep each
+  pass's findings outside the audit and its disagreements beside the estimate, and also list a
+  window both runs selected whose two passes disagree when no review observed it, which the
+  comparison does not yet report. Report misses by kind, including a
   target present for a whole stream, which background deviation compares against itself, and
   confusers that motion ranks high. Record whether the audit review was independent and blinded.
   A review or freeze states that with `independence` and `blinding` when the reviewer declared it,
@@ -121,7 +97,8 @@ A larger selected pool may conceal missed small birds or exclude hard negatives.
   Do not reimplement it, and do not treat it as field prevalence.
 - Acceptance gates: Hand-calculated fixtures verify denominators, sampling weights, uncertainty and
   unavailable strata; empty or insufficient evidence produces an explicit inconclusive result.
-  Negative gains remain valid and `make ci` passes.
+  A fixture lists two passes that disagree on a window no review observed, without changing the
+  estimate. Negative gains remain valid and `make ci` passes.
 - Documentation target: [Corpus](current/corpus.md).
 
 #### corpus-scale-pilot
@@ -2441,9 +2418,10 @@ The usefulness and missed cases of self-supervised selection require independent
 - Execution path: Freeze the baseline and sampling plan before review; reviewers record source and
   frame decisions, uncertainty, disagreements and time, and settle them under named authority. The
   blinded audit presentation from `discover blind` records independence, blinding and effort.
-  `discover unblind` maps its item decisions into one review file per run, and those files are
-  frozen with `corpus freeze`
-  ([review and freeze](current/corpus/review-and-freeze.md)).
+  `discover unblind` maps its item decisions into one review file per run. After the audit,
+  reviewers complete a [selection pass](current/corpus/review-and-freeze.md#selection-pass) of
+  every selected window of each run, with minutes, and those files are frozen with
+  `corpus freeze` ([review and freeze](current/corpus/review-and-freeze.md)).
 - Acceptance gates: Reviewed samples and exclusions are frozen and hashed; absent or uncertain labels
   stay unknown, unreviewed exposure is reported, and insufficient sample size is inconclusive.
 - Documentation target: [Corpus](current/corpus.md).

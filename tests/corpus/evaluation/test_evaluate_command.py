@@ -10,7 +10,10 @@ from ss_track.cli import main
 from ss_track.corpus import ImportResult, build_corpus, stage_corpus
 from ss_track.corpus.discovery.reader import read_discovery
 from ss_track.corpus.review.queue import ReviewQueue, review_queue
+from ss_track.corpus.review.selection_pass import expected_windows
 from ss_track.corpus.versions.manifests import load_corpus_manifest
+from ss_track.schema.registry.store import load_contract_set
+from ss_track.schema.validation.strict import violations
 from tests.corpus.conftest import (
     WriteCorpus,
     encounter_of,
@@ -226,5 +229,50 @@ def test_evaluate_logs_estimated_and_inconclusive_comparisons(
     assert main(_evaluate(known["diverse"], mixed)) == 0
 
     _require_estimated(estimated, "declared")
+    _require_previous_minor(estimated)
     _require_inconclusive(inconclusive)
     _require_estimated(last_record(caplog), "mixed")
+
+    passed = {name: media / f"{name}-pass.yaml" for name in ("diverse", "uniform")}
+    for name in ("diverse", "uniform"):
+        _review(
+            passed[name],
+            name,
+            queues[name],
+            "target_present",
+            audit_id="audit-1",
+            selection_pass=_selection_pass(queues[name]),
+        )
+    assert main(_evaluate(passed["diverse"], passed["uniform"])) == 0
+    _require_selection_pass(last_record(caplog), queues)
+
+
+def _require_previous_minor(record: dict[str, object]) -> None:
+    """A comparison without a selection pass is still a result/command 1.24.0 record."""
+    contracts = load_contract_set()
+    contract = contracts.named("result/command")
+    previous = next(item for item in contract.versions if str(item.version) == "1.24.0")
+    schema = contracts.frozen_schema(contract, previous)
+    assert violations(record, schema, contracts.schema_registry()) == []
+
+
+def _selection_pass(queue: ReviewQueue) -> dict[str, object]:
+    windows = [
+        {"stream_id": key[0], "candidate_id": key[1], "observation": "target_present"}
+        for key in sorted(expected_windows(queue))
+    ]
+    return {"reviewer": "pass reviewer", "reviewer_minutes": 4, "windows": windows}
+
+
+def _require_selection_pass(record: dict[str, object], queues: dict[str, ReviewQueue]) -> None:
+    budget = _object(record, "review_budget")
+    passes = _object(budget, "selection_pass")
+    assert budget["protocol"] == "selection_pass"
+    assert budget["status"] == "matched"
+    assert budget["comparable_windows"] == {"diverse": 6, "uniform": 6}
+    assert passes["disagreements"] == []
+    for name in ("diverse", "uniform"):
+        account = _object(passes, name)
+        assert account["reviewed_windows"] == len(expected_windows(queues[name])) == 6
+        assert account["reviewer_minutes"] == 4
+    assert passes["review_exposures"] == budget["shared_audit_windows"] + 12

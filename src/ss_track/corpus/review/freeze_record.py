@@ -91,7 +91,7 @@ def freeze_body(
 
 
 def _review(reviewed: Reviewed) -> dict[str, JsonValue]:
-    """Copy the review pin, and any independence, blinding or effort the review declared."""
+    """Copy the review pin, any declared independence, blinding or effort, and any pass."""
     review = reviewed.review
     membership = reviewed.membership
     record: dict[str, JsonValue] = {
@@ -109,6 +109,8 @@ def _review(reviewed: Reviewed) -> dict[str, JsonValue]:
         record["reviewer_minutes"] = review.reviewer_minutes
     if review.audit_id is not None:
         record["audit_id"] = review.audit_id
+    if review.selection_pass is not None:
+        record["selection_pass"] = review.selection_pass.to_record()
     return record
 
 
@@ -163,6 +165,10 @@ def _count_findings(record: Mapping[str, Any], keys: Sequence[tuple[str, str]]) 
         yield "offered_count is not the candidates the record lists"
     if review["decision_count"] != len(keys) - len(record["unreviewed"]):
         yield "decision_count is not the included and excluded candidates"
+    if "selection_pass" in review:
+        listed = [_key(item) for item in review["selection_pass"]["windows"]]
+        if listed != sorted(set(listed)):
+            yield "selection_pass windows are not unique and in stream and candidate order"
 
 
 def _findings(record: Mapping[str, Any], corpus: Mapping[str, Any]) -> Iterator[str]:
