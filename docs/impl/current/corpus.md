@@ -252,6 +252,8 @@ ss-track discover links --corpus pilot-v1 --run-id links-1 --features discovery-
 ss-track discover queue --run-id discovery-1 --out review.yaml
 ss-track discover export --review review.yaml --corpus-id frozen-v1 --out frozen-v1.yaml
 ss-track corpus freeze --corpus frozen-v1 --review review.yaml --links links-frozen-v1
+ss-track data clean --kind staged-frames --corpus pilot-v0
+ss-track data clean --kind staged-frames --corpus pilot-v0 --apply
 ```
 
 Each command logs one JSON record and exits 0. A refusal exits 1 and has this form:
@@ -387,6 +389,48 @@ first stream. A redecode with an omitted index opens the container first, so a m
 directory keeps its own copy of the file. `tests/corpus/sources/test_dual_camera_identity.py` covers
 the import, the encounter, the repeated import, the group and lineage refusals. The
 [task record](../records/0041-corpus-provenance-dual-camera-file-identity.md) holds the acceptance.
+
+## Cleaning the data root
+
+`ss-track data clean` reclaims space taken by reproducible artifacts. It removes only the kinds and
+targets the operator names, and plans by default: without `--apply` it reports every entry it would
+remove, with its bytes, and removes nothing. It never removes a sealed record, an imported source
+copy, a declaration or a review decision, so hashes, comparisons and decisions stay readable.
+
+| Kind | Target | Removes | Restore |
+| --- | --- | --- | --- |
+| `staged-frames` | `--corpus <id>` | The version's frame bundles; its `manifest.json`, `frame-set.json` and any freeze record stay | `ss-track corpus stage --corpus <id>` stages the same frame set again |
+| `acquisition-cache` | `--run-id <id>` | An acquisition's `cache/`, such as the downloaded archive; `acquisition.json`, the inventories and the extracted media stay | Repeat the run's `discover acquire` command, which transfers the archive again |
+| `scratch` | none | Every `.incoming-*` entry and every acquisition `scratch/` entry a killed command left | Nothing to restore |
+| `tool-caches` | none | `cache/ruff`, `cache/mypy`, `cache/pytest` and `cache/complexipy`; sibling environments and model caches stay | The next make target recreates them |
+
+```bash
+ss-track data clean --kind staged-frames --corpus pilot-v0 --corpus pilot-v1
+ss-track data clean --kind acquisition-cache --run-id acquisition-1 --apply
+ss-track data clean --kind scratch --apply
+```
+
+Each kind holds its writer's lock while it plans and removes: staged frames take the version's
+`.staging.lock` (`STAGING_IN_PROGRESS` while a stage runs), an acquisition cache its
+`.acquisition.lock`, and `scratch` every lock in the data root at once, so it runs on its own and
+refuses `DATA_ROOT_BUSY` while any command holds one. A target is checked before its lock is
+taken: an unbuilt version is `CORPUS_NOT_BUILT`, a version without a sealed frame set is
+`FRAME_SET_NOT_STAGED`, and a run without a sealed acquisition is `MANIFEST_INVALID`. A missing
+target option, a stray one or an unknown kind is `MANIFEST_INVALID`. An entry that is a link or lies
+outside the data root is refused. Read-only bundle directories are made writable by their owner
+just before removal. After frames are released, `corpus verify` and `discover verify` of runs
+over that version refuse until it is staged again. The result is `planned` or `cleaned` with a
+`clean` object in `result/command` 1.26.0: each kind, target, restore path, bytes and entry paths
+relative to the data root.
+
+The command does not decide what is obsolete, delete a whole data root or touch another host. A
+second data root made only to check reproduction is the operator's to remove once its comparison
+record is kept; cleaning its frames and cache first leaves only small records.
+`corpus/storage/clean.py` plans and removes; `corpus/storage/clean_kinds.py` registers the kinds.
+A task that first writes another disposable artifact registers its kind there, with its restore
+path and a test, in the same change. `tests/corpus/storage/test_clean.py` covers planning, release
+and restaging to the same frame set, held locks, scratch, caches and refusals. The
+[task record](../records/0074-adhoc-data-clean-command.md) holds the acceptance evidence.
 
 ## Stored evidence
 

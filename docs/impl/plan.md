@@ -103,9 +103,12 @@ A large corpus needs evidence that selection can run within the owner's availabl
   cost, without changing rows, if it dominates. Measure how the BT.601 fallback changes scores and
   selection on the pilot's untagged sources, and the memory `discover blind` needs for the audit at
   scale; the pilot's 104-window packet peaked at 6.3 GB.
-- Acceptance gates: Corpus verification, rights and grouping checks pass; the report states selection
-  recall, uncertainty, negative coverage and matched-budget baseline results, including missing
-  evidence. Insufficient resources or a negative selection result is a valid negative; `make ci` passes.
+- Acceptance gates: Corpus verification, rights and grouping checks pass; the report states
+  selection recall, uncertainty, negative coverage and matched-budget baseline results, including
+  missing evidence. Insufficient resources or a negative selection result is a valid negative;
+  `make ci` passes. Every disposable kind the pilot leaves, such as superseded frames, downloads and
+  host-specific environments, is removable through
+  [data clean](current/corpus.md#cleaning-the-data-root) with a stated restore path.
 - Documentation target: [Corpus](current/corpus.md).
 
 #### corpus-wetland-evidence (optional)
@@ -129,7 +132,8 @@ WetlandBirds annotations and software can inform future cases, but their outputs
 - Acceptance gates: Offline fixtures cover frame mapping, unmatched and ambiguous identities,
   provenance, isolation and refusal of missing terms; upstream labels cannot affect blinded audit or
   become frozen truth. An evidence-backed decision not to execute the software is valid; `make ci`
-  passes.
+  passes. Its isolated environment, weights and intermediate outputs are a registered
+  [data clean](current/corpus.md#cleaning-the-data-root) kind with a restore path and a test.
 - Documentation target: [Corpus](current/corpus.md).
 
 #### corpus-motion-memory-pressure (optional)
@@ -359,8 +363,11 @@ Every score must be recomputable from immutable evidence.
 - Data and artifact paths: `src/ss_track/contract/`, `tests/contract/`, `$DATA_DIR/run/<run-id>/`.
 - Execution path: Add bundle reader and writer with crash and retry fixtures. The run manifest and
   bundle are `record` contracts, and the manifest lists the contract set in force.
-- Acceptance gates: A crash fixture leaves no complete-looking bundle, a retried ID stays idempotent,
-  and each manifest records its re-run command. A bundle with no visibility value reads as restricted.
+- Acceptance gates: A crash fixture leaves no complete-looking bundle, a retried ID stays
+  idempotent, and each manifest records its re-run command. A bundle with no visibility value reads
+  as restricted. Run scratch and any reproducible cache are registered
+  [data clean](current/corpus.md#cleaning-the-data-root) kinds with restore paths and tests; sealed
+  bundles never are.
 - Documentation target: [Current implementation](current.md#areas), page `current/runner.md`.
 
 #### lockstep-runner
@@ -422,8 +429,10 @@ Third-party code must not reach labels, the network or restricted data.
 - Execution path: Add the launcher, a hostile fixture module and a separate Make target for the
   container check, so `make ci` stays network-free. Declared run: that target on a host with the
   chosen runtime.
-- Acceptance gates: The hostile fixture fails to open a socket, a label path or a future frame. If no
-  runtime suits the host, the task records the blocker and does not weaken isolation.
+- Acceptance gates: The hostile fixture fails to open a socket, a label path or a future frame. If
+  no runtime suits the host, the task records the blocker and does not weaken isolation. Sandbox
+  scratch and runtime state are a registered [data clean](current/corpus.md#cleaning-the-data-root)
+  kind with a test.
 - Documentation target: [Current implementation](current.md#areas), page `current/runner.md`.
 
 #### module-image-recipes
@@ -441,8 +450,11 @@ Anyone re-running a row needs the exact module that was measured.
 - Data and artifact paths: `modules/<name>/`.
 - Execution path: Record recipes and digests in the manifest. Keep third-party dependencies outside the
   core lock; add a recipe when an adapter is introduced.
-- Acceptance gates: The declared image digest can be obtained or rebuilt with any difference explained.
-  Missing image access is reported as unavailable; no different image silently substitutes for it.
+- Acceptance gates: The declared image digest can be obtained or rebuilt with any difference
+  explained. Missing image access is reported as unavailable; no different image silently
+  substitutes for it. Built images and build caches are a registered
+  [data clean](current/corpus.md#cleaning-the-data-root) kind whose restore path rebuilds or fetches
+  the declared digest.
 - Documentation target: [Current implementation](current.md#areas), page `current/runner.md`.
 
 #### locked-split-guard (optional)
@@ -1810,7 +1822,8 @@ Heat must be the only difference between cool and hot runs.
 - Execution path: Add the block scheduler with a seeded order fixture and a marker for the timed
   interval.
 - Acceptance gates: Fixtures prove module state does not carry between runs and order is balanced.
-  Setup energy never enters ranked energy.
+  Setup energy never enters ranked energy. Per-run caches and container state are a registered
+  [data clean](current/corpus.md#cleaning-the-data-root) kind with a test.
 - Documentation target: [Current implementation](current.md#areas), page `current/bench.md`.
 
 #### thermal-effect-evaluation (optional)
@@ -1985,8 +1998,10 @@ Telemetry has nowhere to live as evidence, because import takes only video.
   `corpus/storage/`, and the source-terms checks by generalizing them, with no parallel copy. Store
   one little-endian file per field under a sealed index.
 - Acceptance gates: Two stagings across data roots, and on x86-64 and arm64, give one hash. A float
-  column round-trips bit-exact, including NaN payloads. A flipped column byte fails `verify` by name.
-  Rights and retention refuse as they do for a recording.
+  column round-trips bit-exact, including NaN payloads. A flipped column byte fails `verify` by
+  name. Rights and retention refuse as they do for a recording. Staging scratch and decoded
+  intermediates are registered [data clean](current/corpus.md#cleaning-the-data-root) kinds with
+  restore paths and tests.
 - Documentation target: [Current implementation](current.md#areas), new page `current/telemetry.md`.
 
 #### telemetry-profiles (optional)
@@ -2365,7 +2380,9 @@ not yet recreated the pinned dataset.
 - Execution path: Review the [delegated decisions](workloads/two-source-pilot/README.md#grouping)
   and their notes; a changed decision or grouping makes a new pool version whose runs are repeated.
   Use the [other-host review instructions](current/corpus/leakage-review.md#review-on-another-host)
-  to create the dataset on a second host and compare its staged identities with the origin's.
+  to create the dataset on a second host and compare its staged identities with the origin's, then
+  release its frames and download cache with
+  [data clean](current/corpus.md#cleaning-the-data-root) once the comparison is recorded.
 - Acceptance gates: The second host's independently created dataset compares identical, or the
   difference is reported; a revised decision validates with `discover links` and its grouping is
   reconciled in a new version; the owner's confirmation or revision is recorded.

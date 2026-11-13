@@ -961,6 +961,15 @@ contracts:
       class: minor
       summary: Report the selection_pass review protocol, each pass's work and yield,
         and pass disagreements.
+  - version: 1.26.0
+    file_sha256: 411315d3c876d17b36f814dbb02dd8d83d7cd52b9ea71d063124f7092a17aa58
+    fingerprints:
+      structure: ecd9cb4b570d29f32ae08bccd6d6790034feb48d6511b822318310541a15e22a
+      meaning: df9a14199058d98845c7f1a4fe02b491bc4e28e1842e13b07d003b8009e37ae6
+    change:
+      class: minor
+      summary: 'Add data clean: statuses planned and cleaned, the clean object and
+        DATA_ROOT_BUSY.'
 - family: shared
   id: types
   owner: data-contracts

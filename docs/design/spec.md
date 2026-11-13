@@ -354,6 +354,17 @@ invented; a record too old for
 `--amend-terms` alone reaches the current major only through `--redecode --amend-terms` together,
 which takes its terms from the declaration instead of carrying them.
 
+Development and pilot work fills a data root with bytes that can be made again: staged frames of a
+superseded version, a downloaded archive, scratch a killed run left, tool caches. The operator needs
+to reclaim that space without losing evidence. `ss-track data clean` removes only registered kinds
+of reproducible artifact, each with its stated way to make the bytes again, and only what the
+operator names: a corpus version's frames, an acquisition's download cache. It plans by default and
+deletes only when told to apply. It never removes a sealed record, an imported source copy, a review
+decision or a declaration, so every hash and comparison stays readable, and a version whose frames
+were released stages again to the same frame set. It does not choose what is obsolete, delete a
+whole data root or touch another host. A task that introduces a new kind of disposable artifact
+registers that kind, with its restore path and a test, in the same change.
+
 ### 4.1a Self-supervised video corpus formation
 
 Operators need a larger and more varied collection of authorized video encounters, including rare
@@ -2653,7 +2664,7 @@ Group order alone never establishes readiness.
 | --- | --- | --- | --- | --- |
 | 1 | `reproducible-environment` | shipped | A fresh locked environment reaches the complete CI gate without manual repair | [Developer tooling](../impl/current/developer-tooling.md) |
 | 2 | `project-identity` | shipped | Import, CLI, and distribution-build tests agree on the project identity | [Product core](../impl/current/product-core.md) |
-| 3 | `corpus-provenance` | planned | Import/hash/canonical-decode, staged frame bundles, a kept source reuses a linked version's frames by hard link, synchronized multi-stream grouping, generated cases, version lineage, duplicate-frame and source-term refusals and scenario-rights/split fixtures; malformed source yields structured failure; a likely re-encode across groups, including one outside the declared chain on the same data root, is reported and not refused | - |
+| 3 | `corpus-provenance` | planned | Import/hash/canonical-decode, staged frame bundles, a kept source reuses a linked version's frames by hard link, synchronized multi-stream grouping, generated cases, version lineage, duplicate-frame and source-term refusals and scenario-rights/split fixtures; malformed source yields structured failure; a likely re-encode across groups, including one outside the declared chain on the same data root, is reported and not refused; `data clean` removes only named reproducible kinds, never a sealed record, and released frames stage again to the same frame set | - |
 | 4 | `self-supervised-corpus` | planned | Pinned sibling integrations and deterministic fixtures preserve authorized provenance and split isolation; reviewed audit samples compare recall, candidate yield, diversity and cost against a declared baseline, or report a valid negative | - |
 | 5 | `data-contracts` | shipped | Every shipped record and declaration conforms unchanged to its frozen contract; every section 17.3 change classifies as declared, with an independent checker agreeing on structure; real records of every historic major read under their disposition with no byte or hash moved; a consumer with only the contracts validates a record; optional descriptors validate and leak nothing | [Contracts](../impl/current/contracts.md) |
 | 6 | `annotation-selection` | planned | Two-reviewer G0 labels, stable class/instance IDs, frozen mask and identical seed replay | - |
