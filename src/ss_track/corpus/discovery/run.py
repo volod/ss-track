@@ -35,7 +35,7 @@ from ss_track.corpus.selection.apply import (
     unranked,
 )
 from ss_track.corpus.selection.catalog import score_specs
-from ss_track.corpus.siblings.embedding import embed_streams
+from ss_track.corpus.siblings.embedding import embed_streams, require_extractors
 from ss_track.corpus.siblings.video_hints import (
     HintMapping,
     HintSource,
@@ -100,6 +100,8 @@ def _features(
     if embedding is None:
         return [], []
     python = worker_python(environ)
+    if len(embedding.extractors) > 1:
+        require_extractors(embedding, python=python, timeout=timeout, environ=environ)
     extractors: list[dict[str, JsonValue]] = []
     files: list[FeatureFile] = []
     for extractor in embedding.extractors:

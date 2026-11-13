@@ -14,8 +14,13 @@ def csv_file(
     videos: set[str],
     found: dict[str, Claims],
     pending: list[Unresolved],
+    rule: tuple[str, str] | None = None,
 ) -> None:
-    """Apply CSV rows whose `name` is one video path or that path without its suffix."""
+    """Apply CSV rows whose `name` is one video path or that path without its suffix.
+
+    With a `rule`, the second prefix replaces the first at the start of a name that has it.
+    A blank row names nothing and is skipped.
+    """
     rows = list(csv.reader(io.StringIO(text)))
     if not rows or rows[0].count("name") != 1:
         pending.append(Unresolved("unmatched_metadata", path, f"{path} matched no video"))
@@ -24,7 +29,9 @@ def csv_file(
     name_at = header.index("name")
     license_at = header.index("license") if header.count("license") == 1 else None
     for index, row in enumerate(rows[1:], start=1):
-        _csv_row(path, digest, videos, found, pending, name_at, license_at, index, row)
+        if not any(cell.strip() for cell in row):
+            continue
+        _csv_row(path, digest, videos, found, pending, (name_at, license_at), index, row, rule)
 
 
 def link_file(
@@ -47,13 +54,14 @@ def _csv_row(
     videos: set[str],
     found: dict[str, Claims],
     pending: list[Unresolved],
-    name_at: int,
-    license_at: int | None,
+    columns: tuple[int, int | None],
     index: int,
     row: list[str],
+    rule: tuple[str, str] | None,
 ) -> None:
+    name_at, license_at = columns
     name = usable(row[name_at]) if name_at < len(row) else None
-    target = None if name is None else _named(name, videos)
+    target = None if name is None else _named(_renamed(name, rule), videos)
     if target is None:
         pending.append(
             Unresolved("unmatched_metadata", path, f"{path} row {index} matched no video")
@@ -65,6 +73,15 @@ def _csv_row(
     license_name = usable(row[license_at])
     if license_name is not None:
         claims.add("license", license_name, path, digest, target)
+
+
+def _renamed(name: str, rule: tuple[str, str] | None) -> str:
+    if rule is None:
+        return name
+    name_prefix, path_prefix = rule
+    if not name.startswith(name_prefix):
+        return name
+    return path_prefix + name[len(name_prefix) :]
 
 
 def _named(name: str, videos: set[str]) -> str | None:

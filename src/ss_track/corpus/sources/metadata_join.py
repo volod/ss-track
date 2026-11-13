@@ -1,7 +1,8 @@
 """Join acquired YAML, CSV and source-link files to videos by explicit evidence only.
 
 A file joins a video when it names that video's path, a sibling metadata stem matches one video, or
-a source-link line names the path or exactly that video's recorded source reference. Collection
+a source-link line names the path or exactly that video's recorded source reference. An operator's
+name rule rewrites a CSV row name's directory prefix before that exact comparison. Collection
 vocabulary and a line that names no video stay unresolved. Nothing here sets rights or a label.
 """
 
@@ -24,13 +25,20 @@ _YAML = {".yaml", ".yml"}
 
 
 def join_metadata(
-    videos: dict[str, str | None], files: tuple[tuple[str, Path, str], ...]
+    videos: dict[str, str | None],
+    files: tuple[tuple[str, Path, str], ...],
+    name_rules: dict[str, tuple[str, str]] | None = None,
 ) -> tuple[dict[str, Evidence], tuple[Unresolved, ...]]:
-    """Join metadata to `videos`, mapping each path to its inventory source reference."""
+    """Join metadata to `videos`, mapping each path to its inventory source reference.
+
+    `name_rules` maps a CSV file to the name prefix its rows start with and the video path prefix
+    that replaces it.
+    """
     found: dict[str, Claims] = {}
     pending: list[Unresolved] = []
+    rules = name_rules or {}
     for path, local, digest in sorted(files, key=_rank):
-        _one_file(path, local, digest, videos, found, pending)
+        _one_file(path, local, digest, videos, found, pending, rules.get(path))
     evidence = {path: claims.evidence() for path, claims in found.items()}
     for path, claims in found.items():
         pending.extend(
@@ -65,6 +73,7 @@ def _one_file(
     videos: dict[str, str | None],
     found: dict[str, Claims],
     pending: list[Unresolved],
+    rule: tuple[str, str] | None,
 ) -> None:
     text = _text(local)
     if text is None:
@@ -74,7 +83,7 @@ def _one_file(
     if suffix in _YAML:
         _yaml_file(path, text, digest, videos, found, pending)
     elif suffix == ".csv":
-        csv_file(path, text, digest, set(videos), found, pending)
+        csv_file(path, text, digest, set(videos), found, pending, rule)
     elif suffix == ".txt":
         link_file(path, text, digest, videos, found, pending)
     else:

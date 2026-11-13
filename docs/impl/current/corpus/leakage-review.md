@@ -22,7 +22,7 @@ ss-track discover links --corpus pilot-v1 --run-id links-2 --features discovery-
 Run the review in a terminal with the run ID of a sealed link record and the reviewer's name:
 
 ```bash
-ss-track discover review-links --run-id pilot-links-features-v2-20261109 --reviewer "Your name"
+ss-track discover review-links --run-id pilot-links-20261112 --reviewer "Your name"
 ```
 
 The command explains the controls on startup. Use `a` and `b` to play the recordings using
@@ -60,13 +60,13 @@ feature rows or model weights. `--expires-on` is the last UTC date the recipient
 source scripts/shared/common.sh
 sst_load_env
 .venv/bin/ss-track discover review-pack \
-  --run-id pilot-links-features-v2-20261109 \
-  --corpus pilot-two-source-v2-20261109 \
+  --run-id pilot-links-20261112 \
+  --corpus pilot-two-source-20261112 \
   --identity-run pilot-origin-hashes-1 \
   --expires-on 2026-12-31 --reviewer "Your name" \
-  --recipe path/to/source-inventory.json \
-  --recipe path/to/pool.yaml \
-  --recipe path/to/create-local.txt \
+  --recipe docs/impl/workloads/two-source-pilot/inventory.yaml \
+  --recipe docs/impl/workloads/two-source-pilot/pool.yaml \
+  --recipe docs/impl/workloads/two-source-pilot/README.md \
   --out pilot-link-review.tar
 ```
 
@@ -93,7 +93,7 @@ also refuses without changing review decisions.
   --comparison-run pilot-origin-reviewer-compare-1 \
   --reviewer "Your name" --authorized
 .venv/bin/ss-track discover review-links \
-  --run-id pilot-links-features-v2-20261109 --reviewer "Your name"
+  --run-id pilot-links-20261112 --reviewer "Your name"
 ```
 
 Use the same reviewer name to resume. Leave uncertain pairs undecided. When pausing or finishing,
@@ -103,13 +103,13 @@ continuation from concurrent edits.
 
 ```bash
 .venv/bin/ss-track discover review-pack \
-  --run-id pilot-links-features-v2-20261109 \
-  --corpus pilot-two-source-v2-20261109 \
+  --run-id pilot-links-20261112 \
+  --corpus pilot-two-source-20261112 \
   --identity-run pilot-reviewer-return-hashes-1 \
   --expires-on 2026-12-31 --reviewer "Your name" \
-  --recipe local-review-recipe/source-inventory.json \
+  --recipe local-review-recipe/inventory.yaml \
   --recipe local-review-recipe/pool.yaml \
-  --recipe local-review-recipe/create-local.txt \
+  --recipe local-review-recipe/README.md \
   --out pilot-link-review-returned.tar
 ```
 
@@ -123,9 +123,9 @@ overwritten. After acceptance, apply the checkpoint in a fresh link run:
   --identity-run pilot-origin-return-hashes-1 \
   --comparison-run pilot-return-compare-1 \
   --reviewer "Your name" --authorized
-.venv/bin/ss-track discover links --corpus pilot-two-source-v2-20261109 \
-  --run-id pilot-links-reviewed-1 --features pilot-diverse-v2-20261109 \
-  --decisions "$DATA_DIR/self-supervised-corpus/pilot-links-features-v2-20261109/link-review/decisions.yaml"
+.venv/bin/ss-track discover links --corpus pilot-two-source-20261112 \
+  --run-id pilot-links-reviewed-1 --features pilot-diverse-20261112 \
+  --decisions "$DATA_DIR/self-supervised-corpus/pilot-links-20261112/link-review/decisions.yaml"
 ```
 
 The link checker refuses related sources in different groups; group them in a new corpus version

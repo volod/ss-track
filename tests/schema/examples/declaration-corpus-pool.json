@@ -20,6 +20,13 @@
       "sensitivity": {
         "level": "low"
       },
+      "metadata_names": [
+        {
+          "file": "metadata/videos.csv",
+          "name_prefix": "",
+          "path_prefix": "videos/"
+        }
+      ],
       "videos": [
         {
           "path": "videos/bird.mkv",

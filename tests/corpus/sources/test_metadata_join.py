@@ -46,3 +46,52 @@ def test_a_repeated_yaml_key_is_not_applied(tmp_path: Path) -> None:
     )
     assert evidence == {}
     assert unresolved[0].detail.endswith("could not be read")
+
+
+def _stored(tmp_path: Path, files: dict[str, str]) -> tuple[tuple[str, Path, str], ...]:
+    stored = []
+    for name, text in files.items():
+        path = tmp_path / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="ascii")
+        stored.append((name, path, "c" * 64))
+    return tuple(stored)
+
+
+def test_a_name_rule_joins_a_prefixed_csv_row_to_its_video(tmp_path: Path) -> None:
+    videos: dict[str, str | None] = {
+        "videos/no_drone_footage/birds_only/rgb/1.mp4": None,
+        "videos/drone_footage/rgb/1.mp4": None,
+    }
+    files = _stored(
+        tmp_path,
+        {
+            "metadata/videos_no_drone.csv": (
+                "name,license\n\n\nno_drone/birds_only/rgb/1,cc-1.0\nno_drone/birds_only/rgb/9,mit\n"
+            ),
+            "metadata/videos_drone.csv": "name,license\nrgb/1,mit\n",
+        },
+    )
+    rules = {
+        "metadata/videos_no_drone.csv": ("no_drone/", "videos/no_drone_footage/"),
+        "metadata/videos_drone.csv": ("", "videos/drone_footage/"),
+    }
+    evidence, unresolved = join_metadata(videos, files, rules)
+
+    bird = evidence["videos/no_drone_footage/birds_only/rgb/1.mp4"]
+    assert (bird.license_name, bird.association) == ("cc-1.0", "matched")
+    assert bird.license_reference == "metadata/videos_no_drone.csv"
+    assert evidence["videos/drone_footage/rgb/1.mp4"].license_name == "mit"
+    details = [item.detail for item in unresolved]
+    assert details == ["metadata/videos_no_drone.csv row 4 matched no video"]
+
+
+def test_a_name_rule_applies_only_to_its_file(tmp_path: Path) -> None:
+    videos: dict[str, str | None] = {"videos/no_drone_footage/birds_only/rgb/1.mp4": None}
+    files = _stored(
+        tmp_path, {"metadata/other.csv": "name,license\nno_drone/birds_only/rgb/1,mit\n"}
+    )
+    rules = {"metadata/videos_no_drone.csv": ("no_drone/", "videos/no_drone_footage/")}
+    evidence, unresolved = join_metadata(videos, files, rules)
+    assert evidence == {}
+    assert [item.kind for item in unresolved] == ["unmatched_metadata"]

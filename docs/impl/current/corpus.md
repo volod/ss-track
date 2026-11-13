@@ -145,7 +145,16 @@ stays on `origin` and leaves those fields unchanged. YAML, CSV and source-link f
 by an exact path, a unique sibling stem, or a source line that names the path or that video's
 source reference. A query, fragment, credential or non-ASCII value stays unresolved and is omitted
 from the record. Published Drone Detection CSV names such as `no_drone/birds_only/rgb/1` do not
-equal paths under `videos/no_drone_footage/` and stay unresolved until a file names the path.
+equal paths under `videos/no_drone_footage/`. A collection's optional `metadata_names` rules, from
+`declaration/corpus-pool` 1.1.0, state the mapping for one acquired CSV file each: a row name that
+starts with `name_prefix` has it replaced by `path_prefix` before the exact comparison, so
+`{file: metadata/videos_no_drone.csv, name_prefix: no_drone/, path_prefix: videos/no_drone_footage/}`
+joins that row to `videos/no_drone_footage/birds_only/rgb/1.mp4`. A name without the prefix keeps
+the exact rule, and a row that still names no video stays unresolved. A rule must name an acquired
+CSV file once, and its prefixes are directory prefixes ending in `/` with no `..`; anything else is
+`MANIFEST_INVALID`. The rule is the operator's statement: the pool record's `declaration_sha256`
+pins it, and the joined license names the CSV file as its reference. Blank CSV rows name nothing
+and are skipped.
 Disagreeing claims mark that video `association_conflict` and exclude it. An upstream split of
 `test`, `test_set` or `locked` is `withheld_locked`. Footage that shares those bytes or that source
 is `withheld_related`. The operator's `development` or `calibration` value is the corpus split.
@@ -161,6 +170,15 @@ an unnamed collection stays unbound
 ([evaluating selection](corpus/discovery-runs.md#evaluating-selection)). The
 [task record](../records/0062-self-supervised-corpus-corpus-combined-pool.md) has the fixture
 evidence.
+
+## Two-source pilot recipe
+
+[`docs/impl/workloads/two-source-pilot/`](../workloads/two-source-pilot/README.md) is the
+media-free recipe of the self-supervised corpus pilot: the source inventory, the pool with its CSV
+name rules, the paired discovery plans, the frozen review protocol and the commands and byte
+budgets that create the dataset on a new data root, with the identities each host must reproduce.
+It holds no media. The [pilot record](../records/0067-self-supervised-corpus-corpus-two-source-pilot.md)
+states what was run and what remains unresolved.
 
 ## Selected development workload
 

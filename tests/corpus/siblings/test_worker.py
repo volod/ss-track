@@ -5,6 +5,7 @@ bundles, and asks the fake for one defect the sibling study found in the pinned 
 """
 
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import numpy as np
@@ -365,3 +366,28 @@ def test_a_worker_that_breaks_the_protocol_is_refused(
     )
 
     assert message in refusal.message
+
+
+def test_a_later_unpinned_extractor_is_refused_before_any_frame_is_embedded(
+    sibling_python: Path,
+    caches: Caches,
+    bundles: list[FrameBundle],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Extractors embed one after another, so every pin is checked before the first embeds."""
+    from types import SimpleNamespace
+
+    from ss_track.corpus.discovery import run as discovery_run
+
+    stale = dino_extractor(caches)
+    stale = replace(stale, weights=({**stale.weights[0], "revision": "tree-sha256:" + "0" * 64},))
+    plan = SimpleNamespace(embedding=embedding_plan([clip_extractor(caches), stale]))
+
+    def embedded(*_args: object, **_kwargs: object) -> None:
+        raise AssertionError("an extractor embedded frames before every pin was checked")
+
+    monkeypatch.setattr(discovery_run, "embed_streams", embedded)
+    environ = caches.environ | {PYTHON_VARIABLE: str(sibling_python)}
+    with pytest.raises(CorpusRefusal) as caught:
+        discovery_run._features(plan, bundles, environ, 60.0)  # type: ignore[arg-type]
+    assert caught.value.code is RefusalCode.EXTRACTOR_UNPINNED

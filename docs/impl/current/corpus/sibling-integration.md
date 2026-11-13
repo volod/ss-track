@@ -117,7 +117,12 @@ Hazards in the inspected code that an adapter must neutralise:
   its width on each side, and a small bird shrinks with the frame. A tiled extractor
   ([tiled coverage](discovery-runs.md#tiled-coverage)) sends square tiles that cover the frame.
 - `torch.hub` reads `facebookresearch/dinov2` at `main`, and `open_clip` reads Hugging Face at
-  `main`, so the weights can change underneath one pin.
+  `main`, so the weights can change underneath one pin. The pinned DINO code tree,
+  `tree-sha256:71fce3da...`, is `facebookresearch/dinov2` commit
+  `7764ea0f912e53c92e82eb78a2a1631e92725fc8`. A torch.hub cache filled earlier holds another tree
+  and refuses as `EXTRACTOR_UNPINNED`. Extract that commit's GitHub archive to
+  `$TORCH_HOME/hub/facebookresearch_dinov2_main` in a separate `TORCH_HOME`, with the pinned
+  checkpoint under `hub/checkpoints/`, rather than replacing a shared cache.
 
 ## Adapted models
 

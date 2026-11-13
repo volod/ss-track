@@ -58,6 +58,10 @@ class Fields:
             raise invalid(f"{self._where}.{key} must not be blank")
         return value
 
+    def string(self, key: str) -> str:
+        """Read a required string whose contract pattern bounds it, so it may be empty."""
+        return self._get(key, str)
+
     def optional_text(self, key: str) -> str | None:
         return self.text(key) if self.has(key) else None
 

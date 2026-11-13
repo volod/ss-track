@@ -43,19 +43,18 @@ The chosen sources need an approved, measured pool and paired runs before people
   unattended spend, public upload, held-out access or field-prevalence claim.
 - Data and artifact paths: `$DATA_DIR/self-supervised-corpus/<run-id>/`, `$DATA_DIR/import/`,
   `$DATA_DIR/corpus/<corpus-id>/`, `docs/impl/workloads/two-source-pilot/`.
-- Execution path: Resolve pins and terms per source, acquire only approved inputs, verify hashes,
-  group cross-source related recordings, build and stage the pool, and run `ssl-diverse` and
-  `uniform` at one pool, audit seed and budget. Freeze the review protocol, including a selection
-  pass of each run over the one shared audit, before `discover blind`;
-  record source coverage, exclusions, resources, approvals and stopped runs. Select device, batch
-  size and resource limits for the host and record them; hold the sampling, tile grid and audit
-  settings fixed when comparing hosts, since those settings change the experiment. Resolve or
-  explicitly withhold uncertain per-recording provenance and flagged cross-group links before
-  relying on groups as independent; check untagged source color matrices and report the effect of
-  any required fallback. Publish a media-free creation recipe with the pinned inventory, exact
-  selections, acquisition commands and byte limits, and pool declaration so every authorized host
-  can independently acquire and stage the same corpus. Report an evidence-backed negative when
-  evidence cannot be resolved.
+- Execution path: The [pilot recipe](workloads/two-source-pilot/README.md) pins the sources,
+  pool, paired plans and frozen review protocol, including a selection pass of each run over the
+  one shared audit. Apply the reviewer's returned link decisions with `discover links`. When a
+  related pair crosses groups, group it in a new corpus version and rerun both plans and
+  `discover verify`, because the audit is stratified by group; withhold undecided pairs from any
+  independence claim and report their effect, or report an evidence-backed negative. Compare the
+  reviewer host's independently created staged identities with the origin's, then present the
+  shared blinded audit with `discover blind` over both runs before human review. Measure the effect
+  of the BT.601 fallback on the untagged sources' scores, or report it unmeasured beside the pixel
+  difference. Record source coverage, exclusions, resources, approvals and stopped runs. Select
+  device, batch size and resource limits for the host and record them; hold the sampling, tile
+  grid and audit settings fixed when comparing hosts, since those settings change the experiment.
 - Acceptance gates: Inputs, staged frames, grouping, selection and sampling verify; the review queue
   includes eligible unselected windows, reports withheld exposure and retains reproducible evidence.
   A fresh authorized data root recreates the same source, corpus and frame-set identities from the
@@ -131,7 +130,9 @@ A large corpus needs evidence that selection can run within the owner's availabl
   similarity too if a flag flips. The fingerprint compares every pair of windows in Python, so
   measure its time at the pilot's stream count with the build's report and the review. Freezing
   verifies the discovery run against its pool version's staged frames, so measure the storage of
-  keeping the pool's frames until its frozen versions are frozen.
+  keeping the pool's frames until its frozen versions are frozen. The pilot's GPU embedding worker ran
+  at about 6% GPU utilization while using about seven CPU cores, so measure where worker time goes
+  at scale and reduce the CPU-side preprocessing cost, without changing rows, if it dominates.
 - Acceptance gates: Corpus verification, rights and grouping checks pass; the report states selection
   recall, uncertainty, negative coverage and matched-budget baseline results, including missing
   evidence. Insufficient resources or a negative selection result is a valid negative; `make ci` passes.

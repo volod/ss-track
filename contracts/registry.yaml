@@ -77,6 +77,15 @@ contracts:
     change:
       class: initial
       summary: Initial contract.
+  - version: 1.1.0
+    file_sha256: be7316792082b147207ec527e9f0b5f6785b844d6f0c0b833e8768a719a33356
+    fingerprints:
+      structure: f47161496822a3fe2c8b664348832d3139c09e84cb9fbe69813ee692e4b7b1f5
+      meaning: 3e8bf4e37de97f979dcdca9c4ed5e3dcbc50d72c99f8e449ba4c09a70bbb475e
+    change:
+      class: minor
+      summary: Add optional per-collection metadata_names rules that map CSV row names
+        to video paths.
 - family: declaration
   id: corpus-review
   owner: self-supervised-corpus

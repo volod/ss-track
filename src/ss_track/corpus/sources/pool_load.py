@@ -47,6 +47,7 @@ class LoadedCollection:
     videos: tuple[LoadedVideo, ...]
     acquired_sources: dict[str, str | None]
     metadata: tuple[tuple[str, Path, str], ...]
+    name_rules: dict[str, tuple[str, str]]
 
 
 @dataclass(frozen=True, slots=True)
@@ -99,7 +100,26 @@ def _collection(fields: Fields, data_root: Path) -> LoadedCollection:
         videos,
         _sources(facts),
         facts.metadata,
+        _name_rules(fields, facts),
     )
+
+
+def _name_rules(fields: Fields, facts: AcquisitionFacts) -> dict[str, tuple[str, str]]:
+    """Return each CSV file's operator rule as its name prefix and video path prefix."""
+    acquired = {path for path, _local, _digest in facts.metadata}
+    rules: dict[str, tuple[str, str]] = {}
+    for index, raw in enumerate(fields.optional_items("metadata_names")):
+        rule = Fields(raw, f"{fields.where}.metadata_names[{index}]")
+        file = _ascii(rule, "file")
+        if file not in acquired or not file.lower().endswith(".csv"):
+            raise invalid("a metadata_names rule must name an acquired CSV metadata file")
+        if file in rules:
+            raise invalid("a metadata_names rule repeats a metadata file")
+        prefixes = (rule.string("name_prefix"), rule.string("path_prefix"))
+        if any(".." in prefix.split("/") for prefix in prefixes):
+            raise invalid("a metadata_names prefix must not name a parent directory")
+        rules[file] = prefixes
+    return rules
 
 
 def _sources(facts: AcquisitionFacts) -> dict[str, str | None]:

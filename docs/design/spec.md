@@ -395,7 +395,9 @@ creating a second corpus authority. A combined pool retains both source populati
 reporting. Group related or duplicate recordings across collections before split assignment; expose
 unresolved links and upstream split information. A metadata file joins a video when a YAML or CSV
 row names that video's path, a sibling file has that video's stem, or a source-link line names the
-path or that video's recorded source reference. A license code and an upstream annotation remain
+path or that video's recorded source reference. A provider CSV whose names omit the video
+directory joins only through an operator rule that replaces a stated name prefix with a stated path
+prefix for that one file; nothing guesses a near name. A license code and an upstream annotation remain
 evidence on the recording's origin. Rights, basis and labels stay with the operator's declaration
 and the existing review path. The operator assigns `development` or `calibration`. An upstream
 `test`, `test_set` or `locked` split is withheld, and footage that shares its bytes or source is

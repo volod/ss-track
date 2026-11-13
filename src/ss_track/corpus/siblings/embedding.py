@@ -15,6 +15,7 @@ and each batch holds one tile position of `batch_size` consecutive frames.
 import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from functools import partial
 from pathlib import Path
 from typing import Any
 
@@ -196,6 +197,45 @@ def _stream_rows(
     ]
 
 
+def require_extractors(
+    embedding: EmbeddingPlan,
+    *,
+    python: Path,
+    timeout: float = DEFAULT_TIMEOUT_SEC,
+    environ: Mapping[str, str] | None = None,
+) -> None:
+    """Load every extractor once and refuse the first that differs from its pin, embedding nothing.
+
+    Extractors run one after another, so without this a later extractor's wrong weights would be
+    found only after every earlier extractor had embedded the whole corpus.
+    """
+    require_no_checkpoint(environ)
+    for extractor in embedding.extractors:
+        with started_worker(python, partial(_environment, extractor, environ), timeout) as worker:
+            _loaded(worker, embedding, extractor)
+
+
+def _environment(
+    extractor: ExtractorPlan, environ: Mapping[str, str] | None, neutral: Path
+) -> Mapping[str, str]:
+    return worker_environment(extractor, neutral, environ)
+
+
+def _loaded(
+    worker: WorkerProcess, embedding: EmbeddingPlan, extractor: ExtractorPlan
+) -> dict[str, JsonValue]:
+    package = {"name": embedding.package_name, "commit": embedding.package_commit}
+    worker.send({"protocol": PROTOCOL, "package": package, "extractor": extractor.to_worker()})
+    header, _ = worker.receive()
+    if header.get("status") != "ready" or not isinstance(header.get("provenance"), dict):
+        raise worker.failed("the worker did not report what it loaded")
+    try:
+        return require_pinned(header["provenance"], embedding, extractor)
+    except (KeyError, TypeError, AttributeError) as error:
+        message = f"the worker's account of what it loaded is incomplete: {error}"
+        raise worker.failed(message) from error
+
+
 def embed_streams(
     embedding: EmbeddingPlan,
     extractor: ExtractorPlan,
@@ -210,16 +250,7 @@ def embed_streams(
     with started_worker(
         python, lambda neutral: worker_environment(extractor, neutral, environ), timeout
     ) as worker:
-        package = {"name": embedding.package_name, "commit": embedding.package_commit}
-        worker.send({"protocol": PROTOCOL, "package": package, "extractor": extractor.to_worker()})
-        header, _ = worker.receive()
-        if header.get("status") != "ready" or not isinstance(header.get("provenance"), dict):
-            raise worker.failed("the worker did not report what it loaded")
-        try:
-            provenance = require_pinned(header["provenance"], embedding, extractor)
-        except (KeyError, TypeError, AttributeError) as error:
-            message = f"the worker's account of what it loaded is incomplete: {error}"
-            raise worker.failed(message) from error
+        provenance = _loaded(worker, embedding, extractor)
         views = [
             provenance if tile is None else tiled_provenance(provenance, view_id, tile)
             for view_id, tile in extractor.views()

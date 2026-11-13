@@ -20,7 +20,7 @@ baseline scope and evidence. The installed set contains these document contracts
 | `declaration/corpus-review` | `1.0.0`, `1.1.0`, `1.2.0` |
 | `declaration/link-decisions` | `1.0.0`, `1.1.0` |
 | `declaration/source-inventory` | `1.0.0` |
-| `declaration/corpus-pool` | `1.0.0` |
+| `declaration/corpus-pool` | `1.0.0`, `1.1.0` |
 | `declaration/recording` | `2.0.0`, `2.1.0`, `2.2.0`, `2.3.0`, `2.4.0` |
 | `declaration/video-hints` | `1.0.0` |
 | `record/candidate-inventory` | `1.0.0` |
@@ -54,7 +54,8 @@ file hash. `declaration/recording` 2.2.0 adds optional
 `record/source-manifest` 2.4.0 add optional `origin`, omitted when a recording names no upstream
 collection. Origin on a source manifest is sensitive, so a public descriptor omits it.
 `declaration/corpus-pool` 1.0.0 and `record/corpus-pool` 1.0.0 state a combined-pool selection and
-its sealed result. `record/source-manifest` 2.3.0 and
+its sealed result. `declaration/corpus-pool` 1.1.0 adds optional per-collection `metadata_names`,
+the operator's CSV name-to-path rules. `record/source-manifest` 2.3.0 and
 `record/frame-bundle` 3.2.0 add optional `declared_color`, present only when conversion used that
 declaration. `result/command` 1.10.0 adds `COLOR_TAG_CONFLICT`. `1.11.0` adds
 `DECODE_TIME_EXCEEDED` and `INTERRUPTED`. `1.12.0` adds optional `near_duplicates` on a corpus

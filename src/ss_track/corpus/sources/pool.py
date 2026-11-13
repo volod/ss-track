@@ -73,7 +73,9 @@ def _evidence(pool: LoadedPool) -> tuple[dict[str, dict[str, Evidence]], list[Un
     found: dict[str, dict[str, Evidence]] = {}
     pending: list[Unresolved] = []
     for collection in pool.collections:
-        evidence, unresolved = join_metadata(collection.acquired_sources, collection.metadata)
+        evidence, unresolved = join_metadata(
+            collection.acquired_sources, collection.metadata, collection.name_rules
+        )
         found[collection.run_id] = evidence
         selected = {video.path for video in collection.videos}
         pending.extend(

@@ -65,7 +65,8 @@ On the pilot's 12-logical-CPU host, a six-stream sample including 4K footage too
 worker and 48.8 s with the adaptive six-worker cap; the scores matched exactly. Sampled summed
 process-tree RSS peaked at 408 MiB and 1093 MiB respectively. The runs were sequential, so cache
 effects and other host activity limit the timing comparison. The results are in
-`$DATA_DIR/self-supervised-corpus/two-source-pilot-20261109/motion-benchmark-{serial,auto}-v2.json`.
+`$DATA_DIR/self-supervised-corpus/two-source-pilot-20261109/motion-benchmark-{serial,auto}-v2.json`
+on that host.
 A larger host has not been measured.
 
 ## Plan
@@ -167,8 +168,12 @@ architecture, device type and row length. It then sends each bundle's frames at 
 in batches of `batch_size`, never crossing a stream, each frame as packed `rgb24` with its frame
 index and hash. The worker checks each frame's hash and returns one float32 row per frame. ss-track
 accepts a batch only when the worker echoes the keys it was sent, with finite unit rows of the
-stated length. Each answer has a 900 s deadline. A worker that stops, hangs or answers short is
-killed and refused with the tail of its standard error.
+stated length. Extractors embed one after another, so a plan with more than one first starts each
+worker once and compares what it loaded with the plan before any frame is sent: a later extractor
+whose weights or code tree differ refuses at once, not after the earlier extractors have embedded
+the corpus. `require_extractors` in `corpus/siblings/embedding.py` does this. Each answer has a
+900 s deadline. A worker that stops, hangs or answers short is killed and refused with the tail of
+its standard error.
 
 The guards neutralise the defects the [sibling study](sibling-integration.md#reproducibility)
 found in the pinned release. `tests/corpus/siblings/test_sibling_defects.py` probes the real
@@ -331,14 +336,17 @@ targets, not how selection performs on real footage.
 - Real-source runs require [source authorization](../../plan.md#authorize-video-corpus-sources),
   including the selected sibling revision, weights and source terms.
 
-The two-source pilot has verified paired runs, but their grouping and review budget remain
-unresolved. Its 31 recordings form 29 provisional groups after three near-duplicate gull clips were
-grouped. Background review flagged 136 other possible links; visual similarity does not prove common
-origin. Each method selected 100 windows, but overlap with the shared 232-window audit leaves queues
-of 317 and 319 windows. The current evaluator therefore reports an unmatched budget. Thirteen streams
-also lacked color-matrix tags and used the documented BT.601 fallback. The
+The [two-source pilot recipe](../../workloads/two-source-pilot/README.md) recreates 31 recordings
+from both collections on any authorized host. Its verified paired runs each select 100 of 1,273
+pool windows. The 248-window audit holds 18 and 30 of those selections, so the queues offer 330
+and 318 windows; the `selection_pass` protocol makes each run's selection work 100 windows.
+Background review flagged 85 possible links within each collection; similar backgrounds do not
+prove a shared session, so the 31 groups are provisional until the human link review returns.
+24 streams lack colour-matrix tags and use the BT.601 fallback, which changes sampled RGB by a mean
+of at most 2.74 levels; the effect on scores is not measured. On the recipe's GPU host the
+model-assisted run took 31 minutes and was bound by CPU-side preprocessing. The
 [pilot record](../../records/0067-self-supervised-corpus-corpus-two-source-pilot.md) holds the
-artifacts and unresolved decisions; these runs do not establish field performance or independent
+resources and unresolved evidence; these runs do not establish field performance or independent
 grouping.
 
 ## Interfaces

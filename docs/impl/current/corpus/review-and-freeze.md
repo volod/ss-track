@@ -145,8 +145,8 @@ that excludes a frame another decision includes are `MANIFEST_INVALID`.
 
 A shared blinded audit reviews its sample once for both runs of a comparison. Each run then pays
 only for its selected windows outside that sample, so two runs that select equally can still cost
-different work. In the two-source pilot, 100 selections each overlapped the 232-window audit by
-15 and 13, which left 85 and 87 windows to review. A selection pass removes that dependence on the
+different work. In the two-source pilot, 100 selections each overlapped the 248-window audit by
+18 and 30, which left 82 and 70 windows to review. A selection pass removes that dependence on the
 audit draw. The reviewer looks at every window the run selected and offers, including the ones the
 audit already showed, and records an observation for each. Each run's pass is then exactly its
 selected count of exposures, and the paired comparison counts that work under the

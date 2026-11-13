@@ -1,0 +1,295 @@
+# Two-source pilot source inventory (declaration/source-inventory 1.0.0).
+# Media-free: pins and per-video terms only. See README.md in this directory.
+schema_version: 1
+collections:
+  - provider: zenodo
+    collection_id: "15696105"
+    revision: v4
+    archive_path: videos.zip
+    archive_md5: 95eae83aceb2d12803f5f567c31060a9
+    videos:
+      - path: videos/005-squacco_heron.mp4
+        source_reference: null
+        annotation_reference: null
+        upstream_split: null
+        attribution: Visual WetlandBirds Dataset authors, Zenodo record 15696105 v4
+        terms: CC-BY-4.0
+        terms_reference: https://zenodo.org/records/15696105
+        status: candidate
+        exclusion_reason: null
+      - path: videos/015-black_headed_gull.mp4
+        source_reference: null
+        annotation_reference: null
+        upstream_split: null
+        attribution: Visual WetlandBirds Dataset authors, Zenodo record 15696105 v4
+        terms: CC-BY-4.0
+        terms_reference: https://zenodo.org/records/15696105
+        status: candidate
+        exclusion_reason: null
+      - path: videos/022-little_ringed_plover.mp4
+        source_reference: null
+        annotation_reference: null
+        upstream_split: null
+        attribution: Visual WetlandBirds Dataset authors, Zenodo record 15696105 v4
+        terms: CC-BY-4.0
+        terms_reference: https://zenodo.org/records/15696105
+        status: candidate
+        exclusion_reason: null
+      - path: videos/035-gadwall.mp4
+        source_reference: null
+        annotation_reference: null
+        upstream_split: null
+        attribution: Visual WetlandBirds Dataset authors, Zenodo record 15696105 v4
+        terms: CC-BY-4.0
+        terms_reference: https://zenodo.org/records/15696105
+        status: candidate
+        exclusion_reason: null
+      - path: videos/060-northern_shoveler.mp4
+        source_reference: null
+        annotation_reference: null
+        upstream_split: null
+        attribution: Visual WetlandBirds Dataset authors, Zenodo record 15696105 v4
+        terms: CC-BY-4.0
+        terms_reference: https://zenodo.org/records/15696105
+        status: candidate
+        exclusion_reason: null
+      - path: videos/080-yellow_legged_gull.mp4
+        source_reference: null
+        annotation_reference: null
+        upstream_split: null
+        attribution: Visual WetlandBirds Dataset authors, Zenodo record 15696105 v4
+        terms: CC-BY-4.0
+        terms_reference: https://zenodo.org/records/15696105
+        status: candidate
+        exclusion_reason: null
+      - path: videos/089-little_ringed_plover.mp4
+        source_reference: null
+        annotation_reference: null
+        upstream_split: null
+        attribution: Visual WetlandBirds Dataset authors, Zenodo record 15696105 v4
+        terms: CC-BY-4.0
+        terms_reference: https://zenodo.org/records/15696105
+        status: candidate
+        exclusion_reason: null
+      - path: videos/111-eurasian_coot.mp4
+        source_reference: null
+        annotation_reference: null
+        upstream_split: null
+        attribution: Visual WetlandBirds Dataset authors, Zenodo record 15696105 v4
+        terms: CC-BY-4.0
+        terms_reference: https://zenodo.org/records/15696105
+        status: candidate
+        exclusion_reason: null
+      - path: videos/114-eurasian_moorhen.mp4
+        source_reference: null
+        annotation_reference: null
+        upstream_split: null
+        attribution: Visual WetlandBirds Dataset authors, Zenodo record 15696105 v4
+        terms: CC-BY-4.0
+        terms_reference: https://zenodo.org/records/15696105
+        status: candidate
+        exclusion_reason: null
+      - path: videos/120-eurasian_moorhen.mp4
+        source_reference: null
+        annotation_reference: null
+        upstream_split: null
+        attribution: Visual WetlandBirds Dataset authors, Zenodo record 15696105 v4
+        terms: CC-BY-4.0
+        terms_reference: https://zenodo.org/records/15696105
+        status: candidate
+        exclusion_reason: null
+      - path: videos/127-eurasian_magpie.mp4
+        source_reference: null
+        annotation_reference: null
+        upstream_split: null
+        attribution: Visual WetlandBirds Dataset authors, Zenodo record 15696105 v4
+        terms: CC-BY-4.0
+        terms_reference: https://zenodo.org/records/15696105
+        status: candidate
+        exclusion_reason: null
+      - path: videos/141-mallard.mp4
+        source_reference: null
+        annotation_reference: null
+        upstream_split: null
+        attribution: Visual WetlandBirds Dataset authors, Zenodo record 15696105 v4
+        terms: CC-BY-4.0
+        terms_reference: https://zenodo.org/records/15696105
+        status: candidate
+        exclusion_reason: null
+      - path: videos/146-squacco_heron.mp4
+        source_reference: null
+        annotation_reference: null
+        upstream_split: null
+        attribution: Visual WetlandBirds Dataset authors, Zenodo record 15696105 v4
+        terms: CC-BY-4.0
+        terms_reference: https://zenodo.org/records/15696105
+        status: candidate
+        exclusion_reason: null
+      - path: videos/157-black_winged_stilt.mp4
+        source_reference: null
+        annotation_reference: null
+        upstream_split: null
+        attribution: Visual WetlandBirds Dataset authors, Zenodo record 15696105 v4
+        terms: CC-BY-4.0
+        terms_reference: https://zenodo.org/records/15696105
+        status: candidate
+        exclusion_reason: null
+      - path: videos/160-glossy_ibis.mp4
+        source_reference: null
+        annotation_reference: null
+        upstream_split: null
+        attribution: Visual WetlandBirds Dataset authors, Zenodo record 15696105 v4
+        terms: CC-BY-4.0
+        terms_reference: https://zenodo.org/records/15696105
+        status: candidate
+        exclusion_reason: null
+      - path: videos/168-white_wagtail.mp4
+        source_reference: null
+        annotation_reference: null
+        upstream_split: null
+        attribution: Visual WetlandBirds Dataset authors, Zenodo record 15696105 v4
+        terms: CC-BY-4.0
+        terms_reference: https://zenodo.org/records/15696105
+        status: candidate
+        exclusion_reason: null
+  - provider: huggingface
+    collection_id: wayneballard/drone-detection-dataset
+    revision: 509cdb0f45c77f61fe5f62e5a303411045148c8d
+    archive_path: null
+    archive_md5: null
+    videos:
+      - path: videos/drone_footage/rgb/consistent/no_birds/20.mp4
+        source_reference: null
+        annotation_reference: null
+        upstream_split: null
+        attribution: wayneballard/drone-detection-dataset contributors and upstream authors
+        terms: MIT dataset card; upstream license cc-1.0 per metadata/videos_drone.csv
+        terms_reference: https://huggingface.co/datasets/wayneballard/drone-detection-dataset/tree/509cdb0f45c77f61fe5f62e5a303411045148c8d/metadata/videos_drone.csv
+        status: candidate
+        exclusion_reason: null
+      - path: videos/drone_footage/rgb/consistent/with_birds/2.mp4
+        source_reference: null
+        annotation_reference: null
+        upstream_split: null
+        attribution: wayneballard/drone-detection-dataset contributors and upstream authors
+        terms: MIT dataset card; upstream license mit per metadata/videos_drone.csv
+        terms_reference: https://huggingface.co/datasets/wayneballard/drone-detection-dataset/tree/509cdb0f45c77f61fe5f62e5a303411045148c8d/metadata/videos_drone.csv
+        status: candidate
+        exclusion_reason: null
+      - path: videos/drone_footage/rgb/consistent/with_birds/5.mp4
+        source_reference: null
+        annotation_reference: null
+        upstream_split: null
+        attribution: wayneballard/drone-detection-dataset contributors and upstream authors
+        terms: MIT dataset card; upstream license cc-1.0 per metadata/videos_drone.csv
+        terms_reference: https://huggingface.co/datasets/wayneballard/drone-detection-dataset/tree/509cdb0f45c77f61fe5f62e5a303411045148c8d/metadata/videos_drone.csv
+        status: candidate
+        exclusion_reason: null
+      - path: videos/no_drone_footage/airplanes/rgb/8.mp4
+        source_reference: null
+        annotation_reference: null
+        upstream_split: null
+        attribution: wayneballard/drone-detection-dataset contributors and upstream authors
+        terms: MIT dataset card; upstream license cc-1.0 per metadata/videos_no_drone.csv
+        terms_reference: https://huggingface.co/datasets/wayneballard/drone-detection-dataset/tree/509cdb0f45c77f61fe5f62e5a303411045148c8d/metadata/videos_no_drone.csv
+        status: candidate
+        exclusion_reason: null
+      - path: videos/no_drone_footage/birds_and_insects/16.mp4
+        source_reference: null
+        annotation_reference: null
+        upstream_split: null
+        attribution: wayneballard/drone-detection-dataset contributors and upstream authors
+        terms: MIT dataset card; upstream license personal per metadata/videos_no_drone.csv
+        terms_reference: https://huggingface.co/datasets/wayneballard/drone-detection-dataset/tree/509cdb0f45c77f61fe5f62e5a303411045148c8d/metadata/videos_no_drone.csv
+        status: candidate
+        exclusion_reason: null
+      - path: videos/no_drone_footage/birds_and_insects/4.mp4
+        source_reference: null
+        annotation_reference: null
+        upstream_split: null
+        attribution: wayneballard/drone-detection-dataset contributors and upstream authors
+        terms: MIT dataset card; upstream license personal per metadata/videos_no_drone.csv
+        terms_reference: https://huggingface.co/datasets/wayneballard/drone-detection-dataset/tree/509cdb0f45c77f61fe5f62e5a303411045148c8d/metadata/videos_no_drone.csv
+        status: candidate
+        exclusion_reason: null
+      - path: videos/no_drone_footage/birds_only/rgb/1.mp4
+        source_reference: null
+        annotation_reference: null
+        upstream_split: null
+        attribution: wayneballard/drone-detection-dataset contributors and upstream authors
+        terms: MIT dataset card; upstream license cc-1.0 per metadata/videos_no_drone.csv
+        terms_reference: https://huggingface.co/datasets/wayneballard/drone-detection-dataset/tree/509cdb0f45c77f61fe5f62e5a303411045148c8d/metadata/videos_no_drone.csv
+        status: candidate
+        exclusion_reason: null
+      - path: videos/no_drone_footage/birds_only/rgb/10.mp4
+        source_reference: null
+        annotation_reference: null
+        upstream_split: null
+        attribution: wayneballard/drone-detection-dataset contributors and upstream authors
+        terms: MIT dataset card; upstream license cc-1.0 per metadata/videos_no_drone.csv
+        terms_reference: https://huggingface.co/datasets/wayneballard/drone-detection-dataset/tree/509cdb0f45c77f61fe5f62e5a303411045148c8d/metadata/videos_no_drone.csv
+        status: candidate
+        exclusion_reason: null
+      - path: videos/no_drone_footage/birds_only/rgb/13.mp4
+        source_reference: null
+        annotation_reference: null
+        upstream_split: null
+        attribution: wayneballard/drone-detection-dataset contributors and upstream authors
+        terms: MIT dataset card; upstream license personal per metadata/videos_no_drone.csv
+        terms_reference: https://huggingface.co/datasets/wayneballard/drone-detection-dataset/tree/509cdb0f45c77f61fe5f62e5a303411045148c8d/metadata/videos_no_drone.csv
+        status: candidate
+        exclusion_reason: null
+      - path: videos/no_drone_footage/birds_only/rgb/14.mp4
+        source_reference: null
+        annotation_reference: null
+        upstream_split: null
+        attribution: wayneballard/drone-detection-dataset contributors and upstream authors
+        terms: MIT dataset card; upstream license personal per metadata/videos_no_drone.csv
+        terms_reference: https://huggingface.co/datasets/wayneballard/drone-detection-dataset/tree/509cdb0f45c77f61fe5f62e5a303411045148c8d/metadata/videos_no_drone.csv
+        status: candidate
+        exclusion_reason: null
+      - path: videos/no_drone_footage/birds_only/rgb/4.mp4
+        source_reference: null
+        annotation_reference: null
+        upstream_split: null
+        attribution: wayneballard/drone-detection-dataset contributors and upstream authors
+        terms: MIT dataset card; upstream license cc-1.0 per metadata/videos_no_drone.csv
+        terms_reference: https://huggingface.co/datasets/wayneballard/drone-detection-dataset/tree/509cdb0f45c77f61fe5f62e5a303411045148c8d/metadata/videos_no_drone.csv
+        status: candidate
+        exclusion_reason: null
+      - path: videos/no_drone_footage/birds_only/rgb/7.mp4
+        source_reference: null
+        annotation_reference: null
+        upstream_split: null
+        attribution: wayneballard/drone-detection-dataset contributors and upstream authors
+        terms: MIT dataset card; upstream license cc-1.0 per metadata/videos_no_drone.csv
+        terms_reference: https://huggingface.co/datasets/wayneballard/drone-detection-dataset/tree/509cdb0f45c77f61fe5f62e5a303411045148c8d/metadata/videos_no_drone.csv
+        status: candidate
+        exclusion_reason: null
+      - path: videos/no_drone_footage/helicopters/rgb/3.mp4
+        source_reference: null
+        annotation_reference: null
+        upstream_split: null
+        attribution: wayneballard/drone-detection-dataset contributors and upstream authors
+        terms: MIT dataset card; upstream license cc-1.0 per metadata/videos_no_drone.csv
+        terms_reference: https://huggingface.co/datasets/wayneballard/drone-detection-dataset/tree/509cdb0f45c77f61fe5f62e5a303411045148c8d/metadata/videos_no_drone.csv
+        status: candidate
+        exclusion_reason: null
+      - path: videos/no_drone_footage/insects_only/7.mp4
+        source_reference: null
+        annotation_reference: null
+        upstream_split: null
+        attribution: wayneballard/drone-detection-dataset contributors and upstream authors
+        terms: MIT dataset card; upstream license personal per metadata/videos_no_drone.csv
+        terms_reference: https://huggingface.co/datasets/wayneballard/drone-detection-dataset/tree/509cdb0f45c77f61fe5f62e5a303411045148c8d/metadata/videos_no_drone.csv
+        status: candidate
+        exclusion_reason: null
+      - path: videos/no_drone_footage/no_birds_and_insects/2.mp4
+        source_reference: null
+        annotation_reference: null
+        upstream_split: null
+        attribution: wayneballard/drone-detection-dataset contributors and upstream authors
+        terms: MIT dataset card; upstream license personal per metadata/videos_no_drone.csv
+        terms_reference: https://huggingface.co/datasets/wayneballard/drone-detection-dataset/tree/509cdb0f45c77f61fe5f62e5a303411045148c8d/metadata/videos_no_drone.csv
+        status: candidate
+        exclusion_reason: null

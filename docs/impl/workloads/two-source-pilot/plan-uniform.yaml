@@ -1,0 +1,11 @@
+# Uniform baseline of the two-source pilot (declaration/discovery-plan 1.1.0).
+# Same corpus, pool, audit seed and budget as plan-diverse.yaml; it embeds nothing.
+schema_version: 1
+run_id: pilot-uniform-20261112
+corpus_id: pilot-two-source-20261112
+source_approval:
+  owner: project owner
+  reference: docs/impl/records/0068-self-supervised-corpus-authorize-video-corpus-sources.md
+pool: {window_frames: 16}
+audit: {seed: 7, sample_size: 8}
+selection: {method: uniform, budget: 100, seed: 3}
