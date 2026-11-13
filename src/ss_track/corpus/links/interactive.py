@@ -1,9 +1,7 @@
 """Terminal review of unresolved recording links, with a durable decisions checkpoint."""
 
-import os
 import shutil
 import subprocess
-import sys
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -11,6 +9,7 @@ from typing import Any, TextIO
 
 from ss_track.core.canonical import SEAL_FIELD
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
+from ss_track.core.terminal import controlling_terminal
 from ss_track.corpus.bundles.version_bundles import require_sources_hold
 from ss_track.corpus.decoding.streams import recorded_video_stream_index
 from ss_track.corpus.links.decisions import Decision, SourcePair, source_pair
@@ -339,22 +338,8 @@ def review_interactively(run_id: str, reviewer: str, data_root: Path) -> Interac
 
         checkpoint = review_dir / CHECKPOINT_NAME
         _initialize_checkpoint(checkpoint, reviewer, prior)
-        try:
-            descriptor = os.open("/dev/tty", os.O_RDWR)
-        except OSError as error:
-            if not sys.stdin.isatty() or not sys.stdout.isatty():
-                raise CorpusRefusal(
-                    RefusalCode.WORKER_FAILED, "link review needs an interactive terminal"
-                ) from error
+        with controlling_terminal("link review") as (source, output):
             count = conduct_review(
-                links, reviewer, checkpoint, sys.stdin, sys.stdout, describe, play, extra_pairs
+                links, reviewer, checkpoint, source, output, describe, play, extra_pairs
             )
-        else:
-            with (
-                os.fdopen(os.dup(descriptor), "r", encoding="utf-8") as source,
-                os.fdopen(descriptor, "w", encoding="utf-8", buffering=1) as output,
-            ):
-                count = conduct_review(
-                    links, reviewer, checkpoint, source, output, describe, play, extra_pairs
-                )
     return InteractiveResult(run_id, str(record["corpus_id"]), checkpoint, count)

@@ -112,6 +112,44 @@ Neither success record names a stream, a score or an offer reason.
 The [task record](../../records/0063-self-supervised-corpus-corpus-blinded-audit-review.md) holds
 the decisions and acceptance evidence.
 
+### Interactive audit review
+
+`ss-track discover review-audit` walks a reviewer through a packet in the terminal and writes the
+completed blinded review, so nobody edits 100 YAML entries by hand:
+
+```bash
+ss-track discover review-audit --packet packet/ --reviewer "site lead" --blinding declared
+ss-track discover unblind --audit-id audit-1 --review packet/review-completed.yaml --out reviews/
+```
+
+It reads only the packet: `review.yaml` for the audit id and item order, and `items/`. It never
+opens the private mapping, a run or a queue template, so it cannot show a stream, a score, a
+selection or an offer reason. On arrival at an undecided item it loops the item's pictures in
+`ffplay` at 4 frames per second (`--no-autoplay` turns that off). `v` plays them again, `d` plays
+frame differences amplified eightfold so that a small moving object lights up, and `o` opens the
+item folder in the desktop viewer for zooming. `t`, `a`, `f` and `u` include the window as
+`target_present`, `target_absent`, `confuser` or `unknown`; `x` excludes it with an observation
+and a reason, and `other` requires a note. Both are taken by key or name (`q`, `quality`, `no
+value`) in either order; an invalid answer is asked again and a blank one cancels. `e` edits a
+note, `c` clears a decision back to `unreviewed`, `n`, `p`, `g` (next unreviewed) and `j` move, `s`
+summarizes and `q` saves and quits.
+
+Every decision atomically replaces the review file, `<packet>/review-completed.yaml` unless
+`--review` names another. It is always a complete `declaration/audit-review` 1.0.0 that lists
+undecided items `unreviewed`, so a paused review can be unblinded too; it then reports them as
+unreviewed exposure. The packet template and pictures are never changed, so `unblind` still
+matches the picture hashes. Restarting with the same reviewer resumes at the first unreviewed
+item; another reviewer or a review of another packet is `IMPORT_CONFLICT`, and a second session on
+one review file is `DISCOVERY_IN_PROGRESS`. `reviewer_minutes` is measured: the time between two
+answers counts, capped at five minutes so a break is not review work, and is rounded up to whole
+minutes. A resumed session starts from the saved whole minutes, so each pause can add up to
+one minute. `--independence` and
+`--blinding` set the declarations, which otherwise keep the saved values or start
+`not_declared`; the command does not check them. The command reports `recorded` with the review
+file as `record_path`. The terminal interaction uses the controlling terminal. The
+[interactive audit record](../../records/0076-adhoc-interactive-audit-review.md) holds the
+decisions and acceptance evidence.
+
 ## Decisions
 
 `declaration/corpus-review` 1.0.0, with optional provenance from 1.1.0 and an optional
@@ -190,6 +228,40 @@ random review. Ignoring them would hide discoveries.
 
 The [selection-pass record](../../records/0070-self-supervised-corpus-corpus-balanced-review-budget.md)
 holds the decision and acceptance evidence.
+
+### Interactive selection pass
+
+`ss-track discover review-pass` conducts a run's pass in the terminal and writes the
+`selection_pass` block into the review `discover unblind` wrote for that run, instead of the
+commented block being copied by hand:
+
+```bash
+ss-track discover review-pass --run-id discovery-1 --review reviews/discovery-1.yaml \
+  --reviewer "second reviewer"
+```
+
+It verifies the run and lists every selected window it offers, ascending, which is exactly what a
+complete pass reviews; a locked window is never listed. Each window shows its stream, candidate and
+frame range and its observation so far, never a score, a method or the audit observation of the
+window. Its pictures are rendered from the staged frames into a temporary folder outside the data
+root only while that window is shown, and removed on the next window, so a pass needs about one
+window of disk (about 100 MB in the pilot) rather than a copy of the run. The controls are those of
+the audit review: `v`, `d` and `o` look, `t`, `a`, `f` and `u` record `target_present`,
+`target_absent`, `confuser` or `unknown`, `c` clears, and `n`, `p`, `g`, `j`, `s`, `h` and `q` move,
+summarize and quit. `--no-autoplay` turns off playing each unreviewed window on arrival.
+
+Every observation atomically rewrites the review: its decisions and provenance unchanged, and the
+pass so far with its reviewer, measured `reviewer_minutes` and windows ascending. A review holding
+part of a pass is valid and incomplete, which the comparison treats as unmeasured work; one with no
+observation yet has no pass. Quitting without a change leaves the file's bytes as they were.
+Restarting with the same pass reviewer resumes at the first unreviewed window, its minutes from the
+saved whole minutes. Another pass reviewer is `IMPORT_CONFLICT`; a review of another run, or a pass
+naming a window the run did not select and offer, is `MANIFEST_INVALID`; a second session on one
+review is `DISCOVERY_IN_PROGRESS`. After the pass, `discover unblind` into the same directory is
+`CORPUS_CONFLICT`, because the review now holds other bytes. The command reports `recorded` with
+the review as `record_path`. The
+[interactive pass record](../../records/0077-adhoc-interactive-selection-pass.md) holds the
+decisions and acceptance evidence.
 
 ## Membership
 
@@ -271,7 +343,8 @@ writes the same record: the test replays a review on a second data root and comp
   frames stay on disk until its frozen versions are frozen.
 - Related decisions apply along the declared chain only; a version no chain links to is compared by
   the build's [near-duplicate report](../corpus.md#near-duplicates) alone.
-- The queue template still shows frames, offers, selection and scores. The blinded packet does not.
+- The queue template still shows frames, offers, selection and scores. The blinded packet does not,
+  and neither does `review-audit`, but nothing stops a reviewer from opening the queue template.
   Its pictures may still show the source, and a declared independence or blinding is not a check
   that the reviewer was kept from the queue or the mapping.
 - Reviewer minutes are recorded only when the review states them. Discovery does not record compute
@@ -286,7 +359,7 @@ writes the same record: the test replays a review on a second data root and comp
 
 | Module | Does |
 | --- | --- |
-| `commands/discover.py` | `discover queue`, `discover export`, `discover blind`, `discover unblind` |
+| `commands/discover.py` | `discover queue`, `discover export`, `discover blind`, `discover review-audit`, `discover unblind`, `discover review-pass` |
 | `commands/corpus.py` | `corpus freeze` |
 | `corpus/review/queue.py` | `review_queue`: offered, withheld and unoffered windows |
 | `corpus/review/decisions.py` | `read_review` |
@@ -303,6 +376,12 @@ writes the same record: the test replays a review on a second data root and comp
 | `corpus/review/blind_packet.py` | The cue-free template and the picture files |
 | `corpus/review/blind_key.py` | The sealed private mapping |
 | `corpus/review/blind_review.py` | `read_audit_review`, and the mapped corpus reviews |
+| `corpus/review/audit_session.py` | `read_packet`, `load_draft`, `save_draft`: the resumable review from the packet alone |
+| `corpus/review/audit_interactive.py` | `review_audit_interactively`, `conduct_audit`: the terminal loop and effort clock |
+| `corpus/review/review_terminal.py` | `ReviewTerminal`, `move`, `first_open`: prompts, the capped effort clock and navigation both terminal reviews share |
+| `corpus/review/pass_session.py` | `pass_target`, `load_pass`, `save_pass`, `render_window`: the resumable pass inside the run's review |
+| `corpus/review/pass_interactive.py` | `review_pass_interactively`, `conduct_pass`: the terminal pass and its one-window picture folder |
+| `corpus/review/audit_viewer.py` | `play_flipbook`, `reveal_folder`: the ffplay loop, frame differences and folder opener |
 
 ## Verification
 
@@ -328,4 +407,9 @@ decision, a related recording a superseded version held in another split, change
 retention and a forged record. `test_blind.py` presents a packet with no source cue, matches item
 ids across two runs of one audit sample, withholds the locked stream, restores an `unknown`
 observation, and refuses a forged mapping, a mismatched sample, a repeated item and a review that
-names a stream.
+names a stream. `test_audit_interactive.py` decides, excludes with a required note, edits, clears
+and resumes, caps idle time, refuses another reviewer or packet and a packet item without pictures,
+reviews a presented packet that `unblind` then maps, runs the CLI and checks the ffplay commands.
+`test_pass_interactive.py` records, resumes and clears a pass that export accepts with the review's
+decisions unchanged, leaves an untouched review byte for byte, refuses another pass reviewer, a
+stray window and another run's review, renders one window at a time and runs the CLI.

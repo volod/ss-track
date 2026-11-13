@@ -80,5 +80,8 @@ Copy the [template](template.md) using the
 | 0073 | `corpus-portable-link-review` | [0073-self-supervised-corpus-corpus-portable-link-review](0073-self-supervised-corpus-corpus-portable-link-review.md) |
 | 0074 | `data-clean-command` | [0074-adhoc-data-clean-command](0074-adhoc-data-clean-command.md) |
 | 0075 | `review-pilot-recording-links` | [0075-self-supervised-corpus-review-pilot-recording-links](0075-self-supervised-corpus-review-pilot-recording-links.md) |
+| 0076 | `interactive-audit-review` | [0076-adhoc-interactive-audit-review](0076-adhoc-interactive-audit-review.md) |
+| 0077 | `interactive-selection-pass` | [0077-adhoc-interactive-selection-pass](0077-adhoc-interactive-selection-pass.md) |
+| 0078 | `review-video-corpus-sample` | [0078-self-supervised-corpus-review-video-corpus-sample](0078-self-supervised-corpus-review-video-corpus-sample.md) |
 
-Next unused sequence: `0076`.
+Next unused sequence: `0079`.

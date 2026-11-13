@@ -53,9 +53,10 @@ declarations, the embedding worker and its guards against sibling defects, tiled
 scores and the selection methods. [Leakage review](corpus/leakage-review.md) states
 `discover links`: likely related recordings across groups, reviewer decisions, and the refusal of a
 version that keeps related recordings apart. [Review and freeze](corpus/review-and-freeze.md) states
-`discover queue`, `discover blind`, `discover unblind`, `discover export` and `corpus freeze`: the
-windows review offers, the blinded audit sample, the reviewer's decisions, the declaration they
-make and the sealed freeze record.
+`discover queue`, `discover blind`, `discover review-audit`, `discover unblind`, `discover
+review-pass`, `discover export` and `corpus freeze`: the windows review offers, the blinded audit
+sample and its interactive review, the interactive selection pass, the reviewer's decisions, the
+declaration they make and the sealed freeze record.
 
 ## Source inventory
 
@@ -200,6 +201,32 @@ name rules, the paired discovery plans, the frozen review protocol and the comma
 budgets that create the dataset on a new data root, with the identities each host must reproduce.
 It holds no media. The [pilot record](../records/0067-self-supervised-corpus-corpus-two-source-pilot.md)
 states what was run and what remains unresolved.
+
+### Reviewed pilot
+
+The owner reviewed the blinded audit `pilot-audit-grouped-20261113` (104 windows, 23 minutes,
+`blinding: declared`, `independence: not_declared` as the protocol predeclared) and a complete
+selection pass of each run's 100 selected windows (9 and 8 minutes). The audit observed a target
+in 85 windows and none in 15, and excluded 4 confusers. Both runs froze 100 included windows as 88
+streams and 1,593 frames, `pilot-frozen-diverse-20261113` and `pilot-frozen-uniform-20261113`,
+whose link reviews are clear. `discover evaluate` reads the same result from the reviews and the
+freeze records:
+
+| Measure | `ssl-diverse` | `uniform` |
+| --- | --- | --- |
+| Audit-weighted recall, 95% interval | 0.084 (0.011 to 0.157) | 0.173 (0.060 to 0.287) |
+| Drone dataset recall | 0.105 | 0.298 |
+| WetlandBirds recall | 0.072 | 0.103 |
+| Pass: target present, absent, confuser | 85, 5, 10 | 53, 43, 4 |
+| Selected streams, groups | 19, 12 | 34, 11 |
+
+The paired gain is -0.089 (-0.217 to 0.039): a valid negative result whose interval includes zero,
+so the pilot shows no advantage of model-assisted selection over uniform selection at a budget of
+100. The diverse selection holds more targets per reviewed window but covers about half as many
+streams. No pass disagrees with the audit. Observations are not labels and none of this is a
+field-prevalence claim. The reviews are in the recipe's `reviews/`, and the
+[review record](../records/0078-self-supervised-corpus-review-video-corpus-sample.md) holds the
+commands, identities and acceptance evidence.
 
 ## Selected development workload
 

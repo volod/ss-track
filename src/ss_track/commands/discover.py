@@ -11,8 +11,10 @@ from ss_track.corpus.links.interactive import review_interactively
 from ss_track.corpus.links.portable import export_handoff, unpack_handoff
 from ss_track.corpus.links.portable_accept import accept_handoff
 from ss_track.corpus.links.run import LinkRequest, write_links
+from ss_track.corpus.review.audit_interactive import review_audit_interactively
 from ss_track.corpus.review.blind import present_audit, unblind_audit
 from ss_track.corpus.review.export import export_review
+from ss_track.corpus.review.pass_interactive import review_pass_interactively
 from ss_track.corpus.review.template import queue_review
 from ss_track.corpus.sources.acquisition import AcquisitionRequest, acquire
 from ss_track.corpus.sources.inventory import inventory_sources
@@ -134,6 +136,7 @@ def add_discover_commands(subcommands: Subcommands) -> None:
     blind.add_argument("--run-id", action="append", required=True, dest="run_ids")
     blind.add_argument("--out", type=Path, required=True, help="directory to give the reviewer")
     blind.set_defaults(handler=_blind)
+    _add_review_audit(commands)
     unblind = commands.add_parser(
         "unblind", help="map a blinded audit review back to per-run review files"
     )
@@ -141,6 +144,57 @@ def add_discover_commands(subcommands: Subcommands) -> None:
     unblind.add_argument("--review", type=Path, required=True, help="completed blinded review")
     unblind.add_argument("--out", type=Path, required=True, help="directory of per-run reviews")
     unblind.set_defaults(handler=_unblind)
+
+
+def _add_review_audit(commands: Subcommands) -> None:
+    review_audit = commands.add_parser(
+        "review-audit", help="interactively review a blinded audit packet and resume safely"
+    )
+    review_audit.add_argument("--packet", type=Path, required=True, help="blinded audit packet")
+    review_audit.add_argument("--reviewer", required=True, help="name of the human reviewer")
+    review_audit.add_argument(
+        "--review", type=Path, help="review file to write (default: <packet>/review-completed.yaml)"
+    )
+    declarations = ("declared", "not_declared")
+    review_audit.add_argument("--independence", choices=declarations)
+    review_audit.add_argument("--blinding", choices=declarations)
+    review_audit.add_argument(
+        "--no-autoplay", action="store_true", help="do not play each undecided item on arrival"
+    )
+    review_audit.set_defaults(handler=_review_audit)
+    review_pass = commands.add_parser(
+        "review-pass", help="interactively review every window a run selected and resume safely"
+    )
+    review_pass.add_argument("--run-id", required=True, help="discovery run_id")
+    review_pass.add_argument(
+        "--review", type=Path, required=True, help="the run's review, as discover unblind wrote it"
+    )
+    review_pass.add_argument("--reviewer", required=True, help="name of the pass reviewer")
+    review_pass.add_argument(
+        "--no-autoplay", action="store_true", help="do not play each unreviewed window on arrival"
+    )
+    review_pass.set_defaults(handler=_review_pass)
+
+
+def _review_audit(args: argparse.Namespace) -> int:
+    return reported(
+        lambda: review_audit_interactively(
+            args.packet,
+            args.reviewer,
+            args.review,
+            args.independence,
+            args.blinding,
+            not args.no_autoplay,
+        )
+    )
+
+
+def _review_pass(args: argparse.Namespace) -> int:
+    return reported_on_data_root(
+        lambda data_root: review_pass_interactively(
+            args.run_id, args.review, args.reviewer, not args.no_autoplay, data_root
+        )
+    )
 
 
 def _run(args: argparse.Namespace) -> int:

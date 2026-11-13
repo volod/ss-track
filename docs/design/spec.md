@@ -427,7 +427,12 @@ without selection reason, score, method, offer reason, filename or source identi
 mapping keeps the path back to the existing review and freeze records. Windows the sample did not
 draw, and sibling windows, stay out of that packet. Locked sampled windows are withheld. Recorded
 independence, blinding and review effort are declarations, not a verification that the procedure
-was followed, and the pictures may still show the source. Unknown observations remain visible. A
+was followed, and the pictures may still show the source. Unknown observations remain visible.
+An interactive local review command guides a reviewer through that packet alone: it plays each
+window's pictures, optionally as frame differences, records each explicit decision durably as the
+existing blinded review, measures review effort with idle time capped, and resumes undecided work.
+It reads no private mapping, run or queue, so it cannot show a selection or score, does not judge
+a window for the reviewer and does not enforce the blinding it lets the reviewer declare. A
 report cannot establish population prevalence for curated footage. Discovery does not record
 compute cost.
 When equal selection budgets produce unequal unique review queues because their selections overlap
@@ -439,7 +444,10 @@ make an arm appear less effective. Audit-weighted estimates use only the indepen
 that disagrees with the run's review is listed without being resolved, and an incomplete pass or
 an unmatchable workload remains inconclusive. Deterministic padding is not offered: it pays for
 windows neither method chose, its findings belong to no method, and the amount it needs depends on
-the audit draw rather than on the methods.
+the audit draw rather than on the methods. The same interactive review can conduct a run's pass:
+it renders each selected window from the staged frames only while it is shown, saves each
+observation into the run's review with measured effort, and resumes. It shows no score, method or
+audit observation of the window, but it is not blinded and does not keep a second copy of frames.
 Hugging Face is a source service and versioned cache, not the authority for local corpus identity;
 any publication of derived data has separate terms and authorization.
 

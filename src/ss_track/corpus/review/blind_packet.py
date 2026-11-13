@@ -49,7 +49,8 @@ def _require_rgb(bundle: FrameBundle) -> None:
     )
 
 
-def _picture_name(offset: int, count: int) -> str:
+def picture_name(offset: int, count: int) -> str:
+    """Return the file name of the picture at `offset` of a window of `count` frames."""
     digits = max(_MIN_DIGITS, len(str(count - 1)))
     return f"{offset:0{digits}d}.png"
 
@@ -112,7 +113,7 @@ def packet_files(
     for item in sample.items:
         frames = pictures[item.item_id]
         for offset, payload in enumerate(frames):
-            name = _picture_name(offset, len(frames))
+            name = picture_name(offset, len(frames))
             files.append((out / "items" / item.item_id / name, payload))
     return files
 

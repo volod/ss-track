@@ -1,0 +1,734 @@
+# Corpus review; its selection pass was written by `ss-track discover review-pass`.
+# A pass observation never enters the estimate and is not a label.
+schema_version: 1
+run_id: pilot-uniform-grouped-20261113
+reviewer: vola
+independence: not_declared
+blinding: declared
+reviewer_minutes: 23
+audit_id: pilot-audit-grouped-20261113
+decisions:
+- stream_id: s1806850bb2e2f0d33b775d04ea3d52d9
+  candidate_id: pool-008
+  decision: include
+  observation: target_present
+- stream_id: sc56cb398bfadf86227fcae0b1d4308db
+  candidate_id: pool-023
+  decision: include
+  observation: target_present
+- stream_id: s0cd500c58b7e08201fb4b7502344d107
+  candidate_id: pool-016
+  decision: include
+  observation: target_present
+- stream_id: s7101faa4b55d463e35a0c9d44f7d37a1
+  candidate_id: pool-014
+  decision: include
+  observation: target_absent
+- stream_id: s663f01656660a0282001802490153532
+  candidate_id: pool-033
+  decision: include
+  observation: target_present
+- stream_id: s3dc01f647cb5a7a6e0497434bc9e8fc2
+  candidate_id: pool-023
+  decision: include
+  observation: target_present
+- stream_id: s1806850bb2e2f0d33b775d04ea3d52d9
+  candidate_id: pool-026
+  decision: include
+  observation: target_present
+- stream_id: sc9899eecd2a50747db1c0e1e63a4abb5
+  candidate_id: pool-024
+  decision: include
+  observation: target_present
+- stream_id: s6b361343ad068b4edf0cf67eb3f53159
+  candidate_id: pool-007
+  decision: include
+  observation: target_present
+- stream_id: s987ce264e35f49cfca2cf1f762e0d904
+  candidate_id: pool-000
+  decision: include
+  observation: target_present
+- stream_id: s663f01656660a0282001802490153532
+  candidate_id: pool-002
+  decision: include
+  observation: target_present
+- stream_id: sa9cfce0ca114ad81041d2ea33d78de0a
+  candidate_id: pool-016
+  decision: include
+  observation: target_present
+- stream_id: sa9cfce0ca114ad81041d2ea33d78de0a
+  candidate_id: pool-030
+  decision: include
+  observation: target_present
+- stream_id: sf6580872a09a9205740c8e78da660610
+  candidate_id: pool-005
+  decision: include
+  observation: target_present
+- stream_id: sfd89240c9e67e565774312bb7de4abac
+  candidate_id: pool-019
+  decision: include
+  observation: target_present
+- stream_id: s216faa00297f9108f623c4a8a9177c6b
+  candidate_id: pool-009
+  decision: include
+  observation: target_present
+- stream_id: s50eea7aa1d6dfcb54fec102223d638a9
+  candidate_id: pool-007
+  decision: include
+  observation: target_absent
+- stream_id: s663f01656660a0282001802490153532
+  candidate_id: pool-024
+  decision: include
+  observation: target_present
+- stream_id: sa588cf17f360ae03f30e908f1c7cfb30
+  candidate_id: pool-031
+  decision: include
+  observation: target_present
+- stream_id: sc9899eecd2a50747db1c0e1e63a4abb5
+  candidate_id: pool-033
+  decision: include
+  observation: target_present
+- stream_id: sf6580872a09a9205740c8e78da660610
+  candidate_id: pool-012
+  decision: include
+  observation: target_present
+- stream_id: sa9cfce0ca114ad81041d2ea33d78de0a
+  candidate_id: pool-033
+  decision: include
+  observation: target_present
+- stream_id: s3dc01f647cb5a7a6e0497434bc9e8fc2
+  candidate_id: pool-009
+  decision: include
+  observation: target_present
+- stream_id: s59db9358870a96af336d211b52254e94
+  candidate_id: pool-054
+  decision: include
+  observation: target_absent
+- stream_id: s81b76678e265eb2c03dae10c3bb7f991
+  candidate_id: pool-001
+  decision: include
+  observation: target_present
+- stream_id: s81b76678e265eb2c03dae10c3bb7f991
+  candidate_id: pool-044
+  decision: include
+  observation: target_present
+- stream_id: sa9cfce0ca114ad81041d2ea33d78de0a
+  candidate_id: pool-000
+  decision: include
+  observation: target_present
+- stream_id: sf6580872a09a9205740c8e78da660610
+  candidate_id: pool-008
+  decision: include
+  observation: target_present
+- stream_id: sa9cfce0ca114ad81041d2ea33d78de0a
+  candidate_id: pool-007
+  decision: include
+  observation: target_present
+- stream_id: sa587a903cd9b79bca3dd6183782af4e4
+  candidate_id: pool-038
+  decision: include
+  observation: target_absent
+- stream_id: sa91ae13080298be51e76931d53d7d7da
+  candidate_id: pool-003
+  decision: include
+  observation: target_present
+- stream_id: sc9899eecd2a50747db1c0e1e63a4abb5
+  candidate_id: pool-003
+  decision: include
+  observation: target_present
+- stream_id: s50eea7aa1d6dfcb54fec102223d638a9
+  candidate_id: pool-019
+  decision: include
+  observation: target_absent
+- stream_id: sa9cfce0ca114ad81041d2ea33d78de0a
+  candidate_id: pool-035
+  decision: include
+  observation: target_present
+- stream_id: s50eea7aa1d6dfcb54fec102223d638a9
+  candidate_id: pool-014
+  decision: include
+  observation: target_absent
+- stream_id: s663f01656660a0282001802490153532
+  candidate_id: pool-042
+  decision: include
+  observation: target_present
+- stream_id: sdf3818c924b1a69b69b4d94cb02bf574
+  candidate_id: pool-053
+  decision: exclude
+  observation: confuser
+  reason: sensitive
+- stream_id: sfd89240c9e67e565774312bb7de4abac
+  candidate_id: pool-011
+  decision: include
+  observation: target_present
+- stream_id: s663f01656660a0282001802490153532
+  candidate_id: pool-016
+  decision: include
+  observation: target_present
+- stream_id: s1806850bb2e2f0d33b775d04ea3d52d9
+  candidate_id: pool-033
+  decision: include
+  observation: target_present
+- stream_id: sfd89240c9e67e565774312bb7de4abac
+  candidate_id: pool-037
+  decision: include
+  observation: target_present
+- stream_id: sc9899eecd2a50747db1c0e1e63a4abb5
+  candidate_id: pool-007
+  decision: include
+  observation: target_present
+- stream_id: sc9899eecd2a50747db1c0e1e63a4abb5
+  candidate_id: pool-023
+  decision: include
+  observation: target_present
+- stream_id: sf6580872a09a9205740c8e78da660610
+  candidate_id: pool-015
+  decision: include
+  observation: target_present
+- stream_id: s3dc01f647cb5a7a6e0497434bc9e8fc2
+  candidate_id: pool-020
+  decision: include
+  observation: target_present
+- stream_id: s75b5746e9f96d42c22f0a23b16dca46e
+  candidate_id: pool-014
+  decision: include
+  observation: target_absent
+- stream_id: s6b361343ad068b4edf0cf67eb3f53159
+  candidate_id: pool-000
+  decision: include
+  observation: target_present
+- stream_id: sf6580872a09a9205740c8e78da660610
+  candidate_id: pool-004
+  decision: include
+  observation: target_present
+- stream_id: s0cd500c58b7e08201fb4b7502344d107
+  candidate_id: pool-015
+  decision: include
+  observation: target_present
+- stream_id: s0cd500c58b7e08201fb4b7502344d107
+  candidate_id: pool-001
+  decision: include
+  observation: target_present
+- stream_id: sdf3818c924b1a69b69b4d94cb02bf574
+  candidate_id: pool-061
+  decision: exclude
+  observation: confuser
+  reason: quality
+- stream_id: se58ccc1e9b98c1b2adc0b3b84f8c91cc
+  candidate_id: pool-043
+  decision: include
+  observation: target_present
+- stream_id: s1806850bb2e2f0d33b775d04ea3d52d9
+  candidate_id: pool-006
+  decision: include
+  observation: target_present
+- stream_id: s1806850bb2e2f0d33b775d04ea3d52d9
+  candidate_id: pool-035
+  decision: include
+  observation: target_present
+- stream_id: s1806850bb2e2f0d33b775d04ea3d52d9
+  candidate_id: pool-037
+  decision: include
+  observation: target_present
+- stream_id: s0cd500c58b7e08201fb4b7502344d107
+  candidate_id: pool-013
+  decision: include
+  observation: target_present
+- stream_id: s3dc01f647cb5a7a6e0497434bc9e8fc2
+  candidate_id: pool-033
+  decision: include
+  observation: target_present
+- stream_id: sa588cf17f360ae03f30e908f1c7cfb30
+  candidate_id: pool-006
+  decision: include
+  observation: target_present
+- stream_id: sfba1a25d85ff5aa90a8ff5dd2fd8d98e
+  candidate_id: pool-001
+  decision: include
+  observation: target_present
+- stream_id: sfd89240c9e67e565774312bb7de4abac
+  candidate_id: pool-036
+  decision: include
+  observation: target_present
+- stream_id: s8c967b05d0e6f6f3dc79825a276f2a14
+  candidate_id: pool-018
+  decision: include
+  observation: target_absent
+- stream_id: s663f01656660a0282001802490153532
+  candidate_id: pool-020
+  decision: include
+  observation: target_present
+- stream_id: sf3a7b3dd925d30c797bd25b88b54f055
+  candidate_id: pool-030
+  decision: include
+  observation: target_absent
+- stream_id: s0cd500c58b7e08201fb4b7502344d107
+  candidate_id: pool-009
+  decision: include
+  observation: target_present
+- stream_id: sdf3818c924b1a69b69b4d94cb02bf574
+  candidate_id: pool-057
+  decision: exclude
+  observation: confuser
+  reason: quality
+- stream_id: sf8909d5bc74e454eae1de5354517a339
+  candidate_id: pool-019
+  decision: include
+  observation: target_present
+- stream_id: sa588cf17f360ae03f30e908f1c7cfb30
+  candidate_id: pool-048
+  decision: include
+  observation: target_present
+- stream_id: sf8909d5bc74e454eae1de5354517a339
+  candidate_id: pool-032
+  decision: include
+  observation: target_present
+- stream_id: s3dc01f647cb5a7a6e0497434bc9e8fc2
+  candidate_id: pool-026
+  decision: include
+  observation: target_present
+- stream_id: sf8909d5bc74e454eae1de5354517a339
+  candidate_id: pool-020
+  decision: include
+  observation: target_present
+- stream_id: s0cd500c58b7e08201fb4b7502344d107
+  candidate_id: pool-004
+  decision: include
+  observation: target_present
+- stream_id: s663f01656660a0282001802490153532
+  candidate_id: pool-018
+  decision: include
+  observation: target_present
+- stream_id: sa9cfce0ca114ad81041d2ea33d78de0a
+  candidate_id: pool-024
+  decision: include
+  observation: target_present
+- stream_id: s0cd500c58b7e08201fb4b7502344d107
+  candidate_id: pool-018
+  decision: include
+  observation: target_present
+- stream_id: sc9899eecd2a50747db1c0e1e63a4abb5
+  candidate_id: pool-034
+  decision: include
+  observation: target_present
+- stream_id: s50eea7aa1d6dfcb54fec102223d638a9
+  candidate_id: pool-009
+  decision: include
+  observation: target_present
+- stream_id: s50eea7aa1d6dfcb54fec102223d638a9
+  candidate_id: pool-025
+  decision: include
+  observation: target_absent
+- stream_id: s663f01656660a0282001802490153532
+  candidate_id: pool-028
+  decision: include
+  observation: target_present
+- stream_id: se58ccc1e9b98c1b2adc0b3b84f8c91cc
+  candidate_id: pool-018
+  decision: include
+  observation: target_present
+- stream_id: s3b7f599f445b078e110b4f29445b12e1
+  candidate_id: pool-042
+  decision: include
+  observation: target_absent
+- stream_id: sf5e073de4329080cb031a3312b90d80b
+  candidate_id: pool-042
+  decision: include
+  observation: target_present
+- stream_id: s50eea7aa1d6dfcb54fec102223d638a9
+  candidate_id: pool-010
+  decision: include
+  observation: target_present
+- stream_id: s3b7f599f445b078e110b4f29445b12e1
+  candidate_id: pool-067
+  decision: include
+  observation: target_absent
+- stream_id: s0cd500c58b7e08201fb4b7502344d107
+  candidate_id: pool-017
+  decision: include
+  observation: target_present
+- stream_id: s3dc01f647cb5a7a6e0497434bc9e8fc2
+  candidate_id: pool-019
+  decision: include
+  observation: target_present
+- stream_id: sc9899eecd2a50747db1c0e1e63a4abb5
+  candidate_id: pool-005
+  decision: include
+  observation: target_present
+- stream_id: sa91ae13080298be51e76931d53d7d7da
+  candidate_id: pool-016
+  decision: include
+  observation: target_present
+- stream_id: sa588cf17f360ae03f30e908f1c7cfb30
+  candidate_id: pool-032
+  decision: include
+  observation: target_present
+- stream_id: s1806850bb2e2f0d33b775d04ea3d52d9
+  candidate_id: pool-032
+  decision: include
+  observation: target_present
+- stream_id: s7101faa4b55d463e35a0c9d44f7d37a1
+  candidate_id: pool-002
+  decision: include
+  observation: target_present
+- stream_id: se58ccc1e9b98c1b2adc0b3b84f8c91cc
+  candidate_id: pool-006
+  decision: include
+  observation: target_present
+- stream_id: sf6580872a09a9205740c8e78da660610
+  candidate_id: pool-001
+  decision: include
+  observation: target_present
+- stream_id: s3dc01f647cb5a7a6e0497434bc9e8fc2
+  candidate_id: pool-004
+  decision: include
+  observation: target_present
+- stream_id: s50eea7aa1d6dfcb54fec102223d638a9
+  candidate_id: pool-017
+  decision: include
+  observation: target_absent
+- stream_id: sf6580872a09a9205740c8e78da660610
+  candidate_id: pool-010
+  decision: include
+  observation: target_present
+- stream_id: s3dc01f647cb5a7a6e0497434bc9e8fc2
+  candidate_id: pool-012
+  decision: include
+  observation: target_present
+- stream_id: sf6580872a09a9205740c8e78da660610
+  candidate_id: pool-017
+  decision: include
+  observation: target_present
+- stream_id: s8c967b05d0e6f6f3dc79825a276f2a14
+  candidate_id: pool-073
+  decision: include
+  observation: target_absent
+- stream_id: s50eea7aa1d6dfcb54fec102223d638a9
+  candidate_id: pool-004
+  decision: include
+  observation: target_present
+- stream_id: sbfa0754d18c7c261d3e9583a4fa061f9
+  candidate_id: pool-000
+  decision: include
+  observation: target_absent
+- stream_id: s1806850bb2e2f0d33b775d04ea3d52d9
+  candidate_id: pool-014
+  decision: include
+  observation: target_present
+- stream_id: sdf3818c924b1a69b69b4d94cb02bf574
+  candidate_id: pool-049
+  decision: exclude
+  observation: confuser
+  reason: quality
+- stream_id: sc9899eecd2a50747db1c0e1e63a4abb5
+  candidate_id: pool-014
+  decision: include
+  observation: target_present
+- stream_id: sa9cfce0ca114ad81041d2ea33d78de0a
+  candidate_id: pool-020
+  decision: include
+  observation: target_present
+selection_pass:
+  reviewer: vola
+  reviewer_minutes: 8
+  windows:
+  - stream_id: s0cd500c58b7e08201fb4b7502344d107
+    candidate_id: pool-017
+    observation: target_present
+  - stream_id: s1806850bb2e2f0d33b775d04ea3d52d9
+    candidate_id: pool-013
+    observation: target_present
+  - stream_id: s1806850bb2e2f0d33b775d04ea3d52d9
+    candidate_id: pool-021
+    observation: target_present
+  - stream_id: s1806850bb2e2f0d33b775d04ea3d52d9
+    candidate_id: pool-025
+    observation: target_present
+  - stream_id: s1806850bb2e2f0d33b775d04ea3d52d9
+    candidate_id: pool-039
+    observation: target_present
+  - stream_id: s196746503d22c6a1963ea6dce80b67c7
+    candidate_id: pool-007
+    observation: target_absent
+  - stream_id: s196746503d22c6a1963ea6dce80b67c7
+    candidate_id: pool-014
+    observation: target_absent
+  - stream_id: s196746503d22c6a1963ea6dce80b67c7
+    candidate_id: pool-017
+    observation: target_absent
+  - stream_id: s216faa00297f9108f623c4a8a9177c6b
+    candidate_id: pool-009
+    observation: target_present
+  - stream_id: s2dc05385186718b699a1647bf57321ce
+    candidate_id: pool-003
+    observation: target_present
+  - stream_id: s2dc05385186718b699a1647bf57321ce
+    candidate_id: pool-007
+    observation: target_present
+  - stream_id: s2dc05385186718b699a1647bf57321ce
+    candidate_id: pool-010
+    observation: target_present
+  - stream_id: s3b7f599f445b078e110b4f29445b12e1
+    candidate_id: pool-011
+    observation: target_absent
+  - stream_id: s3b7f599f445b078e110b4f29445b12e1
+    candidate_id: pool-027
+    observation: target_absent
+  - stream_id: s3b7f599f445b078e110b4f29445b12e1
+    candidate_id: pool-037
+    observation: target_absent
+  - stream_id: s3b7f599f445b078e110b4f29445b12e1
+    candidate_id: pool-043
+    observation: target_absent
+  - stream_id: s3b7f599f445b078e110b4f29445b12e1
+    candidate_id: pool-059
+    observation: target_absent
+  - stream_id: s3b7f599f445b078e110b4f29445b12e1
+    candidate_id: pool-061
+    observation: target_absent
+  - stream_id: s3b7f599f445b078e110b4f29445b12e1
+    candidate_id: pool-118
+    observation: target_absent
+  - stream_id: s3b7f599f445b078e110b4f29445b12e1
+    candidate_id: pool-127
+    observation: target_absent
+  - stream_id: s3dc01f647cb5a7a6e0497434bc9e8fc2
+    candidate_id: pool-001
+    observation: target_present
+  - stream_id: s3dc01f647cb5a7a6e0497434bc9e8fc2
+    candidate_id: pool-021
+    observation: target_present
+  - stream_id: s3dc01f647cb5a7a6e0497434bc9e8fc2
+    candidate_id: pool-023
+    observation: target_present
+  - stream_id: s3dc01f647cb5a7a6e0497434bc9e8fc2
+    candidate_id: pool-028
+    observation: target_present
+  - stream_id: s43fb8f8241de36c6227b0c0db2eaf95a
+    candidate_id: pool-001
+    observation: target_present
+  - stream_id: s43fb8f8241de36c6227b0c0db2eaf95a
+    candidate_id: pool-013
+    observation: target_present
+  - stream_id: s53137cf1cbedaa16fe051dbc2b848cc0
+    candidate_id: pool-024
+    observation: target_absent
+  - stream_id: s53137cf1cbedaa16fe051dbc2b848cc0
+    candidate_id: pool-043
+    observation: target_absent
+  - stream_id: s53859e899f2b974064a652e6a2f5b66b
+    candidate_id: pool-008
+    observation: target_present
+  - stream_id: s53859e899f2b974064a652e6a2f5b66b
+    candidate_id: pool-014
+    observation: target_present
+  - stream_id: s59db9358870a96af336d211b52254e94
+    candidate_id: pool-032
+    observation: target_absent
+  - stream_id: s59db9358870a96af336d211b52254e94
+    candidate_id: pool-058
+    observation: target_absent
+  - stream_id: s59db9358870a96af336d211b52254e94
+    candidate_id: pool-059
+    observation: target_absent
+  - stream_id: s59db9358870a96af336d211b52254e94
+    candidate_id: pool-062
+    observation: target_absent
+  - stream_id: s59db9358870a96af336d211b52254e94
+    candidate_id: pool-064
+    observation: target_absent
+  - stream_id: s59db9358870a96af336d211b52254e94
+    candidate_id: pool-133
+    observation: target_absent
+  - stream_id: s5d501712057e799f6427ec48b77b696c
+    candidate_id: pool-006
+    observation: target_absent
+  - stream_id: s5d501712057e799f6427ec48b77b696c
+    candidate_id: pool-010
+    observation: target_present
+  - stream_id: s5d501712057e799f6427ec48b77b696c
+    candidate_id: pool-019
+    observation: target_present
+  - stream_id: s6140eea20be9bf5ea137290c0205366b
+    candidate_id: pool-003
+    observation: target_absent
+  - stream_id: s6140eea20be9bf5ea137290c0205366b
+    candidate_id: pool-050
+    observation: target_absent
+  - stream_id: s6140eea20be9bf5ea137290c0205366b
+    candidate_id: pool-067
+    observation: target_absent
+  - stream_id: s663f01656660a0282001802490153532
+    candidate_id: pool-017
+    observation: target_present
+  - stream_id: s663f01656660a0282001802490153532
+    candidate_id: pool-021
+    observation: target_present
+  - stream_id: s663f01656660a0282001802490153532
+    candidate_id: pool-054
+    observation: target_present
+  - stream_id: s7101faa4b55d463e35a0c9d44f7d37a1
+    candidate_id: pool-005
+    observation: target_present
+  - stream_id: s7101faa4b55d463e35a0c9d44f7d37a1
+    candidate_id: pool-010
+    observation: target_present
+  - stream_id: s7101faa4b55d463e35a0c9d44f7d37a1
+    candidate_id: pool-015
+    observation: target_present
+  - stream_id: s7101faa4b55d463e35a0c9d44f7d37a1
+    candidate_id: pool-018
+    observation: target_present
+  - stream_id: s75b5746e9f96d42c22f0a23b16dca46e
+    candidate_id: pool-006
+    observation: target_absent
+  - stream_id: s81b76678e265eb2c03dae10c3bb7f991
+    candidate_id: pool-029
+    observation: target_present
+  - stream_id: s8c967b05d0e6f6f3dc79825a276f2a14
+    candidate_id: pool-005
+    observation: target_absent
+  - stream_id: s8c967b05d0e6f6f3dc79825a276f2a14
+    candidate_id: pool-008
+    observation: target_absent
+  - stream_id: s8c967b05d0e6f6f3dc79825a276f2a14
+    candidate_id: pool-058
+    observation: target_absent
+  - stream_id: s8c967b05d0e6f6f3dc79825a276f2a14
+    candidate_id: pool-080
+    observation: target_absent
+  - stream_id: s8c967b05d0e6f6f3dc79825a276f2a14
+    candidate_id: pool-091
+    observation: target_absent
+  - stream_id: s9331c32679a4c6e9c5dbbad0a44afbc8
+    candidate_id: pool-003
+    observation: target_present
+  - stream_id: s9331c32679a4c6e9c5dbbad0a44afbc8
+    candidate_id: pool-015
+    observation: target_present
+  - stream_id: s987ce264e35f49cfca2cf1f762e0d904
+    candidate_id: pool-000
+    observation: target_present
+  - stream_id: s987ce264e35f49cfca2cf1f762e0d904
+    candidate_id: pool-001
+    observation: target_present
+  - stream_id: s987ce264e35f49cfca2cf1f762e0d904
+    candidate_id: pool-002
+    observation: target_present
+  - stream_id: s987ce264e35f49cfca2cf1f762e0d904
+    candidate_id: pool-015
+    observation: target_present
+  - stream_id: sa587a903cd9b79bca3dd6183782af4e4
+    candidate_id: pool-033
+    observation: target_absent
+  - stream_id: sa588cf17f360ae03f30e908f1c7cfb30
+    candidate_id: pool-006
+    observation: target_present
+  - stream_id: sa588cf17f360ae03f30e908f1c7cfb30
+    candidate_id: pool-021
+    observation: target_present
+  - stream_id: sa588cf17f360ae03f30e908f1c7cfb30
+    candidate_id: pool-031
+    observation: target_present
+  - stream_id: sa588cf17f360ae03f30e908f1c7cfb30
+    candidate_id: pool-055
+    observation: target_present
+  - stream_id: sa91ae13080298be51e76931d53d7d7da
+    candidate_id: pool-013
+    observation: target_present
+  - stream_id: sa91ae13080298be51e76931d53d7d7da
+    candidate_id: pool-015
+    observation: target_present
+  - stream_id: sa9cfce0ca114ad81041d2ea33d78de0a
+    candidate_id: pool-010
+    observation: target_present
+  - stream_id: sa9cfce0ca114ad81041d2ea33d78de0a
+    candidate_id: pool-022
+    observation: target_present
+  - stream_id: sbfa0754d18c7c261d3e9583a4fa061f9
+    candidate_id: pool-001
+    observation: target_absent
+  - stream_id: sbfa0754d18c7c261d3e9583a4fa061f9
+    candidate_id: pool-008
+    observation: target_absent
+  - stream_id: sc56cb398bfadf86227fcae0b1d4308db
+    candidate_id: pool-015
+    observation: target_present
+  - stream_id: sc9899eecd2a50747db1c0e1e63a4abb5
+    candidate_id: pool-007
+    observation: target_present
+  - stream_id: sc9899eecd2a50747db1c0e1e63a4abb5
+    candidate_id: pool-016
+    observation: target_present
+  - stream_id: sc9899eecd2a50747db1c0e1e63a4abb5
+    candidate_id: pool-033
+    observation: target_present
+  - stream_id: sc9899eecd2a50747db1c0e1e63a4abb5
+    candidate_id: pool-034
+    observation: target_present
+  - stream_id: sdf3818c924b1a69b69b4d94cb02bf574
+    candidate_id: pool-013
+    observation: confuser
+  - stream_id: sdf3818c924b1a69b69b4d94cb02bf574
+    candidate_id: pool-016
+    observation: confuser
+  - stream_id: sdf3818c924b1a69b69b4d94cb02bf574
+    candidate_id: pool-023
+    observation: confuser
+  - stream_id: sdf3818c924b1a69b69b4d94cb02bf574
+    candidate_id: pool-044
+    observation: confuser
+  - stream_id: se58ccc1e9b98c1b2adc0b3b84f8c91cc
+    candidate_id: pool-038
+    observation: target_absent
+  - stream_id: se58ccc1e9b98c1b2adc0b3b84f8c91cc
+    candidate_id: pool-043
+    observation: target_present
+  - stream_id: sf3a7b3dd925d30c797bd25b88b54f055
+    candidate_id: pool-012
+    observation: target_absent
+  - stream_id: sf3a7b3dd925d30c797bd25b88b54f055
+    candidate_id: pool-026
+    observation: target_absent
+  - stream_id: sf3a7b3dd925d30c797bd25b88b54f055
+    candidate_id: pool-033
+    observation: target_absent
+  - stream_id: sf5e073de4329080cb031a3312b90d80b
+    candidate_id: pool-004
+    observation: target_absent
+  - stream_id: sf5e073de4329080cb031a3312b90d80b
+    candidate_id: pool-006
+    observation: target_absent
+  - stream_id: sf5e073de4329080cb031a3312b90d80b
+    candidate_id: pool-026
+    observation: target_absent
+  - stream_id: sf5e073de4329080cb031a3312b90d80b
+    candidate_id: pool-045
+    observation: target_absent
+  - stream_id: sf5e073de4329080cb031a3312b90d80b
+    candidate_id: pool-072
+    observation: target_absent
+  - stream_id: sf5e073de4329080cb031a3312b90d80b
+    candidate_id: pool-074
+    observation: target_absent
+  - stream_id: sf5e073de4329080cb031a3312b90d80b
+    candidate_id: pool-082
+    observation: target_absent
+  - stream_id: sf8909d5bc74e454eae1de5354517a339
+    candidate_id: pool-016
+    observation: target_present
+  - stream_id: sf8909d5bc74e454eae1de5354517a339
+    candidate_id: pool-020
+    observation: target_present
+  - stream_id: sf8909d5bc74e454eae1de5354517a339
+    candidate_id: pool-028
+    observation: target_present
+  - stream_id: sfba1a25d85ff5aa90a8ff5dd2fd8d98e
+    candidate_id: pool-004
+    observation: target_present
+  - stream_id: sfd89240c9e67e565774312bb7de4abac
+    candidate_id: pool-012
+    observation: target_present
+  - stream_id: sfd89240c9e67e565774312bb7de4abac
+    candidate_id: pool-017
+    observation: target_present

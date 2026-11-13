@@ -36,7 +36,7 @@ A larger selected pool may conceal missed small birds or exclude hard negatives.
 
 - Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: RUN NEEDED
-- Dependencies: review-video-corpus-sample.
+- Dependencies: none.
 - User-visible outcome: A report compares model-assisted selection with a random or uniform
   baseline and exposes missed cases and resource cost at a matched review budget.
 - Scope boundary: Independently reviewed audit samples and stratified uncertainty; no field accuracy,
@@ -61,7 +61,10 @@ A larger selected pool may conceal missed small birds or exclude hard negatives.
   comparison already reports each collection's estimates, shared-stratum covariance and the weighted
   combined population
   ([evaluating selection](current/corpus/discovery-runs.md#evaluating-selection)). Keep that report.
-  Do not reimplement it, and do not treat it as field prevalence.
+  Do not reimplement it, and do not treat it as field prevalence. The
+  [reviewed pilot](current/corpus.md#reviewed-pilot) is the input: explain its lower `ssl-diverse`
+  recall with each method's stream and group coverage, since that selection covered 19 streams
+  against 34, and report whether the misses are coverage or ranking.
 - Acceptance gates: Hand-calculated fixtures verify denominators, sampling weights, uncertainty and
   unavailable strata; empty or insufficient evidence produces an explicit inconclusive result.
   A fixture lists two passes that disagree on a window no review observed, without changing the
@@ -75,7 +78,7 @@ A large corpus needs evidence that selection can run within the owner's availabl
 - Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: RUN NEEDED
 - Research: yes
-- Dependencies: corpus-selection-evaluation, review-video-corpus-sample.
+- Dependencies: corpus-selection-evaluation.
 - User-visible outcome: An authorized pilot produces a measured, reproducible corpus or explains why
   available video, quality, cost or resources do not support it.
 - Scope boundary: Only approved sources, processing and storage budgets; no acquisition beyond the
@@ -2332,33 +2335,6 @@ A locked test needs a named custodian and access rules that no software can supp
 - Acceptance gates: A hashed policy exists before any locked evaluation. With no custodian, a
   `locked` split stays membership only and no held-out claim is made.
 - Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
-### Self-supervised video corpus -- `self-supervised-corpus`
-
-#### review-video-corpus-sample
-
-The usefulness and missed cases of self-supervised selection require independent human judgment.
-
-- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
-- Agent status: HUMAN-GATED
-- Dependencies: none.
-- User-visible outcome: Reviewers adjudicate selected and independently sampled unselected material,
-  including negative windows, confusers and small or uncertain birds.
-- Scope boundary: A predeclared independent audit sample, grouping decisions and reviewer time; the
-  existing annotation authority owns final labels and a locked set needs its custodian.
-- Data and artifact paths: `$DATA_DIR/self-supervised-corpus/<run-id>/`, `$DATA_DIR/corpus/<corpus-id>/labels/`.
-- Execution path: The [pilot recipe](workloads/two-source-pilot/README.md) holds the frozen
-  protocol; the blinded audit packet of `pilot-audit-grouped-20261113` is presented. Freeze the
-  baseline and sampling plan before review; reviewers record source and
-  frame decisions, uncertainty, disagreements and time, and settle them under named authority. The
-  blinded audit presentation from `discover blind` records independence, blinding and effort.
-  `discover unblind` maps its item decisions into one review file per run. After the audit,
-  reviewers complete a [selection pass](current/corpus/review-and-freeze.md#selection-pass) of
-  every selected window of each run, with minutes, and those files are frozen with
-  `corpus freeze` ([review and freeze](current/corpus/review-and-freeze.md)).
-- Acceptance gates: Reviewed samples and exclusions are frozen and hashed; absent or uncertain labels
-  stay unknown, unreviewed exposure is reported, and insufficient sample size is inconclusive.
-- Documentation target: [Corpus](current/corpus.md).
 
 ### Annotation and selection -- `annotation-selection`
 

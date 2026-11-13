@@ -16,6 +16,7 @@ recipe transfers about 9.8 GB.
 | `link-decisions.yaml` | `declaration/link-decisions`: the delegated link review of the ungrouped version, 8 related and 58 unrelated pairs |
 | `plan-diverse.yaml`, `plan-uniform.yaml` | The paired discovery plans: one pool, audit seed and budget |
 | `protocol.md` | The review protocol, frozen before `discover blind` |
+| `reviews/pilot-*-grouped-20261113.yaml` | `declaration/corpus-review`: the unblinded audit decisions of each run with its selection pass, which `discover export` and `corpus freeze` replay |
 
 ## Selection
 
@@ -127,6 +128,25 @@ export SST_PERCEPTION_PYTHON=/path/to/ss-perception-env/bin/python
   --decisions "$W/link-decisions.yaml"
 ```
 
+## Freeze the reviewed versions
+
+The reviews in `reviews/` replay the owner's review on any host that recreated the dataset and both
+runs. The model-assisted run must match the origin's identity, so use `cuda` and batch 64 or
+expect a refusal:
+
+```bash
+for m in diverse uniform; do
+  .venv/bin/ss-track discover export --review "$W/reviews/pilot-$m-grouped-20261113.yaml" \
+    --corpus-id pilot-frozen-$m-20261113 --out "$DATA_DIR/pilot-frozen-$m-20261113.yaml"
+  .venv/bin/ss-track corpus build --manifest "$DATA_DIR/pilot-frozen-$m-20261113.yaml"
+  .venv/bin/ss-track corpus stage --corpus pilot-frozen-$m-20261113
+  .venv/bin/ss-track discover links --corpus pilot-frozen-$m-20261113 \
+    --run-id pilot-links-frozen-$m-20261113 --decisions "$W/link-decisions.yaml"
+  .venv/bin/ss-track corpus freeze --corpus pilot-frozen-$m-20261113 \
+    --review "$W/reviews/pilot-$m-grouped-20261113.yaml" --links pilot-links-frozen-$m-20261113
+done
+```
+
 ## Expected identities
 
 From the origin host's sealed records. The source, pool, corpus and frame-set identities must match
@@ -145,6 +165,8 @@ matches only for the same host settings; the uniform run and the audit draw do n
 | Run `pilot-uniform-grouped-20261113` | `eee2d02c464795e5528a214fc6d633f217aad643aca978fc1e22978a24e5f459` |
 | Run `pilot-diverse-grouped-20261113` (`cuda`, batch 64) | `e5d59b73d9f73a65ebfb3d95ad943257d72fbf78cf86cf9e63f3ab601d12c31e` |
 | Links `pilot-links-grouped-20261113` | `748d524efe0d39338ebc6faeded0f99af1e39e11ac193c5bac69b1cc4f7976d2` |
+| Frozen `pilot-frozen-diverse-20261113` (`freeze.json`) | `23c1661133058bfe986e245543d0d830b7a3cbf8eff0ac294fab0f2ea37be8a3` |
+| Frozen `pilot-frozen-uniform-20261113` (`freeze.json`) | `bf9d9b38952abffc158b8be494e5bd93e55e698a1f434ab13fc7c204a8deccf6` |
 
 The [pilot record](../../records/0067-self-supervised-corpus-corpus-two-source-pilot.md) holds the
 measured resources and the unresolved evidence.
