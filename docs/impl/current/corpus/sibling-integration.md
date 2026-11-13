@@ -76,10 +76,10 @@ version and `SAMPLE_FPS_MAX`. Candidate records must name ss-track frames.
 | OpenCLIP code | `open_clip_torch` 4.2.1 | MIT-style | |
 | CLIP ViT-B/16 `openai` weights | Hugging Face `timm/vit_base_patch16_clip_224.openai`, `main` resolved to `977e3dd0` | tagged Apache-2.0; OpenAI CLIP repository MIT | The OpenAI model card puts any deployed use out of scope. Downloaded from `main` with no pinned revision |
 | DINO "dinov3" weights | `dinov2_vitb14_reg` via `torch.hub` `facebookresearch/dinov2` `main` | Apache-2.0 | ss-perception aliases every `dinov3_*` name to a DINOv2 `_reg` model |
-| Video sources | none | - | Owned by [source authorization](../../plan.md#authorize-video-corpus-sources) |
+| Video sources | see [source authorization](../corpus.md#source-authorization) | per source | Approved under `approval-2026-11-13` |
 
-The [source authorization task](../../plan.md#authorize-video-corpus-sources) owns approval of the
-chosen revision and model weights; a package version by itself is not a commit pin.
+The [source authorization](../corpus.md#source-authorization) approves the chosen revision and
+model weights; a package version by itself is not a commit pin.
 
 ## Reproducibility
 
@@ -142,9 +142,8 @@ show that it never saw locked-test footage, and corpus selection uses frozen pre
 3. **Selection features.** Implemented: whole-frame vectors miss edges and tiny targets, so an
    extractor may embed square tiles that cover each frame
    ([tiled coverage](discovery-runs.md#tiled-coverage)), measured on small-target fixtures.
-4. **Rights.** Running the worker on real sources waits for the
-   [source authorization](../../plan.md#authorize-video-corpus-sources) grant for ss-fusion code and
-   the pinned weights.
+4. **Rights.** Implemented: the [source authorization](../corpus.md#source-authorization)
+   grants ss-fusion code and the pinned weights for corpus selection on the approved sources.
 
 ## Resources
 

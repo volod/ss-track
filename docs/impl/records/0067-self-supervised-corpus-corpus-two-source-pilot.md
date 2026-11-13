@@ -3,7 +3,7 @@
 ## Task and scope
 
 - Id / capability: `corpus-two-source-pilot` / `self-supervised-corpus`
-- State: active
+- State: accepted
 - Source: plan task; start commit `21dae935e84a00431257617804114e65a4cb546d`;
   preexisting change: `docs/impl/records/0056-self-supervised-corpus-corpus-selection-evaluation.md`.
 - Plan counts at start: 101 agent, 23 human; next agent `corpus-two-source-pilot`,
@@ -202,6 +202,46 @@ The chosen sources need an approved, measured pool and paired runs before people
 - Documentation target: [Corpus](current/corpus.md).
 ```
 
+- Amendment: the owner closed the source authorization under `approval-2026-11-13` and added
+  moving branches and the sky-landscape boundary to the approved strata. The dependency on the
+  authorization is gone, and the task names the strata. Revised task:
+
+```markdown
+#### corpus-two-source-pilot
+
+The chosen sources need an approved, measured pool and paired runs before people can review them.
+
+- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
+- Agent status: RUN NEEDED
+- Dependencies: review-pilot-recording-links.
+- User-visible outcome: An approved bounded subset of both collections is staged and offers a
+  reproducible independent audit sample and matched selection runs, or an evidence-backed negative.
+- Scope boundary: Approved sources, rights, models, storage, compute and reviewer budget only; no
+  unattended spend, public upload, held-out access or field-prevalence claim.
+- Data and artifact paths: `$DATA_DIR/self-supervised-corpus/<run-id>/`, `$DATA_DIR/import/`,
+  `$DATA_DIR/corpus/<corpus-id>/`, `docs/impl/workloads/two-source-pilot/`.
+- Execution path: The [pilot recipe](workloads/two-source-pilot/README.md) pins the sources,
+  pool, paired plans and frozen review protocol, including a selection pass of each run over the
+  one shared audit, and covers the [approved](current/corpus.md#source-authorization) target and
+  negative strata, including moving branches and the sky-landscape boundary. Apply the reviewer's
+  returned link decisions with `discover links`. When a
+  related pair crosses groups, group it in a new corpus version and rerun both plans and
+  `discover verify`, because the audit is stratified by group; withhold undecided pairs from any
+  independence claim and report their effect, or report an evidence-backed negative. Compare the
+  reviewer host's independently created staged identities with the origin's, then present the
+  shared blinded audit with `discover blind` over both runs before human review. Measure the effect
+  of the BT.601 fallback on the untagged sources' scores, or report it unmeasured beside the pixel
+  difference. Record source coverage, exclusions, resources, approvals and stopped runs. Select
+  device, batch size and resource limits for the host and record them; hold the sampling, tile
+  grid and audit settings fixed when comparing hosts, since those settings change the experiment.
+- Acceptance gates: Inputs, staged frames, grouping, selection and sampling verify; the review queue
+  includes eligible unselected windows, reports withheld exposure and retains reproducible evidence.
+  A fresh authorized data root recreates the same source, corpus and frame-set identities from the
+  media-free recipe, or records an explicit valid negative. Insufficient rights, targets or resources
+  is an explicit valid negative; `make ci` passes.
+- Documentation target: [Corpus](current/corpus.md).
+```
+
 ## Implementation
 
 The active protocol draft and source metadata are under
@@ -325,8 +365,9 @@ by `ssl-diverse` over `clip-b16-tiles.deviation` and `motion`; the uniform run u
 | Review pack | `two-source-pilot-20261112/pilot-link-review.tar`, 2,785,280 bytes, 6 recipes, no media | |
 
 The smallest tile scale was 0.414815 model pixels per frame pixel, so a 10-pixel bird spans about
-4 model-input pixels. During the DINO pass the GPU sat near 6% utilization while the worker used
-about seven CPU cores; preprocessing, not the GPU, bounded the run on this host.
+4 model-input pixels. Correction: an earlier note here said the GPU sat near 6% utilization; that was
+one reading. Over the whole run the 2-second samples averaged 53% utilization, with half below 50%,
+while the worker used several CPU cores, so CPU-side preprocessing leaves the GPU partly idle.
 
 All 85 links join videos of one collection: 28 among WetlandBirds and 57 among drone videos.
 Grouping every flag would collapse the pool to three components: 14 WetlandBirds videos, 13 drone
@@ -344,6 +385,82 @@ transfers above. Additional storage is 59 GB of frames and about 0.5 GB of sourc
 Evidence and timings are under `$DATA_DIR/self-supervised-corpus/two-source-pilot-20261112/`;
 the refused first run's output is in its `stopped/` directory.
 
+### Approved strata and reference (2026-11-13)
+
+The owner closed the source authorization under `approval-2026-11-13` and added moving branches of
+trees and bushes and the sky-landscape boundary to the targets. Six drone-dataset videos were
+chosen by inspecting frame strips of ten candidates: `insects_only/4` (forest edge),
+`no_birds_and_insects/3` (tree line over grass), `birds_only/rgb/3` (bare branches under a small
+bird), `helicopters/rgb/10` (branches at the lower edge), `birds_only/rgb/6` and
+`airplanes/rgb/4` (distant skylines with a small bird and an airplane). `insects_only/1` and
+`birds_and_insects/2` show one tree and were left out as one session. They are in
+`inventory-additions.yaml`, acquired as `pilot-drone-extra-acq-20261113` (6 videos, 66 s), so the
+first two acquisitions and the 9.4 GB WetlandBirds archive are reused unchanged.
+
+Both plans now name `approval-2026-11-13` and owner vola, so the runs were repeated under new ids.
+The `20261112` corpus, runs, links and archive stay as evidence and are superseded for review.
+
+| Step | Result | Resources |
+| --- | --- | --- |
+| Pool `pilot-pool-20261113` | 37 included, 37 provisional groups; 21 drone licenses matched, 16 WetlandBirds missing | |
+| Import, build | 37 sources; the same two WetlandBirds luma-grid near duplicates | build 51 s |
+| Stage, verify | frame set `5ae190da...`, 70 GB | 2m27s and 57 s |
+| `pilot-diverse-20261113` | 100,208 rows, 1,579 candidates, 100 selected, 4 `features_unavailable` | 37m58s, 1.63 GB peak RSS, 1,570 MiB GPU, mean 56% GPU utilization |
+| `pilot-uniform-20261113` | 100 selected of the same 1,579 | 1m38s, 190 MB |
+| `discover verify` | both verified | 101 s and 92 s |
+| `pilot-links-20261113` | 148 unresolved links: 148 CLIP and 6 DINO background, 2 luma; 28 within WetlandBirds, 120 within drone videos | 51 s |
+| Queues | 378 and 368 windows offered; the 296-window audit holds 18 and 28 of the selections | |
+| Review pack | `two-source-pilot-20261113/pilot-link-review.tar`, 3,491,840 bytes, 7 recipes, no media | |
+
+Grouping every flag would collapse the 37 groups to three components of 14, 19 and 2 recordings.
+29 of 37 sources are untagged; the BT.601 versus BT.709 difference over all 29 stays at a mean of
+0.09 to 2.74 levels, p99 at most 5 and maximum 27
+(`two-source-pilot-20261113/color-effect.jsonl`). The additions transferred about 144 MB, so this
+host used about 9.8 GB of the cap.
+
+### Delegated link review, grouped version and fresh data root (2026-11-13)
+
+The owner delegated the link review of `pilot-links-20261113`, which had 148 flagged pairs, to
+Claude. The owner's partial interactive checkpoint (22 decisions, with notes that judged species
+similarity rather than a shared session) was left unchanged and not used. Each of the 37
+recordings was inspected in a six-frame strip and two larger frames. Burned-in trail-camera
+overlays name the camera and time, and the Anti-UAV gimbal overlay names its date and azimuth.
+
+| Decision | Pairs | Basis |
+| --- | --- | --- |
+| related | 8 | shared scene or landmark, or one trail camera's deployment: 01-02 (Anti-UAV overlay, 2019-09-25), 09-10 (same chimney and clouds), 08-11 (same log pile), 16-18 (same mounds, poles and ridge), 20-21 (same park and sky), 30-33, 30-35, 33-35 (UMH 4, one scene, 2020-06-02 and 06-04) |
+| unrelated | 58 | different upstream camera systems (Anti-UAV, DroneDetectionThesis, the author's OAK-D, WetlandBirds handheld or trail cameras), or trail cameras with different IDs and dates |
+| undecided | 82 | same source without a shared scene: 49 DroneDetectionThesis, 25 OAK-D and 8 handheld WetlandBirds pairs |
+
+The decisions, with a note per pair, are `docs/impl/workloads/two-source-pilot/link-decisions.yaml`
+under reviewer `Claude (Opus 5.5), delegated by vola`. Applied to the ungrouped version, `discover
+links` refused the 8 related pairs as `SPLIT_LEAKAGE`, as expected. The owner chose to group each
+undecided source as an operator choice, through the pool's `related` field, not as a related
+judgment. `pilot-two-source-grouped-20261113` has 13 groups: one each for the Anti-UAV clips, the
+11 DroneDetectionThesis clips, the 8 OAK-D clips, the 5 handheld WetlandBirds clips and the 3 UMH 4
+clips, plus 8 single trail-camera recordings.
+
+Recording 01 (`drone_footage/rgb/consistent/no_birds/20.mp4`) carries the Anti-UAV overlay and
+1920 by 1080 frames, but the dataset CSV labels it `cc-1.0`, the DroneDetectionThesis license. The
+pool records the CSV value. Both licenses are permissive and approved, and the recording shares a
+group with the Anti-UAV clip, so no rights or independence decision depends on it.
+
+| Step | Result | Resources |
+| --- | --- | --- |
+| Pool, build, stage, verify | 37 recordings in 13 groups; frame set `2d7c30b9...`, 70 GB | 51 s, 2m27s, 56 s |
+| `pilot-diverse-grouped-20261113` | 100,208 rows, 1,579 candidates, 100 selected, 4 `features_unavailable` | 37m36s, 1.63 GB peak RSS, mean 52% GPU utilization |
+| `pilot-uniform-grouped-20261113` | 100 selected | 1m27s |
+| `discover verify` | both verified | 95 s and 88 s |
+| `pilot-links-grouped-20261113` | `clear`: 58 unrelated, 8 decisions inside one group | 51 s |
+| Queues | 197 and 193 offered; the 104-window audit holds 7 and 11 selections; nothing withheld | |
+| `discover blind` | audit `pilot-audit-grouped-20261113`: 104 windows presented, 103 unselected by at least one run, 0 withheld; packet `two-source-pilot-grouped-20261113/audit-packet/`, 5.5 GB | 28 s, 6.3 GB peak RSS |
+| Fresh data root | the README's creation commands in `$DATA_DIR/fresh-root-20261113`; `corpus compare` `identical` over 37 bundles; acquisitions, pool, corpus manifest and uniform run seals equal | 34m13s including about 9.8 GB of transfer |
+
+The BT.601 fallback's pixel effect is measured for all 29 untagged sources; its effect on scores is
+not measured and is reported as such. `corpus-scale-pilot` owns the measurement. Pilot transfer is
+about 31.4 GB of the 50 GB cap and pilot storage about 290 GB of the 300 GB cap, across the
+superseded `20261112` and `20261113` versions, the grouped version and the fresh root.
+
 ## Acceptance evidence
 
 The source-acquisition regression tests pass, including a mocked native record with matching and
@@ -358,8 +475,10 @@ Second host:
 | Staged frames verify | `corpus verify --corpus pilot-two-source-20261112` | pass: 31 bundles, frame set `27833c7d...` |
 | Selection and sampling verify | `discover verify` for both runs | pass |
 | Queue includes unselected windows | `discover queue` for both runs | pass: 248 audit windows, 230 and 218 of them unselected; nothing withheld |
-| Grouping verifies | `discover links` | not met: 85 links unresolved; owner `review-pilot-recording-links` |
-| Fresh data root recreates identities | recipe in `docs/impl/workloads/two-source-pilot/` | not yet run on a fresh root; the reviewer host's independent creation does it |
+| Grouping verifies | `discover links --decisions link-decisions.yaml` on the grouped version | pass: `clear`; 82 same-source pairs grouped by the owner's choice, not judged related |
+| Approved strata covered | `inventory-additions.yaml`, frame strips of the six additions | pass: branches and sky-landscape boundary present |
+| Fresh data root recreates identities | README commands in `$DATA_DIR/fresh-root-20261113`; `corpus compare` | pass: `identical`; acquisition, pool, corpus and uniform-run seals equal |
+| Blinded audit presented | `discover blind` over both grouped runs | pass: 104 windows, 0 withheld |
 | Name rule | `tests/corpus/sources/test_pool_metadata_names.py`, `test_metadata_join.py` | pass: license recorded only with the rule; bad, repeated and parent-directory rules refused |
 | Pin preflight | `tests/corpus/siblings/test_worker.py::test_a_later_unpinned_extractor_is_refused_before_any_frame_is_embedded` | pass; fails without the preflight |
 | Contract | `contracts freeze declaration/corpus-pool` 1.1.0; example updated | pass |
@@ -382,8 +501,9 @@ Second host:
 - `AUD-corpus-two-source-pilot-4`: Thirteen sources lack color-matrix metadata; the BT.601 fallback
   may differ from their intended colors and affect scores. Owner: `corpus-two-source-pilot`, which
   requires checking available color evidence and reporting the fallback's effect.
-- `AUD-corpus-two-source-pilot-3` on the second host: the fresh selection has 85 unresolved
-  cross-group links and no per-video association for the 16 WetlandBirds videos; the drone videos
+- `AUD-corpus-two-source-pilot-3` on the second host (resolved by the delegated review and the
+  grouped version below): the fresh selection had 148 unresolved
+  cross-group links and no per-video association for the 16 WetlandBirds videos; the 21 drone videos
   now join their upstream license. Owner: `review-pilot-recording-links`, then
   `corpus-two-source-pilot`, whose task states the application and regrouping.
 - `AUD-corpus-two-source-pilot-4` on the second host: the pixel effect of the fallback is measured
@@ -391,14 +511,24 @@ Second host:
   it.
 - `AUD-corpus-two-source-pilot-5`: a later extractor's pin mismatch was found only after the first
   extractor had embedded the corpus (14 min lost). Fixed in this change by the preflight; dropped.
-- `AUD-corpus-two-source-pilot-6`: the GPU worker was CPU-bound at about 6% GPU utilization.
+- `AUD-corpus-two-source-pilot-6`: the GPU worker averaged 53-56% utilization, half the
+  samples below 50%, with CPU-side preprocessing leaving it partly idle.
   Owner: `corpus-scale-pilot`, whose execution path now states the measurement and the
   improvement.
 - `AUD-corpus-two-source-pilot-7`: the second run again gave no progress for 30 minutes. Owner:
   `corpus-discovery-progress`, which states it.
-- `AUD-corpus-two-source-pilot-8`: the fresh-data-root recreation gate is not run. Owner:
-  `corpus-two-source-pilot`, which retains the gate; the reviewer host's independent creation
-  under `review-pilot-recording-links` provides it.
+- `AUD-corpus-two-source-pilot-8`: the fresh-data-root recreation gate passed on this host;
+  dropped. Recreation on a second host and the owner's confirmation of the delegated decisions
+  remain with `review-pilot-recording-links (optional)`, which states them.
+- `AUD-corpus-two-source-pilot-9`: the colour fallback's effect on scores is unmeasured. Owner:
+  `corpus-scale-pilot`, whose execution path now states it.
+- `AUD-corpus-two-source-pilot-10`: the dataset CSV labels the Anti-UAV recording 01 `cc-1.0`.
+  Dropped: both licenses are approved and permissive, the recording is grouped with its Anti-UAV
+  session, and the discrepancy is recorded here and in the recipe README.
+- `AUD-corpus-two-source-pilot-11`: `discover blind` peaked at 6.3 GB RSS for a 104-window packet.
+  Owner: `corpus-scale-pilot`, whose execution path now states the measurement at scale.
+- `AUD-corpus-two-source-pilot-12`: superseded corpus versions hold about 129 GB and the fresh root
+  about 80 GB, near the 300 GB storage cap. Recorded; retention is the owner's decision.
 - Dropped: `corpus/siblings/embedding.py` is 264 lines after the preflight; it stays one cohesive
   worker-protocol module.
 - Dropped: the review pack names no reviewer because no checkpoint exists yet.
@@ -414,9 +544,6 @@ first partial archive remains unverified and is not used. Account for all transf
 50 GB cap. The grouped corpus and both runs are verified; finish provenance and relationship
 checks, resolve the unmatched review-workload protocol, and complete the review handoff.
 
-Second host: the recipe, corpus, both runs, the link record and the portable review archive are
-complete and verified. The task stays open and RUN NEEDED. It waits on the human link review
-(`review-pilot-recording-links`), which uses the archive above and independently creates the
-dataset on its host. Then apply the decisions, regroup and rerun when needed, compare the
-identities, measure or report the colour-score effect, and present `discover blind`. The
-capability remains planned.
+Accepted. Every gate passed: the grouped version, both runs, a clear link review, the blinded
+audit packet and an identical fresh-data-root recreation. The task left the plan. The human audit
+review `review-video-corpus-sample` is next, with the packet above. The capability remains planned.

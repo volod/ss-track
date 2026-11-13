@@ -73,8 +73,7 @@ commit exists. Paths are normalized relative POSIX paths and unique within a col
 provider and collection pair is unique. `excluded` needs a reason and other statuses cannot have
 one. Status is not permission, and missing source evidence stays unknown. The command reads only
 its local declaration: it does not discover remote files, validate rights, acquire media or approve
-processing. [Source authorization](../plan.md#authorize-video-corpus-sources) remains a separate
-human task.
+processing. [Source authorization](#source-authorization) is the owner's separate approval.
 
 The output is canonical ASCII JSON, sorted by collection and video, with a SHA-256 in the command
 result. Repeating the same input reports `unchanged`; different bytes at an existing output path
@@ -170,6 +169,28 @@ an unnamed collection stays unbound
 ([evaluating selection](corpus/discovery-runs.md#evaluating-selection)). The
 [task record](../records/0062-self-supervised-corpus-corpus-combined-pool.md) has the fixture
 evidence.
+
+## Source authorization
+
+The owner, vola, approved the self-supervised corpus sources under reference
+`approval-2026-11-13`; every real-source discovery plan names it as `source_approval`.
+
+| Item | Approved |
+| --- | --- |
+| Sources | Visual WetlandBirds v4, Zenodo 15696105, CC BY 4.0. Drone Detection Dataset, `wayneballard/drone-detection-dataset` at a pinned commit, MIT card with per-video upstream terms: `cc-1.0` (DroneDetectionThesis, CC0-1.0), `mit` (Anti-UAV, MIT) and `personal` (the dataset author's recordings, under the MIT card) |
+| Use | Local internal benchmarking, model processing and derived frames; sharing restricted; no public redistribution |
+| Retention | No dated end |
+| Scope | At most 1000 videos or 60 minutes, 5000 review windows and 300 review groups |
+| Resources | CPU and GPU; 50 GB total transfer, which needs the owner's approval to raise; 300 GB additional storage |
+| Models | ss-perception at ss-fusion `75debcfed31a3c148d2f194a8ae2345e4b7508f1` (`v0.2.1`, MIT); CLIP ViT-B/16 `openai` snapshot `977e3dd0ec55ab8da155f2fbeb6b5f54948b6e3d`; DINOv2 ViT-B/14 reg4 under dinov2 commit `7764ea0f912e53c92e82eb78a2a1631e92725fc8`. Corpus selection and research only; OpenAI's model card excludes deployed use of CLIP |
+| Targets and negatives | Small and distant birds, wetland species, insects, aircraft, empty sky, moving branches of trees and bushes, and the sky-landscape boundary |
+| Review | One reviewer, vola, for link review, audit and selection pass, within 8 hours. The audit is not independent of the operator, so a review states `independence: not_declared` |
+
+Attribution: credit the Visual WetlandBirds Dataset authors and the Drone Detection Dataset
+contributors and upstream authors, and state that frames were re-decoded and windowed. A new
+source, a public release, a larger budget or another model needs a new approval. The
+[authorization record](../records/0068-self-supervised-corpus-authorize-video-corpus-sources.md)
+holds the evidence.
 
 ## Two-source pilot recipe
 

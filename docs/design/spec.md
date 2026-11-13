@@ -384,7 +384,10 @@ retaining each recording's upstream identity, terms and evidence. The initial so
 [Visual WetlandBirds version 4](https://zenodo.org/records/15696105) and the
 [Drone Detection Dataset](https://huggingface.co/datasets/wayneballard/drone-detection-dataset).
 WetlandBirds is acquired from its pinned Zenodo record and archive; the Hugging Face source is
-pinned to a resolved dataset commit and selected original videos and per-video provenance. An upstream
+pinned to a resolved dataset commit and selected original videos and per-video provenance. A pilot
+selection covers the owner-approved target and negative strata: small and distant birds against
+sky, confusers such as insects and aircraft, empty sky, moving branches of trees and bushes, and
+the boundary where sky meets landscape, where a small target is easily lost. An upstream
 folder name, model prediction or missing annotation does not establish the target or its absence.
 Source inventory and acquisition preserve upstream checksums, local content hashes, original metadata,
 per-recording terms and exclusions; credentials never enter records. Public source access does not

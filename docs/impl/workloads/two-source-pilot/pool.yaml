@@ -1,7 +1,7 @@
 # Two-source pilot pool (declaration/corpus-pool 1.1.0). Media-free; see README.md.
 schema_version: 1
-corpus_id: pilot-two-source-20261112
-run_id: pilot-pool-20261112
+corpus_id: pilot-two-source-grouped-20261113
+run_id: pilot-pool-grouped-20261113
 scenario_rights:
   sharing: restricted
   max_sensitivity: low
@@ -64,3 +64,59 @@ collections:
       - {path: videos/no_drone_footage/helicopters/rgb/3.mp4, split: development}
       - {path: videos/no_drone_footage/insects_only/7.mp4, split: development}
       - {path: videos/no_drone_footage/no_birds_and_insects/2.mp4, split: development}
+  - run_id: pilot-drone-extra-acq-20261113
+    rights:
+      holder: Drone Detection Dataset contributors and upstream authors
+      basis: licensed
+      retention: MIT dataset card and per-video upstream terms; retained while the pilot needs it
+      retain_until: null
+      derived_frames: true
+      sharing: restricted
+    sensitivity:
+      level: low
+      notes: Public sky and aerial footage; pilot sharing restricted
+    metadata_names:
+      - {file: metadata/videos_drone.csv, name_prefix: "", path_prefix: videos/drone_footage/}
+      - {file: metadata/videos_no_drone.csv, name_prefix: no_drone/, path_prefix: videos/no_drone_footage/}
+    videos:
+      - {path: videos/no_drone_footage/airplanes/rgb/4.mp4, split: development}
+      - {path: videos/no_drone_footage/birds_only/rgb/3.mp4, split: development}
+      - {path: videos/no_drone_footage/birds_only/rgb/6.mp4, split: development}
+      - {path: videos/no_drone_footage/helicopters/rgb/10.mp4, split: development}
+      - {path: videos/no_drone_footage/insects_only/4.mp4, split: development}
+      - {path: videos/no_drone_footage/no_birds_and_insects/3.mp4, split: development}
+related:  # from the delegated link review; see protocol.md
+  # Anti-UAV gimbal clips of 2019-09-25
+  - - {run_id: pilot-drone-acq-20261112, path: videos/drone_footage/rgb/consistent/no_birds/20.mp4}
+    - {run_id: pilot-drone-acq-20261112, path: videos/drone_footage/rgb/consistent/with_birds/2.mp4}
+  # DroneDetectionThesis clips; sessions unknown, grouped conservatively
+  - - {run_id: pilot-drone-acq-20261112, path: videos/drone_footage/rgb/consistent/with_birds/5.mp4}
+    - {run_id: pilot-drone-acq-20261112, path: videos/no_drone_footage/airplanes/rgb/8.mp4}
+    - {run_id: pilot-drone-acq-20261112, path: videos/no_drone_footage/birds_only/rgb/1.mp4}
+    - {run_id: pilot-drone-acq-20261112, path: videos/no_drone_footage/birds_only/rgb/10.mp4}
+    - {run_id: pilot-drone-acq-20261112, path: videos/no_drone_footage/birds_only/rgb/4.mp4}
+    - {run_id: pilot-drone-acq-20261112, path: videos/no_drone_footage/birds_only/rgb/7.mp4}
+    - {run_id: pilot-drone-acq-20261112, path: videos/no_drone_footage/helicopters/rgb/3.mp4}
+    - {run_id: pilot-drone-extra-acq-20261113, path: videos/no_drone_footage/airplanes/rgb/4.mp4}
+    - {run_id: pilot-drone-extra-acq-20261113, path: videos/no_drone_footage/birds_only/rgb/3.mp4}
+    - {run_id: pilot-drone-extra-acq-20261113, path: videos/no_drone_footage/birds_only/rgb/6.mp4}
+    - {run_id: pilot-drone-extra-acq-20261113, path: videos/no_drone_footage/helicopters/rgb/10.mp4}
+  # dataset author OAK-D recordings; sessions unknown, grouped conservatively
+  - - {run_id: pilot-drone-acq-20261112, path: videos/no_drone_footage/birds_and_insects/16.mp4}
+    - {run_id: pilot-drone-acq-20261112, path: videos/no_drone_footage/birds_and_insects/4.mp4}
+    - {run_id: pilot-drone-acq-20261112, path: videos/no_drone_footage/birds_only/rgb/13.mp4}
+    - {run_id: pilot-drone-acq-20261112, path: videos/no_drone_footage/birds_only/rgb/14.mp4}
+    - {run_id: pilot-drone-acq-20261112, path: videos/no_drone_footage/insects_only/7.mp4}
+    - {run_id: pilot-drone-acq-20261112, path: videos/no_drone_footage/no_birds_and_insects/2.mp4}
+    - {run_id: pilot-drone-extra-acq-20261113, path: videos/no_drone_footage/insects_only/4.mp4}
+    - {run_id: pilot-drone-extra-acq-20261113, path: videos/no_drone_footage/no_birds_and_insects/3.mp4}
+  # WetlandBirds handheld clips without overlay; sessions unknown, grouped conservatively
+  - - {run_id: pilot-wetland-acq-20261112, path: videos/005-squacco_heron.mp4}
+    - {run_id: pilot-wetland-acq-20261112, path: videos/022-little_ringed_plover.mp4}
+    - {run_id: pilot-wetland-acq-20261112, path: videos/035-gadwall.mp4}
+    - {run_id: pilot-wetland-acq-20261112, path: videos/060-northern_shoveler.mp4}
+    - {run_id: pilot-wetland-acq-20261112, path: videos/111-eurasian_coot.mp4}
+  # WetlandBirds trail camera UMH 4, one scene, 2020-06-02 and 2020-06-04
+  - - {run_id: pilot-wetland-acq-20261112, path: videos/114-eurasian_moorhen.mp4}
+    - {run_id: pilot-wetland-acq-20261112, path: videos/141-mallard.mp4}
+    - {run_id: pilot-wetland-acq-20261112, path: videos/157-black_winged_stilt.mp4}

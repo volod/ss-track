@@ -1,0 +1,64 @@
+# Two-source pilot additions for branch and skyline targets (declaration/source-inventory 1.0.0).
+# Media-free; acquired as its own run so inventory.yaml and its acquisitions stay unchanged.
+schema_version: 1
+collections:
+  - provider: huggingface
+    collection_id: wayneballard/drone-detection-dataset
+    revision: 509cdb0f45c77f61fe5f62e5a303411045148c8d
+    archive_path: null
+    archive_md5: null
+    videos:
+      - path: videos/no_drone_footage/airplanes/rgb/4.mp4
+        source_reference: null
+        annotation_reference: null
+        upstream_split: null
+        attribution: wayneballard/drone-detection-dataset contributors and upstream authors
+        terms: MIT dataset card; upstream license cc-1.0 per metadata/videos_no_drone.csv
+        terms_reference: https://huggingface.co/datasets/wayneballard/drone-detection-dataset/tree/509cdb0f45c77f61fe5f62e5a303411045148c8d/metadata/videos_no_drone.csv
+        status: candidate
+        exclusion_reason: null
+      - path: videos/no_drone_footage/birds_only/rgb/3.mp4
+        source_reference: null
+        annotation_reference: null
+        upstream_split: null
+        attribution: wayneballard/drone-detection-dataset contributors and upstream authors
+        terms: MIT dataset card; upstream license cc-1.0 per metadata/videos_no_drone.csv
+        terms_reference: https://huggingface.co/datasets/wayneballard/drone-detection-dataset/tree/509cdb0f45c77f61fe5f62e5a303411045148c8d/metadata/videos_no_drone.csv
+        status: candidate
+        exclusion_reason: null
+      - path: videos/no_drone_footage/birds_only/rgb/6.mp4
+        source_reference: null
+        annotation_reference: null
+        upstream_split: null
+        attribution: wayneballard/drone-detection-dataset contributors and upstream authors
+        terms: MIT dataset card; upstream license cc-1.0 per metadata/videos_no_drone.csv
+        terms_reference: https://huggingface.co/datasets/wayneballard/drone-detection-dataset/tree/509cdb0f45c77f61fe5f62e5a303411045148c8d/metadata/videos_no_drone.csv
+        status: candidate
+        exclusion_reason: null
+      - path: videos/no_drone_footage/helicopters/rgb/10.mp4
+        source_reference: null
+        annotation_reference: null
+        upstream_split: null
+        attribution: wayneballard/drone-detection-dataset contributors and upstream authors
+        terms: MIT dataset card; upstream license cc-1.0 per metadata/videos_no_drone.csv
+        terms_reference: https://huggingface.co/datasets/wayneballard/drone-detection-dataset/tree/509cdb0f45c77f61fe5f62e5a303411045148c8d/metadata/videos_no_drone.csv
+        status: candidate
+        exclusion_reason: null
+      - path: videos/no_drone_footage/insects_only/4.mp4
+        source_reference: null
+        annotation_reference: null
+        upstream_split: null
+        attribution: wayneballard/drone-detection-dataset contributors and upstream authors
+        terms: MIT dataset card; upstream license personal per metadata/videos_no_drone.csv
+        terms_reference: https://huggingface.co/datasets/wayneballard/drone-detection-dataset/tree/509cdb0f45c77f61fe5f62e5a303411045148c8d/metadata/videos_no_drone.csv
+        status: candidate
+        exclusion_reason: null
+      - path: videos/no_drone_footage/no_birds_and_insects/3.mp4
+        source_reference: null
+        annotation_reference: null
+        upstream_split: null
+        attribution: wayneballard/drone-detection-dataset contributors and upstream authors
+        terms: MIT dataset card; upstream license personal per metadata/videos_no_drone.csv
+        terms_reference: https://huggingface.co/datasets/wayneballard/drone-detection-dataset/tree/509cdb0f45c77f61fe5f62e5a303411045148c8d/metadata/videos_no_drone.csv
+        status: candidate
+        exclusion_reason: null

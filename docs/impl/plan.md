@@ -30,45 +30,13 @@ extensions; none blocks M3. Fixture implementation proceeds without physical har
 
 ### Self-supervised video corpus -- `self-supervised-corpus`
 
-#### corpus-two-source-pilot
-
-The chosen sources need an approved, measured pool and paired runs before people can review them.
-
-- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
-- Agent status: RUN NEEDED
-- Dependencies: authorize-video-corpus-sources, review-pilot-recording-links.
-- User-visible outcome: An approved bounded subset of both collections is staged and offers a
-  reproducible independent audit sample and matched selection runs, or an evidence-backed negative.
-- Scope boundary: Approved sources, rights, models, storage, compute and reviewer budget only; no
-  unattended spend, public upload, held-out access or field-prevalence claim.
-- Data and artifact paths: `$DATA_DIR/self-supervised-corpus/<run-id>/`, `$DATA_DIR/import/`,
-  `$DATA_DIR/corpus/<corpus-id>/`, `docs/impl/workloads/two-source-pilot/`.
-- Execution path: The [pilot recipe](workloads/two-source-pilot/README.md) pins the sources,
-  pool, paired plans and frozen review protocol, including a selection pass of each run over the
-  one shared audit. Apply the reviewer's returned link decisions with `discover links`. When a
-  related pair crosses groups, group it in a new corpus version and rerun both plans and
-  `discover verify`, because the audit is stratified by group; withhold undecided pairs from any
-  independence claim and report their effect, or report an evidence-backed negative. Compare the
-  reviewer host's independently created staged identities with the origin's, then present the
-  shared blinded audit with `discover blind` over both runs before human review. Measure the effect
-  of the BT.601 fallback on the untagged sources' scores, or report it unmeasured beside the pixel
-  difference. Record source coverage, exclusions, resources, approvals and stopped runs. Select
-  device, batch size and resource limits for the host and record them; hold the sampling, tile
-  grid and audit settings fixed when comparing hosts, since those settings change the experiment.
-- Acceptance gates: Inputs, staged frames, grouping, selection and sampling verify; the review queue
-  includes eligible unselected windows, reports withheld exposure and retains reproducible evidence.
-  A fresh authorized data root recreates the same source, corpus and frame-set identities from the
-  media-free recipe, or records an explicit valid negative. Insufficient rights, targets or resources
-  is an explicit valid negative; `make ci` passes.
-- Documentation target: [Corpus](current/corpus.md).
-
 #### corpus-selection-evaluation
 
 A larger selected pool may conceal missed small birds or exclude hard negatives.
 
 - Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: RUN NEEDED
-- Dependencies: corpus-two-source-pilot, review-video-corpus-sample.
+- Dependencies: review-video-corpus-sample.
 - User-visible outcome: A report compares model-assisted selection with a random or uniform
   baseline and exposes missed cases and resource cost at a matched review budget.
 - Scope boundary: Independently reviewed audit samples and stratified uncertainty; no field accuracy,
@@ -107,8 +75,7 @@ A large corpus needs evidence that selection can run within the owner's availabl
 - Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: RUN NEEDED
 - Research: yes
-- Dependencies: corpus-selection-evaluation, authorize-video-corpus-sources,
-  review-video-corpus-sample.
+- Dependencies: corpus-selection-evaluation, review-video-corpus-sample.
 - User-visible outcome: An authorized pilot produces a measured, reproducible corpus or explains why
   available video, quality, cost or resources do not support it.
 - Scope boundary: Only approved sources, processing and storage budgets; no acquisition beyond the
@@ -130,9 +97,12 @@ A large corpus needs evidence that selection can run within the owner's availabl
   similarity too if a flag flips. The fingerprint compares every pair of windows in Python, so
   measure its time at the pilot's stream count with the build's report and the review. Freezing
   verifies the discovery run against its pool version's staged frames, so measure the storage of
-  keeping the pool's frames until its frozen versions are frozen. The pilot's GPU embedding worker ran
-  at about 6% GPU utilization while using about seven CPU cores, so measure where worker time goes
-  at scale and reduce the CPU-side preprocessing cost, without changing rows, if it dominates.
+  keeping the pool's frames until its frozen versions are frozen. The pilot's GPU embedding worker
+  averaged 53-56% GPU utilization, with half the 2-second samples below 50%, while the worker used
+  several CPU cores; measure where worker time goes at scale and reduce the CPU-side preprocessing
+  cost, without changing rows, if it dominates. Measure how the BT.601 fallback changes scores and
+  selection on the pilot's untagged sources, and the memory `discover blind` needs for the audit at
+  scale; the pilot's 104-window packet peaked at 6.3 GB.
 - Acceptance gates: Corpus verification, rights and grouping checks pass; the report states selection
   recall, uncertainty, negative coverage and matched-budget baseline results, including missing
   evidence. Insufficient resources or a negative selection result is a valid negative; `make ci` passes.
@@ -2350,73 +2320,21 @@ A locked test needs a named custodian and access rules that no software can supp
 
 ### Self-supervised video corpus -- `self-supervised-corpus`
 
-#### authorize-video-corpus-sources
-
-A large candidate pool needs source permissions, available storage and a spending envelope a tool
-cannot grant itself.
-
-- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
-- Agent status: HUMAN-GATED
-- Dependencies: none.
-- User-visible outcome: The owner approves a source list, corpus size and diversity targets, permitted
-  processing, compute and storage budgets, a baseline review budget, and use of the sibling code and
-  model weights the [integration plan](current/corpus/sibling-integration.md#model-and-data-rights)
-  pins.
-- Scope boundary: Authorized public or private sources, benchmarking, model processing and derived
-  artifacts, retention and access; public redistribution is a separate permission.
-- Data and artifact paths: `$DATA_DIR/self-supervised-corpus/<run-id>/`, `$DATA_DIR/import/`.
-- Execution path: Record each source's terms, allowed uses, retention and handling, and select an
-  explicit resource envelope before acquiring or running over the sources.
-- Acceptance gates: Every selected source has verifiable rights and retention, a named owner of the
-  approval, approved model use and cost limits, and target coverage and negative cases. The pinned
-  ss-fusion tag needs a licence or a recorded grant, and each weight needs
-  an approved revision (a Hugging Face snapshot commit or a torch.hub tree digest, as
-  [discovery plans](current/corpus/discovery-runs.md#plan) pin them) and use terms. The approval
-  has a reference that every discovery plan names. No eligible
-  source or inadequate budget is a recorded valid negative and authorizes no acquisition.
-- Documentation target: [Corpus](current/corpus.md).
-
-#### review-pilot-recording-links
-
-The pilot's flagged recording relationships need human judgment before its encounter groups can
-be treated as independent, including when the reviewer works on a different host.
-
-- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
-- Agent status: HUMAN-GATED
-- Dependencies: authorize-video-corpus-sources.
-- User-visible outcome: A named reviewer independently creates the pinned pilot dataset on another
-  host, verifies it against the operator's identities, resumes the relationship review and returns
-  the resulting decisions.
-- Scope boundary: Human decisions on flagged source relationships; uncertain pairs remain undecided,
-  and this review does not replace the independent blinded window audit.
-- Data and artifact paths: `$DATA_DIR/import/`, `$DATA_DIR/corpus/<corpus-id>/manifest.json`,
-  `$DATA_DIR/self-supervised-corpus/<run-id>/links.json`, `link-review/decisions.yaml` and the
-  media-free portable review tar.
-- Execution path: Use the [other-host review instructions](current/corpus/leakage-review.md#review-on-another-host)
-  to unpack the pinned text recipe, independently acquire and stage the authorized dataset, compare
-  its sealed staged identities, and only then accept and resume the review checkpoint. Return a
-  media-free archive to the pilot host and apply it in a new link review; group related sources
-  before relying on independence. Retain unresolved cases and record an evidence-backed negative
-  when the available information cannot establish the relationships.
-- Acceptance gates: The reviewer host's independently created dataset compares identical before the
-  reviewer identity and checkpoint are accepted; decisions validate with `discover links`, related
-  groups are reconciled or explicitly withheld, and remaining undecided pairs and their effect on
-  independence are reported.
-- Documentation target: [Leakage review](current/corpus/leakage-review.md#review-on-another-host).
-
 #### review-video-corpus-sample
 
 The usefulness and missed cases of self-supervised selection require independent human judgment.
 
 - Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: HUMAN-GATED
-- Dependencies: authorize-video-corpus-sources, corpus-two-source-pilot.
+- Dependencies: none.
 - User-visible outcome: Reviewers adjudicate selected and independently sampled unselected material,
   including negative windows, confusers and small or uncertain birds.
 - Scope boundary: A predeclared independent audit sample, grouping decisions and reviewer time; the
   existing annotation authority owns final labels and a locked set needs its custodian.
 - Data and artifact paths: `$DATA_DIR/self-supervised-corpus/<run-id>/`, `$DATA_DIR/corpus/<corpus-id>/labels/`.
-- Execution path: Freeze the baseline and sampling plan before review; reviewers record source and
+- Execution path: The [pilot recipe](workloads/two-source-pilot/README.md) holds the frozen
+  protocol; the blinded audit packet of `pilot-audit-grouped-20261113` is presented. Freeze the
+  baseline and sampling plan before review; reviewers record source and
   frame decisions, uncertainty, disagreements and time, and settle them under named authority. The
   blinded audit presentation from `discover blind` records independence, blinding and effort.
   `discover unblind` maps its item decisions into one review file per run. After the audit,
@@ -2426,6 +2344,32 @@ The usefulness and missed cases of self-supervised selection require independent
 - Acceptance gates: Reviewed samples and exclusions are frozen and hashed; absent or uncertain labels
   stay unknown, unreviewed exposure is reported, and insufficient sample size is inconclusive.
 - Documentation target: [Corpus](current/corpus.md).
+
+#### review-pilot-recording-links (optional)
+
+The pilot's link review was delegated to Claude; the owner may confirm it, and a second host has
+not yet recreated the pinned dataset.
+
+- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
+- Agent status: HUMAN-GATED
+- Dependencies: none.
+- User-visible outcome: The owner confirms or revises the delegated link decisions, and a named
+  reviewer independently creates the pinned pilot dataset on another host and compares its
+  identities with the origin's.
+- Scope boundary: Human decisions on flagged source relationships and an independent creation on a
+  second host; uncertain pairs remain undecided, and this review does not replace the independent
+  blinded window audit.
+- Data and artifact paths: `docs/impl/workloads/two-source-pilot/link-decisions.yaml`,
+  `$DATA_DIR/corpus/<corpus-id>/manifest.json`, `$DATA_DIR/self-supervised-corpus/<run-id>/links.json`
+  and the media-free portable review tar.
+- Execution path: Review the [delegated decisions](workloads/two-source-pilot/README.md#grouping)
+  and their notes; a changed decision or grouping makes a new pool version whose runs are repeated.
+  Use the [other-host review instructions](current/corpus/leakage-review.md#review-on-another-host)
+  to create the dataset on a second host and compare its staged identities with the origin's.
+- Acceptance gates: The second host's independently created dataset compares identical, or the
+  difference is reported; a revised decision validates with `discover links` and its grouping is
+  reconciled in a new version; the owner's confirmation or revision is recorded.
+- Documentation target: [Leakage review](current/corpus/leakage-review.md#review-on-another-host).
 
 ### Annotation and selection -- `annotation-selection`
 

@@ -333,21 +333,22 @@ targets, not how selection performs on real footage.
 - Rows are float32 only; a GPU mixed-precision mode is a contract minor that the
   [scale pilot](../../plan.md#corpus-scale-pilot) owns if it needs one.
 - A tiled grid multiplies embedding compute by its tile count.
-- Real-source runs require [source authorization](../../plan.md#authorize-video-corpus-sources),
+- Real-source runs require [source authorization](../corpus.md#source-authorization),
   including the selected sibling revision, weights and source terms.
 
-The [two-source pilot recipe](../../workloads/two-source-pilot/README.md) recreates 31 recordings
-from both collections on any authorized host. Its verified paired runs each select 100 of 1,273
-pool windows. The 248-window audit holds 18 and 30 of those selections, so the queues offer 330
-and 318 windows; the `selection_pass` protocol makes each run's selection work 100 windows.
-Background review flagged 85 possible links within each collection; similar backgrounds do not
-prove a shared session, so the 31 groups are provisional until the human link review returns.
-24 streams lack colour-matrix tags and use the BT.601 fallback, which changes sampled RGB by a mean
-of at most 2.74 levels; the effect on scores is not measured. On the recipe's GPU host the
-model-assisted run took 31 minutes and was bound by CPU-side preprocessing. The
+The [two-source pilot recipe](../../workloads/two-source-pilot/README.md) recreates 37 recordings
+from both collections on any authorized host, including the approved branch and skyline strata,
+in 13 encounter groups. A delegated link review decided 8 related and 58 unrelated pairs from
+frames and camera overlays; the 82 same-source pairs whose session frames cannot establish are
+grouped by source as an operator choice, so the grouped version's link review is clear. Its
+verified paired runs each select 100 of 1,579 pool windows. The 104-window audit holds 7 and 11 of
+those selections, so the queues offer 197 and 193 windows; the `selection_pass` protocol makes
+each run's selection work 100 windows. Most sources lack colour-matrix tags and use the BT.601
+fallback, which changes sampled RGB by a mean of at most 2.74 levels; the effect on scores is not
+measured. On the recipe's GPU host the model-assisted run took 38 minutes at a mean 52-56% GPU
+utilization. The
 [pilot record](../../records/0067-self-supervised-corpus-corpus-two-source-pilot.md) holds the
-resources and unresolved evidence; these runs do not establish field performance or independent
-grouping.
+resources and the review evidence; these runs do not establish field performance.
 
 ## Interfaces
 
