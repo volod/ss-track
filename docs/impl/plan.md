@@ -2360,34 +2360,6 @@ The usefulness and missed cases of self-supervised selection require independent
   stay unknown, unreviewed exposure is reported, and insufficient sample size is inconclusive.
 - Documentation target: [Corpus](current/corpus.md).
 
-#### review-pilot-recording-links (optional)
-
-The pilot's link review was delegated to Claude; the owner may confirm it, and a second host has
-not yet recreated the pinned dataset.
-
-- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
-- Agent status: HUMAN-GATED
-- Dependencies: none.
-- User-visible outcome: The owner confirms or revises the delegated link decisions, and a named
-  reviewer independently creates the pinned pilot dataset on another host and compares its
-  identities with the origin's.
-- Scope boundary: Human decisions on flagged source relationships and an independent creation on a
-  second host; uncertain pairs remain undecided, and this review does not replace the independent
-  blinded window audit.
-- Data and artifact paths: `docs/impl/workloads/two-source-pilot/link-decisions.yaml`,
-  `$DATA_DIR/corpus/<corpus-id>/manifest.json`, `$DATA_DIR/self-supervised-corpus/<run-id>/links.json`
-  and the media-free portable review tar.
-- Execution path: Review the [delegated decisions](workloads/two-source-pilot/README.md#grouping)
-  and their notes; a changed decision or grouping makes a new pool version whose runs are repeated.
-  Use the [other-host review instructions](current/corpus/leakage-review.md#review-on-another-host)
-  to create the dataset on a second host and compare its staged identities with the origin's, then
-  release its frames and download cache with
-  [data clean](current/corpus.md#cleaning-the-data-root) once the comparison is recorded.
-- Acceptance gates: The second host's independently created dataset compares identical, or the
-  difference is reported; a revised decision validates with `discover links` and its grouping is
-  reconciled in a new version; the owner's confirmation or revision is recorded.
-- Documentation target: [Leakage review](current/corpus/leakage-review.md#review-on-another-host).
-
 ### Annotation and selection -- `annotation-selection`
 
 #### label-pilot-encounters

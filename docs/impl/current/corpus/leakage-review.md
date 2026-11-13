@@ -143,6 +143,13 @@ contains implementation and acceptance evidence. The earlier
 [manual-transfer planning record](../../records/0072-adhoc-remote-link-review-plan.md) is historical;
 copying media between hosts is no longer the supported workflow.
 
+The two-source pilot used this workflow. The owner confirmed the delegated link decisions of
+`pilot-two-source-grouped-20261113` without change, and a second computer created the dataset from
+the archive's recipe and reported it identical to the origin, as did a fresh data root on the
+origin host. The
+[review record](../../records/0075-self-supervised-corpus-review-pilot-recording-links.md) holds
+the evidence.
+
 `--features` names a [discovery run](discovery-runs.md) over the same staged version, whose feature
 rows the `background-cosine` method compares; without it only the fingerprint runs.
 `--decisions` names the reviewer's decisions file. The command logs one JSON record:

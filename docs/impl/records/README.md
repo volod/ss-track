@@ -79,5 +79,6 @@ Copy the [template](template.md) using the
 | 0072 | `remote-link-review-plan` | [0072-adhoc-remote-link-review-plan](0072-adhoc-remote-link-review-plan.md) |
 | 0073 | `corpus-portable-link-review` | [0073-self-supervised-corpus-corpus-portable-link-review](0073-self-supervised-corpus-corpus-portable-link-review.md) |
 | 0074 | `data-clean-command` | [0074-adhoc-data-clean-command](0074-adhoc-data-clean-command.md) |
+| 0075 | `review-pilot-recording-links` | [0075-self-supervised-corpus-review-pilot-recording-links](0075-self-supervised-corpus-review-pilot-recording-links.md) |
 
-Next unused sequence: `0075`.
+Next unused sequence: `0076`.

@@ -47,7 +47,8 @@ and date, although the dataset CSV labels one of them `cc-1.0`. The other 82 pai
 source and share no scene, so their session cannot be established. The pool groups each such
 source as an operator choice: the DroneDetectionThesis clips, the dataset author's recordings and
 the handheld WetlandBirds clips are one group each. The grouped version has 13 groups, and its
-link review is clear.
+link review is clear. The owner confirmed the decisions and the grouping without change, and a
+second computer recreated the dataset identically.
 
 ## Create the dataset
 
