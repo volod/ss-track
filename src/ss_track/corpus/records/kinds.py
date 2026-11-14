@@ -24,7 +24,7 @@ AUDIT_BLINDING_KIND = "ss-track.audit-blinding"
 LINK_REVIEW_HANDOFF_KIND = "ss-track.link-review-handoff"
 
 
-SOURCE_MANIFEST = RecordFormat(SOURCE_MANIFEST_KIND, major=2)
+SOURCE_MANIFEST = RecordFormat(SOURCE_MANIFEST_KIND, major=3)
 CORPUS_MANIFEST = RecordFormat(CORPUS_MANIFEST_KIND, major=3)
 FRAME_BUNDLE = RecordFormat(FRAME_BUNDLE_KIND, major=3)
 FRAME_SET = RecordFormat(FRAME_SET_KIND, major=1)

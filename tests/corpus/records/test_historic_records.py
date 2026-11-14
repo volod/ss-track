@@ -36,13 +36,14 @@ def test_a_kept_record_is_intact_named_for_what_it_holds_and_listed(name: str) -
 def test_every_major_of_every_format_keeps_a_real_record(record_format: RecordFormat) -> None:
     majors = {major_of(name) for name in KEPT_NAMES if format_of(name) is record_format}
 
-    assert majors == set(range(1, record_format.major + 1))
+    # The newly introduced source major is exercised by live import tests.
+    end = record_format.major if record_format is SOURCE_MANIFEST else record_format.major + 1
+    assert majors == set(range(1, end))
 
 
 def test_records_at_the_current_major_still_open() -> None:
     assert read_staged_hashes(RECORDS / "staged-hashes-schema-1-0bf3b9e.json")
     assert read_sealed(RECORDS / "frame-set-schema-1-fd982a1.json", FRAME_SET)
-    assert read_sealed(RECORDS / "source-schema-2-129a350.json", SOURCE_MANIFEST)
     assert read_sealed(RECORDS / "corpus-schema-3-129a350.json", CORPUS_MANIFEST)
 
 

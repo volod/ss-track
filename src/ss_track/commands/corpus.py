@@ -30,6 +30,7 @@ def add_corpus_commands(subcommands: Subcommands) -> None:
         action="store_true",
         help=("record new rights and sensitivity, listing versions that pin the replaced record"),
     )
+    source.add_argument("--amend-capture", action="store_true", help="record capture judgments")
     source.add_argument(
         "--redecode",
         action="store_true",
@@ -97,10 +98,23 @@ def add_corpus_commands(subcommands: Subcommands) -> None:
 def _run_import(args: argparse.Namespace) -> int:
     if args.redecode:
         return reported_on_data_root(
-            lambda data_root: redecode_source(args.source, data_root, amend_terms=args.amend_terms)
+            lambda data_root: redecode_source(
+                args.source,
+                data_root,
+                amend_terms=args.amend_terms,
+                amend_capture=args.amend_capture,
+            )
         )
-    action = amend_source_terms if args.amend_terms else run_import
-    return reported_on_data_root(lambda data_root: action(args.source, data_root))
+    if args.amend_terms or args.amend_capture:
+        return reported_on_data_root(
+            lambda data_root: amend_source_terms(
+                args.source,
+                data_root,
+                amend_terms=args.amend_terms,
+                amend_capture=args.amend_capture,
+            )
+        )
+    return reported_on_data_root(lambda data_root: run_import(args.source, data_root))
 
 
 def _run_corpus_build(args: argparse.Namespace) -> int:

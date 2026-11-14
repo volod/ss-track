@@ -151,7 +151,7 @@ def test_an_unreadable_source_is_refused(
 def test_a_newer_record_is_refused_and_left_alone(
     imported: ImportResult, write_recording: WriteRecording, data_root: Path
 ) -> None:
-    reseal(imported.manifest_path, schema_version=3)
+    reseal(imported.manifest_path, schema_version=4)
     before = imported.manifest_path.read_bytes()
     declared = write_recording(sensitivity={"level": "high"})
 

@@ -146,13 +146,13 @@ def test_a_real_record_without_terms_gains_them_and_the_current_major(
     old = read_source(path)
     declared = write_recording(sha256=sha256, rights=rights_with(sharing="public"))
 
-    result = amend_source_terms(declared, data_root)
+    result = amend_source_terms(declared, data_root, amend_capture=True)
 
     new = read_source(path)
-    assert new["schema_version"] == 2
+    assert new["schema_version"] == 3
     assert result.changed_terms == ["rights.derived_frames", "rights.retain_until"]
     assert result.decode_policy_current is False
-    unchanged = {"manifest_sha256", "schema_version", "rights", "sensitivity"}
+    unchanged = {"manifest_sha256", "schema_version", "rights", "sensitivity", "capture"}
     assert {k: v for k, v in new.items() if k not in unchanged} == {
         k: v for k, v in old.items() if k not in unchanged
     }
@@ -170,16 +170,10 @@ def test_a_real_record_short_of_the_current_major_is_refused_by_name(
         lambda: amend_source_terms(declared, data_root), RefusalCode.RECORD_SCHEMA_UNSUPPORTED
     )
 
-    assert [(item["pointer"], item["message"]) for item in refusal.details["violations"]] == [
-        ("/decode_policy", "'conversion_flags' is a required property"),
-        ("/sequence", "'color' is a required property"),
-        ("/sequence", "'interlaced_frames' is a required property"),
-        ("/sequence", "'source_bits_per_component' is a required property"),
-    ]
+    assert set(refusal.details["missing_operations"]) == {"--amend-capture", "--redecode"}
     assert refusal.details["accepted_schema_versions"] == [SOURCE_MANIFEST.major]
     assert refusal.details["age"] == "older"
     assert refusal.details["found_schema_version"] == 1
     assert refusal.details["kind"] == SOURCE_MANIFEST.kind
-    assert "--redecode --amend-terms" in str(refusal.details["remedy"])
     assert path.read_bytes() == before
     assert not (path.parent / "replaced").exists()

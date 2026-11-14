@@ -35,39 +35,6 @@ hardware or private data.
 
 ### Corpus provenance -- `corpus-provenance`
 
-#### recording-capture-vocabulary
-
-Recording declarations accept arbitrary control descriptions and lack observer platform. Closing
-these vocabularies without an explicit successor path would strand retained source evidence.
-
-- Serves: `corpus-provenance` -- [Capture compatibility](../design/spec.md#capture-vocabulary-and-historical-source-records)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: New sources declare closed capture values; an operator can migrate an old
-  source explicitly while retaining its exact original record and all source bytes.
-- Scope boundary: Control values are `operator_steered`, `fixed_camera`, `autonomous_camera`,
-  `unknown`; platform values are `ground_fixed`, `ground_handheld`, `airborne`, `unknown`.
-  Omission in a new declaration means unknown. Historical values are never mapped by guesswork.
-  Only explicit capture amendment may replace these two judgments; other capture facts stay put.
-- Data and artifact paths: `contracts/declaration/recording/`, `contracts/record/source-manifest/`,
-  `src/ss_track/corpus/declarations/`, `src/ss_track/corpus/sources/`, `tests/corpus/`,
-  `docs/impl/workloads/`, existing imported-source and retained-record paths under `$DATA_DIR`.
-- Execution path: Freeze major 3 contracts with the previous major's `facts` disposition and a
-  tested migration remedy. Protect both judgment properties in the compatibility gate. Add
-  `import --amend-capture` through the shared source replacement transaction, composing with
-  `--amend-terms` and `--redecode` when needed. Update declaration producers and workload YAML;
-  restate only supported facts, using unknown otherwise. Keep all historical fixtures unchanged.
-- Acceptance gates: Invalid values name the field. Every historical source major has a tested
-  inspection and migration/refusal path. A successful migration preserves source identity, media,
-  other capture facts, terms and decoded facts unless their explicit operation is also requested.
-  Old records retain bytes and seals; repeated amendments are unchanged; interrupted publication
-  loses no record. Pinned versions refuse and are listed; a successor builds with the same groups
-  and splits. Metadata-only migration needs no media, and incomplete combined migrations publish
-  nothing and name the missing operations. No new reproducible artifact kind is introduced.
-  Frozen contracts and `make ci` pass.
-- Documentation target: [Corpus](current/corpus.md).
-
 #### capture-encounter-counts
 
 A build reports split counts but cannot expose how much of its evidence uses each camera-control
@@ -76,7 +43,7 @@ mode or observer platform, leaving ground footage indistinguishable from airborn
 - Serves: `corpus-provenance` -- [Capture compatibility](../design/spec.md#capture-vocabulary-and-historical-source-records)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: recording-capture-vocabulary.
+- Dependencies: none.
 - User-visible outcome: Build results report distinct encounter counts for every control-mode and
   observer-platform bin, including unknown and zero bins.
 - Scope boundary: Count each encounter once in each applicable bin; mixed-stream encounters can
@@ -125,7 +92,7 @@ stream of one file, so such a source cannot enter a corpus.
 
 - Serves: `corpus-provenance` -- [Corpus identity](../design/spec.md#41-corpus-identity-and-input-handling)
 - Agent status: CLEAR
-- Dependencies: recording-capture-vocabulary.
+- Dependencies: none.
 - User-visible outcome: A recording declares an ordered image sequence as its source, and import,
   build, stage and verify treat it as they treat a video stream.
 - Scope boundary: Lossless image files in a declared order, with one source identity over the
@@ -3303,7 +3270,7 @@ almost none.
 
 - Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: HUMAN-GATED
-- Dependencies: recording-capture-vocabulary.
+- Dependencies: none.
 - User-visible outcome: An approval record names each airborne-observer source the owner permits,
   with its terms, transfer budget and intended split, or states that none is available.
 - Scope boundary: Sources whose camera flew, including the owner's own recordings and public

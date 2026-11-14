@@ -27,7 +27,7 @@ TAIL = {"start_frame": 4, "end_frame": 8}  # and the four after them
 def recording_declaration(source: str = "clip.mkv") -> Recording:
     """Return a complete recording declaration that a test may then damage."""
     return {
-        "schema_version": 2,
+        "schema_version": 3,
         "source": {"path": source},
         "rights": {
             "holder": "Project Contributors",

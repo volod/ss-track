@@ -90,7 +90,7 @@ Copy the [template](template.md) using the
 | 0083 | `resolve-closed-record-markdown` | [0083-reproducible-environment-resolve-closed-record-markdown](0083-reproducible-environment-resolve-closed-record-markdown.md) |
 | 0084 | `recording-capture-vocabulary` | [0084-corpus-provenance-recording-capture-vocabulary](0084-corpus-provenance-recording-capture-vocabulary.md) |
 | 0085 | `capture-vocabulary-decomposition` | [0085-adhoc-capture-vocabulary-decomposition](0085-adhoc-capture-vocabulary-decomposition.md) |
-
 | 0086 | `source-capture-inspection` | [0086-corpus-provenance-source-capture-inspection](0086-corpus-provenance-source-capture-inspection.md) |
+| 0087 | `recording-capture-vocabulary` | [0087-corpus-provenance-recording-capture-vocabulary](0087-corpus-provenance-recording-capture-vocabulary.md) |
 
-Next unused sequence: `0087`.
+Next unused sequence: `0088`.

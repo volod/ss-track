@@ -118,11 +118,7 @@ def test_a_record_with_no_terms_to_carry_is_refused_and_names_amend_terms(
         lambda: redecode_source(write_recording(), data_root), RefusalCode.RECORD_SCHEMA_UNSUPPORTED
     )
 
-    assert [item["pointer"] for item in refusal.details["violations"]] == [
-        "/rights",
-        "/rights",
-    ]
-    assert "--redecode --amend-terms" in str(refusal.details["remedy"])
+    assert set(refusal.details["missing_operations"]) == {"--amend-capture", "--amend-terms"}
     assert imported.manifest_path.read_bytes() == before
     assert not (imported.manifest_path.parent / "replaced").exists()
 
@@ -135,7 +131,9 @@ def test_an_older_record_is_amended_and_then_redecoded_and_builds(
 ) -> None:
     _older_record("source-schema-1-d6b704d.json", imported.manifest_path)
 
-    amended = amend_source_terms(write_recording(rights=rights_with()), data_root)
+    amended = amend_source_terms(
+        write_recording(rights=rights_with()), data_root, amend_capture=True
+    )
     assert amended.status == "amended"
     assert amended.decode_policy_current is False
 
@@ -164,12 +162,14 @@ def test_a_record_too_old_for_amend_terms_alone_builds_through_both_flags_togeth
         RefusalCode.RECORD_SCHEMA_UNSUPPORTED,
     )
 
-    result = redecode_source(write_recording(rights=rights_with()), data_root, amend_terms=True)
+    result = redecode_source(
+        write_recording(rights=rights_with()), data_root, amend_terms=True, amend_capture=True
+    )
 
     assert result.status == "redecoded"
     assert result.decode_policy_current is True
     new = read_source(result.manifest_path)
-    assert new["schema_version"] == 2
+    assert new["schema_version"] == 3
     assert {"color", "interlaced_frames", "source_bits_per_component"} <= new["sequence"].keys()
     declared = write_corpus([stream_of(imported)])
     assert build_corpus(declared, data_root).status == "built"
@@ -191,7 +191,7 @@ _KILLED_RUN = """
             os._exit(9)
 
     os.fsync = killed
-    redecode_source(Path(declaration), Path(data_root), amend_terms=True)
+    redecode_source(Path(declaration), Path(data_root), amend_terms=True, amend_capture=True)
 """
 
 
@@ -209,7 +209,7 @@ def test_a_killed_redecode_leaves_one_whole_record_and_a_rerun_finishes_it(
     directory = imported.manifest_path.parent
     assert read_source(imported.manifest_path)["schema_version"] == 1
     assert list(directory.rglob(".incoming-*"))
-    result = redecode_source(declared, data_root, amend_terms=True)
+    result = redecode_source(declared, data_root, amend_terms=True, amend_capture=True)
     assert result.status == "redecoded"
     assert not list(directory.rglob(".incoming-*"))
     assert read_source(result.manifest_path)["manifest_sha256"] == result.manifest_sha256

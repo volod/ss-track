@@ -31,7 +31,7 @@ class SourceInspection:
                 "major": self.major,
                 "disposition": self.disposition or "current",
                 "capture": self.capture,
-                "platform": self.capture.get("platform", "unknown"),
+                "platform": self.capture.get("observer_platform", "unknown"),
             },
         }
 

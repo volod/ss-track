@@ -33,7 +33,7 @@ def test_kept_records_are_inspected_without_media(
     assert isinstance(inspection, dict)
     assert inspection == {
         "major": original["schema_version"],
-        "disposition": "facts" if original["schema_version"] == 1 else "current",
+        "disposition": "facts",
         "capture": original["capture"],
         "platform": "unknown",
     }

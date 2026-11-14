@@ -245,6 +245,16 @@ contracts:
     change:
       class: minor
       summary: Record optional upstream collection membership on a recording.
+  - version: 3.0.0
+    file_sha256: 5e325c399111264171d0aad96be01a3dbafbe264d6bbc8b45c4d0d53998c8145
+    fingerprints:
+      structure: 09164a5cca8f16034ba8271728ba5957fae385a4a967b12568c96bb1b81ab460
+      meaning: 2f9e64701e39c3628346edaf818a348a48082bd3fe49652e393dd3db2560d3cc
+    change:
+      class: major
+      summary: Close capture judgments.
+      migration: Restate capture judgments explicitly in a major 3 declaration.
+      disposition: facts
   retired_majors:
   - major: 1
     status: retired
@@ -703,6 +713,17 @@ contracts:
     change:
       class: minor
       summary: Record optional upstream collection membership on a source.
+  - version: 3.0.0
+    file_sha256: 24c4e04ca282dbb7c24c3051aa2bc752698ed36c1fa32b1c989b0abb0c84eab4
+    fingerprints:
+      structure: d180d69aff1f556f1912b08702cf105fc1ff47fa3d2092d287deddf02282eaa3
+      meaning: 6fb8eeb77a9238db218d5c309c0c9f6489ac54a8ea579f631f91f26dc0707a9f
+    change:
+      class: major
+      summary: Close capture judgments.
+      migration: Inspect the retained record and explicitly amend capture judgments,
+        combining terms and redecode when required.
+      disposition: facts
   retired_majors:
   - major: 1
     status: facts

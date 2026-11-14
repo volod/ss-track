@@ -44,7 +44,11 @@ from tests.corpus.conftest import (
 _CORPUS = "pilot-v1"
 _OLDER_CORPORA = ["corpus-schema-1-294535c.json", "corpus-schema-2-78db68c.json"]
 _OLDER_BUNDLES = ["bundle-schema-1-294535c.json", "bundle-schema-2-78db68c.json"]
-_OLDER_SOURCES = ["source-schema-1-0238d55.json", "source-schema-1-d6b704d.json"]
+_OLDER_SOURCES = [
+    "source-schema-1-0238d55.json",
+    "source-schema-1-d6b704d.json",
+    "source-schema-2-129a350.json",
+]
 _TERMS_MISSING = "corpus-schema-3-d6b704d.json"
 
 
@@ -129,7 +133,7 @@ def test_an_older_source_refuses_a_build_by_name(
         build_corpus(declared, data_root)
 
     assert caught.value.code is RefusalCode.RECORD_SCHEMA_UNSUPPORTED
-    _older(caught.value.details, SOURCE_MANIFEST, 1)
+    _older(caught.value.details, SOURCE_MANIFEST, major_of(record))
 
 
 def _import_refused(data_root: Path, declared: Path) -> CorpusRefusal:
@@ -157,7 +161,9 @@ def test_a_reimport_over_an_older_source_names_the_amendment_which_then_accepts_
 
     _older(refusal.details, SOURCE_MANIFEST, 1)
     assert "--amend-terms" in refusal.message
-    amended = amend_source_terms(write_recording(rights=rights_with()), data_root)
+    amended = amend_source_terms(
+        write_recording(rights=rights_with()), data_root, amend_capture=True
+    )
     assert amended.status == "amended"
     assert read_sealed(path, SOURCE_MANIFEST)["schema_version"] == SOURCE_MANIFEST.major
 
