@@ -88,5 +88,7 @@ Copy the [template](template.md) using the
 | 0081 | `shared-evidence-primitives` | [0081-corpus-provenance-shared-evidence-primitives](0081-corpus-provenance-shared-evidence-primitives.md) |
 | 0082 | `arm-ci-workload` | [0082-adhoc-arm-ci-workload](0082-adhoc-arm-ci-workload.md) |
 | 0083 | `resolve-closed-record-markdown` | [0083-reproducible-environment-resolve-closed-record-markdown](0083-reproducible-environment-resolve-closed-record-markdown.md) |
+| 0084 | `recording-capture-vocabulary` | [0084-corpus-provenance-recording-capture-vocabulary](0084-corpus-provenance-recording-capture-vocabulary.md) |
+| 0085 | `capture-vocabulary-decomposition` | [0085-adhoc-capture-vocabulary-decomposition](0085-adhoc-capture-vocabulary-decomposition.md) |
 
-Next unused sequence: `0084`.
+Next unused sequence: `0086`.
