@@ -15,14 +15,33 @@ baseline scope and evidence. The installed set contains these document contracts
 | --- | --- |
 | `declaration/corpus` | `3.0.0`, `3.1.0`, `3.2.0` |
 | `declaration/dataset` | `1.0.0`, `1.1.0` |
-| `declaration/recording` | `2.0.0`, `2.1.0`, `2.2.0`, `2.3.0` |
+| `declaration/discovery-plan` | `1.0.0`, `1.1.0` |
+| `declaration/audit-review` | `1.0.0` |
+| `declaration/corpus-review` | `1.0.0`, `1.1.0`, `1.2.0` |
+| `declaration/link-decisions` | `1.0.0`, `1.1.0` |
+| `declaration/source-inventory` | `1.0.0` |
+| `declaration/corpus-pool` | `1.0.0`, `1.1.0` |
+| `declaration/recording` | `2.0.0`, `2.1.0`, `2.2.0`, `2.3.0`, `2.4.0` |
+| `declaration/video-hints` | `1.0.0` |
+| `record/candidate-inventory` | `1.0.0` |
+| `record/audit-blinding` | `1.0.0` |
+| `record/corpus-freeze` | `1.0.0`, `1.1.0`, `1.2.0` |
+| `record/corpus-links` | `1.0.0`, `1.1.0` |
 | `record/corpus-manifest` | `3.0.0`, `3.1.0`, `3.2.0`, `3.3.0`, `3.4.0` |
+| `record/discovery-run` | `1.0.0`, `1.1.0`, `1.2.0` |
+| `record/feature-rows` | `1.0.0` |
 | `record/frame-bundle` | `3.0.0`, `3.1.0`, `3.2.0`, `3.3.0`, `3.4.0` |
 | `record/frame-set` | `1.0.0` |
 | `record/staged-hashes` | `1.0.0` |
 | `record/hash-comparison` | `1.0.0` |
-| `record/source-manifest` | `2.0.0`, `2.1.0`, `2.2.0`, `2.3.0` |
-| `result/command` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0`, `1.4.0`, `1.5.0`, `1.6.0`, `1.7.0`, `1.8.0`, `1.9.0`, `1.9.1`, `1.10.0`, `1.11.0`, `1.12.0`, `1.13.0`, `1.14.0` |
+| `record/link-review-handoff` | `1.0.0` |
+| `record/source-acquisition` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0` |
+| `record/corpus-pool` | `1.0.0` |
+| `record/source-manifest` | `2.0.0`, `2.1.0`, `2.2.0`, `2.3.0`, `2.4.0` |
+| `result/command` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0`, `1.4.0`, `1.5.0`, `1.6.0`, `1.7.0`, `1.8.0`, `1.9.0`, `1.9.1`, `1.10.0`, `1.11.0`, `1.12.0`, `1.13.0`, `1.14.0`, `1.15.0`, `1.16.0`, `1.17.0`, `1.18.0`, `1.19.0`, `1.20.0`, `1.21.0`, `1.22.0`, `1.23.0`, `1.24.0`, `1.25.0`, `1.26.0` |
+
+`result/command` `1.26.0` adds the `planned` and `cleaned` statuses, the `clean` object of
+`data clean` and `DATA_ROOT_BUSY`.
 
 `result/command` `1.5.0` adds `redecoded`. `1.6.0` adds optional `unlinked` on a corpus build,
 present only when that data root has something to report. `1.7.0` adds optional `impact` when an
@@ -34,7 +53,12 @@ optional `content_sha256` on a stream, present only when that stream's source id
 file hash. `declaration/recording` 2.2.0 adds optional
 `source.video_stream_index`. `record/source-manifest` 2.2.0 adds optional
 `sequence.video_stream_index`, absent when the decoded stream is the first.
-`declaration/recording` 2.3.0 adds optional `color.matrix`. `record/source-manifest` 2.3.0 and
+`declaration/recording` 2.3.0 adds optional `color.matrix`. `declaration/recording` 2.4.0 and
+`record/source-manifest` 2.4.0 add optional `origin`, omitted when a recording names no upstream
+collection. Origin on a source manifest is sensitive, so a public descriptor omits it.
+`declaration/corpus-pool` 1.0.0 and `record/corpus-pool` 1.0.0 state a combined-pool selection and
+its sealed result. `declaration/corpus-pool` 1.1.0 adds optional per-collection `metadata_names`,
+the operator's CSV name-to-path rules. `record/source-manifest` 2.3.0 and
 `record/frame-bundle` 3.2.0 add optional `declared_color`, present only when conversion used that
 declaration. `result/command` 1.10.0 adds `COLOR_TAG_CONFLICT`. `1.11.0` adds
 `DECODE_TIME_EXCEEDED` and `INTERRUPTED`. `1.12.0` adds optional `near_duplicates` on a corpus
@@ -43,7 +67,13 @@ build, present only when a likely re-encode crosses groups or a window could not
 when that bundle's frames were hard-linked from a linked corpus version. `1.14.0` adds reason
 `unreadable` on `near_duplicates.not_compared` and optional `scan` when the corpus directory could
 not be listed. A missing or unreadable version outside the declared chain is named, and the report
-still does not refuse.
+still does not refuse. `1.15.0` adds the `discover` fields `run_id`, `inventory_count`,
+`candidate_count`, `feature_row_count` and `hint_sources`, and the codes `EXTRACTOR_UNPINNED`,
+`EXTRACTOR_INCOMPATIBLE`, `WORKER_FAILED` and `DISCOVERY_IN_PROGRESS`. `1.16.0` adds the
+`discover` fields `selection`, `unavailable_scores` and `coverage`. `1.17.0` adds `links`, the
+counted summary of a link review. `1.18.0` adds `queue`, `review` and `superseded`, the counted
+results of review and freeze, `declaration_path` and `declaration_sha256`, and the code
+`LINKS_UNRESOLVED`.
 `declaration/corpus` 3.1.0 adds `compression` and `variable_timing` recipes.
 `record/corpus-manifest` 3.3.0 and `record/frame-bundle` 3.3.0 add those
 recipes and the label kinds `compression` and `timing`. `declaration/corpus` 3.2.0 adds
@@ -51,6 +81,16 @@ recipes and the label kinds `compression` and `timing`. `declaration/corpus` 3.2
 `record/corpus-manifest` 3.4.0 and `record/frame-bundle` 3.4.0 add those recipes and the label kind
 `track_status`. Writers still stamp the major. A declaration stamped schema 3 validates under
 `declaration/corpus` 3.2.0, and a dataset descriptor copies that newest minor.
+
+`declaration/source-inventory` 1.0.0 records upstream candidate videos, pins and unresolved facts;
+`result/command` 1.19.0 adds its status and missing-fact counts, and 1.20.0 adds its path,
+digest and totals. The
+[inventory reader](corpus.md#source-inventory) enforces cross-field and path rules.
+
+`record/source-acquisition` links the provider selection, verified local video hashes and normalized
+inventory. Minor versions add the input inventory hash, Zenodo split metadata hashes and selected
+upstream metadata files. The [acquisition workflow](corpus.md#source-acquisition) states the checks
+and rights boundary.
 
 `declaration/dataset` states the operator-supplied title, description, license, citation, address
 and publication date. It can be checked with `ss-track contracts validate` and is consumed by the
@@ -65,6 +105,51 @@ state that over any script, and `Fields.text` enforces it; the accepted values d
 `x-sensitivity` marks and do not change the values a record stores. `schema_version` remains the
 major, so a record sealed at 3.0.0 or 2.0.0 still validates under the newest minor. The descriptor
 uses that newest minor when it chooses public fields.
+
+`record/discovery-run`, `record/candidate-inventory` and `record/feature-rows`, owned by
+`self-supervised-corpus`, hold a discovery run, one stream's candidate windows and one extractor's
+row keys for one stream; [discovery records](corpus/discovery-records.md) states their rules and
+validators. Their `x-references` name `record/frame-set` and `record/corpus-manifest` fields.
+`record/discovery-run` 1.1.0 adds optional `source_approval`, `feature_rows` and a hint source's
+`matches`, each with its rule on the new node, because a root `x-rules` change takes a major.
+`record/discovery-run` 1.2.0 adds the crop `tiled` and an extractor's optional `tile`, whose rule
+places it on the frame. `declaration/discovery-plan` and `declaration/video-hints`, owned by the same
+capability, state a [discovery run's plan and an ss-video hint file](corpus/discovery-runs.md);
+`declaration/discovery-plan` 1.1.0 adds an extractor's optional `tiles` and the optional
+`selection`. `record/corpus-links` and `declaration/link-decisions`, owned by the same capability,
+hold a link review of one version and a reviewer's decisions on pairs of recordings; the
+[leakage review](corpus/leakage-review.md) states their rules, which `read_links` enforces.
+`record/link-review-handoff` is the sealed manifest inside a media-free portable review tar. It
+binds the corpus, frame set, link record, optional checkpoint branch and every archive member by
+size and SHA-256. Recipe members are text inputs only; media, staged frames, feature rows and model
+weights remain local to independently prepared hosts.
+`declaration/corpus-review` and `record/corpus-freeze` hold a reviewer's decisions on the windows a
+discovery run offers and the sealed export of the version frozen from them.
+`declaration/corpus-review` 1.1.0 and the freeze record's review object in 1.1.0 add optional
+`independence`, `blinding`, `reviewer_minutes` and `audit_id`. A review that omits them still
+validates, and a freeze copies a field only when the review stated it. 1.2.0 of both adds an
+optional `selection_pass`: the pass reviewer, optional minutes, and an observation for each
+selected window the run offers. It is absent when no pass was recorded.
+`declaration/audit-review` 1.0.0 is the cue-free review of one blinded audit sample, and
+`record/audit-blinding` 1.0.0 is the private mapping back to the candidates. `result/command`
+1.21.0 adds `presented`, `unblinded` and the `blind` counts. 1.22.0 adds `estimated` and
+`inconclusive`, and the paired selection comparison: `runs`, `audit`, `observations`,
+`review_blinding`, `review_independence`, `review_effort_minutes` and `limits`. Those review fields
+are declarations. They are not the `blind` counts. 1.23.0 adds optional `review_budget` and
+`sibling_offers`. `review_budget` states the declared protocol, the shared audit count, each
+queue, the additions beyond that shared count, and whether the comparable counts match. An
+unmatched or unmeasured budget is `inconclusive`. Unrecorded minutes stay unmeasured rather
+than zero. 1.24.0 adds optional `by_source` on `discover evaluate` and widens `limits` from four
+entries to five. `by_source` reports each sealed collection beside the combined population, using
+the stratum design weight, and states shared-stratum covariance. A missing collection stays null
+rather than zero. Commands other than `discover evaluate` omit `by_source`. `sources` remains the
+hash-comparison list. 1.25.0 adds the `selection_pass` value of `review_budget.protocol`, and an
+optional `review_budget.selection_pass` with each run's pass work and yield, the windows reviewers
+looked at in all and each pass observation that disagrees with the run's review. It is absent
+when neither review recorded a pass, so a comparison without one is still a 1.24.0 record.
+[review and freeze](corpus/review-and-freeze.md) states their rules, which `read_review`,
+`read_audit_review`, `read_blinding` and `read_freeze` enforce. A decision is a `oneOf` tagged by
+`decision`, so an `unreviewed` entry carries no observation.
 
 `shared/types` supplies hashes and identifiers. Every shipped document format has a frozen contract,
 and every frame-set reference resolves at its annotated schema pointer. Capture fields preserve

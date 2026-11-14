@@ -16,7 +16,8 @@ export MYPY_CACHE_DIR := $(DATA_ROOT)/cache/mypy
 
 .DEFAULT_GOAL := help
 
-.PHONY: help bootstrap venv lock run doctor format format-check lint typecheck test coverage \
+.PHONY: help bootstrap venv lock run doctor format format-check lint typecheck \
+	test-light test-external test coverage \
 	complexity-gate shell-lint-gate lint-md lint-doc-links lint-spec-plan lint-contracts \
 	plan-status \
 	ci-checks ci ci-github build quality code-quality quality-report \
@@ -60,11 +61,21 @@ lint: ## Run Ruff lint checks
 typecheck: ## Run mypy over production code
 	@"$(VENV)/bin/mypy" --python-version "$(PYTHON_VERSION)"
 
-test: ## Run deterministic unit tests
-	@"$(PY)" -m pytest $(PYTEST_CACHE)
+test-light: ## Run lightweight tests with no external artifact dependency
+	@source "$(PROJECT_ROOT)/scripts/shared/common.sh"; sst_load_test_env; \
+		"$(PY)" -m pytest $(PYTEST_CACHE) -m "not external"
 
-coverage: ## Run tests and enforce the coverage floor
-	@"$(PY)" -m pytest $(PYTEST_CACHE) --cov=ss_track --cov-report=term-missing
+test-external: ## Run tests that depend on contract artifacts or an external runtime
+	@source "$(PROJECT_ROOT)/scripts/shared/common.sh"; sst_load_test_env; \
+		"$(PY)" -m pytest $(PYTEST_CACHE) -m external
+
+test: ## Run both test groups
+	@source "$(PROJECT_ROOT)/scripts/shared/common.sh"; sst_load_test_env; \
+		"$(PY)" -m pytest $(PYTEST_CACHE)
+
+coverage: ## Run both test groups and enforce the coverage floor
+	@source "$(PROJECT_ROOT)/scripts/shared/common.sh"; sst_load_test_env; \
+		"$(PY)" -m pytest $(PYTEST_CACHE) --cov=ss_track --cov-report=term-missing
 
 complexity-gate: ## Fail on Radon D-or-worse or cognitive complexity above 15
 	@output="$$($(VENV)/bin/radon cc src tests -s -n D)"; \
@@ -99,7 +110,7 @@ plan-status: ## Count tasks by lane/status and show the next eligible work
 ci-checks: format-check lint typecheck complexity-gate shell-lint-gate lint-doc-links lint-spec-plan \
 	lint-contracts
 
-ci: ci-checks test ## Run the required local and GitHub CI gate
+ci: ci-checks test-light ## Run the required local and GitHub CI gate
 
 ci-github: ci ## Explicit GitHub Actions entrypoint
 

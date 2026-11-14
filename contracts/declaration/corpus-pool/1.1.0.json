@@ -1,0 +1,275 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ss-track:contract:declaration:corpus-pool:1.1.0",
+  "title": "Corpus pool",
+  "description": "An operator selection of acquired videos for one combined corpus.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "corpus_id",
+    "run_id",
+    "scenario_rights",
+    "collections"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "description": "Corpus pool declaration major.",
+      "x-unit": "1",
+      "const": 1,
+      "minimum": 0
+    },
+    "corpus_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "Corpus version this pool prepares."
+    },
+    "run_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "Discovery-run id that stores this pool."
+    },
+    "scenario_rights": {
+      "type": "object",
+      "description": "Rights requested by the corpus scenario.",
+      "properties": {
+        "sharing": {
+          "type": "string",
+          "description": "Permitted disclosure scope.",
+          "enum": [
+            "restricted",
+            "public"
+          ]
+        },
+        "max_sensitivity": {
+          "type": "string",
+          "description": "Declared sensitivity.",
+          "enum": [
+            "low",
+            "moderate",
+            "high"
+          ]
+        }
+      },
+      "required": [
+        "sharing",
+        "max_sensitivity"
+      ],
+      "additionalProperties": false
+    },
+    "collections": {
+      "type": "array",
+      "description": "Acquired collections selected for this pool.",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "description": "One acquired collection and the videos selected from it.",
+        "additionalProperties": false,
+        "required": [
+          "run_id",
+          "rights",
+          "sensitivity",
+          "videos"
+        ],
+        "properties": {
+          "run_id": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+            "description": "Acquisition run that holds this collection."
+          },
+          "rights": {
+            "type": "object",
+            "description": "Operator-declared source terms.",
+            "properties": {
+              "holder": {
+                "type": "string",
+                "description": "Rights holder.",
+                "minLength": 1,
+                "x-rules": {
+                  "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+                }
+              },
+              "basis": {
+                "type": "string",
+                "description": "Authority for using the source.",
+                "enum": [
+                  "owned",
+                  "licensed",
+                  "consented",
+                  "public_domain"
+                ]
+              },
+              "retention": {
+                "type": "string",
+                "description": "Human-readable retention rule.",
+                "minLength": 1,
+                "x-rules": {
+                  "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+                }
+              },
+              "retain_until": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Last UTC calendar day on which retention is allowed; null means no dated end.",
+                "format": "date"
+              },
+              "derived_frames": {
+                "type": "boolean",
+                "description": "Whether derived frames may be retained."
+              },
+              "sharing": {
+                "type": "string",
+                "description": "Permitted disclosure scope.",
+                "enum": [
+                  "restricted",
+                  "public"
+                ]
+              }
+            },
+            "required": [
+              "holder",
+              "basis",
+              "retention",
+              "retain_until",
+              "derived_frames",
+              "sharing"
+            ],
+            "additionalProperties": false
+          },
+          "sensitivity": {
+            "type": "object",
+            "description": "Declared handling requirements.",
+            "properties": {
+              "level": {
+                "type": "string",
+                "description": "Declared sensitivity.",
+                "enum": [
+                  "low",
+                  "moderate",
+                  "high"
+                ]
+              },
+              "notes": {
+                "type": "string",
+                "description": "Optional operator sensitivity notes.",
+                "minLength": 1,
+                "x-rules": {
+                  "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+                }
+              }
+            },
+            "required": [
+              "level"
+            ],
+            "additionalProperties": false
+          },
+          "videos": {
+            "type": "array",
+            "description": "Videos selected from this collection.",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "description": "One selected video and the corpus split the operator assigns.",
+              "additionalProperties": false,
+              "required": [
+                "path",
+                "split"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Upstream video path inside the acquisition.",
+                  "x-rules": {
+                    "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+                  }
+                },
+                "split": {
+                  "type": "string",
+                  "description": "Corpus split assigned by the operator.",
+                  "enum": [
+                    "calibration",
+                    "development"
+                  ]
+                }
+              }
+            }
+          },
+          "metadata_names": {
+            "type": "array",
+            "description": "Operator rules that map the name column of an acquired CSV metadata file to video paths.",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "description": "One CSV file whose row names start with name_prefix; the rest of the name follows path_prefix.",
+              "additionalProperties": false,
+              "required": [
+                "file",
+                "name_prefix",
+                "path_prefix"
+              ],
+              "properties": {
+                "file": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Acquired CSV metadata path the rule applies to.",
+                  "x-rules": {
+                    "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+                  }
+                },
+                "name_prefix": {
+                  "type": "string",
+                  "description": "Directory prefix a row name must start with, each segment ending in a slash; empty matches every name.",
+                  "pattern": "^([A-Za-z0-9_-][A-Za-z0-9_.-]*/)*$"
+                },
+                "path_prefix": {
+                  "type": "string",
+                  "description": "Directory prefix of the video path that replaces name_prefix, each segment ending in a slash; empty adds none.",
+                  "pattern": "^([A-Za-z0-9_-][A-Za-z0-9_.-]*/)*$"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "related": {
+      "type": "array",
+      "description": "Operator groups of related selected videos.",
+      "minItems": 1,
+      "items": {
+        "type": "array",
+        "description": "Selected videos that must share one group.",
+        "minItems": 2,
+        "items": {
+          "type": "object",
+          "description": "One selected video in a related group.",
+          "additionalProperties": false,
+          "required": [
+            "run_id",
+            "path"
+          ],
+          "properties": {
+            "run_id": {
+              "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+              "description": "Acquisition run id."
+            },
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Upstream video path.",
+              "x-rules": {
+                "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "x-rules": {
+    "selection": "Run ids are unique, video paths are unique within a run, and every related member is a selected video.",
+    "rights": "Rights and sensitivity are the operator declaration. A license code in metadata does not set them.",
+    "splits": "The operator assigns development or calibration. An upstream test or locked split is withheld and does not choose the corpus split."
+  }
+}

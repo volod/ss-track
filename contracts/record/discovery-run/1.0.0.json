@@ -1,0 +1,724 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ss-track:contract:record:discovery-run:1.0.0",
+  "title": "Discovery run",
+  "description": "One sealed record of how a discovery run proposed candidate windows over a staged corpus version: the frames it read, the feature extractors and their full provenance, its scores, sibling hint sources, pool, selection method and independent audit design, and the seal of each stream's candidate inventory. It is written after its last inventory. Nothing in it is a label, authorizes a source or assigns a split.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind",
+    "schema_version",
+    "run_id",
+    "corpus_id",
+    "frame_set_sha256",
+    "processing",
+    "extractors",
+    "scores",
+    "hint_sources",
+    "pool",
+    "selection",
+    "audit",
+    "inventories",
+    "manifest_sha256"
+  ],
+  "properties": {
+    "kind": {
+      "type": "string",
+      "const": "ss-track.discovery-run",
+      "description": "Names this format.",
+      "x-sensitivity": "public"
+    },
+    "schema_version": {
+      "type": "integer",
+      "const": 1,
+      "description": "The contract's major.",
+      "x-sensitivity": "public"
+    },
+    "run_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "The discovery run, which is also its directory name.",
+      "x-sensitivity": "restricted"
+    },
+    "corpus_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "The corpus version whose staged frames the run read.",
+      "x-references": "record/frame-set#/properties/corpus_id",
+      "x-sensitivity": "restricted"
+    },
+    "frame_set_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Seal of that version's frame set, which binds every inventory to its bundle, source record and terms.",
+      "x-references": "record/frame-set#/properties/manifest_sha256",
+      "x-sensitivity": "restricted"
+    },
+    "processing": {
+      "type": "object",
+      "description": "The ss-track code that wrote the run.",
+      "properties": {
+        "ss_track_version": {
+          "type": "string",
+          "description": "Installed ss-track version.",
+          "minLength": 1,
+          "x-sensitivity": "restricted"
+        },
+        "revision": {
+          "type": "integer",
+          "description": "Algorithm revision; a changed algorithm takes a new revision.",
+          "x-unit": "1",
+          "minimum": 1,
+          "x-sensitivity": "restricted"
+        }
+      },
+      "required": [
+        "ss_track_version",
+        "revision"
+      ],
+      "additionalProperties": false
+    },
+    "extractors": {
+      "type": "array",
+      "description": "Feature extractors in ascending extractor_id order.",
+      "items": {
+        "$ref": "#/$defs/extractor"
+      },
+      "minItems": 0,
+      "x-sensitivity": "restricted"
+    },
+    "scores": {
+      "type": "array",
+      "description": "Scores in ascending score_id order.",
+      "items": {
+        "$ref": "#/$defs/score"
+      },
+      "minItems": 0,
+      "x-sensitivity": "restricted"
+    },
+    "hint_sources": {
+      "type": "array",
+      "description": "Sibling hint sources in ascending hint_source_id order.",
+      "items": {
+        "$ref": "#/$defs/hint-source"
+      },
+      "minItems": 0,
+      "x-sensitivity": "restricted"
+    },
+    "pool": {
+      "type": "object",
+      "description": "How each stream is cut into the windows of the eligible pool.",
+      "properties": {
+        "window_frames": {
+          "type": "integer",
+          "description": "Source frames per pool window. The last window of a stream may be shorter.",
+          "x-unit": "1",
+          "minimum": 1,
+          "x-sensitivity": "restricted"
+        }
+      },
+      "required": [
+        "window_frames"
+      ],
+      "additionalProperties": false
+    },
+    "selection": {
+      "type": "object",
+      "description": "The method that ranked and selected candidates.",
+      "properties": {
+        "method": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+          "description": "Selection method name.",
+          "x-sensitivity": "restricted"
+        },
+        "revision": {
+          "type": "integer",
+          "description": "Algorithm revision; a changed algorithm takes a new revision.",
+          "x-unit": "1",
+          "minimum": 1,
+          "x-sensitivity": "restricted"
+        },
+        "seed": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "Seed of a randomized selection, or null for a deterministic one.",
+          "x-unit": "1",
+          "minimum": 0,
+          "maximum": 9223372036854775807,
+          "x-sensitivity": "restricted"
+        },
+        "budget": {
+          "type": "integer",
+          "description": "Most candidates the method may select across the run.",
+          "x-unit": "1",
+          "minimum": 0,
+          "x-sensitivity": "restricted"
+        },
+        "score_ids": {
+          "type": "array",
+          "description": "Scores the method reads, in ascending order.",
+          "items": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+            "description": "A score of this run.",
+            "x-references": "record/discovery-run#/$defs/score/properties/score_id",
+            "x-sensitivity": "restricted"
+          },
+          "minItems": 0,
+          "x-sensitivity": "restricted"
+        }
+      },
+      "required": [
+        "method",
+        "revision",
+        "seed",
+        "budget",
+        "score_ids"
+      ],
+      "additionalProperties": false
+    },
+    "audit": {
+      "type": "object",
+      "description": "The independent audit sample, drawn from the eligible pool apart from selection.",
+      "properties": {
+        "design": {
+          "type": "string",
+          "description": "Simple random sampling without replacement inside each stratum.",
+          "enum": [
+            "stratified_fixed_size"
+          ],
+          "x-sensitivity": "restricted"
+        },
+        "revision": {
+          "type": "integer",
+          "description": "Algorithm revision; a changed algorithm takes a new revision.",
+          "x-unit": "1",
+          "minimum": 1,
+          "x-sensitivity": "restricted"
+        },
+        "seed": {
+          "type": "integer",
+          "description": "Deterministic random seed.",
+          "x-unit": "1",
+          "minimum": 0,
+          "maximum": 9223372036854775807,
+          "x-sensitivity": "restricted"
+        },
+        "strata": {
+          "type": "array",
+          "description": "Strata in ascending stratum_id order.",
+          "items": {
+            "$ref": "#/$defs/stratum"
+          },
+          "minItems": 1,
+          "x-sensitivity": "restricted"
+        }
+      },
+      "required": [
+        "design",
+        "revision",
+        "seed",
+        "strata"
+      ],
+      "additionalProperties": false
+    },
+    "inventories": {
+      "type": "array",
+      "description": "One line per stream in ascending stream_id order.",
+      "items": {
+        "$ref": "#/$defs/inventory"
+      },
+      "minItems": 1,
+      "x-sensitivity": "restricted"
+    },
+    "manifest_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Seal of this record.",
+      "x-sensitivity": "public"
+    }
+  },
+  "$defs": {
+    "extractor": {
+      "type": "object",
+      "description": "One feature extractor and everything its rows depend on.",
+      "properties": {
+        "extractor_id": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+          "description": "Name of the extractor within this run.",
+          "x-sensitivity": "restricted"
+        },
+        "architecture": {
+          "type": "string",
+          "description": "Model architecture name, such as ViT-B-16.",
+          "minLength": 1,
+          "x-sensitivity": "restricted"
+        },
+        "package": {
+          "type": "object",
+          "description": "The package that holds the extractor code.",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Distribution name.",
+              "minLength": 1,
+              "x-sensitivity": "restricted"
+            },
+            "version": {
+              "type": "string",
+              "description": "Declared version, which alone does not identify the code.",
+              "minLength": 1,
+              "x-sensitivity": "restricted"
+            },
+            "commit": {
+              "type": "string",
+              "description": "Full lowercase Git commit hash of the installed tree.",
+              "pattern": "^[0-9a-f]{40}$",
+              "x-sensitivity": "restricted"
+            }
+          },
+          "required": [
+            "name",
+            "version",
+            "commit"
+          ],
+          "additionalProperties": false
+        },
+        "libraries": {
+          "type": "array",
+          "description": "Libraries the rows depend on, in ascending name order.",
+          "items": {
+            "type": "object",
+            "description": "One installed library.",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Distribution name.",
+                "minLength": 1,
+                "x-sensitivity": "restricted"
+              },
+              "version": {
+                "type": "string",
+                "description": "Installed version.",
+                "minLength": 1,
+                "x-sensitivity": "restricted"
+              }
+            },
+            "required": [
+              "name",
+              "version"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "x-sensitivity": "restricted"
+        },
+        "weights": {
+          "type": "array",
+          "description": "Weight files loaded, in ascending name order.",
+          "items": {
+            "type": "object",
+            "description": "One weight file the extractor loaded.",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Published model name, such as a Hugging Face repository or torch.hub entry.",
+                "minLength": 1,
+                "x-sensitivity": "restricted"
+              },
+              "revision": {
+                "type": "string",
+                "description": "Immutable revision the file was resolved from, never a branch name.",
+                "minLength": 1,
+                "x-sensitivity": "restricted"
+              },
+              "sha256": {
+                "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+                "description": "SHA-256 of the weight file bytes.",
+                "x-sensitivity": "restricted"
+              },
+              "size_bytes": {
+                "type": "integer",
+                "description": "Weight file size.",
+                "x-unit": "By",
+                "minimum": 1,
+                "x-sensitivity": "restricted"
+              }
+            },
+            "required": [
+              "name",
+              "revision",
+              "sha256",
+              "size_bytes"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "x-sensitivity": "restricted"
+        },
+        "device": {
+          "type": "string",
+          "description": "Device the rows were computed on, such as cpu or cuda:0. A run that changed device mid-way names no single device and is not recorded.",
+          "pattern": "^(cpu|cuda|mps)(:(0|[1-9][0-9]*))?$",
+          "x-sensitivity": "restricted"
+        },
+        "dtype": {
+          "type": "string",
+          "description": "Arithmetic precision of the forward pass.",
+          "enum": [
+            "float32",
+            "float16",
+            "bfloat16"
+          ],
+          "x-sensitivity": "restricted"
+        },
+        "autocast": {
+          "type": "boolean",
+          "description": "Whether mixed-precision autocast was active.",
+          "x-sensitivity": "restricted"
+        },
+        "batch_size": {
+          "type": "integer",
+          "description": "Frames per forward pass; rows of one model can depend on it.",
+          "x-unit": "1",
+          "minimum": 1,
+          "x-sensitivity": "restricted"
+        },
+        "pixel_source": {
+          "type": "string",
+          "description": "Which pixels entered the model: staged ss-track frames, or JPEGs a sibling extracted. The two give different rows.",
+          "enum": [
+            "staged_frame",
+            "sibling_jpeg"
+          ],
+          "x-sensitivity": "restricted"
+        },
+        "preprocessing": {
+          "type": "object",
+          "description": "How a frame became the model input.",
+          "properties": {
+            "resize": {
+              "type": "string",
+              "description": "How the frame was scaled: its short side to the input size, both sides to it, or not at all.",
+              "enum": [
+                "short_side",
+                "exact",
+                "none"
+              ],
+              "x-sensitivity": "restricted"
+            },
+            "crop": {
+              "type": "string",
+              "description": "Which part of the scaled frame the model saw.",
+              "enum": [
+                "center",
+                "none"
+              ],
+              "x-sensitivity": "restricted"
+            },
+            "interpolation": {
+              "type": "string",
+              "description": "Resampling filter name.",
+              "minLength": 1,
+              "x-sensitivity": "restricted"
+            },
+            "input_width": {
+              "type": "integer",
+              "description": "Model input width.",
+              "x-unit": "{pixel}",
+              "minimum": 1,
+              "x-sensitivity": "restricted"
+            },
+            "input_height": {
+              "type": "integer",
+              "description": "Model input height.",
+              "x-unit": "{pixel}",
+              "minimum": 1,
+              "x-sensitivity": "restricted"
+            },
+            "mean": {
+              "type": "array",
+              "description": "Per-channel mean subtracted after scaling to 0..1.",
+              "prefixItems": [
+                {
+                  "type": "number",
+                  "description": "One channel, in red, green, blue order.",
+                  "x-unit": "1"
+                },
+                {
+                  "type": "number",
+                  "description": "One channel, in red, green, blue order.",
+                  "x-unit": "1"
+                },
+                {
+                  "type": "number",
+                  "description": "One channel, in red, green, blue order.",
+                  "x-unit": "1"
+                }
+              ],
+              "items": false,
+              "minItems": 3,
+              "maxItems": 3,
+              "x-sensitivity": "restricted"
+            },
+            "std": {
+              "type": "array",
+              "description": "Per-channel deviation divided after the mean.",
+              "prefixItems": [
+                {
+                  "type": "number",
+                  "description": "One channel, in red, green, blue order.",
+                  "x-unit": "1"
+                },
+                {
+                  "type": "number",
+                  "description": "One channel, in red, green, blue order.",
+                  "x-unit": "1"
+                },
+                {
+                  "type": "number",
+                  "description": "One channel, in red, green, blue order.",
+                  "x-unit": "1"
+                }
+              ],
+              "items": false,
+              "minItems": 3,
+              "maxItems": 3,
+              "x-sensitivity": "restricted"
+            }
+          },
+          "required": [
+            "resize",
+            "crop",
+            "interpolation",
+            "input_width",
+            "input_height",
+            "mean",
+            "std"
+          ],
+          "additionalProperties": false
+        },
+        "output": {
+          "type": "object",
+          "description": "The feature rows the extractor returned.",
+          "properties": {
+            "dimensions": {
+              "type": "integer",
+              "description": "Values per feature row.",
+              "x-unit": "1",
+              "minimum": 1,
+              "x-sensitivity": "restricted"
+            },
+            "normalized": {
+              "type": "boolean",
+              "description": "Whether each row has unit L2 norm.",
+              "x-sensitivity": "restricted"
+            }
+          },
+          "required": [
+            "dimensions",
+            "normalized"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "extractor_id",
+        "architecture",
+        "package",
+        "libraries",
+        "weights",
+        "device",
+        "dtype",
+        "autocast",
+        "batch_size",
+        "pixel_source",
+        "preprocessing",
+        "output"
+      ],
+      "additionalProperties": false
+    },
+    "score": {
+      "type": "object",
+      "description": "One score a candidate may carry.",
+      "properties": {
+        "score_id": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+          "description": "Name of the score within this run.",
+          "x-sensitivity": "restricted"
+        },
+        "method": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+          "description": "Scoring method name.",
+          "x-sensitivity": "restricted"
+        },
+        "revision": {
+          "type": "integer",
+          "description": "Algorithm revision; a changed algorithm takes a new revision.",
+          "x-unit": "1",
+          "minimum": 1,
+          "x-sensitivity": "restricted"
+        },
+        "extractor_ids": {
+          "type": "array",
+          "description": "Extractors whose rows the score reads, in ascending order; empty for a score computed from pixels or timing alone.",
+          "items": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+            "description": "An extractor of this run.",
+            "x-references": "record/discovery-run#/$defs/extractor/properties/extractor_id",
+            "x-sensitivity": "restricted"
+          },
+          "minItems": 0,
+          "x-sensitivity": "restricted"
+        },
+        "preferred": {
+          "type": "string",
+          "description": "Which end of the score ranks first.",
+          "enum": [
+            "higher",
+            "lower"
+          ],
+          "x-sensitivity": "restricted"
+        }
+      },
+      "required": [
+        "score_id",
+        "method",
+        "revision",
+        "extractor_ids",
+        "preferred"
+      ],
+      "additionalProperties": false
+    },
+    "hint-source": {
+      "type": "object",
+      "description": "One sibling index whose times this run turned into candidate windows.",
+      "properties": {
+        "hint_source_id": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+          "description": "Name of the hint source within this run.",
+          "x-sensitivity": "restricted"
+        },
+        "project": {
+          "type": "string",
+          "description": "Sibling project that produced the times.",
+          "enum": [
+            "ss-video"
+          ],
+          "x-sensitivity": "restricted"
+        },
+        "commit": {
+          "type": "string",
+          "description": "Full lowercase Git commit hash of the installed tree.",
+          "pattern": "^[0-9a-f]{40}$",
+          "x-sensitivity": "restricted"
+        },
+        "ffmpeg_version": {
+          "type": "string",
+          "description": "Version of the ffmpeg that sampled the source, which decides the slot rule.",
+          "minLength": 1,
+          "x-sensitivity": "restricted"
+        },
+        "sample_rate": {
+          "type": "string",
+          "description": "Frames per second the sibling sampled at, as a rational numerator/denominator.",
+          "pattern": "^[1-9][0-9]*/[1-9][0-9]*$",
+          "x-unit": "Hz",
+          "x-sensitivity": "restricted"
+        }
+      },
+      "required": [
+        "hint_source_id",
+        "project",
+        "commit",
+        "ffmpeg_version",
+        "sample_rate"
+      ],
+      "additionalProperties": false
+    },
+    "stratum": {
+      "type": "object",
+      "description": "One stratum of the audit design.",
+      "properties": {
+        "stratum_id": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+          "description": "Name of the stratum within this run.",
+          "x-sensitivity": "restricted"
+        },
+        "eligible_count": {
+          "type": "integer",
+          "description": "Pool windows in the stratum.",
+          "x-unit": "1",
+          "minimum": 1,
+          "x-sensitivity": "restricted"
+        },
+        "sample_size": {
+          "type": "integer",
+          "description": "Pool windows drawn from the stratum.",
+          "x-unit": "1",
+          "minimum": 1,
+          "x-sensitivity": "restricted"
+        }
+      },
+      "required": [
+        "stratum_id",
+        "eligible_count",
+        "sample_size"
+      ],
+      "additionalProperties": false,
+      "x-rules": {
+        "size": "sample_size is at most eligible_count."
+      }
+    },
+    "inventory": {
+      "type": "object",
+      "description": "One stream's candidate inventory.",
+      "properties": {
+        "stream_id": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+          "description": "Stream the inventory covers.",
+          "x-references": "record/frame-set#/$defs/bundle/properties/stream_id",
+          "x-sensitivity": "restricted"
+        },
+        "bundle_sha256": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+          "description": "Bundle the inventory read.",
+          "x-references": "record/frame-set#/$defs/bundle/properties/bundle_sha256",
+          "x-sensitivity": "restricted"
+        },
+        "source_manifest_sha256": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+          "description": "Source record whose terms the stream rests on.",
+          "x-references": "record/frame-set#/$defs/bundle/properties/source_manifest_sha256",
+          "x-sensitivity": "restricted"
+        },
+        "inventory_sha256": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+          "description": "Seal of that stream's candidate inventory record.",
+          "x-sensitivity": "restricted"
+        },
+        "candidate_count": {
+          "type": "integer",
+          "description": "Candidates the inventory lists.",
+          "x-unit": "1",
+          "minimum": 1,
+          "x-sensitivity": "restricted"
+        }
+      },
+      "required": [
+        "stream_id",
+        "bundle_sha256",
+        "source_manifest_sha256",
+        "inventory_sha256",
+        "candidate_count"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "x-rules": {
+    "seal": "manifest_sha256 is the lowercase SHA-256 of the record without that key, as JSON with sorted keys, ASCII escapes and no whitespace.",
+    "order": "extractors, scores, hint_sources, strata and inventories are in ascending order of their id, each id appearing once; libraries and weights are in ascending name order; extractor_ids and score_ids are ascending and distinct.",
+    "references": "Every extractor_id of a score names an extractor of this record, and every score_id of selection names a score of this record.",
+    "inventories": "Each line names a bundle line of the frame set that frame_set_sha256 seals and repeats its bundle_sha256 and source_manifest_sha256; inventory_sha256 is the seal of that stream's candidate inventory, which lists candidate_count candidates.",
+    "selection": "Selected candidates across the run hold ranks 1 to their count, each once, and their count is at most budget. A null seed means deterministic selection, whose selected candidates have probability 1 and the rest 0.",
+    "audit": "Each stratum's eligible_count equals the pool windows assigned to it across the inventories, and exactly sample_size of them are sampled, each with inclusion probability sample_size / eligible_count.",
+    "rights": "source_manifest_sha256 names the source terms the run read. This record grants no right, verifies no label and places nothing in a split."
+  }
+}

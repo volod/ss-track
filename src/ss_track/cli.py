@@ -10,6 +10,8 @@ from collections.abc import Sequence
 
 from ss_track.commands.contracts import add_contract_commands
 from ss_track.commands.corpus import add_corpus_commands
+from ss_track.commands.data import add_data_commands
+from ss_track.commands.discover import add_discover_commands
 from ss_track.commands.report import EXIT_OK
 from ss_track.core.metadata import project_info
 
@@ -31,7 +33,9 @@ def build_parser() -> argparse.ArgumentParser:
     info.set_defaults(handler=_run_info)
 
     add_corpus_commands(subcommands)
+    add_discover_commands(subcommands)
     add_contract_commands(subcommands)
+    add_data_commands(subcommands)
     return parser
 
 

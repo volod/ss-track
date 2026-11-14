@@ -331,6 +331,79 @@ makes it fail, and what it does not prove. A case with no task left is listed as
   Value: protects=whole-system pairing; fails_when=values mix across trials; no_claim=component
   causes.
 
+### Mission, operator and Phase 2
+
+- `shared-evidence-primitives`: every sealed fixture and historic record after the move, and an
+  import from the shared package into an area.
+  Value: protects=one sealing path for every area; fails_when=a hash moves or an area is imported;
+  no_claim=new behavior.
+- `recording-capture-vocabulary`: a control mode and an observer platform outside their
+  vocabularies, an absent value and an older record with free text.
+  Value: protects=stratification by observer; fails_when=free text is mapped by guesswork;
+  no_claim=that a declared platform is true.
+- `scale-reduction-case`: even, odd and non-dividing dimensions, a rerun and a factor that changes
+  nothing.
+  Value: protects=a reproducible fewer-pixels probe; fails_when=bytes differ across hosts;
+  no_claim=range, optics or atmosphere.
+- `scenario-pack-contract`: a duplicate class ID, a class with no role, overlapping extent bins and
+  an envelope slot with no approval.
+  Value: protects=one pinned class meaning; fails_when=a changed class keeps its pack hash;
+  no_claim=the owner's values.
+- `extent-envelope-view`: encounters at known extents, an underfilled bin, a generated curve and a
+  module that proposes everywhere.
+  Value: protects=the size at which a module stops working; fails_when=a generated case fills a
+  real bin or flooding lowers the supported extent; no_claim=a detection range.
+- `operator-session-contract` and `operator-workload-suite`: a recovered loss, a wrong-target
+  confirmation, a silent failure, an unwarranted request and a changed future with a fixed past.
+  Value: protects=honest operator workload; fails_when=an action precedes its cause or a prompt
+  removes a frame from a denominator; no_claim=human performance.
+- `frame-sequence-source-import`: one sequence imported twice, a missing index, a changed image
+  and mixed dimensions.
+  Value: protects=image-sequence sources with one identity; fails_when=a gap or a changed image
+  imports; no_claim=capture timing of a sequence with no declared rate.
+- `reference-sot-tracker`: a translating camera over a static scene, without and with
+  global-motion compensation.
+  Value: protects=a comparison that matters for a moving observer; fails_when=the compensated
+  version proposes background; no_claim=which version wins on real footage.
+- `recognition-suite`: known-target, look-alike, unknown-class, too-small, untracked, late and
+  reversed-declaration instances at a declared burden, and exposure too short for that burden.
+  Value: protects=declarations scored over eligible instances with their misses; fails_when=an
+  unknown class becomes a target or an untracked target leaves the denominator; no_claim=a
+  recognizer's field accuracy.
+- `compute-manifest-contract`, `backend-capability-probe` and `compute-variant-suite`: a CPU
+  reference, a mixed-device profile, an opaque variant, a silent fallback, traces of known joules
+  and a variant that emits few results.
+  Value: protects=energy per decision tied to what executed; fails_when=an unverified backend is
+  credited or energy divides by emitted results; no_claim=speed on another host.
+- `platform-energy-budget`: budgets with measured, datasheet and assumed figures, and a trial with
+  unmeasured energy.
+  Value: protects=energy read against the platform; fails_when=a modelled value sits in a measured
+  column; no_claim=flight endurance.
+- `acquisition-policy-contract` and `policy-comparator-suite`: a policy that reads the future, one
+  that skips everything, one over budget, and each fixed comparator.
+  Also a sensor toggled faster than its wake latency, and a result at each energy tier.
+  Value: protects=causal decisions, a fixed denominator and a named energy tier; fails_when=a
+  skipped event leaves the denominator or a profile-derived figure reads as measured;
+  no_claim=physical sensor savings without a live paired trial.
+- `following-simulator`, `standoff-following-law` and `following-quality-suite`: straight, turning,
+  hovering and nest-return targets, a lost track, a law that closes inside the stand-off and a
+  target leaving support.
+  Also graded range error and latency, a law that reads the true target state and a set-point
+  under the margin.
+  Value: protects=violations scored on the true range that cannot hide behind coverage;
+  fails_when=a violating law is called improved or a zone position reaches a report;
+  no_claim=non-disturbance or flight.
+- `autonomy-level-contract`: a confirmed proposal, a vetoed declaration, a late veto and an
+  unanswered prompt.
+  Value: protects=a result that says which decisions a person took; fails_when=levels are
+  compared undeclared or an action is released at the autonomous level; no_claim=human behavior.
+- `mission-evidence-tables`, `mission-simulator` and `mission-outcome-suite`: tables of
+  probability 0 and 1, a known-probability table, an assumed cell, a changed source run, one
+  episode per outcome and three stand-off levels.
+  Value: protects=mission outcomes that trace to source results; fails_when=an empty bin is
+  filled, an assumed table reads as measured or precedence is broken; no_claim=field, range or
+  disturbance.
+
 ### Optional device bench evaluation
 
 - `device-suite-and-adapter`: a device with no output path and mismatched stimulus/reference/boundary.

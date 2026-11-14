@@ -1,0 +1,333 @@
+schema_version: 1
+reviewer: Claude (Opus 5.5), delegated by vola
+decisions:
+- sources:
+  - a588cf17f360ae03f30e908f1c7cfb3012dd551d93c4a2531eeef1da6cd86fd6
+  - df3818c924b1a69b69b4d94cb02bf5741f36e6d03429bb44ea2bfd1fd70d054e
+  decision: related
+  note: "01-02: same Anti-UAV gimbal overlay, same date 2019-09-25 and azimuth near 281-292 deg; CSV labels 01 cc-1.0 but its overlay and size match Anti-UAV"
+- sources:
+  - 53859e899f2b974064a652e6a2f5b66ba43bb87b8d891b59ebbd7f8a2939e32f
+  - f5e073de4329080cb031a3312b90d80b496e3e00099c01ddba7d11a4c81be932
+  decision: unrelated
+  note: "03-06: different upstream camera system: DroneDetectionThesis camera, 640x512 vs dataset author OAK-D recordings, 1280x720"
+- sources:
+  - 53859e899f2b974064a652e6a2f5b66ba43bb87b8d891b59ebbd7f8a2939e32f
+  - a587a903cd9b79bca3dd6183782af4e4f00442b90375060a46cb146901df59f5
+  decision: unrelated
+  note: "03-09: different upstream camera system: DroneDetectionThesis camera, 640x512 vs dataset author OAK-D recordings, 1280x720"
+- sources:
+  - 53137cf1cbedaa16fe051dbc2b848cc0379e6b75fdaf275d4d5c544049662e99
+  - 53859e899f2b974064a652e6a2f5b66ba43bb87b8d891b59ebbd7f8a2939e32f
+  decision: unrelated
+  note: "03-10: different upstream camera system: DroneDetectionThesis camera, 640x512 vs dataset author OAK-D recordings, 1280x720"
+- sources:
+  - 59db9358870a96af336d211b52254e9449a47553c0bc672b923ac32c74162f73
+  - 9331c32679a4c6e9c5dbbad0a44afbc88763ab3e58692a5a895f3058b569eda0
+  decision: unrelated
+  note: "05-08: different upstream camera system: dataset author OAK-D recordings, 1280x720 vs DroneDetectionThesis camera, 640x512"
+- sources:
+  - 59db9358870a96af336d211b52254e9449a47553c0bc672b923ac32c74162f73
+  - a91ae13080298be51e76931d53d7d7dab723a08d9f13297f9cdd7b2141da7e98
+  decision: unrelated
+  note: "05-11: different upstream camera system: dataset author OAK-D recordings, 1280x720 vs DroneDetectionThesis camera, 640x512"
+- sources:
+  - 59db9358870a96af336d211b52254e9449a47553c0bc672b923ac32c74162f73
+  - 7101faa4b55d463e35a0c9d44f7d37a1e5f1319a364aae6f6c27cb3ee42ca969
+  decision: unrelated
+  note: "05-12: different upstream camera system: dataset author OAK-D recordings, 1280x720 vs DroneDetectionThesis camera, 640x512"
+- sources:
+  - 43fb8f8241de36c6227b0c0db2eaf95a513c43036e77f95ba1d0e58d2a139311
+  - 59db9358870a96af336d211b52254e9449a47553c0bc672b923ac32c74162f73
+  decision: unrelated
+  note: "05-13: different upstream camera system: dataset author OAK-D recordings, 1280x720 vs DroneDetectionThesis camera, 640x512"
+- sources:
+  - 59db9358870a96af336d211b52254e9449a47553c0bc672b923ac32c74162f73
+  - 987ce264e35f49cfca2cf1f762e0d9048a9c79f6fc4405a9f4cfe99ece74c2ec
+  decision: unrelated
+  note: "05-17: different upstream camera system: dataset author OAK-D recordings, 1280x720 vs DroneDetectionThesis camera, 640x512"
+- sources:
+  - 59db9358870a96af336d211b52254e9449a47553c0bc672b923ac32c74162f73
+  - 75b5746e9f96d42c22f0a23b16dca46e92f486b99860f465f3ff45be749ad925
+  decision: unrelated
+  note: "05-19: different upstream camera system: dataset author OAK-D recordings, 1280x720 vs DroneDetectionThesis camera, 640x512"
+- sources:
+  - 9331c32679a4c6e9c5dbbad0a44afbc88763ab3e58692a5a895f3058b569eda0
+  - f5e073de4329080cb031a3312b90d80b496e3e00099c01ddba7d11a4c81be932
+  decision: unrelated
+  note: "06-08: different upstream camera system: dataset author OAK-D recordings, 1280x720 vs DroneDetectionThesis camera, 640x512"
+- sources:
+  - a91ae13080298be51e76931d53d7d7dab723a08d9f13297f9cdd7b2141da7e98
+  - f5e073de4329080cb031a3312b90d80b496e3e00099c01ddba7d11a4c81be932
+  decision: unrelated
+  note: "06-11: different upstream camera system: dataset author OAK-D recordings, 1280x720 vs DroneDetectionThesis camera, 640x512"
+- sources:
+  - 7101faa4b55d463e35a0c9d44f7d37a1e5f1319a364aae6f6c27cb3ee42ca969
+  - f5e073de4329080cb031a3312b90d80b496e3e00099c01ddba7d11a4c81be932
+  decision: unrelated
+  note: "06-12: different upstream camera system: dataset author OAK-D recordings, 1280x720 vs DroneDetectionThesis camera, 640x512"
+- sources:
+  - 43fb8f8241de36c6227b0c0db2eaf95a513c43036e77f95ba1d0e58d2a139311
+  - f5e073de4329080cb031a3312b90d80b496e3e00099c01ddba7d11a4c81be932
+  decision: unrelated
+  note: "06-13: different upstream camera system: dataset author OAK-D recordings, 1280x720 vs DroneDetectionThesis camera, 640x512"
+- sources:
+  - 216faa00297f9108f623c4a8a9177c6b1a133da1252d94a3691d3255a5267338
+  - f5e073de4329080cb031a3312b90d80b496e3e00099c01ddba7d11a4c81be932
+  decision: unrelated
+  note: "06-16: different upstream camera system: dataset author OAK-D recordings, 1280x720 vs DroneDetectionThesis camera, 640x512"
+- sources:
+  - 987ce264e35f49cfca2cf1f762e0d9048a9c79f6fc4405a9f4cfe99ece74c2ec
+  - f5e073de4329080cb031a3312b90d80b496e3e00099c01ddba7d11a4c81be932
+  decision: unrelated
+  note: "06-17: different upstream camera system: dataset author OAK-D recordings, 1280x720 vs DroneDetectionThesis camera, 640x512"
+- sources:
+  - 75b5746e9f96d42c22f0a23b16dca46e92f486b99860f465f3ff45be749ad925
+  - f5e073de4329080cb031a3312b90d80b496e3e00099c01ddba7d11a4c81be932
+  decision: unrelated
+  note: "06-19: different upstream camera system: dataset author OAK-D recordings, 1280x720 vs DroneDetectionThesis camera, 640x512"
+- sources:
+  - a587a903cd9b79bca3dd6183782af4e4f00442b90375060a46cb146901df59f5
+  - bfa0754d18c7c261d3e9583a4fa061f987ee37d86f9537173d72079d779b42a8
+  decision: unrelated
+  note: "07-09: different upstream camera system: DroneDetectionThesis camera, 640x512 vs dataset author OAK-D recordings, 1280x720"
+- sources:
+  - 53137cf1cbedaa16fe051dbc2b848cc0379e6b75fdaf275d4d5c544049662e99
+  - bfa0754d18c7c261d3e9583a4fa061f987ee37d86f9537173d72079d779b42a8
+  decision: unrelated
+  note: "07-10: different upstream camera system: DroneDetectionThesis camera, 640x512 vs dataset author OAK-D recordings, 1280x720"
+- sources:
+  - 9331c32679a4c6e9c5dbbad0a44afbc88763ab3e58692a5a895f3058b569eda0
+  - a587a903cd9b79bca3dd6183782af4e4f00442b90375060a46cb146901df59f5
+  decision: unrelated
+  note: "08-09: different upstream camera system: DroneDetectionThesis camera, 640x512 vs dataset author OAK-D recordings, 1280x720"
+- sources:
+  - 53137cf1cbedaa16fe051dbc2b848cc0379e6b75fdaf275d4d5c544049662e99
+  - 9331c32679a4c6e9c5dbbad0a44afbc88763ab3e58692a5a895f3058b569eda0
+  decision: unrelated
+  note: "08-10: different upstream camera system: DroneDetectionThesis camera, 640x512 vs dataset author OAK-D recordings, 1280x720"
+- sources:
+  - 9331c32679a4c6e9c5dbbad0a44afbc88763ab3e58692a5a895f3058b569eda0
+  - a91ae13080298be51e76931d53d7d7dab723a08d9f13297f9cdd7b2141da7e98
+  decision: related
+  note: "08-11: same log pile and tree tops at the frame bottom: one site"
+- sources:
+  - 8c967b05d0e6f6f3dc79825a276f2a142835214b90dee47cabb9cc51f91ea531
+  - 9331c32679a4c6e9c5dbbad0a44afbc88763ab3e58692a5a895f3058b569eda0
+  decision: unrelated
+  note: "08-15: different upstream camera system: DroneDetectionThesis camera, 640x512 vs dataset author OAK-D recordings, 1280x720"
+- sources:
+  - 53137cf1cbedaa16fe051dbc2b848cc0379e6b75fdaf275d4d5c544049662e99
+  - a587a903cd9b79bca3dd6183782af4e4f00442b90375060a46cb146901df59f5
+  decision: related
+  note: "09-10: same chimney, brick building and cloud field: one session"
+- sources:
+  - a587a903cd9b79bca3dd6183782af4e4f00442b90375060a46cb146901df59f5
+  - a91ae13080298be51e76931d53d7d7dab723a08d9f13297f9cdd7b2141da7e98
+  decision: unrelated
+  note: "09-11: different upstream camera system: dataset author OAK-D recordings, 1280x720 vs DroneDetectionThesis camera, 640x512"
+- sources:
+  - 7101faa4b55d463e35a0c9d44f7d37a1e5f1319a364aae6f6c27cb3ee42ca969
+  - a587a903cd9b79bca3dd6183782af4e4f00442b90375060a46cb146901df59f5
+  decision: unrelated
+  note: "09-12: different upstream camera system: dataset author OAK-D recordings, 1280x720 vs DroneDetectionThesis camera, 640x512"
+- sources:
+  - 43fb8f8241de36c6227b0c0db2eaf95a513c43036e77f95ba1d0e58d2a139311
+  - a587a903cd9b79bca3dd6183782af4e4f00442b90375060a46cb146901df59f5
+  decision: unrelated
+  note: "09-13: different upstream camera system: dataset author OAK-D recordings, 1280x720 vs DroneDetectionThesis camera, 640x512"
+- sources:
+  - 216faa00297f9108f623c4a8a9177c6b1a133da1252d94a3691d3255a5267338
+  - a587a903cd9b79bca3dd6183782af4e4f00442b90375060a46cb146901df59f5
+  decision: unrelated
+  note: "09-16: different upstream camera system: dataset author OAK-D recordings, 1280x720 vs DroneDetectionThesis camera, 640x512"
+- sources:
+  - 987ce264e35f49cfca2cf1f762e0d9048a9c79f6fc4405a9f4cfe99ece74c2ec
+  - a587a903cd9b79bca3dd6183782af4e4f00442b90375060a46cb146901df59f5
+  decision: unrelated
+  note: "09-17: different upstream camera system: dataset author OAK-D recordings, 1280x720 vs DroneDetectionThesis camera, 640x512"
+- sources:
+  - 75b5746e9f96d42c22f0a23b16dca46e92f486b99860f465f3ff45be749ad925
+  - a587a903cd9b79bca3dd6183782af4e4f00442b90375060a46cb146901df59f5
+  decision: unrelated
+  note: "09-19: different upstream camera system: dataset author OAK-D recordings, 1280x720 vs DroneDetectionThesis camera, 640x512"
+- sources:
+  - 53137cf1cbedaa16fe051dbc2b848cc0379e6b75fdaf275d4d5c544049662e99
+  - a91ae13080298be51e76931d53d7d7dab723a08d9f13297f9cdd7b2141da7e98
+  decision: unrelated
+  note: "10-11: different upstream camera system: dataset author OAK-D recordings, 1280x720 vs DroneDetectionThesis camera, 640x512"
+- sources:
+  - 53137cf1cbedaa16fe051dbc2b848cc0379e6b75fdaf275d4d5c544049662e99
+  - 7101faa4b55d463e35a0c9d44f7d37a1e5f1319a364aae6f6c27cb3ee42ca969
+  decision: unrelated
+  note: "10-12: different upstream camera system: dataset author OAK-D recordings, 1280x720 vs DroneDetectionThesis camera, 640x512"
+- sources:
+  - 43fb8f8241de36c6227b0c0db2eaf95a513c43036e77f95ba1d0e58d2a139311
+  - 53137cf1cbedaa16fe051dbc2b848cc0379e6b75fdaf275d4d5c544049662e99
+  decision: unrelated
+  note: "10-13: different upstream camera system: dataset author OAK-D recordings, 1280x720 vs DroneDetectionThesis camera, 640x512"
+- sources:
+  - 216faa00297f9108f623c4a8a9177c6b1a133da1252d94a3691d3255a5267338
+  - 53137cf1cbedaa16fe051dbc2b848cc0379e6b75fdaf275d4d5c544049662e99
+  decision: unrelated
+  note: "10-16: different upstream camera system: dataset author OAK-D recordings, 1280x720 vs DroneDetectionThesis camera, 640x512"
+- sources:
+  - 53137cf1cbedaa16fe051dbc2b848cc0379e6b75fdaf275d4d5c544049662e99
+  - 987ce264e35f49cfca2cf1f762e0d9048a9c79f6fc4405a9f4cfe99ece74c2ec
+  decision: unrelated
+  note: "10-17: different upstream camera system: dataset author OAK-D recordings, 1280x720 vs DroneDetectionThesis camera, 640x512"
+- sources:
+  - 53137cf1cbedaa16fe051dbc2b848cc0379e6b75fdaf275d4d5c544049662e99
+  - 75b5746e9f96d42c22f0a23b16dca46e92f486b99860f465f3ff45be749ad925
+  decision: unrelated
+  note: "10-19: different upstream camera system: dataset author OAK-D recordings, 1280x720 vs DroneDetectionThesis camera, 640x512"
+- sources:
+  - 8c967b05d0e6f6f3dc79825a276f2a142835214b90dee47cabb9cc51f91ea531
+  - a91ae13080298be51e76931d53d7d7dab723a08d9f13297f9cdd7b2141da7e98
+  decision: unrelated
+  note: "11-15: different upstream camera system: DroneDetectionThesis camera, 640x512 vs dataset author OAK-D recordings, 1280x720"
+- sources:
+  - 987ce264e35f49cfca2cf1f762e0d9048a9c79f6fc4405a9f4cfe99ece74c2ec
+  - f3a7b3dd925d30c797bd25b88b54f055a6a8623c6982975034f017d0f51a0095
+  decision: unrelated
+  note: "14-17: different upstream camera system: dataset author OAK-D recordings, 1280x720 vs DroneDetectionThesis camera, 640x512"
+- sources:
+  - 75b5746e9f96d42c22f0a23b16dca46e92f486b99860f465f3ff45be749ad925
+  - f3a7b3dd925d30c797bd25b88b54f055a6a8623c6982975034f017d0f51a0095
+  decision: unrelated
+  note: "14-19: different upstream camera system: dataset author OAK-D recordings, 1280x720 vs DroneDetectionThesis camera, 640x512"
+- sources:
+  - 8c967b05d0e6f6f3dc79825a276f2a142835214b90dee47cabb9cc51f91ea531
+  - 987ce264e35f49cfca2cf1f762e0d9048a9c79f6fc4405a9f4cfe99ece74c2ec
+  decision: unrelated
+  note: "15-17: different upstream camera system: dataset author OAK-D recordings, 1280x720 vs DroneDetectionThesis camera, 640x512"
+- sources:
+  - 75b5746e9f96d42c22f0a23b16dca46e92f486b99860f465f3ff45be749ad925
+  - 8c967b05d0e6f6f3dc79825a276f2a142835214b90dee47cabb9cc51f91ea531
+  decision: unrelated
+  note: "15-19: different upstream camera system: dataset author OAK-D recordings, 1280x720 vs DroneDetectionThesis camera, 640x512"
+- sources:
+  - 216faa00297f9108f623c4a8a9177c6b1a133da1252d94a3691d3255a5267338
+  - 5d501712057e799f6427ec48b77b696c589dda9599ece964375eb9688f2d67eb
+  decision: related
+  note: "16-18: same grass mounds, red and white poles and distant ridge: one site"
+- sources:
+  - 3b7f599f445b078e110b4f29445b12e157a97424e924831ab177d2732b81aec8
+  - 987ce264e35f49cfca2cf1f762e0d9048a9c79f6fc4405a9f4cfe99ece74c2ec
+  decision: unrelated
+  note: "17-20: different upstream camera system: DroneDetectionThesis camera, 640x512 vs dataset author OAK-D recordings, 1280x720"
+- sources:
+  - 3b7f599f445b078e110b4f29445b12e157a97424e924831ab177d2732b81aec8
+  - 75b5746e9f96d42c22f0a23b16dca46e92f486b99860f465f3ff45be749ad925
+  decision: unrelated
+  note: "19-20: different upstream camera system: DroneDetectionThesis camera, 640x512 vs dataset author OAK-D recordings, 1280x720"
+- sources:
+  - 6140eea20be9bf5ea137290c0205366b1ee8ebdc4d5890f996334a86cc178fc5
+  - 75b5746e9f96d42c22f0a23b16dca46e92f486b99860f465f3ff45be749ad925
+  decision: unrelated
+  note: "19-21: different upstream camera system: DroneDetectionThesis camera, 640x512 vs dataset author OAK-D recordings, 1280x720"
+- sources:
+  - 3b7f599f445b078e110b4f29445b12e157a97424e924831ab177d2732b81aec8
+  - 6140eea20be9bf5ea137290c0205366b1ee8ebdc4d5890f996334a86cc178fc5
+  decision: related
+  note: "20-21: same park: blue spruces, meadow with path, same overcast sky"
+- sources:
+  - 1806850bb2e2f0d33b775d04ea3d52d99ca78a190cda169fe1208e4df7015765
+  - 81b76678e265eb2c03dae10c3bb7f991848b3547dc16da256a5a95cec9fcfb78
+  decision: unrelated
+  note: "22-36: different upstream camera system: WetlandBirds handheld telephoto, no overlay vs WetlandBirds trail camera with ID overlay"
+- sources:
+  - 1806850bb2e2f0d33b775d04ea3d52d99ca78a190cda169fe1208e4df7015765
+  - e58ccc1e9b98c1b2adc0b3b84f8c91cc7a0c00f6ec7b5d45aee550694f7bbdc8
+  decision: unrelated
+  note: "24-36: different upstream camera system: WetlandBirds handheld telephoto, no overlay vs WetlandBirds trail camera with ID overlay"
+- sources:
+  - 2dc05385186718b699a1647bf57321ceedbbd5f693369bb5fef0f994bc69d64f
+  - c56cb398bfadf86227fcae0b1d4308dbb7df7b64ab69d80de21052e8be2798d0
+  decision: unrelated
+  note: "25-33: different upstream camera system: WetlandBirds handheld telephoto, no overlay vs WetlandBirds trail camera with ID overlay"
+- sources:
+  - 1806850bb2e2f0d33b775d04ea3d52d99ca78a190cda169fe1208e4df7015765
+  - 2dc05385186718b699a1647bf57321ceedbbd5f693369bb5fef0f994bc69d64f
+  decision: unrelated
+  note: "25-36: different upstream camera system: WetlandBirds handheld telephoto, no overlay vs WetlandBirds trail camera with ID overlay"
+- sources:
+  - 3dc01f647cb5a7a6e0497434bc9e8fc27d87ac27415b09b535d40ac4b5a4319e
+  - f6580872a09a9205740c8e78da66061062a309b54da23570942636892469a4a8
+  decision: unrelated
+  note: "27-32: different trail cameras and dates: UMH CARM06 2023-04-13 vs ESG1 2020-12-13"
+- sources:
+  - c56cb398bfadf86227fcae0b1d4308dbb7df7b64ab69d80de21052e8be2798d0
+  - fd89240c9e67e565774312bb7de4abacca499be34723c19231f4413b9d22f97c
+  decision: related
+  note: "30-33: trail camera UMH 4, same scene, 2020-06-02 12:26 and 13:22"
+- sources:
+  - c9899eecd2a50747db1c0e1e63a4abb52bf59a6505e7c53a88d2bdab78f43ab4
+  - fd89240c9e67e565774312bb7de4abacca499be34723c19231f4413b9d22f97c
+  decision: unrelated
+  note: "30-34: different trail cameras and dates: UMH 4 2020-06-02 vs UMH 6 2020-05-21"
+- sources:
+  - f8909d5bc74e454eae1de5354517a3396a7ee8cc28952cfc033940c42e1b1a78
+  - fd89240c9e67e565774312bb7de4abacca499be34723c19231f4413b9d22f97c
+  decision: related
+  note: "30-35: trail camera UMH 4, same scene, 2020-06-02 and 2020-06-04"
+- sources:
+  - 663f01656660a02820018024901535323bb6ababca6f4bf8c43844415d18536a
+  - f8909d5bc74e454eae1de5354517a3396a7ee8cc28952cfc033940c42e1b1a78
+  decision: unrelated
+  note: "31-35: different trail cameras and dates: ESG 23 2020-12-14 vs UMH 4 2020-06-04"
+- sources:
+  - 663f01656660a02820018024901535323bb6ababca6f4bf8c43844415d18536a
+  - a9cfce0ca114ad81041d2ea33d78de0a3b040c1a7f2d1dd53d232d1adaf44c9b
+  decision: unrelated
+  note: "31-37: different trail cameras and dates: ESG 23 2020-12-14 vs ESG 11 2021-02-16"
+- sources:
+  - 3dc01f647cb5a7a6e0497434bc9e8fc27d87ac27415b09b535d40ac4b5a4319e
+  - c9899eecd2a50747db1c0e1e63a4abb52bf59a6505e7c53a88d2bdab78f43ab4
+  decision: unrelated
+  note: "32-34: different trail cameras and dates: ESG1 2020-12-13 vs UMH 6 2020-05-21"
+- sources:
+  - 3dc01f647cb5a7a6e0497434bc9e8fc27d87ac27415b09b535d40ac4b5a4319e
+  - f8909d5bc74e454eae1de5354517a3396a7ee8cc28952cfc033940c42e1b1a78
+  decision: unrelated
+  note: "32-35: different trail cameras and dates: ESG1 2020-12-13 vs UMH 4 2020-06-04"
+- sources:
+  - 3dc01f647cb5a7a6e0497434bc9e8fc27d87ac27415b09b535d40ac4b5a4319e
+  - a9cfce0ca114ad81041d2ea33d78de0a3b040c1a7f2d1dd53d232d1adaf44c9b
+  decision: unrelated
+  note: "32-37: different trail cameras and dates: ESG1 2020-12-13 vs ESG 11 2021-02-16"
+- sources:
+  - c56cb398bfadf86227fcae0b1d4308dbb7df7b64ab69d80de21052e8be2798d0
+  - c9899eecd2a50747db1c0e1e63a4abb52bf59a6505e7c53a88d2bdab78f43ab4
+  decision: unrelated
+  note: "33-34: different trail cameras and dates: UMH 4 2020-06-02 vs UMH 6 2020-05-21"
+- sources:
+  - c56cb398bfadf86227fcae0b1d4308dbb7df7b64ab69d80de21052e8be2798d0
+  - f8909d5bc74e454eae1de5354517a3396a7ee8cc28952cfc033940c42e1b1a78
+  decision: related
+  note: "33-35: trail camera UMH 4, same scene, 2020-06-02 and 2020-06-04"
+- sources:
+  - a9cfce0ca114ad81041d2ea33d78de0a3b040c1a7f2d1dd53d232d1adaf44c9b
+  - c56cb398bfadf86227fcae0b1d4308dbb7df7b64ab69d80de21052e8be2798d0
+  decision: unrelated
+  note: "33-37: different trail cameras and dates: UMH 4 2020-06-02 vs ESG 11 2021-02-16"
+- sources:
+  - c9899eecd2a50747db1c0e1e63a4abb52bf59a6505e7c53a88d2bdab78f43ab4
+  - f8909d5bc74e454eae1de5354517a3396a7ee8cc28952cfc033940c42e1b1a78
+  decision: unrelated
+  note: "34-35: different trail cameras and dates: UMH 6 2020-05-21 vs UMH 4 2020-06-04"
+- sources:
+  - 1806850bb2e2f0d33b775d04ea3d52d99ca78a190cda169fe1208e4df7015765
+  - c9899eecd2a50747db1c0e1e63a4abb52bf59a6505e7c53a88d2bdab78f43ab4
+  decision: unrelated
+  note: "34-36: different trail cameras and dates: UMH 6 2020-05-21 vs TRAILCAM01 2020-06-03"
+- sources:
+  - 1806850bb2e2f0d33b775d04ea3d52d99ca78a190cda169fe1208e4df7015765
+  - f8909d5bc74e454eae1de5354517a3396a7ee8cc28952cfc033940c42e1b1a78
+  decision: unrelated
+  note: "35-36: different trail cameras and dates: UMH 4 2020-06-04 vs TRAILCAM01 2020-06-03"
+- sources:
+  - a9cfce0ca114ad81041d2ea33d78de0a3b040c1a7f2d1dd53d232d1adaf44c9b
+  - f8909d5bc74e454eae1de5354517a3396a7ee8cc28952cfc033940c42e1b1a78
+  decision: unrelated
+  note: "35-37: different trail cameras and dates: UMH 4 2020-06-04 vs ESG 11 2021-02-16"

@@ -1,0 +1,429 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ss-track:contract:record:corpus-pool:1.0.0",
+  "title": "Corpus pool",
+  "description": "The prepared selection, its groups, unresolved metadata and per-collection accounting.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind",
+    "schema_version",
+    "manifest_sha256",
+    "corpus_id",
+    "run_id",
+    "declaration_sha256",
+    "scenario_rights",
+    "videos",
+    "groups",
+    "unresolved",
+    "accounting"
+  ],
+  "properties": {
+    "kind": {
+      "type": "string",
+      "const": "ss-track.corpus-pool",
+      "description": "Record kind."
+    },
+    "schema_version": {
+      "type": "integer",
+      "const": 1,
+      "minimum": 0,
+      "x-unit": "1",
+      "description": "Record major."
+    },
+    "manifest_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Seal over every other field."
+    },
+    "corpus_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "Corpus version this pool prepares."
+    },
+    "run_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "Discovery-run id that stores this pool."
+    },
+    "declaration_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "SHA-256 of the canonical pool declaration."
+    },
+    "scenario_rights": {
+      "type": "object",
+      "description": "Rights requested by the corpus scenario.",
+      "properties": {
+        "sharing": {
+          "type": "string",
+          "description": "Permitted disclosure scope.",
+          "enum": [
+            "restricted",
+            "public"
+          ]
+        },
+        "max_sensitivity": {
+          "type": "string",
+          "description": "Declared sensitivity.",
+          "enum": [
+            "low",
+            "moderate",
+            "high"
+          ]
+        }
+      },
+      "required": [
+        "sharing",
+        "max_sensitivity"
+      ],
+      "additionalProperties": false
+    },
+    "videos": {
+      "type": "array",
+      "description": "Every selected video and what the pool did with it.",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "description": "One selected video.",
+        "additionalProperties": false,
+        "required": [
+          "run_id",
+          "path",
+          "provider",
+          "collection_id",
+          "provider_version",
+          "content_sha256",
+          "split",
+          "upstream_split",
+          "source_reference",
+          "annotation_reference",
+          "attribution",
+          "terms",
+          "terms_reference",
+          "license",
+          "license_reference",
+          "metadata_sha256",
+          "association",
+          "status",
+          "group_id"
+        ],
+        "properties": {
+          "run_id": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+            "description": "Acquisition run id."
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Upstream video path."
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "huggingface",
+              "zenodo"
+            ],
+            "description": "Provider."
+          },
+          "collection_id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Provider collection identifier."
+          },
+          "provider_version": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Pinned provider version or commit."
+          },
+          "content_sha256": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+            "description": "SHA-256 of the acquired video bytes."
+          },
+          "split": {
+            "type": "string",
+            "enum": [
+              "calibration",
+              "development"
+            ],
+            "description": "Corpus split assigned by the operator."
+          },
+          "upstream_split": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "description": "Upstream split; null when the collection states none."
+          },
+          "source_reference": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "description": "Evidenced source reference; null when missing or conflicting."
+          },
+          "annotation_reference": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "description": "Evidenced annotation reference; null when missing or conflicting."
+          },
+          "attribution": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Attribution stated for this copy."
+          },
+          "terms": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Use and retention terms stated for this copy."
+          },
+          "terms_reference": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Evidence for the terms of this copy."
+          },
+          "license": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "description": "License code copied from metadata; null when none is evidenced."
+          },
+          "license_reference": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "description": "Metadata file that stated the license; null when none did."
+          },
+          "metadata_sha256": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "SHA-256 of the metadata file that stated these claims."
+          },
+          "association": {
+            "type": "string",
+            "enum": [
+              "conflict",
+              "matched",
+              "missing"
+            ],
+            "description": "Whether metadata named this video, named nothing, or disagreed."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "association_conflict",
+              "included",
+              "withheld_locked",
+              "withheld_related"
+            ],
+            "description": "Whether this video is in the corpus."
+          },
+          "group_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+            "description": "Group of an included video; null when the video is withheld."
+          }
+        }
+      }
+    },
+    "groups": {
+      "type": "array",
+      "description": "Groups of included recordings.",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "description": "Included recordings that share one operator split.",
+        "additionalProperties": false,
+        "required": [
+          "group_id",
+          "split",
+          "streams"
+        ],
+        "properties": {
+          "group_id": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+            "description": "Group identifier."
+          },
+          "split": {
+            "type": "string",
+            "enum": [
+              "calibration",
+              "development"
+            ],
+            "description": "Operator split shared by the group."
+          },
+          "streams": {
+            "type": "array",
+            "description": "One stream for each distinct file in the group.",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "description": "One imported recording.",
+              "additionalProperties": false,
+              "required": [
+                "stream_id",
+                "encounter_id",
+                "source_sha256",
+                "members"
+              ],
+              "properties": {
+                "stream_id": {
+                  "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                  "description": "Stream identifier."
+                },
+                "encounter_id": {
+                  "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                  "description": "Encounter identifier."
+                },
+                "source_sha256": {
+                  "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+                  "description": "Imported source bytes."
+                },
+                "members": {
+                  "type": "array",
+                  "description": "Collection copies that are this one file.",
+                  "minItems": 1,
+                  "items": {
+                    "type": "object",
+                    "description": "One copy.",
+                    "additionalProperties": false,
+                    "required": [
+                      "run_id",
+                      "path"
+                    ],
+                    "properties": {
+                      "run_id": {
+                        "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                        "description": "Acquisition run id."
+                      },
+                      "path": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Upstream video path."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "unresolved": {
+      "type": "array",
+      "description": "Metadata that matched nothing and claims that disagreed.",
+      "items": {
+        "type": "object",
+        "description": "One unmatched file or line, or one pair of disagreeing claims.",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "path",
+          "detail"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "conflicting_claim",
+              "unmatched_metadata",
+              "unmatched_source_link"
+            ],
+            "description": "Why this evidence was not applied."
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Metadata path, or the video path of a conflicting claim."
+          },
+          "detail": {
+            "type": "string",
+            "minLength": 1,
+            "description": "What was unmatched or which claims disagreed."
+          }
+        }
+      }
+    },
+    "accounting": {
+      "type": "array",
+      "description": "Per-collection counts of the selection.",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "description": "Counts for one selected collection.",
+        "additionalProperties": false,
+        "required": [
+          "provider",
+          "collection_id",
+          "included",
+          "withheld_locked",
+          "association_conflict",
+          "withheld_related",
+          "missing_metadata"
+        ],
+        "properties": {
+          "provider": {
+            "type": "string",
+            "enum": [
+              "huggingface",
+              "zenodo"
+            ],
+            "description": "Provider."
+          },
+          "collection_id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Provider collection identifier."
+          },
+          "included": {
+            "type": "integer",
+            "minimum": 0,
+            "x-unit": "1",
+            "description": "Selected videos placed in the corpus."
+          },
+          "withheld_locked": {
+            "type": "integer",
+            "minimum": 0,
+            "x-unit": "1",
+            "description": "Selected videos withheld because an upstream split is test or locked."
+          },
+          "association_conflict": {
+            "type": "integer",
+            "minimum": 0,
+            "x-unit": "1",
+            "description": "Selected videos withheld because evidenced claims disagree."
+          },
+          "withheld_related": {
+            "type": "integer",
+            "minimum": 0,
+            "x-unit": "1",
+            "description": "Selected videos withheld because a related video was withheld."
+          },
+          "missing_metadata": {
+            "type": "integer",
+            "minimum": 0,
+            "x-unit": "1",
+            "description": "Selected videos no metadata file named."
+          }
+        }
+      }
+    }
+  },
+  "x-rules": {
+    "join": "Metadata joins a video only when a file names its path, a sibling stem matches one video, or a source link names the path or that video's source reference.",
+    "splits": "Included members of one group share one operator split. An upstream test or locked split is withheld with its related videos.",
+    "seal": "manifest_sha256 is SHA-256 of the record excluding that key, serialized as sorted-key JSON with ASCII escapes and no whitespace."
+  }
+}

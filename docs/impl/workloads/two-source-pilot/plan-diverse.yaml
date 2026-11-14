@@ -1,0 +1,41 @@
+# Model-assisted run of the two-source pilot (declaration/discovery-plan 1.1.0).
+# Host-specific: device and batch_size. Fixed across hosts and runs: pool, audit, frame_stride,
+# tiles, weights and selection. See README.md.
+schema_version: 1
+run_id: pilot-diverse-grouped-20261113
+corpus_id: pilot-two-source-grouped-20261113
+source_approval:
+  owner: vola
+  reference: approval-2026-11-13
+pool: {window_frames: 16}
+audit: {seed: 7, sample_size: 8}
+embedding:
+  package: {name: ss-perception, commit: 75debcfed31a3c148d2f194a8ae2345e4b7508f1}
+  frame_stride: 4
+  extractors:
+  - kind: openclip
+    extractor_id: clip-b16-tiles
+    model: ViT-B-16
+    pretrained: openai
+    device: cuda
+    batch_size: 64
+    dimensions: 512
+    tiles: {columns: 4, rows: 2}
+    weights:
+    - name: timm/vit_base_patch16_clip_224.openai
+      revision: 977e3dd0ec55ab8da155f2fbeb6b5f54948b6e3d
+      sha256: 4b8699299b1e8997753c64b052ba32031449d5d853f55a039148560ee02b820f
+      size_bytes: 598516980
+  - kind: dino
+    extractor_id: dino-b14-tiles
+    model: dinov3_vitb14
+    device: cuda
+    batch_size: 64
+    dimensions: 768
+    tiles: {columns: 4, rows: 2}
+    weights:
+    - name: "facebookresearch_dinov2_main:dinov2_vitb14_reg4_pretrain.pth"
+      revision: "tree-sha256:71fce3dad7f39787df390e06fdc478bc92895441e7886adefce9f164f3f46315"
+      sha256: 73182a088cf94833c94b1666d1c99e02fe87e2007bff57b564fb6206e25dba71
+      size_bytes: 346393545
+selection: {method: ssl-diverse, budget: 100, score_ids: [clip-b16-tiles.deviation, motion]}

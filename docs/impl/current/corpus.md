@@ -31,10 +31,202 @@ tasks, their decisions and their acceptance evidence:
 [record read gate](../records/0016-data-contracts-record-read-gate.md) and the
 [corpus provenance group audit](../records/0049-corpus-provenance-corpus-provenance-audit.md).
 
-The available corpus path imports declared sources and stages reviewed selections; it does not yet
-form a large corpus from sibling video indexes or self-supervised selection. The specification and
-plan define that future work, including source permissions and independent review. See the
+The available corpus path imports declared sources and stages reviewed selections. `ss-track discover`
+proposes candidate windows of staged frames from pinned sibling embeddings and ss-video hints, scores
+them and ranks pool windows for review under a seeded uniform baseline or a model-assisted method.
+A reviewer then decides the windows a run offers, and a frozen corpus version is built, staged and
+sealed from those decisions. Source permissions and the independent review of real footage remain
+human work in the plan. See the
 [corpus formation planning record](../records/0038-adhoc-self-supervised-corpus-plan.md).
+The selected future sources are Visual WetlandBirds v4 and the Hugging Face Drone Detection Dataset;
+source acquisition, the combined pool and blinded review of the common audit sample are available.
+The
+[source architecture record](../records/0057-adhoc-corpus-source-architecture-plan.md)
+states their intended boundaries and routes the outstanding work. Existing import, build, stage and
+review interfaces remain authoritative; upstream annotations and predictions are not audit decisions.
+[Sibling integration](corpus/sibling-integration.md) records the pinned ss-video and ss-fusion
+interfaces, their frame mapping, rights and reproducibility, and the integration plan.
+[Discovery records](corpus/discovery-records.md) state the candidate inventory, discovery run and
+feature-rows contracts that record why a window of staged frames became a candidate, and their
+validators. [Discovery runs](corpus/discovery-runs.md) states the commands, the plan and hint
+declarations, the embedding worker and its guards against sibling defects, tiled coverage, the
+scores and the selection methods. [Leakage review](corpus/leakage-review.md) states
+`discover links`: likely related recordings across groups, reviewer decisions, and the refusal of a
+version that keeps related recordings apart. [Review and freeze](corpus/review-and-freeze.md) states
+`discover queue`, `discover blind`, `discover review-audit`, `discover unblind`, `discover
+review-pass`, `discover export` and `corpus freeze`: the windows review offers, the blinded audit
+sample and its interactive review, the interactive selection pass, the reviewer's decisions, the
+declaration they make and the sealed freeze record.
+
+## Source inventory
+
+`ss-track discover inventory --file inventory.yaml --out inventory.json` validates and normalizes
+an operator's `declaration/source-inventory` 1.0.0. It records named Zenodo and Hugging Face
+collections, each video path and its source, annotation, split, attribution, terms and terms-evidence
+references, status and exclusion reason. Use null for unknown facts. The
+[contract example](../../../tests/schema/examples/declaration-source-inventory.json) shows both
+providers; its Hugging Face commit and video paths are fixtures, not a real source selection.
+
+Zenodo needs its numeric record identifier and numbered version such as `v4`; archive path and MD5
+may be null and missing archive facts are counted. A Hugging Face dataset needs `owner/repository`
+and a full lowercase 40-character commit. The reader checks revision syntax, not whether a remote
+commit exists. Paths are normalized relative POSIX paths and unique within a collection; each
+provider and collection pair is unique. `excluded` needs a reason and other statuses cannot have
+one. Status is not permission, and missing source evidence stays unknown. The command reads only
+its local declaration: it does not discover remote files, validate rights, acquire media or approve
+processing. [Source authorization](#source-authorization) is the owner's separate approval.
+
+The output is canonical ASCII JSON, sorted by collection and video, with a SHA-256 in the command
+result. Repeating the same input reports `unchanged`; different bytes at an existing output path
+are refused. The result counts statuses and missing facts; `source_inventory.video_count` counts
+all listed videos, including excluded and unknown entries. References cannot contain URL user information,
+queries or fragments, and common credential patterns are refused without echoing them. This is not
+a general secret scanner: operators must not put credentials in any inventory field. Source paths
+and metadata can be sensitive even when free of credentials; handle the output under the source
+terms. The implementation is `corpus/sources/inventory.py`; tests are in
+`tests/corpus/sources/test_inventory.py`. The
+[task record](../records/0058-self-supervised-corpus-corpus-source-inventory.md) holds acceptance
+and the fixture run evidence.
+
+## Source acquisition
+
+`ss-track discover acquire` reads an inventory, one named collection and an explicit video selection.
+The operator must assert `--authorized`, and every selected video must be a candidate with attribution,
+terms and a terms reference. This assertion records the operator's selection; it does not establish
+rights or replace source authorization or `ss-track import`.
+
+```bash
+ss-track discover acquire --inventory inventory.yaml --provider huggingface \
+  --collection owner/dataset --video videos/example.mp4 --metadata metadata/example.yaml \
+  --run-id acquisition-1 --download-budget 500000000 --extraction-budget 500000000 --authorized
+```
+
+For Hugging Face, the inventory must pin a full commit. The command enumerates the paginated tree,
+checks paths and file metadata, and fetches only the selected videos and optional `--metadata` files.
+Git blob or LFS SHA-256 identifies upstream bytes; local SHA-256 identifies each saved file. Metadata
+files are stored and hash-checked. [Combined pool](#combined-pool) joins them to individual videos.
+The optional `HF_TOKEN`
+environment variable is sent only to Hugging Face and is removed on cross-host redirects.
+
+For Zenodo the inventory pins a record, version, archive path and published MD5. The full archive
+is downloaded and verified before safe selective extraction. If the record includes `splits.json`,
+the command verifies and joins it by unique video stem, refusing conflicts. Any declared video absent
+from provider metadata is refused; newly found videos enter the inventory with unknown facts. Missing
+rights and provenance are counted in the command result rather than inferred from collection terms.
+When the legacy Zenodo API omits the version label, acquisition checks the same record's native API
+version index and refuses a mismatched or unavailable index. An explicit version label remains
+authoritative; archive identity, size and checksum are still checked independently. The
+[pilot record](../records/0067-self-supervised-corpus-corpus-two-source-pilot.md) holds the
+real-provider evidence.
+
+`--download-budget` bounds selected file bytes, or the complete Zenodo archive plus split file;
+`--extraction-budget` bounds selected uncompressed video and metadata bytes. Provider API pages are
+independently bounded. Scratch, cache, media, the normalized input and output inventories, and the
+sealed `record/source-acquisition` 1.3.0 are under `$DATA_DIR/self-supervised-corpus/<run-id>/`.
+A retry verifies and reuses identical files; conflicting bytes or a different request for the same
+run are refused, including after an interruption. A retry clears scratch left by a killed run while
+holding its lock. Results are
+fixture-tested and do not by themselves approve processing, import media, or prove source rights.
+The [task record](../records/0059-self-supervised-corpus-corpus-source-acquisition.md) gives the fixture
+and acceptance evidence.
+
+## Combined pool
+
+`ss-track discover pool --declaration pool.yaml --run-id pool-combined` prepares one corpus from
+acquired collections. The declaration's `run_id` matches the command and differs from every
+acquisition run it names. The command writes recording and corpus declarations under
+`$DATA_DIR/self-supervised-corpus/<run-id>/` and seals `record/corpus-pool` 1.0.0 as `pool.json`.
+The same declaration reports `unchanged`. A different declaration for that run is
+`CORPUS_CONFLICT` and leaves the published files in place.
+
+Each selected video is a candidate in its acquisition, with attribution, terms and a terms
+reference. The operator's rights and sensitivity are copied onto the recording. A license code
+stays on `origin` and leaves those fields unchanged. YAML, CSV and source-link files join a video
+by an exact path, a unique sibling stem, or a source line that names the path or that video's
+source reference. A query, fragment, credential or non-ASCII value stays unresolved and is omitted
+from the record. Published Drone Detection CSV names such as `no_drone/birds_only/rgb/1` do not
+equal paths under `videos/no_drone_footage/`. A collection's optional `metadata_names` rules, from
+`declaration/corpus-pool` 1.1.0, state the mapping for one acquired CSV file each: a row name that
+starts with `name_prefix` has it replaced by `path_prefix` before the exact comparison, so
+`{file: metadata/videos_no_drone.csv, name_prefix: no_drone/, path_prefix: videos/no_drone_footage/}`
+joins that row to `videos/no_drone_footage/birds_only/rgb/1.mp4`. A name without the prefix keeps
+the exact rule, and a row that still names no video stays unresolved. A rule must name an acquired
+CSV file once, and its prefixes are directory prefixes ending in `/` with no `..`; anything else is
+`MANIFEST_INVALID`. The rule is the operator's statement: the pool record's `declaration_sha256`
+pins it, and the joined license names the CSV file as its reference. Blank CSV rows name nothing
+and are skipped.
+Disagreeing claims mark that video `association_conflict` and exclude it. An upstream split of
+`test`, `test_set` or `locked` is `withheld_locked`. Footage that shares those bytes or that source
+is `withheld_related`. The operator's `development` or `calibration` value is the corpus split.
+Included copies of the same bytes become one recording whose `origin` lists each collection.
+Different rights on those bytes are `RIGHTS_CONFLICT`. Related recordings that disagree on the
+operator split are `SPLIT_LEAKAGE`. A selection with nothing left to include is refused.
+
+Import each written recording, then build, stage and verify the corpus declaration with the
+existing commands. Link review uses its own run id. `account_corpus` counts later streams and cases
+once per collection named on the source origin, and once in the unique totals. A source with no
+origin counts as provider and collection `unknown`. Selection evaluation does not use that name:
+an unnamed collection stays unbound
+([evaluating selection](corpus/discovery-runs.md#evaluating-selection)). The
+[task record](../records/0062-self-supervised-corpus-corpus-combined-pool.md) has the fixture
+evidence.
+
+## Source authorization
+
+The owner, vola, approved the self-supervised corpus sources under reference
+`approval-2026-11-13`; every real-source discovery plan names it as `source_approval`.
+
+| Item | Approved |
+| --- | --- |
+| Sources | Visual WetlandBirds v4, Zenodo 15696105, CC BY 4.0. Drone Detection Dataset, `wayneballard/drone-detection-dataset` at a pinned commit, MIT card with per-video upstream terms: `cc-1.0` (DroneDetectionThesis, CC0-1.0), `mit` (Anti-UAV, MIT) and `personal` (the dataset author's recordings, under the MIT card) |
+| Use | Local internal benchmarking, model processing and derived frames; sharing restricted; no public redistribution |
+| Retention | No dated end |
+| Scope | At most 1000 videos or 60 minutes, 5000 review windows and 300 review groups |
+| Resources | CPU and GPU; 50 GB total transfer, which needs the owner's approval to raise; 300 GB additional storage |
+| Models | ss-perception at ss-fusion `75debcfed31a3c148d2f194a8ae2345e4b7508f1` (`v0.2.1`, MIT); CLIP ViT-B/16 `openai` snapshot `977e3dd0ec55ab8da155f2fbeb6b5f54948b6e3d`; DINOv2 ViT-B/14 reg4 under dinov2 commit `7764ea0f912e53c92e82eb78a2a1631e92725fc8`. Corpus selection and research only; OpenAI's model card excludes deployed use of CLIP |
+| Targets and negatives | Small and distant birds, wetland species, insects, aircraft, empty sky, moving branches of trees and bushes, and the sky-landscape boundary |
+| Review | One reviewer, vola, for link review, audit and selection pass, within 8 hours. The audit is not independent of the operator, so a review states `independence: not_declared` |
+
+Attribution: credit the Visual WetlandBirds Dataset authors and the Drone Detection Dataset
+contributors and upstream authors, and state that frames were re-decoded and windowed. A new
+source, a public release, a larger budget or another model needs a new approval. The
+[authorization record](../records/0068-self-supervised-corpus-authorize-video-corpus-sources.md)
+holds the evidence.
+
+## Two-source pilot recipe
+
+[`docs/impl/workloads/two-source-pilot/`](../workloads/two-source-pilot/README.md) is the
+media-free recipe of the self-supervised corpus pilot: the source inventory, the pool with its CSV
+name rules, the paired discovery plans, the frozen review protocol and the commands and byte
+budgets that create the dataset on a new data root, with the identities each host must reproduce.
+It holds no media. The [pilot record](../records/0067-self-supervised-corpus-corpus-two-source-pilot.md)
+states what was run and what remains unresolved.
+
+### Reviewed pilot
+
+The owner reviewed the blinded audit `pilot-audit-grouped-20261113` (104 windows, 23 minutes,
+`blinding: declared`, `independence: not_declared` as the protocol predeclared) and a complete
+selection pass of each run's 100 selected windows (9 and 8 minutes). The audit observed a target
+in 85 windows and none in 15, and excluded 4 confusers. Both runs froze 100 included windows as 88
+streams and 1,593 frames, `pilot-frozen-diverse-20261113` and `pilot-frozen-uniform-20261113`,
+whose link reviews are clear. `discover evaluate` reads the same result from the reviews and the
+freeze records:
+
+| Measure | `ssl-diverse` | `uniform` |
+| --- | --- | --- |
+| Audit-weighted recall, 95% interval | 0.084 (0.011 to 0.157) | 0.173 (0.060 to 0.287) |
+| Drone dataset recall | 0.105 | 0.298 |
+| WetlandBirds recall | 0.072 | 0.103 |
+| Pass: target present, absent, confuser | 85, 5, 10 | 53, 43, 4 |
+| Selected streams, groups | 19, 12 | 34, 11 |
+
+The paired gain is -0.089 (-0.217 to 0.039): a valid negative result whose interval includes zero,
+so the pilot shows no advantage of model-assisted selection over uniform selection at a budget of
+100. The diverse selection holds more targets per reviewed window but covers about half as many
+streams. No pass disagrees with the audit. Observations are not labels and none of this is a
+field-prevalence claim. The reviews are in the recipe's `reviews/`, and the
+[review record](../records/0078-self-supervised-corpus-review-video-corpus-sample.md) holds the
+commands, identities and acceptance evidence.
 
 ## Selected development workload
 
@@ -80,6 +272,15 @@ ss-track corpus verify --corpus pilot-v1
 ss-track corpus hashes --corpus pilot-v1 --run-id host-a
 ss-track corpus compare --left a/staged-hashes.json --right b/staged-hashes.json --run-id compare-1
 ss-track corpus preview --corpus pilot-v1 --stream enc01-cam0 --frame 0 --out sheet.png
+ss-track discover pool --declaration pool.yaml --run-id pool-combined
+ss-track discover run --plan plan.yaml
+ss-track discover verify --run-id discovery-1
+ss-track discover links --corpus pilot-v1 --run-id links-1 --features discovery-1 --decisions decisions.yaml
+ss-track discover queue --run-id discovery-1 --out review.yaml
+ss-track discover export --review review.yaml --corpus-id frozen-v1 --out frozen-v1.yaml
+ss-track corpus freeze --corpus frozen-v1 --review review.yaml --links links-frozen-v1
+ss-track data clean --kind staged-frames --corpus pilot-v0
+ss-track data clean --kind staged-frames --corpus pilot-v0 --apply
 ```
 
 Each command logs one JSON record and exits 0. A refusal exits 1 and has this form:
@@ -100,10 +301,12 @@ traceback. Import and stage remove their scratch before that record is written:
 
 ## Declarations
 
-Each file is checked in full against its contract on read, `declaration/recording` 2.3.0 and
-`declaration/corpus` 3.2.0, before any reader takes a value from it. Both reject unknown fields,
-repeated keys, non-finite numbers and any other schema version, so a misspelled key cannot silently
-drop a fact. A recording is schema 2 and a corpus is schema 3. There are no defaults for rights,
+Each file is checked in full against its contract on read, `declaration/recording` 2.4.0 and
+`declaration/corpus` 3.2.0, before any reader takes a value from it. Recording 2.4.0 adds optional
+`origin`. An import omits it when the declaration has none, and an amendment or redecode that drops
+a recorded origin is refused. Both contracts reject unknown fields, repeated keys, non-finite
+numbers and any other schema version, so a misspelled key cannot silently drop a fact. A recording
+is schema 2 and a corpus is schema 3. There are no defaults for rights,
 sensitivity, split or scenario rights: a declaration without them is refused, and `basis` has no
 `unknown` value. A refusal names the contract version and the first violation by JSON pointer, a wrong
 `schema_version` before anything else, and its details list up to 20 violations, as
@@ -214,6 +417,48 @@ directory keeps its own copy of the file. `tests/corpus/sources/test_dual_camera
 the import, the encounter, the repeated import, the group and lineage refusals. The
 [task record](../records/0041-corpus-provenance-dual-camera-file-identity.md) holds the acceptance.
 
+## Cleaning the data root
+
+`ss-track data clean` reclaims space taken by reproducible artifacts. It removes only the kinds and
+targets the operator names, and plans by default: without `--apply` it reports every entry it would
+remove, with its bytes, and removes nothing. It never removes a sealed record, an imported source
+copy, a declaration or a review decision, so hashes, comparisons and decisions stay readable.
+
+| Kind | Target | Removes | Restore |
+| --- | --- | --- | --- |
+| `staged-frames` | `--corpus <id>` | The version's frame bundles; its `manifest.json`, `frame-set.json` and any freeze record stay | `ss-track corpus stage --corpus <id>` stages the same frame set again |
+| `acquisition-cache` | `--run-id <id>` | An acquisition's `cache/`, such as the downloaded archive; `acquisition.json`, the inventories and the extracted media stay | Repeat the run's `discover acquire` command, which transfers the archive again |
+| `scratch` | none | Every `.incoming-*` entry and every acquisition `scratch/` entry a killed command left | Nothing to restore |
+| `tool-caches` | none | `cache/ruff`, `cache/mypy`, `cache/pytest` and `cache/complexipy`; sibling environments and model caches stay | The next make target recreates them |
+
+```bash
+ss-track data clean --kind staged-frames --corpus pilot-v0 --corpus pilot-v1
+ss-track data clean --kind acquisition-cache --run-id acquisition-1 --apply
+ss-track data clean --kind scratch --apply
+```
+
+Each kind holds its writer's lock while it plans and removes: staged frames take the version's
+`.staging.lock` (`STAGING_IN_PROGRESS` while a stage runs), an acquisition cache its
+`.acquisition.lock`, and `scratch` every lock in the data root at once, so it runs on its own and
+refuses `DATA_ROOT_BUSY` while any command holds one. A target is checked before its lock is
+taken: an unbuilt version is `CORPUS_NOT_BUILT`, a version without a sealed frame set is
+`FRAME_SET_NOT_STAGED`, and a run without a sealed acquisition is `MANIFEST_INVALID`. A missing
+target option, a stray one or an unknown kind is `MANIFEST_INVALID`. An entry that is a link or lies
+outside the data root is refused. Read-only bundle directories are made writable by their owner
+just before removal. After frames are released, `corpus verify` and `discover verify` of runs
+over that version refuse until it is staged again. The result is `planned` or `cleaned` with a
+`clean` object in `result/command` 1.26.0: each kind, target, restore path, bytes and entry paths
+relative to the data root.
+
+The command does not decide what is obsolete, delete a whole data root or touch another host. A
+second data root made only to check reproduction is the operator's to remove once its comparison
+record is kept; cleaning its frames and cache first leaves only small records.
+`corpus/storage/clean.py` plans and removes; `corpus/storage/clean_kinds.py` registers the kinds.
+A task that first writes another disposable artifact registers its kind there, with its restore
+path and a test, in the same change. `tests/corpus/storage/test_clean.py` covers planning, release
+and restaging to the same frame set, held locks, scratch, caches and refusals. The
+[task record](../records/0074-adhoc-data-clean-command.md) holds the acceptance evidence.
+
 ## Stored evidence
 
 | Path | Content |
@@ -225,6 +470,8 @@ the import, the encounter, the repeated import, the group and lineage refusals. 
 | `$DATA_DIR/import/.import.lock` | Empty lock that imports share while their scratch exists |
 | `$DATA_DIR/corpus/<corpus-id>/manifest.json` | Sealed corpus manifest |
 | `$DATA_DIR/corpus/<corpus-id>/frame-set.json` | Sealed record of every staged bundle |
+| `$DATA_DIR/corpus/<corpus-id>/freeze.json` | Sealed [freeze record](corpus/review-and-freeze.md#record) of a version frozen from review |
+| `$DATA_DIR/self-supervised-corpus/<audit-id>/blinding.json` | Sealed private mapping of a [blinded audit](corpus/review-and-freeze.md#blinded-audit). The reviewer packet does not include it |
 | `$DATA_DIR/corpus/<corpus-id>/frames/<stream-id>/` | One read-only frame bundle |
 | `$DATA_DIR/corpus/<corpus-id>/frames/<case-id>/` | One read-only bundle of a generated case |
 | `$DATA_DIR/run/<run-id>/staged-hashes.json` | Sealed record of what one host staged |
@@ -271,7 +518,9 @@ hash.
 | Stream | One sensor's frames of one encounter, from one source and frame window. `stream_id` identifies it across the corpus, in its bundle path and in every `FrameRef` |
 
 Grouping is the operator's judgment. Only [shared frames](#shared-frames) can show that two groups
-are in fact related. `src/ss_track/corpus/versions/grouping.py` owns the rules that `corpus build` applies:
+are in fact related; a [leakage review](corpus/leakage-review.md) shows a reviewer the likely related
+ones and refuses a version that keeps recordings the reviewer decided are related in two groups.
+`src/ss_track/corpus/versions/grouping.py` owns the rules that `corpus build` applies:
 
 - A split is stated once, on a group, so every encounter and stream inherits it.
 - An identifier declared in two splits is `SPLIT_LEAKAGE`. Repeated in one split it is
@@ -567,6 +816,9 @@ same-group predecessor that cannot be read is not named, because it is not a nea
 question. A retired major that still carries a window is fingerprinted through its comparison
 projection; corpus major 2 is one.
 [Shared frames](#shared-frames) still refuses an exact remux.
+
+A [leakage review](corpus/leakage-review.md) applies the same fingerprint within one version and
+asks a reviewer to decide each pair it flags.
 
 What this cannot see:
 
@@ -1540,19 +1792,19 @@ accepted task, its decisions and its evidence.
 | `TIMESTAMP_CLAIM_UNSUPPORTED` | Capture-clock evidence was declared without complete PTS |
 | `SELECTION_OUT_OF_RANGE` | A selection runs past the end of its sequence |
 | `SOURCE_NOT_IMPORTED` | A corpus names a source with no import record |
-| `SOURCE_RECORD_CHANGED` | A source's record differs from the one its corpus pinned, at stage or verify |
-| `SPLIT_LEAKAGE` | A group, encounter, stream or case name is declared in two splits, two groups share a source, a file, or a run of identical frames, or a source, file or group sits elsewhere than a declared predecessor placed it |
+| `SOURCE_RECORD_CHANGED` | A source's record differs from the one its corpus pinned, at stage or verify, or from the one a discovery run read, at review export or freeze |
+| `SPLIT_LEAKAGE` | A group, encounter, stream or case name is declared in two splits, two groups share a source, a file, or a run of identical frames, or a source, file or group sits elsewhere than a declared predecessor placed it; a reviewer decided two recordings in different groups related, or a frozen recording sits in another split than a related one a superseded version held |
 | `STREAM_OVERLAP` | Two streams use the same frames of one source, or two streams of one group share a run of identical frames |
 | `RIGHTS_CONFLICT` | Scenario sharing/sensitivity conflicts or a generated case lacks derivation permission |
 | `RETENTION_EXPIRED` | The evaluation day is after a source's inclusive retention deadline |
 | `CASE_INVALID` | A generated case does not fit its parent, changes no frame of it, does not match its parent's frame shape, or is named where preview expects the parent stream |
 | `TRANSFORM_REVISION_MISMATCH` | A stored case needs a transform revision this code does not provide |
 | `RECORD_TAMPERED` | A sealed record is missing, malformed, of another kind or fails its seal, states a value its contract forbids, such as a declared color matrix no conversion applies or a bundle pixel format other than `rgb24`, or a re-import finds changed stored bytes |
-| `RECORD_INVALID` | A writer produced a record its contract refuses, a reused bundle hashed other than its candidate, or a preview sheet does not fit its own layout; nothing is sealed or written. This is a defect of ss-track, not of the input |
+| `RECORD_INVALID` | A writer produced a record its contract refuses, a reused bundle hashed other than its candidate, or a preview sheet does not fit its own layout; nothing is sealed or written. This is a defect of ss-track, not of the input. `discover verify` also refuses a run whose scores or selection its own feature rows and frames do not give, or whose method this ss-track does not know |
 | `RECORD_SCHEMA_UNSUPPORTED` | [Any sealed record](#reading-sealed-records) is of a major or stated shape this code does not serve as evidence, including at a re-import or rebuild over it and a corpus without source terms, or an amendment or a [redecode](#redecoding-under-a-new-policy) finds a record it cannot write forward |
 | `DECODE_POLICY_MISMATCH` | A source or pin uses a decode policy other than the installed one |
 | `IMPORT_CONFLICT` | The same source was imported at the current major with another declaration or decoder, or an amendment or a redecode names bytes with no record or changes more than terms |
-| `CORPUS_CONFLICT` | The `corpus_id` already exists with different content, or a superseded version differs from the seal its successor pinned, at build, stage or verify |
+| `CORPUS_CONFLICT` | The `corpus_id` already exists with different content, or a superseded version differs from the seal its successor pinned, at build, stage or verify; a version to freeze is not the one its review makes, is already frozen from other decisions, or an output file holds other bytes |
 | `CORPUS_NOT_BUILT` | The named corpus version or a version of its declared chain does not exist, or the identifier cannot name one |
 | `DECODE_DRIFT` | A staging decode disagrees with the import record of its source |
 | `BUNDLE_NOT_STAGED` | A stream has no staged frame bundle, or preview names a stream the corpus does not declare |
@@ -1564,6 +1816,11 @@ accepted task, its decisions and its evidence.
 | `STAGING_IN_PROGRESS` | Another run is staging this corpus version |
 | `FRAME_CORRUPTED` | A staged file differs from the sealed index, is gone, or is not in it. A reuse candidate that differs is named and not linked |
 | `FRAME_NOT_IN_BUNDLE` | A bundle does not hold a frame index, including a frame a case dropped |
+| `EXTRACTOR_UNPINNED` | A [discovery](corpus/discovery-runs.md) extractor loaded a package commit or weight file other than its plan pins, a weight with no immutable revision, or a configured adapted checkpoint, or the sibling settings import changed the environment |
+| `EXTRACTOR_INCOMPATIBLE` | An extractor's architecture, row length, device type, precision or preprocessing is not what its plan states or the adapter records, its model changed device, a bundle is not `rgb24`, or a tile grid does not fit a stream's frames or would be cropped by a non-square model input |
+| `WORKER_FAILED` | The embedding worker could not start, stopped, missed its deadline, broke the protocol, or returned rows for other frames, a partial batch or rows that are not finite unit vectors; `SST_PERCEPTION_PYTHON` is unset |
+| `DISCOVERY_IN_PROGRESS` | Another command is writing this discovery run id |
+| `LINKS_UNRESOLVED` | [Freezing](corpus/review-and-freeze.md#refusals) meets a link review that leaves a link across splits undecided |
 | `INTERRUPTED` | SIGINT stopped the command. Import and stage leave no scratch |
 | `STORAGE_FAILED` | The data root cannot be written, lacks the space for raw frames, or a preview PNG cannot be written outside the corpus directory |
 

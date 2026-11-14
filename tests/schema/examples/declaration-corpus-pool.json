@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "corpus_id": "combined-v1",
+  "run_id": "pool-combined",
+  "scenario_rights": {
+    "sharing": "restricted",
+    "max_sensitivity": "moderate"
+  },
+  "collections": [
+    {
+      "run_id": "acq-zenodo",
+      "rights": {
+        "holder": "Fixture Operator",
+        "basis": "licensed",
+        "retention": "fixture retention",
+        "retain_until": null,
+        "derived_frames": true,
+        "sharing": "restricted"
+      },
+      "sensitivity": {
+        "level": "low"
+      },
+      "metadata_names": [
+        {
+          "file": "metadata/videos.csv",
+          "name_prefix": "",
+          "path_prefix": "videos/"
+        }
+      ],
+      "videos": [
+        {
+          "path": "videos/bird.mkv",
+          "split": "development"
+        }
+      ]
+    }
+  ]
+}

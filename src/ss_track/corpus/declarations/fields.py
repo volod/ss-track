@@ -58,8 +58,18 @@ class Fields:
             raise invalid(f"{self._where}.{key} must not be blank")
         return value
 
+    def string(self, key: str) -> str:
+        """Read a required string whose contract pattern bounds it, so it may be empty."""
+        return self._get(key, str)
+
     def optional_text(self, key: str) -> str | None:
         return self.text(key) if self.has(key) else None
+
+    def nullable_text(self, key: str) -> str | None:
+        """Read a required string or an explicit null, refusing text that is only whitespace."""
+        if self._raw[key] is None:
+            return None
+        return self.text(key)
 
     def nullable_date(self, key: str) -> str | None:
         """Read a required ISO date, quoted or as YAML wrote it, or an explicit null."""

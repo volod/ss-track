@@ -12,8 +12,21 @@ FRAMES_DIRECTORY = "frames"
 DESCRIPTIONS_DIRECTORY = "descriptions"
 REPLACED_DIRECTORY = "replaced"
 RUN_DIRECTORY = "run"
+DISCOVERY_DIRECTORY = "self-supervised-corpus"
+DISCOVERY_RUN_NAME = "run.json"
+DISCOVERY_PUBLISH_LOCK = ".publish.lock"
+LINKS_NAME = "links.json"
+POOL_RECORD_NAME = "pool.json"
+POOL_CORPUS_NAME = "corpus.yaml"
+POOL_RECORDINGS_DIRECTORY = "recordings"
+INVENTORIES_DIRECTORY = "inventories"
+FEATURES_DIRECTORY = "features"
+VECTORS_SUFFIX = ".f32"
 MANIFEST_NAME = "manifest.json"
 FRAME_SET_NAME = "frame-set.json"
+FREEZE_NAME = "freeze.json"
+BLINDING_NAME = "blinding.json"
+FREEZE_LOCK = ".freeze.lock"
 _REPLACED_SUFFIX = ".json"
 
 
@@ -57,6 +70,11 @@ def frame_set_path(data_root: Path, corpus_id: str) -> Path:
     return corpus_directory(data_root, corpus_id) / FRAME_SET_NAME
 
 
+def freeze_path(data_root: Path, corpus_id: str) -> Path:
+    """Return a frozen corpus version's freeze record, beside its manifest."""
+    return corpus_directory(data_root, corpus_id) / FREEZE_NAME
+
+
 def descriptions_directory(data_root: Path, corpus_id: str) -> Path:
     """Return the directory that holds every published descriptor of one corpus version."""
     return corpus_directory(data_root, corpus_id) / DESCRIPTIONS_DIRECTORY
@@ -65,3 +83,68 @@ def descriptions_directory(data_root: Path, corpus_id: str) -> Path:
 def run_root(data_root: Path) -> Path:
     """Return the directory that holds every run's records."""
     return data_root / RUN_DIRECTORY
+
+
+def discovery_root(data_root: Path) -> Path:
+    """Return the directory that holds every discovery run."""
+    return data_root / DISCOVERY_DIRECTORY
+
+
+def discovery_run_directory(data_root: Path, run_id: str) -> Path:
+    """Return one discovery run's directory: its run record and one inventory per stream."""
+    return discovery_root(data_root) / run_id
+
+
+def discovery_run_path(data_root: Path, run_id: str) -> Path:
+    """Return one discovery run's sealed run record."""
+    return discovery_run_directory(data_root, run_id) / DISCOVERY_RUN_NAME
+
+
+def pool_directory(data_root: Path, run_id: str) -> Path:
+    """Return the discovery-run directory that holds one prepared combined pool."""
+    return discovery_run_directory(data_root, run_id)
+
+
+def pool_record_path(data_root: Path, run_id: str) -> Path:
+    """Return one combined pool's sealed record."""
+    return pool_directory(data_root, run_id) / POOL_RECORD_NAME
+
+
+def pool_corpus_path(data_root: Path, run_id: str) -> Path:
+    """Return the corpus declaration written for one combined pool."""
+    return pool_directory(data_root, run_id) / POOL_CORPUS_NAME
+
+
+def pool_recording_path(data_root: Path, run_id: str, stream_id: str) -> Path:
+    """Return one recording declaration written for a combined-pool stream."""
+    return pool_directory(data_root, run_id) / POOL_RECORDINGS_DIRECTORY / f"{stream_id}.yaml"
+
+
+def blinding_path(data_root: Path, audit_id: str) -> Path:
+    """Return one blinded audit's private mapping, in the discovery namespace of run ids."""
+    return discovery_run_directory(data_root, audit_id) / BLINDING_NAME
+
+
+def links_path(data_root: Path, run_id: str) -> Path:
+    """Return one link review's sealed record, in the discovery namespace of run ids."""
+    return discovery_run_directory(data_root, run_id) / LINKS_NAME
+
+
+def candidate_inventory_path(data_root: Path, run_id: str, stream_id: str) -> Path:
+    """Return the sealed candidate inventory of one stream of a discovery run."""
+    return discovery_run_directory(data_root, run_id) / INVENTORIES_DIRECTORY / f"{stream_id}.json"
+
+
+def feature_rows_name(extractor_id: str, stream_id: str) -> str:
+    """Return a feature-rows record's path inside its run directory."""
+    return f"{FEATURES_DIRECTORY}/{extractor_id}/{stream_id}.json"
+
+
+def feature_vectors_name(stream_id: str) -> str:
+    """Return the vector file name a feature-rows record names beside itself."""
+    return f"{stream_id}{VECTORS_SUFFIX}"
+
+
+def feature_rows_path(data_root: Path, run_id: str, extractor_id: str, stream_id: str) -> Path:
+    """Return the sealed feature-rows record of one extractor and stream of a discovery run."""
+    return discovery_run_directory(data_root, run_id) / feature_rows_name(extractor_id, stream_id)

@@ -15,7 +15,7 @@ from ss_track.corpus.records.kinds import SOURCE_MANIFEST
 from ss_track.corpus.records.sealed import read_sealed
 from ss_track.corpus.sources.identity import require_stored_source
 from ss_track.corpus.sources.terms import changed_terms
-from ss_track.corpus.storage.layout import MANIFEST_NAME, source_directory
+from ss_track.corpus.storage.layout import MANIFEST_NAME, replaced_record_path, source_directory
 
 
 @dataclass(frozen=True, slots=True)
@@ -81,3 +81,21 @@ def load_verified_source(source_sha256: str, data_root: Path) -> VerifiedSource:
         mismatch=RefusalCode.SOURCE_HASH_MISMATCH,
     )
     return VerifiedSource(record, stored)
+
+
+def pinned_source_record(source_sha256: str, seal: str, data_root: Path) -> dict[str, JsonValue]:
+    """Read the source record a corpus version pinned, which an amendment may since have replaced.
+
+    A replaced record is kept under its seal, so what a version rests on stays readable.
+    """
+    current = load_source_record(source_sha256, data_root)
+    if current[SEAL_FIELD] == seal:
+        return current
+    replaced = replaced_record_path(source_directory(data_root, source_sha256), seal)
+    if not replaced.is_file():
+        raise CorpusRefusal(
+            RefusalCode.SOURCE_RECORD_CHANGED,
+            "the source record this corpus version pinned is no longer kept",
+            {"source_sha256": source_sha256, "source_manifest_sha256": seal},
+        )
+    return read_sealed(replaced, SOURCE_MANIFEST)

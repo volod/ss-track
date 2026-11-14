@@ -57,11 +57,13 @@ def test_edited_file_and_updated_pins_fail_against_merge_base(
 
 
 def test_deleted_contract_and_log_rewrite_fail(repository: Path) -> None:
+    """Delete a contract no other contract references, so only history can see it is gone."""
     root = repository / "contracts"
     registry = read_registry(root)
-    registry["contracts"] = [item for item in registry["contracts"] if item["id"] != "frame-set"]
+    kept = [item for item in registry["contracts"] if item["id"] != "hash-comparison"]
+    registry["contracts"] = kept
     write_registry(root, registry)
-    shutil.rmtree(root / "record/frame-set")
+    shutil.rmtree(root / "record/hash-comparison")
     assert any("changed or removed" in finding for finding in history_findings(repository, "main"))
 
 

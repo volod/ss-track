@@ -1,6 +1,23 @@
 schema_version: 1
 contracts:
 - family: declaration
+  id: audit-review
+  owner: self-supervised-corpus
+  status: active
+  description: A reviewer's decisions on the common audit sample, named by item id.
+    The file carries no stream, candidate, score, method, offer reason, filename or
+    source identifier. Independence and blinding record what was declared. They do
+    not verify that the procedure was followed. An observation is not a label.
+  versions:
+  - version: 1.0.0
+    file_sha256: 55601864bcff24356c55f75902ab482ff9244d40b61a4786595b445c4a4c2ed2
+    fingerprints:
+      structure: 4bc8235b7da6b98ff24c544fe109fcf72989d16e92e93b16b686297c9011f7e2
+      meaning: e21f369c071b0930d13fa64f30b6516d8572d5c113cbcbf3f4a967601bd31848
+    change:
+      class: initial
+      summary: Initial contract.
+- family: declaration
   id: corpus
   owner: corpus-provenance
   status: active
@@ -47,6 +64,66 @@ contracts:
     migration: Set schema_version 3 and state scenario_rights; groups, encounters
       and streams keep their form.
 - family: declaration
+  id: corpus-pool
+  owner: self-supervised-corpus
+  status: active
+  description: An operator selection of acquired videos for one combined corpus.
+  versions:
+  - version: 1.0.0
+    file_sha256: fa5a23e69ca11a086758ac704d68e16f052b69e22e3e95ddffa2a3e4e2c17b69
+    fingerprints:
+      structure: 63288759e4b581acb45352f436a7ebf1c2accc1bff77e2163a98b87ef5009128
+      meaning: ebffba73f3662144d874648294784231aff62de7bab5783cc5f4a0640319627f
+    change:
+      class: initial
+      summary: Initial contract.
+  - version: 1.1.0
+    file_sha256: be7316792082b147207ec527e9f0b5f6785b844d6f0c0b833e8768a719a33356
+    fingerprints:
+      structure: f47161496822a3fe2c8b664348832d3139c09e84cb9fbe69813ee692e4b7b1f5
+      meaning: 3e8bf4e37de97f979dcdca9c4ed5e3dcbc50d72c99f8e449ba4c09a70bbb475e
+    change:
+      class: minor
+      summary: Add optional per-collection metadata_names rules that map CSV row names
+        to video paths.
+- family: declaration
+  id: corpus-review
+  owner: self-supervised-corpus
+  status: active
+  description: 'A reviewer''s decisions on the candidate windows one discovery run
+    offers for review: the selected windows, the audit sample and the sibling windows,
+    never a window of a locked stream while no custodian policy allows it. An included
+    window''s frames join a frozen corpus version under its stream''s group and split.
+    An observation records what the reviewer saw and is not a label: labels come only
+    from the annotation contract.'
+  versions:
+  - version: 1.0.0
+    file_sha256: f81d2ab3c2e377bb5132fcb8eb3c1ade1604f3317e69ff9d87fb44a566bf8430
+    fingerprints:
+      structure: 81a365d68ecfe2a0a5fc6b103fa65c86013245ce435301d529b8fa226894eeaa
+      meaning: ce95ec67db00b531f63c0e9769db1e5682a663c82a26427749dca28c2e63058f
+    change:
+      class: initial
+      summary: Initial contract.
+  - version: 1.1.0
+    file_sha256: 6e09c511a7e0b20e241bac457ac3d40ca4b33cecc735d7694e909388d2e02010
+    fingerprints:
+      structure: fa7faeb5b8eae887851db121d6b4655bbf2634546601082dbca446a2255e75d3
+      meaning: 66aab3e25b611ff0ff4c67672227112583cba90000c9b4f991911a771e31bc40
+    change:
+      class: minor
+      summary: Record declared independence, blinding, review effort and the blinded
+        audit id.
+  - version: 1.2.0
+    file_sha256: 24ed9f4fe65069545e03400bff4b9497deec2be97e701c01e09cc83265e66f75
+    fingerprints:
+      structure: 6867a2e724f0ea875b6fe75c1abcd0fce4c28d52c8f4dba9c250a27b4ff57be4
+      meaning: 4807fee8ee046b0f4334127eb856c17cd38039ea1aff3472db0129ee9bc54655
+    change:
+      class: minor
+      summary: 'Record an optional selection pass: every selected window of the run
+        reviewed again, with its observations.'
+- family: declaration
   id: dataset
   owner: data-contracts
   status: active
@@ -69,6 +146,56 @@ contracts:
       class: minor
       summary: State the not-blank rule of each free-text field under x-rules. Accepted
         values do not change.
+- family: declaration
+  id: discovery-plan
+  owner: self-supervised-corpus
+  status: active
+  description: 'Operator declaration of one discovery run over a staged corpus version:
+    the owner''s source approval, the pool window, the audit sample, the pinned embedding
+    worker and any ss-video hint files. It grants no right and verifies no label.'
+  versions:
+  - version: 1.0.0
+    file_sha256: 9a940ba81a2167b1dcba247e53c05cc0e24fde28cf6ca98dabd7178875027ef5
+    fingerprints:
+      structure: e5ea0cadb95518dffd23225efc3bd6d34c115a2275e46ccf8e6f03baac42133e
+      meaning: 7586eae789a1b86782db68aebbd5a96a4b00ed6e2b71c61e25a42ab06cac496d
+    change:
+      class: initial
+      summary: Initial contract.
+  - version: 1.1.0
+    file_sha256: 9aae8ee2151c6723d6671a82cdc36d59d1102cb9b18e1965c20c853e42517e90
+    fingerprints:
+      structure: 7b972b52b2be03c748fe57f07b677a9047e913fa2fc7da3130baf5ece8df23a1
+      meaning: cf75a5ea1ff9603768ba5ab3ac8bebc042781f548d59c30fe93bdff3e6c7b4ec
+    change:
+      class: minor
+      summary: Add a selection method and tiled extractors.
+- family: declaration
+  id: link-decisions
+  owner: self-supervised-corpus
+  status: active
+  description: 'A reviewer''s decisions on whether two imported recordings are related:
+    not independent of each other, so every stream cut from them belongs in one encounter
+    group. A decision is about two recordings, not a corpus version, so it carries
+    over to any version that holds them. It is human judgment; no similarity score
+    makes one.'
+  versions:
+  - version: 1.0.0
+    file_sha256: 4332935825c5bdf9c89bd6959b179e36b58ceec91a468d5fd8fa2fd8478e53a0
+    fingerprints:
+      structure: 78329631fa8258e735969f42ac83481672fd15d34228c3dcd6977e3b3a2ac800
+      meaning: f2b388149e9dcd9761e606070a6de79861566d2a38825667fd3c563fc56b4b9c
+    change:
+      class: initial
+      summary: Initial contract.
+  - version: 1.1.0
+    file_sha256: a68fac783eea155d586fb64be6dd3f59f8b9dafbe2fa9c694bb6c75d2eaa45c9
+    fingerprints:
+      structure: f21aa06754045f801db06b5aff3cf6acd81656bedc456158b9d0d83db675f0c7
+      meaning: a7118cdd7bba6eb98147115962bce5fcc226de6ab43d1ea67bd5d0296ca1310e
+    change:
+      class: minor
+      summary: Allow empty checkpoints without asserting any relationship.
 - family: declaration
   id: recording
   owner: corpus-provenance
@@ -110,6 +237,14 @@ contracts:
     change:
       class: minor
       summary: Add optional color.matrix for a source that stores no color matrix.
+  - version: 2.4.0
+    file_sha256: 83dd40c33b652cf21b2d5e6f2dcc7c22907af5de78bbe532cced277e939d875f
+    fingerprints:
+      structure: e51c8ecfab392e0130efd40c942978b78dc2c01d98ccc7c05b9c6d3324edab59
+      meaning: a28f33267dd5ba97c05cd6e0614f9e51b4cd3ae3923ad720f3a1878862cde71a
+    change:
+      class: minor
+      summary: Record optional upstream collection membership on a recording.
   retired_majors:
   - major: 1
     status: retired
@@ -118,6 +253,134 @@ contracts:
       for this major.
     migration: Set schema_version 2 and state rights.retain_until and rights.derived_frames,
       which only an operator can state.
+- family: declaration
+  id: source-inventory
+  owner: self-supervised-corpus
+  status: active
+  description: An operator inventory of candidate source videos, upstream pins and
+    unresolved rights; it authorizes no acquisition or processing.
+  versions:
+  - version: 1.0.0
+    file_sha256: b243c1f058208825c94d1d2737c5b5963a9d3d30be2984ce32bf43734f9908e2
+    fingerprints:
+      structure: 882d11ded64c659df3db07849ad06b90f14485638cc4fa2183371d2e1b65635c
+      meaning: ba89e1cc10969989540fdb42c12b2b2da34a6de0170f7005d178f0d470e1ecd0
+    change:
+      class: initial
+      summary: Initial source inventory declaration.
+- family: declaration
+  id: video-hints
+  owner: self-supervised-corpus
+  status: active
+  description: Matches an ss-video index returned, joined to the source file hash,
+    with the sampling facts that turn a sibling time into a window of ss-track frames.
+    A match is a hint, never a label.
+  versions:
+  - version: 1.0.0
+    file_sha256: c440e5a35091f2a7cceddde26fdb3e4de42ff345d2dc8a03f333981b46510f49
+    fingerprints:
+      structure: a2b59e95561c2265e948f270e11b10a75b9e59093ffb134afcff1a1a5f5b19cd
+      meaning: 6f998d210560843d09c8cd85dd528bafcd5a0a78132285c9cf4bd46f77695829
+    change:
+      class: initial
+      summary: Initial contract.
+- family: record
+  id: audit-blinding
+  owner: self-supervised-corpus
+  status: active
+  description: The private mapping from a blinded audit item back to the discovery
+    candidate it shows. The reviewer packet does not include this record. Picture
+    hashes cover the blinded frames. They are not a source filename. A record that
+    does not match its discovery runs and staged frames is not evidence.
+  versions:
+  - version: 1.0.0
+    file_sha256: 1a02242451a767b6f00b009b276ff52524287ab6d1b4b3b14d3cc7b042e7841a
+    fingerprints:
+      structure: 9ee81e84d10f929d88785a950012c293a707d6d5d812fa0242769220ddca0ad6
+      meaning: ac5d0bc3a28041782f4d6caaa4f2a4471c1fe3242f55f70459efda279436c0ad
+    change:
+      class: initial
+      summary: Initial contract.
+- family: record
+  id: candidate-inventory
+  owner: self-supervised-corpus
+  status: active
+  description: 'One sealed record of every candidate window a discovery run proposed
+    in one staged stream: its frames, its origin, its scores, what selection decided
+    and whether the independent audit sample holds it. A candidate is a proposal for
+    review: it is not a label, does not authorize its source and does not place it
+    in a split.'
+  versions:
+  - version: 1.0.0
+    file_sha256: 185b5cdc3492793f1395914322adcd58b31cad074729cd33f387c9ef3fea9bb7
+    fingerprints:
+      structure: ef5a90dffe5cad6beba91f6cd6f733867cd79b1e30d2a1c540ad246c4e083b79
+      meaning: 4c2b79e303fb56a5c3810fd7a1ffdd5bb01ed0318f4159c1853892779ca26de5
+    change:
+      class: initial
+      summary: Initial contract.
+- family: record
+  id: corpus-freeze
+  owner: self-supervised-corpus
+  status: active
+  description: 'The sealed export of one frozen corpus version: which reviewed candidate
+    windows became its streams, under which group, split and source terms, what was
+    excluded and why, what stayed unreviewed or withheld, and the discovery run, link
+    review and reviewer decisions it rests on. Freezing holds no label: an observation
+    is what a reviewer saw, and labels come only from a frozen annotation revision.'
+  versions:
+  - version: 1.0.0
+    file_sha256: b702ba90a317d64dbc692be1af0d9ccca91c0c7644d21c333aa63748d8a4d110
+    fingerprints:
+      structure: 7b2c699a6de3e4fde8cb5dbd044f7e6f0a5574ec344a916abe8d45a7bc2e0b43
+      meaning: fed37313db6201fb0fc2b8e80f3abf30398d8394292fbcbae8a55ed39fe14135
+    change:
+      class: initial
+      summary: Initial contract.
+  - version: 1.1.0
+    file_sha256: dfc91fef2975b042a6838b3bbda77b4050dc3c0925c21ead55f64b8f422863e7
+    fingerprints:
+      structure: 9847348f060ee7bf809a4eb069d685d9c3488744b383b5358d30f79ba80a386c
+      meaning: dd353ffd83ac37ca16b437226272f4004ae13604636995c1a43b0974522c1ab5
+    change:
+      class: minor
+      summary: Copy declared independence, blinding, review effort and the blinded
+        audit id.
+  - version: 1.2.0
+    file_sha256: b016dd4d0109b9afe17216331e51c14795fee4a1ff972525fa1314a370e40388
+    fingerprints:
+      structure: b26cce061cf169fc30888a6348909ed4ffd83e43e2ef66dd318530ab8144f429
+      meaning: 02c55371ba192ed71b9cf9534ab0aa82aeaeb04056aeb4c4fd04fb44e6a886ac
+    change:
+      class: minor
+      summary: Carry the review's selection pass.
+- family: record
+  id: corpus-links
+  owner: self-supervised-corpus
+  status: active
+  description: 'One sealed link review of a staged corpus version: pairs of recordings
+    in different encounter groups that a similarity method flagged or a reviewer decided,
+    with the evidence and the decision. A version holding a run of identical frames
+    in two groups, or recordings a reviewer decided are related in two groups, is
+    refused rather than written. A link is a question for a reviewer: a similarity
+    is not ground truth and no link merges a group.'
+  versions:
+  - version: 1.0.0
+    file_sha256: 4a4bd34fa62f427d26bd4f4b1610b79c0cf24e1d94dc31305ad390aaaaef84c7
+    fingerprints:
+      structure: 87e8a86fec306fad30b7d674ac1407cb53ebee193b6301ac5d9f840073717fa8
+      meaning: d776a60a5fe07d9978a7a78214142ac42fd7b850f091bfff1b53dcabbc10a84c
+    change:
+      class: initial
+      summary: Initial contract.
+  - version: 1.1.0
+    file_sha256: f1c5dab9d689b3ad9dc100f712db933050f675f81893abcfc6a4489005a8caf3
+    fingerprints:
+      structure: 637395381b38cda0374e9cb42f00456e70399a3d4c32a18b96e0e92a68f88efa
+      meaning: d776a60a5fe07d9978a7a78214142ac42fd7b850f091bfff1b53dcabbc10a84c
+    change:
+      class: minor
+      summary: Allow an empty review checkpoint with no decisions.
 - family: record
   id: corpus-manifest
   owner: corpus-provenance
@@ -182,6 +445,74 @@ contracts:
       for this major.
     migration: Build a new corpus version under a new corpus_id that names this one
       in supersedes; lineage and shared frames compare it through this major's projection.
+- family: record
+  id: corpus-pool
+  owner: self-supervised-corpus
+  status: active
+  description: The prepared selection, its groups, unresolved metadata and per-collection
+    accounting.
+  versions:
+  - version: 1.0.0
+    file_sha256: 24b5cc2e432fa68d8e30289bd5d84961a256851cf8c723e4b6136803f5c27169
+    fingerprints:
+      structure: 23c5bdcd81392dbe5be618f6cd225132dee2b9f7ea0135950e6700b340aec527
+      meaning: ded9a84193416ecfc5323dfbb127c15f2854465c87014774cb863fa7bfc01b00
+    change:
+      class: initial
+      summary: Initial contract.
+- family: record
+  id: discovery-run
+  owner: self-supervised-corpus
+  status: active
+  description: 'One sealed record of how a discovery run proposed candidate windows
+    over a staged corpus version: the frames it read, the feature extractors and their
+    full provenance, its scores, sibling hint sources, pool, selection method and
+    independent audit design, and the seal of each stream''s candidate inventory.
+    It is written after its last inventory. Nothing in it is a label, authorizes a
+    source or assigns a split.'
+  versions:
+  - version: 1.0.0
+    file_sha256: dc74192599c64d08f4da47988fc231df7b1c57b310ee7d9062d49afd53d1a511
+    fingerprints:
+      structure: 7b95729c423c0c4f2a3105248fe02ab7afd873a37a32900e937ce1cda08a7da8
+      meaning: 1c8e7dc49cf849e64974476c5ab8e2a5c9291b4985e0e150b3377bb81da971a9
+    change:
+      class: initial
+      summary: Initial contract.
+  - version: 1.1.0
+    file_sha256: 00009b0172318f9fc992aea7f8f7d45ff2b8122b765f6f0b5acf9974ff83f54a
+    fingerprints:
+      structure: 374ca9ecb2c1290fd5ec65673eff92be8f97d28d557b19f1b3c42126e03bc618
+      meaning: 9a8c1715d6c441a7015c8345095341307f626397acb9059cd99c4fb008a7e6d5
+    change:
+      class: minor
+      summary: Name the owner's source approval, seal each feature-rows record and
+        count what became of each hint file's matches.
+  - version: 1.2.0
+    file_sha256: 2c2e0e82296e6c7b0a9dc3a14ce10d5cb46b7af0ff00af19556466b477e3ddf3
+    fingerprints:
+      structure: 5d628f43824cedf21e112c57f0b8cde8fb1135485e6d1027e6cfc295f23c7939
+      meaning: f91255f86f95173da116a94ac9ab0b3afb7cfc1a17ed1d8699779cf67cf07ce4
+    change:
+      class: minor
+      summary: Add the tiled crop and the tile an extractor read.
+- family: record
+  id: feature-rows
+  owner: self-supervised-corpus
+  status: active
+  description: 'One sealed record of the feature rows one extractor of a discovery
+    run returned for one stream: the key of every row, by bundle, frame index and
+    frame hash, and the seal of the float32 vector file that holds the rows in the
+    same order. A feature row is not a label.'
+  versions:
+  - version: 1.0.0
+    file_sha256: c7fcc42e45b03bd9da4b7713df95170f5d471484953fe5d26f1728c52b297e31
+    fingerprints:
+      structure: beaa95aaab45536f6a1096618639f7ef7549c83ab8fac7ac9f1b6670587681c3
+      meaning: 75ae1075f9a2ff5efad57e56c10f5b5e1e1703d9bc4f87539d5592671379339e
+    change:
+      class: initial
+      summary: Initial contract.
 - family: record
   id: frame-bundle
   owner: corpus-provenance
@@ -271,6 +602,59 @@ contracts:
       class: initial
       summary: The shipped format at major 1, with no record bytes changed.
 - family: record
+  id: link-review-handoff
+  owner: self-supervised-corpus
+  status: active
+  description: A media-free archive manifest for reproducing and comparing a link-review
+    corpus on another host.
+  versions:
+  - version: 1.0.0
+    file_sha256: a6e88acbb4cd4abc22ba43b1443f2f3164c483e16a9d2f7c4612ae80bf9556af
+    fingerprints:
+      structure: ceaa0ccb8b5a975df4b430c314db525ad5a7d7c87cff8c54191ff90db841002c
+      meaning: 8ebf87bee0b741360eae04c7bef8e29a98d1295688f47adac9af78004637c755
+    change:
+      class: initial
+      summary: Initial contract.
+- family: record
+  id: source-acquisition
+  owner: self-supervised-corpus
+  status: active
+  description: Verified source acquisition and selection, linked to a source inventory.
+  versions:
+  - version: 1.0.0
+    file_sha256: 05d96882ff4eb2040059bc26a34f281725d44731a45793f11e95a7b68bc4390c
+    fingerprints:
+      structure: e66853b22e689403ed11b44f687c55d92a76693830b99ace098889fd6afe5214
+      meaning: bb901e327de653773850c2eb2478a91b8b0c814cde2f7579001672aff3212a74
+    change:
+      class: initial
+      summary: Initial source acquisition record.
+  - version: 1.1.0
+    file_sha256: 179e1415553934b144b87127e0f9a3dbb9be87f02610426a0b2b46fb14c13210
+    fingerprints:
+      structure: 37d328bf96126965755a3f0485bcffb1fecea269c8560c3e5512b0281510d92d
+      meaning: 5c52bfd49d980329c188d131902ae60ff1cffcdb64ee31425a906d5257fdaca9
+    change:
+      class: minor
+      summary: Pin the submitted inventory for repeat and conflict checks.
+  - version: 1.2.0
+    file_sha256: f4119ec9c9db80945972193fa9c8b8611b93791aac138e61ae5e7add73540365
+    fingerprints:
+      structure: b3d5c7be44876a795b892e96ad481405a7f1d92e949b349df003accc20f229c8
+      meaning: 75cf483935a3ea8bc44f7e926660451c9a1ea0da0f59d5ae4e152a61cf293d1e
+    change:
+      class: minor
+      summary: Pin inspected upstream split metadata.
+  - version: 1.3.0
+    file_sha256: f0ac82a521b1c7925a22b147abe2eef2c718804aeb9a42e0b0f49fde5ba036b8
+    fingerprints:
+      structure: 451b9cdeeb318d2a97d6d2995d636575b2adaa5bd5b850655a316b2de21310f9
+      meaning: 164a3b409d24343b174aee193bf3bb26c510fd300f4a90ac9771feb0a5ec126b
+    change:
+      class: minor
+      summary: Record selected upstream metadata files.
+- family: record
   id: source-manifest
   owner: corpus-provenance
   status: active
@@ -311,6 +695,14 @@ contracts:
     change:
       class: minor
       summary: Record an operator-declared color matrix when the source stores none.
+  - version: 2.4.0
+    file_sha256: e40728b6ce1c0cc50bedc9b5d36a06b9500facf8dfee876a504c4de5fbc60d6f
+    fingerprints:
+      structure: e3cce8db121207b8772366b9875c46c80acdad9c8a9789083297ff974237ef6e
+      meaning: d76161668b39a2e3218fb0547258e4699b000f551ceac5732360a274629f0779
+    change:
+      class: minor
+      summary: Record optional upstream collection membership on a source.
   retired_majors:
   - major: 1
     status: facts
@@ -477,6 +869,107 @@ contracts:
       class: minor
       summary: Name a missing or unreadable corpus version in the near-duplicate report,
         and name a corpus directory that could not be listed.
+  - version: 1.15.0
+    file_sha256: e480dbd135609057c0308f6e4dcb3ba2190216afde7a157a32ec741506b0078e
+    fingerprints:
+      structure: 56d63ee1cc9d1b2ae919b0b788ba885fea48f96c51348d2879c19b2d3a71283f
+      meaning: e0f681396c747de418d10a4b880a9aa66341b123c0d26cf66ead0a2b506d8897
+    change:
+      class: minor
+      summary: Report a discovery run and its hint matches, and refuse an unpinned
+        or incompatible extractor, a failed worker or a busy run id.
+  - version: 1.16.0
+    file_sha256: 58a3e81aec4d2df8053d52ad251b2ce072106dab4e5a600b2349b3a2ff42a350
+    fingerprints:
+      structure: 2496586ba90fdf6f23737d07bb203a02dd1786154bc87a21e49e4bfe72fde184
+      meaning: e828666a8a21ea689b9e563ccb1812832212884f3e84b87cadd22ca1aa891c4a
+    change:
+      class: minor
+      summary: Add a discovery run's selection, unavailable scores and coverage.
+  - version: 1.17.0
+    file_sha256: 88eb917796346c510931b0b6f46c42669869d7bf43fa7d0a7523a3f416f0a218
+    fingerprints:
+      structure: c44eabf50222618425d003754d439893df96a7cc53043fce684c9ce146bcb3b3
+      meaning: 20930075327e2b3b1e47f35146359321d926bb87d0ba7cdfe01baf9a86f06f60
+    change:
+      class: minor
+      summary: Add links, the counts of a link review.
+  - version: 1.18.0
+    file_sha256: aaeb62d7b0a43949330b38594a2fad48575cfdb1362b6ee59c0004d264d92e7d
+    fingerprints:
+      structure: 8e7826f5ac3964be84bdbaaca636635182324a2005d6feccecd5f050407f03d7
+      meaning: bab79f42da3502f85fd0b8f4240d9af6d5fc65703b3ea9949044e2c3f6d34465
+    change:
+      class: minor
+      summary: Add the queue, review and superseded results of review and freeze,
+        the declaration path and hash, and LINKS_UNRESOLVED.
+  - version: 1.19.0
+    file_sha256: 5f01efe15957db105080d8ab888172b737cb186c0c433a90a62be1eecae9a21b
+    fingerprints:
+      structure: f823c76447319f44d0dcc94aa4a0623a1948f1fd07f20412c16c1b81b3c11a26
+      meaning: 9d2dd411d4b40450b1a06aa5dbb410263092b97b559bb3a7d05f6e3dc6ae237c
+    change:
+      class: minor
+      summary: Add source inventory status and unresolved fact counts.
+  - version: 1.20.0
+    file_sha256: c319cae5a8385b7673a67fd8d0d61a35973245d98cc730097b4c659ebce6405b
+    fingerprints:
+      structure: ec5d5587af540bde85e29dcebdeeef3dc48bd465b4e9a2f1444df66aa4358784
+      meaning: f60810d4f4feca62f9b65ed9c295c3f5a6e90df552313900196be5a1c680eacf
+    change:
+      class: minor
+      summary: Add source inventory location, digest and totals.
+  - version: 1.21.0
+    file_sha256: d6779e07f558d2492f743b7c5515de81bc9ba59cb5a832405daa672c2222cb27
+    fingerprints:
+      structure: 3cc2ad9772bcfabba6b1d905ba7c8f8cda3f6338353870c6279182c0adf63c54
+      meaning: 81bc573eaed55a101237613c31650bc4af4d8aa38c806beedd628a7edc65e22f
+    change:
+      class: minor
+      summary: Report a blinded audit presentation and its unblinding.
+  - version: 1.22.0
+    file_sha256: c0b2d166c2d9ee0986b21738da2320c309373064fed7d46016b9e9c93214fe80
+    fingerprints:
+      structure: 9e8547cf2996a92f4053b45517a8ef853018b8c9bf82bba29d47b728befd78bc
+      meaning: d372d2206f90c178e499834eaf6d0dc77e51c437dabbf392f1a2ca40da55a061
+    change:
+      class: minor
+      summary: Report a paired selection comparison as estimated or inconclusive.
+  - version: 1.23.0
+    file_sha256: 2d6490b29a821f219587ba668bb55ba67c08e8a7b27c395082a03c2b3e1a83b9
+    fingerprints:
+      structure: 6df1cff0f01bb4de373b915704350cd0d928b374b26c63089b1e93e20da87612
+      meaning: bd85c826e8a629c3d095d84fac78168a693dd7e52b6f7db990c1aecfdf10bf4a
+    change:
+      class: minor
+      summary: Report the paired review workload and refuse an unmatched budget.
+  - version: 1.24.0
+    file_sha256: ffb62746473327d94129479f5c1378a16b56390ddc95f25d84f26b11475c06ee
+    fingerprints:
+      structure: a525d0d36aea431693918a54ed5fccc2b783e13782847250f2354665b9b4c02d
+      meaning: 9f07e5a5e7930ed55ee69d6b2b0b9a9eb32b2cfd2e20c41954060bee90492f79
+    change:
+      class: minor
+      summary: Add optional by_source on a selection comparison and allow a fifth
+        comparison limit.
+  - version: 1.25.0
+    file_sha256: ac06c48826c656b9246ac7e74500fa03a383ab5b2bb6810eda46967d264a8e0e
+    fingerprints:
+      structure: d8897b8656bdf7ba704de2b8b0287bd53f01d48ebe6399908412ae20b2902a99
+      meaning: 363f804f81695b4e636ed004192ba9e87cdd0caa54140ce0f77586f9d89c5881
+    change:
+      class: minor
+      summary: Report the selection_pass review protocol, each pass's work and yield,
+        and pass disagreements.
+  - version: 1.26.0
+    file_sha256: 411315d3c876d17b36f814dbb02dd8d83d7cd52b9ea71d063124f7092a17aa58
+    fingerprints:
+      structure: ecd9cb4b570d29f32ae08bccd6d6790034feb48d6511b822318310541a15e22a
+      meaning: df9a14199058d98845c7f1a4fe02b491bc4e28e1842e13b07d003b8009e37ae6
+    change:
+      class: minor
+      summary: 'Add data clean: statuses planned and cleaned, the clean object and
+        DATA_ROOT_BUSY.'
 - family: shared
   id: types
   owner: data-contracts

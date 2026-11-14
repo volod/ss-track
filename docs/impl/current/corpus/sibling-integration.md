@@ -1,0 +1,162 @@
+# Sibling integration for corpus formation
+
+This page records what [ss-video](https://github.com/volod/ss-video) and
+[ss-fusion](https://github.com/volod/ss-fusion) offer for
+[video corpus formation](../../../design/spec.md#41a-self-supervised-video-corpus-formation), and the
+integration plan the corpus tasks follow. [Discovery runs](discovery-runs.md) implements its
+embedding worker and hint reader. ss-track does not depend on either sibling, and its tests never
+import them. The evidence comes from inspecting the pinned trees
+and running ss-perception on clips that ss-track staged. The
+[task record](../../records/0050-self-supervised-corpus-corpus-sibling-integration-study.md) holds
+the commands and results.
+
+## Pinned revisions
+
+| Project | Tag | Commit | Declared version | Licence |
+| --- | --- | --- | --- | --- |
+| ss-video | `v0.2.0` | `703e3c943dbc960a16cbc859680172c5a7ba5255` | `selfsuvis` 0.1.0 | MIT |
+| ss-fusion, studied | `v0.2.0` | `12cb0861af8f6ae6562d2cf5211547e284c5b40d` | every package 0.2.1 | none |
+| ss-fusion, pilot pin | `v0.2.1` | `75debcfed31a3c148d2f194a8ae2345e4b7508f1` | every package 0.2.1 | MIT |
+| ss-common | `v0.2.1` | `255837301437c84c253627499c2f8ae9c9953c03` | 0.2.1 | MIT |
+
+The original study used ss-video and ss-fusion `v0.2.0`; both pin ss-common `v0.2.1`. The pilot
+uses ss-fusion `v0.2.1`, whose files from the studied tree are byte-identical and which adds an MIT
+licence. Package metadata alone cannot identify the revision: both ss-fusion tags declare package
+version 0.2.1. An installer that records the commit (`uv` writes it to `direct_url.json`) can.
+
+## Interfaces
+
+| Interface | Where | Use for ss-track |
+| --- | --- | --- |
+| `OpenCLIPEmbedder`, `DINOEmbedder` | ss-perception `selfsuvis.models` | Usable. `encode_images(list[PIL.Image])` returns L2-normalised float32 rows |
+| `extract_frames(path, video_id)` | ss-perception `selfsuvis.pipeline.media.ffmpeg` | Not a frame identity. See [frame mapping](#frame-mapping) |
+| `VideoIndexer.index_video` | ss-video `pipeline/workflows/indexer/` | Service-only. It writes to Qdrant and PostgreSQL |
+| `POST /query/text`, `/query/image` | ss-video API | Hints only. At most 100 matches, without vectors, source hash or model name |
+| SSL fine-tuning, `ssv` pipeline | ss-fusion `selfsuvis.pipeline.training`, `ssv_vdp` | Excluded. See [adapted models](#adapted-models) |
+
+ss-video has no bulk export of frames, vectors or payloads, and no export of query matches joined to
+`processed_files.file_hash`, so an operator builds each [hint file](discovery-runs.md#hint-files) by
+that join. A full inventory would need direct reads of its Qdrant collection and PostgreSQL tables.
+That is privileged service access, and running the stack needs Redis, PostgreSQL, Qdrant, an API, a
+worker and optional GPU containers. The corpus tasks therefore do not depend on a running ss-video.
+
+## Frame mapping
+
+ss-track names a frame by source hash, stream, frame index, PTS and pixel hash
+([reading frames](../corpus.md#reading-frames)). The siblings do not keep that identity.
+
+| ss-track field | Sibling counterpart | Mapping |
+| --- | --- | --- |
+| `source_sha256`, video stream 0 | ss-video `processed_files.file_hash` | Equal SHA-256 of the file bytes. Qdrant points carry a random `uuid4` `video_id`, so the join needs PostgreSQL |
+| Video stream index above 0 | none | ffmpeg picks its default stream. Multi-stream sources cannot be mapped |
+| `frame_index`, `pts` | `t_sec = k / SAMPLE_FPS_MAX` of JPEG `k` | Many-to-one. See below |
+| Packed RGB pixels | JPEG at `-q:v 2` from `fps=N,format=yuv420p` | Mean absolute difference of about 2.2 of 255 per channel |
+| Kept keyframe | `VideoIndexer` filters and drift tests | Depends on history. No inclusion probability, and no record of what was dropped |
+| Qdrant point id | `stable_point_id(video_id, segment_id, ms, "frame")` | Changes on every re-index, since `video_id` is random |
+| Model | `model_version_id`, default `base` | Names neither architecture, weights nor checkpoint |
+
+`extract_frames` runs the system `ffmpeg` with an `fps` filter and labels JPEG `k` as `k / N`
+seconds. It does not use the source PTS. On the study clips with ffmpeg 8.0.1, one rule reproduced
+all 80 JPEGs: frame `f` falls in slot `floor((pts_f - pts_0) * N + 1/2)`, each slot shows the last
+frame that falls in it, and an empty slot repeats the previous one. This rule has three consequences:
+
+- `t_sec` counts from the first frame, so a source starting at PTS 1.5 s maps 1.5 s off.
+- The label precedes the content by up to half a slot. At 30 frames per second and `N = 5`, JPEG 0
+  shows frame 2, not frame 0. Nearest-time matching would name the wrong frame.
+- A source slower than `N` repeats frames. A 4 frame per second clip gave 20 JPEGs from 16 frames.
+
+A sibling time can therefore only name a window of source frames, and only under a recorded ffmpeg
+version and `SAMPLE_FPS_MAX`. Candidate records must name ss-track frames.
+
+## Model and data rights
+
+| Item | Revision used | Licence | Note |
+| --- | --- | --- | --- |
+| ss-fusion code, ss-perception included | `v0.2.1` | MIT | The earlier studied `v0.2.0` tag has no licence |
+| OpenCLIP code | `open_clip_torch` 4.2.1 | MIT-style | |
+| CLIP ViT-B/16 `openai` weights | Hugging Face `timm/vit_base_patch16_clip_224.openai`, `main` resolved to `977e3dd0` | tagged Apache-2.0; OpenAI CLIP repository MIT | The OpenAI model card puts any deployed use out of scope. Downloaded from `main` with no pinned revision |
+| DINO "dinov3" weights | `dinov2_vitb14_reg` via `torch.hub` `facebookresearch/dinov2` `main` | Apache-2.0 | ss-perception aliases every `dinov3_*` name to a DINOv2 `_reg` model |
+| Video sources | see [source authorization](../corpus.md#source-authorization) | per source | Approved under `approval-2026-11-13` |
+
+The [source authorization](../corpus.md#source-authorization) approves the chosen revision and
+model weights; a package version by itself is not a commit pin.
+
+## Reproducibility
+
+Measured on the development host's CPU with torch 2.15.0+cpu, over 24 staged 320 by 240 frames:
+
+| Check | OpenCLIP ViT-B/16 | DINOv2 ViT-B/14 reg |
+| --- | --- | --- |
+| Same frames again, one process | bitwise equal | bitwise equal |
+| Second process, same weights | same SHA-256 of all rows | same SHA-256 of all rows |
+| Batch of 16 against batch of 1 | differs by up to 2.4e-7 | bitwise equal |
+| Sibling JPEG against staged frame, cosine | 0.974 minimum, 0.989 mean | 0.994 minimum, 0.997 mean |
+
+Rows are reproducible only for a fixed batch size, device and weight file, and vectors computed from
+sibling JPEGs are not interchangeable with vectors of staged frames. A GPU run was not measured.
+
+Hazards in the inspected code that an adapter must neutralise:
+
+- Importing `selfsuvis.pipeline.core.config` adds 21 variables to the process environment, among
+  them `DATA_DIR=./.data`, which ss-track also reads. It also loads `.env`, `.data/.env` and
+  `.data/.env.local` from a project root it takes from the working directory. Started in the
+  ss-track checkout, that root is ss-track. Sibling code must therefore run in its own process,
+  with an explicit environment and a neutral working directory. An installed sibling inside a
+  project can also find that project from its package path; the worker refuses opening `.env`
+  and `.env.local` regardless of location.
+- torch.hub, which the DINO loader calls, writes each `Downloading:` line on standard output, even
+  when the connection then fails. That descriptor carries the one JSON record of an ss-track command
+  and the worker protocol. With cached weights nothing else reaches standard output; sibling logs go
+  to standard error.
+- `DINOEmbedder` loads `DINO_CHECKPOINT`, or a path in `active_checkpoint.txt`, without recording
+  it. A missing checkpoint file logs a warning and keeps the base weights.
+- `resolve_device` returns the CPU when the requested device is unavailable, and on CUDA
+  out-of-memory both embedders move to the CPU for the rest of the run, so one run can mix
+  fp16-autocast GPU vectors with fp32 CPU vectors.
+- Both embedders resize the short side to 224 and centre-crop it. A 16:9 frame loses about 22% of
+  its width on each side, and a small bird shrinks with the frame. A tiled extractor
+  ([tiled coverage](discovery-runs.md#tiled-coverage)) sends square tiles that cover the frame.
+- `torch.hub` reads `facebookresearch/dinov2` at `main`, and `open_clip` reads Hugging Face at
+  `main`, so the weights can change underneath one pin. The pinned DINO code tree,
+  `tree-sha256:71fce3da...`, is `facebookresearch/dinov2` commit
+  `7764ea0f912e53c92e82eb78a2a1631e92725fc8`. A torch.hub cache filled earlier holds another tree
+  and refuses as `EXTRACTOR_UNPINNED`. Extract that commit's GitHub archive to
+  `$TORCH_HOME/hub/facebookresearch_dinov2_main` in a separate `TORCH_HOME`, with the pinned
+  checkpoint under `hub/checkpoints/`, rather than replacing a shared cache.
+
+## Adapted models
+
+ss-fusion SSL fine-tuning trains on every frame under its `DATA_DIR/frames/` and writes
+`dino_ssl_*.pt` without a `model-artifact` manifest. Only the ONNX export writes one, and its
+`training_data` names a kind and a reference, not sources. An adapted checkpoint therefore cannot
+show that it never saw locked-test footage, and corpus selection uses frozen pretrained backbones.
+
+## Integration plan
+
+1. **Embedding worker.** Implemented: ss-track runs ss-perception in a separate, pinned environment
+   over frames it staged itself, and keys every row by bundle hash, frame index and frame hash with
+   full provenance ([embedding worker](discovery-runs.md#embedding-worker)).
+2. **ss-video hints.** Implemented: a query match becomes a candidate window only through the
+   `file_hash` join and the slot rule above, under a recorded ffmpeg version and sampling rate
+   ([hint files](discovery-runs.md#hint-files)). It never names a frame by itself.
+3. **Selection features.** Implemented: whole-frame vectors miss edges and tiny targets, so an
+   extractor may embed square tiles that cover each frame
+   ([tiled coverage](discovery-runs.md#tiled-coverage)), measured on small-target fixtures.
+4. **Rights.** Implemented: the [source authorization](../corpus.md#source-authorization)
+   grants ss-fusion code and the pinned weights for corpus selection on the approved sources.
+
+## Resources
+
+| Item | Measured |
+| --- | --- |
+| Isolated Python 3.12 environment | 1.2 GB: ss-perception, ss-common, torch and torchvision CPU wheels, open_clip |
+| CLIP weights | 598,516,980 bytes, SHA-256 `4b8699299b1e8997753c64b052ba32031449d5d853f55a039148560ee02b820f` |
+| DINOv2 weights | `dinov2_vitb14_reg4_pretrain.pth`, 346,393,545 bytes, SHA-256 `73182a088cf94833c94b1666d1c99e02fe87e2007bff57b564fb6206e25dba71` |
+| CPU time per frame | 151 ms for CLIP and 205 ms for DINOv2 |
+| Load with cached weights | 1.4 s per model |
+| Peak resident memory | 1.6 GB |
+
+At these rates one hour of video sampled at five frames per second costs about 1.8 CPU hours for
+both models. The adapter's [measured run](discovery-runs.md#measured-run) agrees. `torch.hub`
+fetched `facebookresearch/dinov2` at `main`, which GitHub reported as commit `7764ea0f` during the
+study; the downloaded archive does not record a commit.

@@ -1,0 +1,504 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ss-track:contract:declaration:discovery-plan:1.1.0",
+  "title": "Discovery plan",
+  "description": "Operator declaration of one discovery run over a staged corpus version: the owner's source approval, the pool window, the audit sample, the pinned embedding worker, any ss-video hint files and the selection method. It grants no right and verifies no label.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "corpus_id",
+    "source_approval",
+    "pool",
+    "audit"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1,
+      "minimum": 0,
+      "x-unit": "1",
+      "description": "Declaration major."
+    },
+    "run_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "Discovery run to write, which is also its directory name."
+    },
+    "corpus_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "Staged corpus version the run reads."
+    },
+    "source_approval": {
+      "type": "object",
+      "description": "The owner's recorded approval to process these sources, the pinned sibling code and weights. ss-track cannot tell fixture media from real sources, so every run names one.",
+      "properties": {
+        "owner": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Who approved the processing.",
+          "x-rules": {
+            "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+          }
+        },
+        "reference": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Identifier of the owner's approval record.",
+          "x-rules": {
+            "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+          }
+        }
+      },
+      "required": [
+        "owner",
+        "reference"
+      ],
+      "additionalProperties": false
+    },
+    "pool": {
+      "type": "object",
+      "description": "How each stream is cut into pool windows.",
+      "properties": {
+        "window_frames": {
+          "type": "integer",
+          "description": "Source frames per pool window.",
+          "x-unit": "1",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "window_frames"
+      ],
+      "additionalProperties": false
+    },
+    "audit": {
+      "type": "object",
+      "description": "The independent audit sample: one stratum per encounter group.",
+      "properties": {
+        "seed": {
+          "type": "integer",
+          "description": "Deterministic random seed.",
+          "x-unit": "1",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "sample_size": {
+          "type": "integer",
+          "description": "Pool windows drawn per group, at most the group's windows.",
+          "x-unit": "1",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "seed",
+        "sample_size"
+      ],
+      "additionalProperties": false
+    },
+    "embedding": {
+      "type": "object",
+      "description": "Sibling embedding over staged frames, run out of process in a pinned environment.",
+      "properties": {
+        "package": {
+          "type": "object",
+          "description": "The installed package that holds the embedders.",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Distribution name.",
+              "enum": [
+                "ss-perception"
+              ]
+            },
+            "commit": {
+              "type": "string",
+              "description": "Full lowercase Git commit hash.",
+              "pattern": "^[0-9a-f]{40}$"
+            }
+          },
+          "required": [
+            "name",
+            "commit"
+          ],
+          "additionalProperties": false
+        },
+        "frame_stride": {
+          "type": "integer",
+          "description": "Embed every frame_stride-th frame of each bundle, from its first.",
+          "x-unit": "1",
+          "minimum": 1
+        },
+        "extractors": {
+          "type": "array",
+          "description": "Extractors in ascending extractor_id order; each runs in its own worker process.",
+          "items": {
+            "description": "One pinned extractor.",
+            "oneOf": [
+              {
+                "type": "object",
+                "description": "An ss-perception OpenCLIPEmbedder.",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "openclip",
+                    "description": "Embedder class the worker runs."
+                  },
+                  "extractor_id": {
+                    "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                    "description": "Name of the extractor within the run."
+                  },
+                  "model": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Model name the embedder loads, such as ViT-B-16 or dinov3_vitb14.",
+                    "x-rules": {
+                      "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+                    }
+                  },
+                  "pretrained": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "OpenCLIP pretrained tag, such as openai.",
+                    "x-rules": {
+                      "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+                    }
+                  },
+                  "device": {
+                    "type": "string",
+                    "description": "Device type the rows must be computed on; another is refused.",
+                    "enum": [
+                      "cpu",
+                      "cuda",
+                      "mps"
+                    ]
+                  },
+                  "batch_size": {
+                    "type": "integer",
+                    "description": "Frames per forward pass; rows of one model can depend on it.",
+                    "x-unit": "1",
+                    "minimum": 1
+                  },
+                  "dimensions": {
+                    "type": "integer",
+                    "description": "Values per feature row the model must return.",
+                    "x-unit": "1",
+                    "minimum": 1
+                  },
+                  "weights": {
+                    "type": "array",
+                    "description": "Every weight file the extractor loads, in ascending name order.",
+                    "items": {
+                      "type": "object",
+                      "description": "One weight file the extractor must load, pinned by revision and bytes.",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Published model name the worker reports, such as a Hugging Face repository.",
+                          "x-rules": {
+                            "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+                          }
+                        },
+                        "revision": {
+                          "type": "string",
+                          "description": "Immutable revision the weight file resolves from: a Hugging Face snapshot commit, or tree-sha256: and the digest of the torch.hub code directory. A branch name is refused.",
+                          "pattern": "^([0-9a-f]{40}|tree-sha256:[0-9a-f]{64})$"
+                        },
+                        "sha256": {
+                          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+                          "description": "SHA-256 of the weight file bytes."
+                        },
+                        "size_bytes": {
+                          "type": "integer",
+                          "description": "Weight file size.",
+                          "x-unit": "By",
+                          "minimum": 1
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "revision",
+                        "sha256",
+                        "size_bytes"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "minItems": 1
+                  },
+                  "tiles": {
+                    "type": "object",
+                    "description": "Embed square tiles that together cover each frame instead of the embedder's centre crop, so a small target near the frame edge is seen at a larger scale.",
+                    "properties": {
+                      "columns": {
+                        "type": "integer",
+                        "x-unit": "1",
+                        "minimum": 1,
+                        "description": "Tiles across each frame."
+                      },
+                      "rows": {
+                        "type": "integer",
+                        "x-unit": "1",
+                        "minimum": 1,
+                        "description": "Tiles down each frame."
+                      }
+                    },
+                    "required": [
+                      "columns",
+                      "rows"
+                    ],
+                    "additionalProperties": false,
+                    "x-rules": {
+                      "tiles": "Each tile position becomes an extractor of the run named <extractor_id>.r<row>c<column>, counted from 0; each such name is an identifier and no other extractor of the plan has it. A tile is square with side max(ceil(width / columns), ceil(height / rows)), which must not exceed the frame's shorter side."
+                    }
+                  }
+                },
+                "required": [
+                  "kind",
+                  "extractor_id",
+                  "model",
+                  "pretrained",
+                  "device",
+                  "batch_size",
+                  "dimensions",
+                  "weights"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "description": "An ss-perception DINOEmbedder.",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "dino",
+                    "description": "Embedder class the worker runs."
+                  },
+                  "extractor_id": {
+                    "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                    "description": "Name of the extractor within the run."
+                  },
+                  "model": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Model name the embedder loads, such as ViT-B-16 or dinov3_vitb14.",
+                    "x-rules": {
+                      "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+                    }
+                  },
+                  "device": {
+                    "type": "string",
+                    "description": "Device type the rows must be computed on; another is refused.",
+                    "enum": [
+                      "cpu",
+                      "cuda",
+                      "mps"
+                    ]
+                  },
+                  "batch_size": {
+                    "type": "integer",
+                    "description": "Frames per forward pass; rows of one model can depend on it.",
+                    "x-unit": "1",
+                    "minimum": 1
+                  },
+                  "dimensions": {
+                    "type": "integer",
+                    "description": "Values per feature row the model must return.",
+                    "x-unit": "1",
+                    "minimum": 1
+                  },
+                  "weights": {
+                    "type": "array",
+                    "description": "Every weight file the extractor loads, in ascending name order.",
+                    "items": {
+                      "type": "object",
+                      "description": "One weight file the extractor must load, pinned by revision and bytes.",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Published model name the worker reports, such as a Hugging Face repository.",
+                          "x-rules": {
+                            "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+                          }
+                        },
+                        "revision": {
+                          "type": "string",
+                          "description": "Immutable revision the weight file resolves from: a Hugging Face snapshot commit, or tree-sha256: and the digest of the torch.hub code directory. A branch name is refused.",
+                          "pattern": "^([0-9a-f]{40}|tree-sha256:[0-9a-f]{64})$"
+                        },
+                        "sha256": {
+                          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+                          "description": "SHA-256 of the weight file bytes."
+                        },
+                        "size_bytes": {
+                          "type": "integer",
+                          "description": "Weight file size.",
+                          "x-unit": "By",
+                          "minimum": 1
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "revision",
+                        "sha256",
+                        "size_bytes"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "minItems": 1
+                  },
+                  "tiles": {
+                    "type": "object",
+                    "description": "Embed square tiles that together cover each frame instead of the embedder's centre crop, so a small target near the frame edge is seen at a larger scale.",
+                    "properties": {
+                      "columns": {
+                        "type": "integer",
+                        "x-unit": "1",
+                        "minimum": 1,
+                        "description": "Tiles across each frame."
+                      },
+                      "rows": {
+                        "type": "integer",
+                        "x-unit": "1",
+                        "minimum": 1,
+                        "description": "Tiles down each frame."
+                      }
+                    },
+                    "required": [
+                      "columns",
+                      "rows"
+                    ],
+                    "additionalProperties": false,
+                    "x-rules": {
+                      "tiles": "Each tile position becomes an extractor of the run named <extractor_id>.r<row>c<column>, counted from 0; each such name is an identifier and no other extractor of the plan has it. A tile is square with side max(ceil(width / columns), ceil(height / rows)), which must not exceed the frame's shorter side."
+                    }
+                  }
+                },
+                "required": [
+                  "kind",
+                  "extractor_id",
+                  "model",
+                  "device",
+                  "batch_size",
+                  "dimensions",
+                  "weights"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "package",
+        "frame_stride",
+        "extractors"
+      ],
+      "additionalProperties": false
+    },
+    "hints": {
+      "type": "array",
+      "description": "ss-video hint files in ascending hint_source_id order.",
+      "items": {
+        "type": "object",
+        "description": "One ss-video hint file.",
+        "properties": {
+          "hint_source_id": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+            "description": "Name of the hint source within the run."
+          },
+          "file": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Hint declaration path, relative to this plan.",
+            "x-rules": {
+              "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+            }
+          }
+        },
+        "required": [
+          "hint_source_id",
+          "file"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1
+    },
+    "selection": {
+      "description": "How the run ranks pool windows for review. Absent, the run ranks nothing and computes no score. A window of a stream in the locked split is never ranked.",
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "The baseline: a seeded simple random sample of budget eligible pool windows, each with the same known probability. It reads no score.",
+          "properties": {
+            "method": {
+              "type": "string",
+              "const": "uniform",
+              "description": "Selection method."
+            },
+            "budget": {
+              "type": "integer",
+              "x-unit": "1",
+              "minimum": 1,
+              "description": "Pool windows selection may rank for review, at most."
+            },
+            "seed": {
+              "type": "integer",
+              "description": "Deterministic random seed, independent of the audit seed.",
+              "x-unit": "1",
+              "minimum": 0,
+              "maximum": 9223372036854775807
+            }
+          },
+          "required": [
+            "method",
+            "budget",
+            "seed"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "Model-assisted and deterministic: windows are ranked by the mean percentile of the scores read, and each pick is penalised by its embedding similarity to windows already picked.",
+          "properties": {
+            "method": {
+              "type": "string",
+              "const": "ssl-diverse",
+              "description": "Selection method."
+            },
+            "budget": {
+              "type": "integer",
+              "x-unit": "1",
+              "minimum": 1,
+              "description": "Pool windows selection may rank for review, at most."
+            },
+            "score_ids": {
+              "type": "array",
+              "description": "Scores the selection reads, in ascending order.",
+              "items": {
+                "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                "description": "One score the run computes."
+              },
+              "minItems": 1
+            }
+          },
+          "required": [
+            "method",
+            "budget",
+            "score_ids"
+          ],
+          "additionalProperties": false,
+          "x-rules": {
+            "scores": "score_ids are ascending and distinct, and each is motion, or <extractor_id>.deviation or <extractor_id>.instability for an extractor of this plan, whose embedding section is then required."
+          }
+        }
+      ]
+    }
+  },
+  "x-rules": {
+    "order": "extractors, weights and hints are in ascending order of extractor_id, name and hint_source_id, each appearing once.",
+    "rights": "source_approval names an approval held outside ss-track; this declaration grants no right."
+  }
+}

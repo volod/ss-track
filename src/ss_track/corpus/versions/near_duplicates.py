@@ -54,10 +54,21 @@ class _Pair:
     similarity: float
     streams: tuple[_Window, _Window]
 
+    @property
+    def stream_ids(self) -> tuple[str, str]:
+        """Return both stream ids in report order."""
+        first, second = sorted(self.streams, key=_stream_order)
+        return first.stream_id, second.stream_id
+
+    @property
+    def rounded(self) -> float:
+        """Return the similarity as the report states it."""
+        return round(self.similarity, _SIMILARITY_DIGITS)
+
     def to_record(self) -> dict[str, JsonValue]:
         ordered = tuple(sorted(self.streams, key=_stream_order))
         return {
-            "similarity": round(self.similarity, _SIMILARITY_DIGITS),
+            "similarity": self.rounded,
             "streams": [window.to_record() for window in ordered],
         }
 
@@ -118,6 +129,17 @@ def report_near_duplicates(
         return NearDuplicates((), tuple(gaps), outside.scan)
     codes, unread = _codes(windows, data_root)
     return NearDuplicates(_pairs(windows, codes), tuple(gaps) + tuple(unread), outside.scan)
+
+
+def version_near_duplicates(
+    corpus_id: str, streams: Sequence[Mapping[str, Any]], data_root: Path
+) -> NearDuplicates:
+    """Compare the windows of one version's different groups, and nothing else on the data root."""
+    windows = [_window(corpus_id, stream) for stream in streams]
+    if len({window.group_id for window in windows}) < 2:
+        return NearDuplicates((), ())
+    codes, unread = _codes(windows, data_root)
+    return NearDuplicates(_pairs(windows, codes), unread)
 
 
 def _windows(

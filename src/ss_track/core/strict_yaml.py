@@ -23,6 +23,11 @@ class UniqueKeyLoader(yaml.SafeLoader):
         return super().construct_mapping(node, deep)
 
 
+def parse_unique_document(payload: str) -> object:
+    """Parse one YAML document and refuse a repeated key."""
+    return yaml.load(payload, Loader=UniqueKeyLoader)
+
+
 class YamlDate(str):
     """The ISO text of a value YAML read as a date, so a validator can tell it from quoted text.
 

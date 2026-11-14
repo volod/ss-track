@@ -17,6 +17,7 @@ from ss_track.corpus import build_corpus as run_corpus_build
 from ss_track.corpus import import_source as run_import
 from ss_track.corpus.cases.preview import preview_stream
 from ss_track.corpus.descriptors.descriptor import RESTRICTED, VISIBILITIES, describe_corpus
+from ss_track.corpus.review.freeze import freeze_corpus
 
 
 def add_corpus_commands(subcommands: Subcommands) -> None:
@@ -77,6 +78,13 @@ def add_corpus_commands(subcommands: Subcommands) -> None:
     preview.add_argument("--frame", type=int, required=True, help="zero-based source frame index")
     preview.add_argument("--out", type=Path, required=True, help="PNG file to write")
     preview.set_defaults(handler=_run_corpus_preview)
+    freeze = corpus_commands.add_parser(
+        "freeze", help="seal a staged version as the one a review makes of its discovery run"
+    )
+    freeze.add_argument("--corpus", required=True, help="staged corpus_id to freeze")
+    freeze.add_argument("--review", type=Path, required=True, help="reviewer decisions (YAML)")
+    freeze.add_argument("--links", required=True, help="run id of this version's link review")
+    freeze.set_defaults(handler=_run_corpus_freeze)
 
 
 def _run_import(args: argparse.Namespace) -> int:
@@ -121,4 +129,10 @@ def _run_corpus_compare(args: argparse.Namespace) -> int:
 def _run_corpus_preview(args: argparse.Namespace) -> int:
     return reported_on_data_root(
         lambda data_root: preview_stream(args.corpus, args.stream, args.frame, args.out, data_root)
+    )
+
+
+def _run_corpus_freeze(args: argparse.Namespace) -> int:
+    return reported_on_data_root(
+        lambda data_root: freeze_corpus(args.corpus, args.review, args.links, data_root)
     )

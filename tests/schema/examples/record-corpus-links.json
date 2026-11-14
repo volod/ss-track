@@ -1,0 +1,104 @@
+{
+  "corpus_id": "links-eval-v1",
+  "corpus_manifest_sha256": "48d81f6fd6c6076cc31cc610644d59b00eef292913957dbf82eb2d1c71df6825",
+  "decisions_outside_links": [],
+  "features": {
+    "run_id": "links-eval-features",
+    "run_sha256": "acec6e3fe85aae91df86cdee06e0b8544dc472dbca16fed7278bc95a0ce3b7a8"
+  },
+  "frame_set_sha256": "99f019f75769c5e169cc165fea00e40583f355475c630336abd3f1dd51ddec4a",
+  "kind": "ss-track.corpus-links",
+  "links": [
+    {
+      "cross_split": false,
+      "decision": {
+        "decision": "unrelated",
+        "note": "life and mandelbrot are independent synthetic scenes"
+      },
+      "evidence": [],
+      "sources": [
+        {
+          "group_id": "g-life",
+          "source_sha256": "2743e1be96d8a56a5a58e561d04333a887a3f4ff1c57455f597ae3c82bd49c5e",
+          "split": "development",
+          "stream_ids": [
+            "life"
+          ]
+        },
+        {
+          "group_id": "g-mandelbrot",
+          "source_sha256": "ab996a72e94701cd9945aaef68f8444ed4e9275a56d5e7aeb7735af45eef7414",
+          "split": "development",
+          "stream_ids": [
+            "mandelbrot"
+          ]
+        }
+      ],
+      "status": "unrelated"
+    },
+    {
+      "cross_split": true,
+      "evidence": [
+        {
+          "extractor_id": "dino-b14",
+          "method": "background-cosine",
+          "similarity": 0.8901,
+          "stream_ids": [
+            "hawk-c",
+            "hawk-d"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "group_id": "g-hawk-c",
+          "source_sha256": "5e503bc39e7b31ec486b0aa84a5f6b805ac3dad953b82a8fbca4c6e40a1ea69f",
+          "split": "development",
+          "stream_ids": [
+            "hawk-c"
+          ]
+        },
+        {
+          "group_id": "g-hawk-d",
+          "source_sha256": "eaaaf8009d9e3da7328c5ce0dafc4d63be48d60fa7400b448a745656e5090800",
+          "split": "locked",
+          "stream_ids": [
+            "hawk-d"
+          ]
+        }
+      ],
+      "status": "unresolved"
+    }
+  ],
+  "manifest_sha256": "722fe102656fa2c0d8a36b6c45f935e2a255e924546a5d47ec4dfd2241d40f01",
+  "methods": [
+    {
+      "grid": 16,
+      "method": "luma-grid-16",
+      "samples": 16,
+      "threshold": 0.9
+    },
+    {
+      "extractor_id": "dino-b14",
+      "method": "background-cosine",
+      "revision": 1,
+      "run_extractor_ids": [
+        "dino-b14"
+      ],
+      "threshold": 0.6
+    }
+  ],
+  "not_compared": [],
+  "review": {
+    "decision_count": 1,
+    "reviewer": "links-eval fixture reviewer"
+  },
+  "run_id": "links-eval-lookalikes",
+  "schema_version": 1,
+  "shared_frames": {
+    "compared_versions": [],
+    "min_shared_frames": 8,
+    "not_compared": []
+  },
+  "status": "unresolved"
+}

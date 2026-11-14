@@ -19,191 +19,185 @@ by priority in each lane; dependency readiness must currently be checked from th
 Agent group ends with its [group audit](../guide/planning-workflow.md#group-audits), whose
 `(optional)` marker sets its order and does not make it skippable.
 
-See the [planning workflow](../guide/planning-workflow.md),
-[engine milestone map](../design/perception-bench-engine.md#milestone-map),
-[test plan](../design/perception-bench-test-plan.md)
-and [test-stand requirements](../design/test-stands.md). M1 is the small G0a pipeline, M2 supplies
-measurement and host selection, and M3 delivers the reference mesh. M4, M5 and M6 are optional
-extensions; none blocks M3. Fixture implementation proceeds without physical hardware or private data.
+See the [planning workflow](../guide/planning-workflow.md), [engine milestone
+map](../design/perception-bench-engine.md#milestone-map), [test
+plan](../design/perception-bench-test-plan.md) and [test-stand
+requirements](../design/test-stands.md). M1 is the small G0a pipeline, M2 supplies measurement and
+host selection, and M3 delivers the reference mesh. Together they are [Phase
+1](../design/spec.md#mission-and-phases): long-range detection, tracking and work with a human
+operator. M7, autonomous recognition inside an energy budget, and M8, stand-off following in
+simulation, and M9, the autonomous mission evaluation, are Phase 2 under [spec section
+19](../design/spec.md#19-phase-2-autonomous-operation) and start from M3 evidence. M4, M5 and M6 are
+optional extensions; none blocks M3, M7, M8 or M9. Fixture implementation proceeds without physical
+hardware or private data.
 
 ## Agent Implementation Tasks
 
-### Self-supervised video corpus -- `self-supervised-corpus`
+### Corpus provenance -- `corpus-provenance`
 
-#### corpus-sibling-integration-study
+#### shared-evidence-primitives
 
-The sibling projects expose video indexing and SSL research, but their exact export and version
-compatibility for frozen corpus formation need evidence.
+Sealed records, atomic writes, locks and the clean-kind registry live inside the corpus package,
+and its record reader imports a source module. Labels, run bundles, host profiles and trials need
+the same primitives, and each would otherwise copy them or import corpus internals.
 
-- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
+- Serves: `corpus-provenance` -- [Corpus
+  identity](../design/spec.md#41-corpus-identity-and-input-handling)
 - Agent status: CLEAR
-- Research: yes
+- Milestone: M1
 - Dependencies: none.
-- User-visible outcome: A reviewable adapter plan identifies usable ss-video and ss-fusion interfaces.
-- Scope boundary: Inspect pinned revisions, package and model licenses, sampling and export paths;
-  training, privileged service deployment, and broad source acquisition are excluded.
-- Data and artifact paths: `docs/impl/current/corpus.md`, `docs/impl/records/`, `$DATA_DIR/self-supervised-corpus/<run-id>/`.
-- Execution path: Inspect ss-video ingest/search and ss-fusion perception/SSL paths; test a small
-  local example or fixtures and record exact revisions, versions, resource requirements and gaps.
-- Acceptance gates: Document the source/frame-to-embedding and export mapping, model and data rights,
-  version compatibility and reproducibility; a reasoned incompatibility or unavailable interface is
-  a valid negative with an alternative or explicit block. `make ci` passes.
+- User-visible outcome: Every area seals, reads, locks and cleans evidence through one shared
+  package, and no area imports a corpus module to do so.
+- Scope boundary: A move of the sealing and sealed-read path, the read window, atomic scratch
+  writes, locks and the clean-kind registry. Corpus-specific kinds, layout and projections stay in
+  the corpus area and register themselves. The one term the read path takes from a source module
+  becomes a value its caller supplies. No sealed byte, hash, refusal code or contract moves.
+- Data and artifact paths: `src/ss_track/core/`, `src/ss_track/corpus/records/`,
+  `src/ss_track/corpus/storage/`, `tests/core/`, `tests/corpus/`, `AGENTS.md`,
+  `docs/guide/planning-workflow.md`.
+- Execution path: Move the primitives under unchanged function names where possible, let each area
+  register its record kinds and clean kinds, and add an import-boundary test. Update the clean-kind
+  path that `AGENTS.md` and the planning workflow name.
+- Acceptance gates: Every sealed fixture and historic record reads to the same bytes and hashes. An
+  import-boundary test fails when the shared package imports an area, or when a module outside the
+  corpus area imports it for sealing, locking or cleaning. `make ci` passes.
 - Documentation target: [Corpus](current/corpus.md).
 
-#### corpus-discovery-contract
+#### recording-capture-vocabulary
 
-Reviewers cannot reconstruct why a frame or interval entered a candidate list without stable records.
+The specification gives camera control a closed vocabulary, but a recording stores it as free text,
+and no recording says whether its camera stood on the ground or flew. Reports cannot stratify by
+either, so ground footage could stand in for an airborne observer unnoticed.
 
-- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
+- Serves: `corpus-provenance` -- [Evidence lanes](../design/spec.md#2-evidence-lanes-and-claims)
 - Agent status: CLEAR
-- Dependencies: corpus-sibling-integration-study.
-- User-visible outcome: A portable, validated candidate inventory records authorized source lineage,
-  frame or time windows, group, model and processing revision, scores, selection and audit status.
-- Scope boundary: Versioned interchange contracts and validators; predictions are not labels and
-  scores do not authorize a source or assign a final split.
-- Data and artifact paths: `contracts/`, `src/ss_track/corpus/`, `tests/corpus/`.
-- Execution path: Reuse source and frame identities, define candidate and run contracts and validate
-  golden records without either external service.
-- Acceptance gates: Fixtures reject missing rights references, ambiguous frame/time identity, missing
-  model provenance and invalid selection probability; contract-only consumers validate unchanged
-  records and `make ci` passes.
+- Milestone: M1
+- Dependencies: none.
+- User-visible outcome: A recording declares camera control and observer platform from closed
+  vocabularies, a corpus build counts its encounters by both, and any other value is refused.
+- Scope boundary: `capture.camera_control_mode` as `operator_steered`, `fixed_camera`,
+  `autonomous_camera` or `unknown`, and `capture.observer_platform` as `ground_fixed`,
+  `ground_handheld`, `airborne` or `unknown`, in the recording declaration and the source record.
+  An absent value reads as `unknown`. A record written before this change keeps its bytes, and its
+  free text is shown as stated and never mapped by guesswork. Other capture facts stay descriptive.
+- Data and artifact paths: `contracts/declaration/recording/`, `contracts/record/source-manifest/`,
+  `src/ss_track/corpus/declarations/`, `src/ss_track/corpus/versions/`, `tests/corpus/`,
+  `docs/impl/workloads/`.
+- Execution path: Evolve both contracts under the spec section 17.3 rules, with the version bump
+  the change requires and a read disposition for older records. Add counts by control mode and
+  platform to the build result, and restate the checked-in workload declarations.
+- Acceptance gates: A value outside either vocabulary is refused with its field named. An older
+  record reads with no byte or hash moved and reports its control mode as stated text. A build
+  result counts encounters by control mode and observer platform, with `unknown` shown. Frozen
+  contracts and `make ci` pass.
 - Documentation target: [Corpus](current/corpus.md).
 
-#### corpus-video-index-adapter
+#### scale-reduction-case
 
-An operator needs to use indexed video candidates without losing source or frame identity.
+No generated case makes a target smaller, so the benchmark cannot show where a module stops seeing
+a target as it covers fewer pixels, which is the offline form of long-range detection.
 
-- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
+- Serves: `corpus-provenance` -- [Deterministic cases](../design/spec.md#43-deterministic-cases-and-negative-evidence)
 - Agent status: CLEAR
-- Dependencies: corpus-discovery-contract.
-- User-visible outcome: Authorized indexed observations become auditable candidate records.
-- Scope boundary: An ss-video adapter against the studied interface; no unrestricted URL crawl,
-  network requirement in tests, silent source download, or conversion of predictions to labels.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/self-supervised-corpus/<run-id>/`.
-- Execution path: Map source hashes, decoded frame identity and sampled timestamps through a pinned
-  adapter, recording unsupported or unavailable records and service or model configuration.
-- Acceptance gates: Fixture responses map exactly to source and frame references; missing rights,
-  timestamps, revisions, incompatible models and partial responses are refused or reported, never
-  fabricated; retries are deterministic and `make ci` passes.
+- Milestone: M1
+- Dependencies: none.
+- User-visible outcome: A recipe declares a scale-reduction case, and staging writes frames
+  resampled by its factor with a stored `scale` label transform.
+- Scope boundary: Whole-frame reduction by a declared factor, with an area-average filter that is
+  part of the transform revision, and a label transform that states the factor. No blur, noise,
+  atmosphere or optics model, no enlargement and no range claim. A graded list of factors belongs
+  to `robustness-severity-sweep`, and deriving the labels belongs to `generated-case-labels`.
+- Data and artifact paths: `src/ss_track/corpus/cases/`, `tests/corpus/cases/`, `contracts/`,
+  `$DATA_DIR/corpus/<corpus-id>/`.
+- Execution path: Add the transform in integer arithmetic, so one recipe gives identical bytes on
+  x86-64 and arm64, record the output dimensions in the bundle, and extend `corpus preview` to
+  show the reduced frame beside its parent.
+- Acceptance gates: Hand-computed frames match for even and odd dimensions and for a factor that
+  does not divide them. A rerun is byte-identical, a factor that changes no pixel is refused, and
+  a stored case of another revision is refused. The case inherits its parent's split, encounter
+  and group and adds to no count. `make ci` passes.
 - Documentation target: [Corpus](current/corpus.md).
 
-#### corpus-ssl-selection
+#### frame-sequence-source-import (optional)
 
-Ranking only known objects misses rare, tiny or unfamiliar birds and background negatives.
+Public airborne-observer collections often ship as numbered images, and import accepts one video
+stream of one file, so such a source cannot enter a corpus.
 
-- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
+- Serves: `corpus-provenance` -- [Corpus identity](../design/spec.md#41-corpus-identity-and-input-handling)
 - Agent status: CLEAR
-- Research: yes
-- Dependencies: corpus-discovery-contract, corpus-sibling-integration-study.
-- User-visible outcome: Operators get ranked, diverse candidate windows plus reproducible independent
-  audit samples from the eligible pool.
-- Scope boundary: Frozen or explicitly versioned ss-fusion visual representations where feasible,
-  diversity, uncertainty, motion and seeded random sampling; no claim that a score is a label.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/self-supervised-corpus/<run-id>/`.
-- Execution path: Implement a model-agnostic selection seam and evaluate sibling embeddings against a
-  simple uniform baseline, retaining each sampling probability, seed and exclusion reason.
-- Acceptance gates: Fixtures reproduce selection and independent audit membership; negatives,
-  confusers and unseen candidates can enter the audit sample; unavailable features are explicit.
-  A negative model comparison is valid and `make ci` passes.
+- Dependencies: recording-capture-vocabulary.
+- User-visible outcome: A recording declares an ordered image sequence as its source, and import,
+  build, stage and verify treat it as they treat a video stream.
+- Scope boundary: Lossless image files in a declared order, with one source identity over the
+  ordered file hashes. A sequence stores no presentation time, so its timestamp quality is
+  `missing` unless the declaration states a frame rate, which makes it `derived`. No lossy image
+  format, no resampling and no reordering by guesswork.
+- Data and artifact paths: `contracts/declaration/recording/`, `contracts/record/source-manifest/`,
+  `src/ss_track/corpus/sources/`, `src/ss_track/corpus/decoding/`, `tests/corpus/`.
+- Execution path: Evolve both contracts under the spec section 17.3 rules, read each image through
+  the pinned decoder into the canonical pixel format, and add fixtures with a missing index, a
+  changed image and mixed dimensions.
+- Acceptance gates: One sequence imported twice gives one source identity and one bundle hash. A
+  missing index, a changed image and mixed dimensions are each refused by name. Time-based scores
+  of a sequence with no declared rate are unavailable with their cause, and `make ci` passes.
 - Documentation target: [Corpus](current/corpus.md).
 
-#### corpus-group-and-leakage-review
+#### corpus-provenance-audit (optional)
 
-Related recordings and visually similar copies can leak across splits and exaggerate evidence.
+Shared primitives, closed capture vocabularies and a geometry-changing case each touch records
+that earlier work sealed, and a difference between them would move a hash.
 
-- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
+- Serves: `corpus-provenance` -- [Corpus
+  identity](../design/spec.md#41-corpus-identity-and-input-handling)
 - Agent status: CLEAR
-- Dependencies: corpus-discovery-contract.
-- User-visible outcome: Reviewers see likely related video and keep related encounters together.
-- Scope boundary: Source and exact frame checks plus flagged embedding or perceptual candidates;
-  final grouping decisions remain human-owned, and a similarity threshold is not ground truth.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/self-supervised-corpus/<run-id>/`.
-- Execution path: Reuse existing corpus grouping and duplicate checks, add reviewable candidate
-  links and reject known cross-split leakage on export.
-- Acceptance gates: Fixtures cover remuxed and related recordings, unrelated lookalikes and an
-  unresolved conflict; known leakage is refused and uncertain matches are exposed, not silently
-  merged. `make ci` passes.
-- Documentation target: [Corpus](current/corpus.md).
-
-#### corpus-review-and-freeze
-
-Large candidate inventories need bounded human decisions before they become benchmark inputs.
-
-- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
-- Agent status: CLEAR
-- Dependencies: corpus-video-index-adapter, corpus-ssl-selection, corpus-group-and-leakage-review.
-- User-visible outcome: Reviewers can inspect candidates and export a frozen, reproducible corpus
-  version with source terms, group, split, exclusions and decision provenance.
-- Scope boundary: Review and source-to-corpus manifest export; label adjudication uses the existing
-  annotation contract and the locked split requires its existing custodian policy.
-- Data and artifact paths: `contracts/`, `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/corpus/<corpus-id>/`.
-- Execution path: Provide bounded review decisions and manifest generation through existing import,
-  corpus build, stage and verify flows, with refusal on expired terms or unresolved split conflicts.
-- Acceptance gates: Replaying frozen reviewed decisions yields the same membership and hashes;
-  rejected, unknown or unreviewed cases cannot masquerade as verified labels; denied, expired and
-  conflicting sources refuse. Fixture tests and `make ci` pass.
-- Documentation target: [Corpus](current/corpus.md).
-
-#### corpus-selection-evaluation
-
-A larger selected pool may conceal missed small birds or exclude hard negatives.
-
-- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
-- Agent status: CLEAR
-- Dependencies: corpus-ssl-selection, corpus-discovery-contract.
-- User-visible outcome: A report compares model-assisted selection with a random or uniform
-  baseline and exposes missed cases and resource cost at a matched review budget.
-- Scope boundary: Independently reviewed audit samples and stratified uncertainty; no field accuracy,
-  generalization or verified species claim from model proposals alone.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/self-supervised-corpus/<run-id>/`.
-- Execution path: Define a reproducible evaluation protocol before running, score reviewed random
-  samples including unselected material, and report diversity, negatives, recall, cost and exclusions.
-- Acceptance gates: Hand-calculated fixtures verify denominators, sampling weights, uncertainty and
-  unavailable strata; empty or insufficient evidence produces an explicit inconclusive result.
-  Negative gains remain valid and `make ci` passes.
-- Documentation target: [Corpus](current/corpus.md).
-
-#### corpus-scale-pilot
-
-A large corpus needs evidence that selection can run within the owner's available resources.
-
-- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
-- Agent status: RUN NEEDED
-- Research: yes
-- Dependencies: corpus-review-and-freeze, corpus-selection-evaluation,
-  authorize-video-corpus-sources, review-video-corpus-sample.
-- User-visible outcome: An authorized pilot produces a measured, reproducible corpus or explains why
-  available video, quality, cost or resources do not support it.
-- Scope boundary: Only approved sources, processing and storage budgets; no acquisition beyond the
-  agreed list or unattended spend.
-- Data and artifact paths: `$DATA_DIR/self-supervised-corpus/<run-id>/`, `$DATA_DIR/corpus/<corpus-id>/`.
-- Execution path: Use the approved corpus-size and diversity targets, candidate sampling, human
-  review and baseline protocol; measure ingest, storage, compute and completeness; retain run pins.
-- Acceptance gates: Corpus verification, rights and grouping checks pass; the report states selection
-  recall, uncertainty, negative coverage and matched-budget baseline results, including missing
-  evidence. Insufficient resources or a negative selection result is a valid negative; `make ci` passes.
-- Documentation target: [Corpus](current/corpus.md).
-
-#### self-supervised-corpus-audit (optional)
-
-The full corpus formation path needs one review across sibling integrations and reviewer decisions.
-
-- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
-- Agent status: CLEAR
+- Milestone: M1
 - Effort: high
 - Dependencies: every other agent task in this group.
-- User-visible outcome: The complete workflow preserves source rights, frame identity, sampling
-  evidence, review authority and split isolation across its seams.
-- Scope boundary: Group audit over this group's paths, contracts, external version pins, tests and
-  limitations; no new acquisition or claimed field performance.
-- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `contracts/`, `$DATA_DIR/self-supervised-corpus/`.
-- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits), including
-  stopped runs, unavailable models, unselected negatives and duplicate or revoked source terms.
-- Acceptance gates: Each finding is fixed, routed or dropped with its reason, verified evidence is
-  reproducible and `make quality` passes; finding nothing is valid when scope is recorded.
+- User-visible outcome: The corpus area keeps one account of sealing, capture facts and generated
+  cases after its primitives moved.
+- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
+  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
+  score or refusal code.
+- Data and artifact paths: `src/ss_track/core/`, `src/ss_track/corpus/`, `tests/core/`,
+  `tests/corpus/`, `contracts/`.
+- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from
+  every caller of the shared primitives, how an older recording reads under the closed
+  vocabularies, and what the scale-reduction case shares with the other frame-map cases.
+- Acceptance gates: Historic records read to the same bytes and hashes, the import boundary holds,
+  and generated cases stay byte-identical on rerun. Every finding is fixed, routed to a task or
+  dropped with its reason, and `make quality` passes. Finding nothing is a valid result when the
+  record states what was reviewed.
 - Documentation target: [Corpus](current/corpus.md).
 
 ### Annotation and selection -- `annotation-selection`
+
+#### scenario-pack-contract
+
+Labels, scenarios and reports all name a scenario pack, but no format defines one. A class ID has
+no pinned meaning, and the mission's targets exist only in prose.
+
+- Serves: `annotation-selection` -- [Evidence lanes](../design/spec.md#2-evidence-lanes-and-claims)
+- Agent status: CLEAR
+- Milestone: M1
+- Dependencies: none.
+- User-visible outcome: `ss-track contracts validate` accepts a scenario pack that states its
+  classes, annotation vocabulary and limits, and a draft `aerial-small-objects` pack is the first.
+- Scope boundary: A `declaration` contract for a pack: stable class IDs with scoring, distractor
+  and ignore roles, a class hierarchy, minimum box, point and identifiable extents, extent bins,
+  observer-platform strata, and named slots for the access policy, the non-disturbance envelope
+  and the Phase 2 declarations of spec sections 19.3 and 19.7: target set, known non-targets,
+  unknown set, declaration deadline and burden, declared target size and stand-off levels. The
+  draft mission pack holds bird, bird of prey, drone, aircraft, insect and clutter classes. Its
+  values are the owner's, through `approve-mission-scenario-pack`. No species list and no
+  envelope value is invented here, and a Phase 2 slot stays empty until its human task fills it.
+- Data and artifact paths: `contracts/declaration/scenario-pack/`, `scenarios/packs/`,
+  `src/ss_track/annotate/`, `tests/annotate/`.
+- Execution path: Add the contract and its registry entry, a loader that returns one pack hash,
+  and positive and malformed fixtures.
+- Acceptance gates: A duplicate class ID, a class with no role, an extent bin that overlaps
+  another, and an envelope slot filled with no approval record are each refused with a reason.
+  Changing any class, role, extent or bin changes the pack hash. `make ci` passes.
+- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
 
 #### annotation-contract
 
@@ -212,7 +206,7 @@ Labels need stable identity and a frozen mask before scores can mean anything.
 - Serves: `annotation-selection` -- [Annotation contract](../design/spec.md#42-annotation-contract)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: none.
+- Dependencies: scenario-pack-contract, shared-evidence-primitives.
 - User-visible outcome: An operator validates visibility status, geometry, instance identity, motion
   events, operator seeds and masks against a versioned contract.
 - Scope boundary: Label, seed and mask contracts, validation and frozen seed replay, in the stored
@@ -252,26 +246,30 @@ create a false negative.
 - Serves: `annotation-selection` -- [Annotation contract](../design/spec.md#42-annotation-contract)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: annotation-review-tools.
+- Dependencies: annotation-review-tools, scale-reduction-case.
 - User-visible outcome: `ss-track annotate derive` gives each generated case a hashed label revision
   from its parent's frozen labels and stored label transform, including a `track_status` case.
 - Scope boundary: Every stored label transform: region status, translation with clipping and
-  `out_of_view`, frame maps, `compression`, `timing` and `track_status`. `compression` and `timing`
-  do not move geometry. `timing` records that presentation time is `derived`. `track_status` lists
-  one role per case-window frame: `unknown` when that frame has no box, `region` for a painted
-  rectangle, `shift` when the frame leaves the view, `reentry` when the box is back, and
-  `unchanged` when the box stays. `unknown` stays `unknown` and is never `absent`. A `shift` frame
-  is `out_of_view`. A `reentry` frame records re-entry. A `region` role names the painted
-  rectangle: the occluder, the removed box, or the distractor copy. The target box on a distractor
-  frame is not that rectangle and stays as the parent labeled it. The plate check applies to each
-  box `moving_removal` replaces. A track case whose boxes or `label_revision` do not match that
-  instance in the parent's frozen revision is refused. Derived labels are never edited by hand.
+  `out_of_view`, frame maps, `scale`, `compression`, `timing` and `track_status`. `scale` multiplies
+  geometry, uncertainty and plausible extent by its factor, turns a box under the pinned pack's
+  minimum box extent into `point_only`, and a target under its minimum point extent into
+  `unlocalizable`. `compression` and `timing` do not move geometry. `timing` records that
+  presentation time is `derived`. `track_status` lists one role per case-window frame: `unknown`
+  when that frame has no box, `region` for a painted rectangle, `shift` when the frame leaves the
+  view, `reentry` when the box is back, and `unchanged` when the box stays. `unknown` stays
+  `unknown` and is never `absent`. A `shift` frame is `out_of_view`. A `reentry` frame records
+  re-entry. A `region` role names the painted rectangle: the occluder, the removed box, or the
+  distractor copy. The target box on a distractor frame is not that rectangle and stays as the
+  parent labeled it. The plate check applies to each box `moving_removal` replaces. A track case
+  whose boxes or `label_revision` do not match that instance in the parent's frozen revision is
+  refused. Derived labels are never edited by hand.
 - Data and artifact paths: `src/ss_track/annotate/`, `tests/annotate/`,
   `$DATA_DIR/corpus/<corpus-id>/labels/`.
 - Execution path: Apply each label-transform kind to hand-built parent labels, then check plates and
   regions against those labels. Apply each `track_status` role to the frame it names.
-- Acceptance gates: Hand-computed labels match for every transform, including `compression`,
-  `timing` and `track_status`. A plate showing a target inside its region is refused, and a target
+- Acceptance gates: Hand-computed labels match for every transform, including `scale`,
+  `compression`, `timing` and `track_status`. A scaled box under the pack's minimum extent is
+  `point_only`, never a box. A plate showing a target inside its region is refused, and a target
   the region does not fully cover stays `unknown`. A frame with no scorable box stays `unknown`.
   The same plate check applies to each box `moving_removal` replaces. A track case whose boxes or
   `label_revision` do not match that instance in the parent's frozen revision is refused. A parent
@@ -339,8 +337,8 @@ A comparison must pin everything that can change its result.
 - Agent status: CLEAR
 - Milestone: M1
 - Dependencies: event-schema-contract, annotation-contract.
-- User-visible outcome: A scenario file pins corpus, frame set, labels, selection, replay mode, metric
-  suite, seed and deadlines, and yields one cohort key.
+- User-visible outcome: A scenario file pins scenario pack, corpus, frame set, labels, selection,
+  replay mode, metric suite, seed and deadlines, and yields one cohort key.
 - Scope boundary: The scenario schema, one cohort-key function, and one type that owns windows and
   runs. G2 boundaries are out of scope.
 - Data and artifact paths: `src/ss_track/contract/`, `scenarios/`, `tests/contract/`.
@@ -359,15 +357,18 @@ Every score must be recomputable from immutable evidence.
 - Serves: `module-contract-runner` -- [Run artifacts](../design/spec.md#10-run-artifacts-and-comparison-dashboard)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: scenario-contract.
+- Dependencies: scenario-contract, shared-evidence-primitives.
 - User-visible outcome: A run leaves a complete read-only bundle, or one marked incomplete.
 - Scope boundary: The spec section 10 artifact set, write-then-rename finalize, idempotent IDs, and a
   visibility field that defaults to restricted. `loc-lm-bench` is a pattern to check, not an import.
 - Data and artifact paths: `src/ss_track/contract/`, `tests/contract/`, `$DATA_DIR/run/<run-id>/`.
 - Execution path: Add bundle reader and writer with crash and retry fixtures. The run manifest and
   bundle are `record` contracts, and the manifest lists the contract set in force.
-- Acceptance gates: A crash fixture leaves no complete-looking bundle, a retried ID stays idempotent,
-  and each manifest records its re-run command. A bundle with no visibility value reads as restricted.
+- Acceptance gates: A crash fixture leaves no complete-looking bundle, a retried ID stays
+  idempotent, and each manifest records its re-run command. A bundle with no visibility value reads
+  as restricted. Run scratch and any reproducible cache are registered
+  [data clean](current/corpus.md#cleaning-the-data-root) kinds with restore paths and tests; sealed
+  bundles never are.
 - Documentation target: [Current implementation](current.md#areas), page `current/runner.md`.
 
 #### lockstep-runner
@@ -429,8 +430,10 @@ Third-party code must not reach labels, the network or restricted data.
 - Execution path: Add the launcher, a hostile fixture module and a separate Make target for the
   container check, so `make ci` stays network-free. Declared run: that target on a host with the
   chosen runtime.
-- Acceptance gates: The hostile fixture fails to open a socket, a label path or a future frame. If no
-  runtime suits the host, the task records the blocker and does not weaken isolation.
+- Acceptance gates: The hostile fixture fails to open a socket, a label path or a future frame. If
+  no runtime suits the host, the task records the blocker and does not weaken isolation. Sandbox
+  scratch and runtime state are a registered [data clean](current/corpus.md#cleaning-the-data-root)
+  kind with a test.
 - Documentation target: [Current implementation](current.md#areas), page `current/runner.md`.
 
 #### module-image-recipes
@@ -448,8 +451,11 @@ Anyone re-running a row needs the exact module that was measured.
 - Data and artifact paths: `modules/<name>/`.
 - Execution path: Record recipes and digests in the manifest. Keep third-party dependencies outside the
   core lock; add a recipe when an adapter is introduced.
-- Acceptance gates: The declared image digest can be obtained or rebuilt with any difference explained.
-  Missing image access is reported as unavailable; no different image silently substitutes for it.
+- Acceptance gates: The declared image digest can be obtained or rebuilt with any difference
+  explained. Missing image access is reported as unavailable; no different image silently
+  substitutes for it. Built images and build caches are a registered
+  [data clean](current/corpus.md#cleaning-the-data-root) kind whose restore path rebuilds or fetches
+  the declared digest.
 - Documentation target: [Current implementation](current.md#areas), page `current/runner.md`.
 
 #### locked-split-guard (optional)
@@ -468,7 +474,10 @@ noticing.
   with disk access, and it creates no locked test.
 - Data and artifact paths: `src/ss_track/runner/`, `tests/runner/`, `$DATA_DIR/run/<run-id>/`.
 - Execution path: Check split membership when a run starts, and add refused, approved and re-scored
-  fixtures.
+  fixtures. Review now withholds every locked window as `locked_without_policy`
+  ([review and freeze](current/corpus/review-and-freeze.md#what-review-offers)); once a custodian
+  policy exists, let a review that names the policy's hash decide locked windows, and leave the same
+  access record.
 - Acceptance gates: A locked stream in a development scenario is `RUNNER_INVALID`. Each approved
   read and re-score leaves one record, and output never calls a stream held-out without a declared
   custodian policy. A corpus version with no declared predecessor is reported as having no lineage,
@@ -578,6 +587,29 @@ Motion proposals need their own event scores.
   `VALID` zero and never `NOT_SCOREABLE`.
 - Documentation target: [Current implementation](current.md#areas), page `current/evaluation.md`.
 
+#### extent-envelope-view
+
+Long-range detection is the first mission priority, and one aggregate score hides the target size
+at which a module stops working.
+
+- Serves: `motion-sot-evaluation` -- [Extent envelope](../design/spec.md#67-small-target-extent-envelope)
+- Agent status: CLEAR
+- Milestone: M1
+- Dependencies: sot-suite, motion-suite, scenario-pack-contract.
+- User-visible outcome: Each tracking and motion result carries an extent envelope by bin and a
+  smallest supported extent, with real encounters and scale-reduction cases as separate curves.
+- Scope boundary: Bins from the pinned scenario pack and floors from the scenario. Pixels always,
+  angular extent only with a measured field of view, distance only with a measured range. No
+  conversion from an assumed object size and no new primary metric.
+- Data and artifact paths: `src/ss_track/suites/`, `tests/suites/`.
+- Execution path: Add the view to both suites over their per-frame and per-event results, with
+  hand-built encounters at known extents and point-only labels binned by plausible extent.
+- Acceptance gates: Hand-computed bin counts, intervals, statuses and the supported extent match.
+  A bin under the encounter minimum is `insufficient_data`, a generated case never fills a real
+  bin, and a module that proposes everywhere gains no smaller supported extent. No supported bin
+  is reported as a result, never as an error.
+- Documentation target: [Current implementation](current.md#areas), page `current/evaluation.md`.
+
 #### development-decision-status
 
 Maintainers need a rule for saying whether a version improved.
@@ -632,13 +664,16 @@ The benchmark needs a simple, inspectable baseline.
 - Milestone: M1
 - Dependencies: lockstep-runner, sot-suite.
 - User-visible outcome: A deterministic seeded tracker and its motion proposal front end run through
-  the contract in two declared versions, so G0a has a real comparison.
+  the contract in two declared versions, without and with global-motion compensation of the
+  frame, so G0a has a real comparison that matters for a moving observer.
 - Scope boundary: The single-camera path. The staged multi-source tracker belongs to M3.
 - Data and artifact paths: `src/ss_track/reference/`, `tests/reference/`, `modules/reference/`.
 - Execution path: Add a bounded motion proposal, a constant-velocity Kalman model, geometry gates and
   tentative, confirmed, lost and reacquired states.
 - Acceptance gates: The G0a reference tracker row of the acceptance matrix passes on rerun with one
-  seed. A predicted stale box cannot pass as a measured detection.
+  seed. A predicted stale box cannot pass as a measured detection. On a fixture with a translating
+  camera and a static scene, the uncompensated version proposes background and the compensated
+  version does not, and neither result is assumed to carry over to real footage.
 - Documentation target: [Current implementation](current.md#areas), new page
   `current/reference-tracker.md`.
 
@@ -696,7 +731,7 @@ Maintainers need to inspect two versions and see every exclusion.
 - Serves: `comparison-report` -- [Comparison dashboard](../design/spec.md#10-run-artifacts-and-comparison-dashboard)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: development-decision-status.
+- Dependencies: development-decision-status, extent-envelope-view.
 - User-visible outcome: `ss-track compare` writes a local HTML and JSON report, or refuses with a
   reason.
 - Scope boundary: Local report with visibility retained. Shareable export uses `visibility-gate`.
@@ -704,8 +739,10 @@ Maintainers need to inspect two versions and see every exclusion.
 - Execution path: Build the report from saved metrics with compatible and incompatible fixtures,
   including frame-linked failure references.
 - Acceptance gates: An incompatible cohort is refused with its reason, and the report never edits or
-  recomputes source metrics. Generated cases appear in their own slice by transform, never in a field
-  aggregate or an encounter count, and undelivered frames and unverified completeness are shown.
+  recomputes source metrics. Generated cases appear in their own slice by transform, never in a
+  field aggregate or an encounter count, and undelivered frames and unverified completeness are
+  shown. Each run's extent envelope appears by bin with its exposure, real and generated curves
+  apart, and observer platform and camera control appear beside every score.
 - Documentation target: [Current implementation](current.md#areas), page `current/evaluation.md`.
 
 #### g0a-pipeline-run
@@ -768,8 +805,8 @@ A pass or fail on one generated case does not show where a module starts to degr
 - Agent status: CLEAR
 - Milestone: M2
 - Dependencies: local-comparison-report, generated-case-labels.
-- User-visible outcome: A recipe declares graded levels of one parameter, and the local report shows
-  each module's quality against that severity.
+- User-visible outcome: A recipe declares graded levels of one parameter, including the factor of a
+  scale-reduction case, and the local report shows each module's quality against that severity.
 - Scope boundary: One parameter, one encounter set and one saved metric per curve. No composite
   score or field claim.
 - Data and artifact paths: `src/ss_track/corpus/`, `src/ss_track/report/`, `tests/corpus/`,
@@ -807,6 +844,290 @@ disappears or restricted data reaches public output.
   routed to a task or dropped with its reason, and `make quality` passes. Finding nothing is a valid
   result when the record states what was reviewed.
 - Documentation target: [Current implementation](current.md#areas), page `current/evaluation.md`.
+
+### Operator session evaluation -- `operator-session-evaluation`
+
+#### operator-session-contract
+
+A module can report a lost target, but it cannot ask the operator for anything, and the runner can
+hand it only the first selection.
+
+- Serves: `operator-session-evaluation` -- [Operator session](../design/spec.md#169-operator-session-evaluation)
+- Agent status: CLEAR
+- Milestone: M2
+- Dependencies: lockstep-runner.
+- User-visible outcome: A scenario declares an operator script, a module emits prompts, and the
+  runner answers them with scripted actions that every module of a comparison is offered alike.
+- Scope boundary: `OperatorPrompt` and `OperatorAction` as an additive event contract version, the
+  operator script as a `declaration` contract that the scenario pins in its cohort key, and causal
+  release of actions in lockstep replay. Paced release of an action follows `paced-frame-release`.
+  No console, no human timing model and no change to `FrameResult`.
+- Data and artifact paths: `src/ss_track/contract/`, `src/ss_track/runner/`, `tests/contract/`,
+  `tests/runner/`, `scenarios/`.
+- Execution path: Add the events and the script reader. The runner derives each action from frozen
+  labels, the declared delay and the seeded seed-quality perturbation. An action names the frame
+  its geometry belongs to, which is the frame of its cause, and is released one response delay
+  later. Add fixture modules that prompt correctly, never prompt and prompt constantly.
+- Acceptance gates: No action is released before the prompt or sustained failure that caused it,
+  and a causal test that changes later frames leaves earlier actions unchanged. Every action
+  carries the frame its geometry belongs to, and a fixture shows that it reaches the module one
+  response delay after that frame. Two runs of one module with one script and seed receive
+  identical actions. A scenario with no script runs as before, a changed script changes the
+  cohort key, and a prompt makes no frame unscorable.
+- Documentation target: [Current implementation](current.md#areas), page `current/runner.md`.
+
+#### operator-workload-suite
+
+Coverage alone cannot tell a module that tracks on its own from one an operator must rescue every
+few seconds, or from one that fails without saying so.
+
+- Serves: `operator-session-evaluation` -- [Operator session](../design/spec.md#169-operator-session-evaluation)
+- Agent status: CLEAR
+- Milestone: M2
+- Dependencies: operator-session-contract, sot-suite, motion-suite, local-comparison-report.
+- User-visible outcome: A report shows assisted and unassisted lock coverage, interventions per
+  tracked minute, hand-back delay, silent failures and unwarranted prompts for each module.
+- Scope boundary: `operator-v1-dev` over saved bundles. The script is a deterministic stand-in and
+  gives no human-factors result. Alert burden reuses the motion suite's matching unchanged.
+- Data and artifact paths: `src/ss_track/suites/`, `tests/suites/`, `src/ss_track/report/`,
+  `tests/report/`.
+- Execution path: Add the suite with hand-audited recovered-loss, wrong-target, silent-failure and
+  unwarranted-request fixtures, and a session timeline in the local report.
+- Acceptance gates: Every count and denominator matches its hand-audited fixture. A reselection
+  counts as a loss at its time in assisted and unassisted coverage. A module that never prompts is
+  scored with its silent failures shown, and assistance that raises no coverage is a reported
+  result.
+- Documentation target: [Current implementation](current.md#areas), page `current/evaluation.md`.
+
+#### operator-session-evaluation-audit (optional)
+
+The script, the runner and the suite each decide when an operator would have acted, and two
+answers to that question would make one session score two ways.
+
+- Serves: `operator-session-evaluation` -- [Operator session](../design/spec.md#169-operator-session-evaluation)
+- Agent status: CLEAR
+- Milestone: M2
+- Effort: high
+- Dependencies: every other agent task in this group.
+- User-visible outcome: One rule decides when a scripted operator acts, and every intervention in
+  a report traces to the event that caused it.
+- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
+  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
+  score or refusal code.
+- Data and artifact paths: `src/ss_track/contract/`, `src/ss_track/runner/`,
+  `src/ss_track/suites/`, `src/ss_track/report/`, `tests/contract/`, `tests/runner/`,
+  `tests/suites/`, `tests/report/`.
+- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from
+  the definition of a sustained failure in the tracking suite, the runner and this suite, and from
+  every path by which an action could reach a module early.
+- Acceptance gates: Recovered-loss, wrong-target, silent-failure and unwarranted-request fixtures
+  keep their counts, and no action precedes its cause on the lockstep or paced path. Every finding
+  is fixed, routed to a task or dropped with its reason, and `make quality` passes. Finding
+  nothing is a valid result when the record states what was reviewed.
+- Documentation target: [Current implementation](current.md#areas), page `current/evaluation.md`.
+
+### Self-supervised video corpus -- `self-supervised-corpus`
+
+#### corpus-selection-evaluation
+
+A larger selected pool may conceal missed small birds or exclude hard negatives.
+
+- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
+- Agent status: RUN NEEDED
+- Dependencies: none.
+- User-visible outcome: A report compares model-assisted selection with a random or uniform
+  baseline and exposes missed cases and resource cost at a matched review budget.
+- Scope boundary: Independently reviewed audit samples and stratified uncertainty; no field accuracy,
+  generalization or verified species claim from model proposals alone.
+- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `$DATA_DIR/self-supervised-corpus/<run-id>/`.
+- Execution path: Define a reproducible evaluation protocol before running, score reviewed random
+  samples including unselected material, and report diversity, negatives, recall, cost and exclusions.
+  Read each window's reviewed observation from its `declaration/corpus-review` or freeze record
+  ([review and freeze](current/corpus/review-and-freeze.md#decisions)); `unknown` and unreviewed
+  windows count as unknown, never as absent.
+  Compare `ssl-diverse` with the `uniform` run of the same pool and audit seed
+  ([selection](current/corpus/discovery-runs.md#selection)) under the `selection_pass` review
+  protocol ([selection pass](current/corpus/review-and-freeze.md#selection-pass)), keep each
+  pass's findings outside the audit and its disagreements beside the estimate, and also list a
+  window both runs selected whose two passes disagree when no review observed it, which the
+  comparison does not yet report. Report misses by kind, including a
+  target present for a whole stream, which background deviation compares against itself, and
+  confusers that motion ranks high. Record whether the audit review was independent and blinded.
+  A review or freeze states that with `independence` and `blinding` when the reviewer declared it,
+  and leaves both unrecorded when it does not. A stated value is a declaration, not a verification.
+  Capture measured compute cost alongside the comparison; discovery runs do not record it. The
+  comparison already reports each collection's estimates, shared-stratum covariance and the weighted
+  combined population
+  ([evaluating selection](current/corpus/discovery-runs.md#evaluating-selection)). Keep that report.
+  Do not reimplement it, and do not treat it as field prevalence. The
+  [reviewed pilot](current/corpus.md#reviewed-pilot) is the input: explain its lower `ssl-diverse`
+  recall with each method's stream and group coverage, since that selection covered 19 streams
+  against 34, and report whether the misses are coverage or ranking.
+- Acceptance gates: Hand-calculated fixtures verify denominators, sampling weights, uncertainty and
+  unavailable strata; empty or insufficient evidence produces an explicit inconclusive result.
+  A fixture lists two passes that disagree on a window no review observed, without changing the
+  estimate. Negative gains remain valid and `make ci` passes.
+- Documentation target: [Corpus](current/corpus.md).
+
+#### corpus-scale-pilot
+
+A large corpus needs evidence that selection can run within the owner's available resources.
+
+- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
+- Agent status: RUN NEEDED
+- Research: yes
+- Dependencies: corpus-selection-evaluation.
+- User-visible outcome: An authorized pilot produces a measured, reproducible corpus or explains why
+  available video, quality, cost or resources do not support it.
+- Scope boundary: Only approved sources, processing and storage budgets; no acquisition beyond the
+  agreed list or unattended spend.
+- Data and artifact paths: `$DATA_DIR/self-supervised-corpus/<run-id>/`, `$DATA_DIR/corpus/<corpus-id>/`.
+- Execution path: Use the approved corpus-size and diversity targets, candidate sampling, human
+  review and baseline protocol; measure ingest, storage, CPU or GPU compute and completeness; retain
+  run pins. The embedding worker records float32 rows only and refuses mixed precision; a GPU run
+  either measures float32 or adds a float16 or autocast mode as a `record/discovery-run` minor
+  with its own reproducibility check. A tile grid multiplies embedding cost by its tile count, so
+  choose the grid from measured cost and small-target scale. `discover verify` compares recomputed
+  scores and the `ssl-diverse` similarity exactly; run it on a second host or architecture, and if a
+  near-tie flips there, quantize the similarity under a new method revision. The link review's
+  `background-cosine` thresholds were measured on one real recording and synthetic scenes
+  ([measured thresholds](current/corpus/leakage-review.md#measured-thresholds)): measure them on
+  reviewed related and unrelated pairs of the pilot's footage, including sessions of one site in
+  other light and the tile grid the pilot chooses, and revise the table under a new method revision
+  when a related pair falls below it; repeat the review on the second host and quantize its
+  similarity too if a flag flips. The fingerprint compares every pair of windows in Python, so
+  measure its time at the pilot's stream count with the build's report and the review. Freezing
+  verifies the discovery run against its pool version's staged frames, so measure the storage of
+  keeping the pool's frames until its frozen versions are frozen. The pilot's GPU embedding worker
+  averaged 53-56% GPU utilization, with half the 2-second samples below 50%, while the worker used
+  several CPU cores; measure where worker time goes at scale and reduce the CPU-side preprocessing
+  cost, without changing rows, if it dominates. Measure how the BT.601 fallback changes scores and
+  selection on the pilot's untagged sources, and the memory `discover blind` needs for the audit at
+  scale; the pilot's 104-window packet peaked at 6.3 GB. Include each source that
+  `authorize-airborne-observer-sources` has approved, and report selection, review and counts
+  by observer platform, so that a pool with no airborne-observer encounter says so.
+- Acceptance gates: Corpus verification, rights and grouping checks pass; the report states
+  selection recall, uncertainty, negative coverage and matched-budget baseline results, including
+  missing evidence. Insufficient resources or a negative selection result is a valid negative;
+  `make ci` passes. Every disposable kind the pilot leaves, such as superseded frames, downloads and
+  host-specific environments, is removable through
+  [data clean](current/corpus.md#cleaning-the-data-root) with a stated restore path.
+- Documentation target: [Corpus](current/corpus.md).
+
+#### corpus-wetland-evidence (optional)
+
+WetlandBirds annotations and software can inform future cases, but their outputs need provenance.
+
+- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
+- Agent status: CLEAR
+- Dependencies: none.
+- User-visible outcome: An operator can inspect and map WetlandBirds annotations and, when suitable,
+  run its software as separately identified evidence for future corpus cases.
+- Scope boundary: Fixture-based mapping and an isolated, pinned optional integration; no promotion
+  of model outputs or upstream annotations to independently reviewed truth and no locked training.
+- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `contracts/`,
+  `$DATA_DIR/self-supervised-corpus/<run-id>/`.
+- Execution path: Inspect the upstream software and annotation semantics, pin its revision, audit
+  code, dependencies and weight licenses, then map annotations to verified video and frame identities.
+  If running its software is justified and authorized, isolate its environment and retain model,
+  preprocessing and weight provenance; otherwise report why it is unavailable. Contract any new
+  interchangeable evidence and preserve original splits without adopting them as local authority.
+- Acceptance gates: Offline fixtures cover frame mapping, unmatched and ambiguous identities,
+  provenance, isolation and refusal of missing terms; upstream labels cannot affect blinded audit or
+  become frozen truth. An evidence-backed decision not to execute the software is valid; `make ci`
+  passes. Its isolated environment, weights and intermediate outputs are a registered
+  [data clean](current/corpus.md#cleaning-the-data-root) kind with a restore path and a test.
+- Documentation target: [Corpus](current/corpus.md).
+
+#### corpus-motion-memory-pressure (optional)
+
+Adaptive motion scoring checks memory before scheduling streams, but already-running workers can
+continue after unrelated processes consume the reserved headroom. A long high-resolution stream can
+therefore exhaust memory before the next scheduling check; the current policy is an estimate, not a
+hard memory guarantee.
+
+- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
+- Agent status: CLEAR
+- Dependencies: none.
+- User-visible outcome: The operator can bound or stop motion work when memory pressure rises during
+  a stream, with a structured refusal rather than silently accepting partial scores.
+- Scope boundary: Local worker resource enforcement and cancellation; preserve integer scores,
+  sealed results and a serial fallback on hosts without enforceable limits.
+- Data and artifact paths: `src/ss_track/core/`, `src/ss_track/corpus/selection/`,
+  `tests/corpus/selection/`, and `$DATA_DIR/self-supervised-corpus/` for measured evidence.
+- Execution path: Evaluate portable process supervision or operating-system memory limits; detect
+  pressure while a stream is active, stop safely when needed, and document platform limitations.
+- Acceptance gates: Deterministic tests simulate falling headroom and worker termination, prove no
+  partial result is accepted or child left running, and retain serial/parallel score equality;
+  `make ci` passes.
+- Documentation target: [Corpus](current/corpus.md).
+
+#### corpus-discovery-progress (optional)
+
+A real discovery run can occupy the GPU for hours without reporting its phase or progress. During
+`pilot-diverse-v2-20261109`, only external GPU sampling showed activity, so an operator could not
+tell which extractor or stream was running or estimate remaining work.
+
+- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
+- Agent status: CLEAR
+- Dependencies: none.
+- User-visible outcome: An operator can see the current discovery phase and completed versus total
+  work while a long run is active, with unknown quantities clearly marked.
+- Scope boundary: Local, bounded progress reporting; no change to scores, selection, deterministic
+  artifacts, the single command-result record, or disclosure of blinded review decisions.
+- Data and artifact paths: `src/ss_track/corpus/discovery/`, `src/ss_track/corpus/siblings/`,
+  `tests/corpus/`, and the operator's configured output; no new external service.
+- Execution path: Instrument extraction and scoring at useful phase and stream or batch boundaries;
+  keep progress separate from the command result and ensure disabled or unavailable progress does
+  not change the run or block it.
+- Acceptance gates: Network-free tests exercise progress, disabled output, failures and unchanged
+  sealed records; the existing command-result contract and `make ci` pass.
+- Documentation target: [Corpus](current/corpus.md).
+
+#### discovery-package-split (optional)
+
+The corpus package holds two capabilities in one tree. Source import takes helpers from review
+export, so a change to review can break import, and the discover command module carries more than
+argument parsing.
+
+- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
+- Agent status: CLEAR
+- Dependencies: shared-evidence-primitives.
+- User-visible outcome: Corpus provenance and corpus discovery are separate area packages, with
+  imports in one direction, from discovery to provenance.
+- Scope boundary: A move of the inventory, acquisition, pool, sibling, selection, discovery,
+  review, link and evaluation modules to their own area package, with their tests. The write-once
+  and declaration-byte helpers that source import takes from review export move to the side that
+  owns them. No command name, record, contract, hash or refusal code changes.
+- Data and artifact paths: `src/ss_track/corpus/`, `src/ss_track/discover/`,
+  `src/ss_track/commands/`, `tests/corpus/`, `tests/discover/`.
+- Execution path: Move packages with their tests, split the discover command module by subcommand
+  family so that handlers hold parsing only, and add an import-boundary test. Split the
+  interactive link review and audit review modules, which are well over the size guideline, where
+  a functional seam exists.
+- Acceptance gates: No module of the provenance package imports the discovery package. Every
+  sealed fixture reads to the same bytes, `discover verify` passes on a fixture run recorded
+  before the move, and `make ci` passes.
+- Documentation target: [Corpus](current/corpus.md).
+
+#### self-supervised-corpus-audit (optional)
+
+The full corpus formation path needs one review across sibling integrations and reviewer decisions.
+
+- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
+- Agent status: CLEAR
+- Effort: high
+- Dependencies: every other agent task in this group.
+- User-visible outcome: The complete workflow preserves source rights, frame identity, sampling
+  evidence, review authority and split isolation across its seams.
+- Scope boundary: Group audit over this group's paths, contracts, external version pins, tests and
+  limitations; no new acquisition or claimed field performance.
+- Data and artifact paths: `src/ss_track/corpus/`, `tests/corpus/`, `contracts/`, `$DATA_DIR/self-supervised-corpus/`.
+- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits), including
+  stopped runs, unavailable models, unselected negatives and duplicate or revoked source terms.
+- Acceptance gates: Each finding is fixed, routed or dropped with its reason, verified evidence is
+  reproducible and `make quality` passes; finding nothing is valid when scope is recorded.
+- Documentation target: [Corpus](current/corpus.md).
 
 ### Hardware probe -- `hardware-probe-adaptive-launch`
 
@@ -1778,6 +2099,578 @@ An adapter is only trusted while TrackEval computes the metrics and the adapter 
   nothing is a valid result when the record states what was reviewed.
 - Documentation target: [Current implementation](current.md#areas), page `current/evaluation.md`.
 
+### Autonomous target recognition -- `target-recognition`
+
+#### recognition-suite
+
+Phase 2 replaces the operator's confirmation with the system's own declaration, and nothing yet
+scores a declaration, an abstention or an unknown class.
+
+- Serves: `target-recognition` -- [Target recognition](../design/spec.md#193-autonomous-target-recognition)
+- Agent status: CLEAR
+- Milestone: M7
+- Dependencies: tracker-epoch-suite, fusion-calibration-suite, scenario-pack-contract,
+  extent-envelope-view.
+- User-visible outcome: A recognizer's `RecognitionResult` events are scored for declaration recall
+  at a fixed false-declaration burden, time to declaration, abstention, calibration and open-set
+  behavior.
+- Scope boundary: The `RecognitionResult` event with the spec section 19.3 fields as an additive
+  contract version, and the suite over frozen track and observation bundles. The scoring unit is
+  the expert-labelled instance. The target set, known non-targets, unknown set, minimum
+  identifiable extent, identifiable duration, declaration deadline and burden come from the
+  scenario pack. No model, no training, and no behavior or individual identity.
+- Data and artifact paths: `src/ss_track/contract/`, `src/ss_track/suites/`, `tests/contract/`,
+  `tests/suites/`.
+- Execution path: Add the event and the suite with hand-built known-target, look-alike,
+  unknown-class, too-small, untracked, late and reversed-declaration fixtures. Choose the operating
+  point on development encounters only, and report each result by extent bin.
+- Acceptance gates: Hand-computed recall over eligible instances, burden, both delays,
+  risk-coverage, instability and calibration match. An untracked target and a late declaration are
+  misses, an unknown-set track declared as a target counts against the burden, and a reversal
+  does not replace the first declaration. Exposure too short for the declared burden names no
+  operating point, and a class with fewer than 10 encounter groups reports `insufficient_data`.
+- Documentation target: [Current implementation](current.md#areas), new page
+  `current/recognition.md`.
+
+#### reference-recognizer
+
+A suite with no baseline cannot show whether fine-grained recognition is possible at the extents
+the mesh observes.
+
+- Serves: `target-recognition` -- [Target recognition](../design/spec.md#193-autonomous-target-recognition)
+- Agent status: RUN NEEDED
+- Milestone: M7
+- Research: yes
+- Dependencies: recognition-suite, track-cue-fusion, label-recognition-material.
+- User-visible outcome: A pinned reference recognizer declares, rejects or abstains on confirmed
+  tracks, with its quality by extent bin and its compute cost.
+- Scope boundary: One small pinned model on confirmed-track regions, with the coarse posterior of
+  `track-cue-fusion` as its comparator. Any fitting uses development encounters only, and
+  probabilities use the calibration split. It is a baseline and sets no accuracy target.
+- Data and artifact paths: `modules/reference-recognizer/`, `src/ss_track/recognition/`,
+  `tests/recognition/`, `$DATA_DIR/run/<run-id>/`.
+- Execution path: Keep the model and its dependencies under `modules/`, outside the core lock,
+  with a recorded compute manifest and the portable CPU reference execution. Declared run: the
+  recognition scenario on the expert-labelled material.
+- Acceptance gates: The paired comparison against the coarse posterior reports its status per
+  [section 6.3](../design/spec.md#63-comparisons-and-decision-status). A recognizer no better than
+  the comparator, or a target set not identifiable at the corpus extents, is a valid negative result
+  and keeps its evidence. Model weights and caches are a registered [data
+  clean](current/corpus.md#cleaning-the-data-root) kind with a restore path and a test.
+- Documentation target: [Current implementation](current.md#areas), page `current/recognition.md`.
+
+#### target-recognition-audit (optional)
+
+A declaration joins a track, a class posterior and a calibration, and a label that reaches fitting
+by any of them makes the result look better than it is.
+
+- Serves: `target-recognition` -- [Target recognition](../design/spec.md#193-autonomous-target-recognition)
+- Agent status: CLEAR
+- Milestone: M7
+- Effort: high
+- Dependencies: every other agent task in this group.
+- User-visible outcome: Every declaration traces to expert labels it was never fitted on, and an
+  unknown class cannot become a target.
+- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
+  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
+  score or refusal code.
+- Data and artifact paths: `src/ss_track/contract/`, `src/ss_track/suites/`,
+  `src/ss_track/recognition/`, `modules/reference-recognizer/`, `tests/suites/`,
+  `tests/recognition/`.
+- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from
+  every read of a class label, the split each one comes from, and what the suite repeats from
+  `track-cue-fusion` and the calibration suite.
+- Acceptance gates: Known-target, look-alike, unknown-class and too-small fixtures keep their
+  results, and a fitting run that names a calibration or locked encounter is refused. Every finding
+  is fixed, routed to a task or dropped with its reason, and `make quality` passes. Finding nothing
+  is a valid result when the record states what was reviewed.
+- Documentation target: [Current implementation](current.md#areas), page `current/recognition.md`.
+
+### Compute variants -- `tensor-compute-backends`
+
+#### compute-manifest-contract
+
+A run that says it used an accelerator proves nothing unless the run records what executed where.
+
+- Serves: `tensor-compute-backends` -- [Compute variants](../design/spec.md#194-compute-variants-and-energy-per-decision)
+- Agent status: CLEAR
+- Milestone: M7
+- Dependencies: event-schema-contract, host-capability-probe.
+- User-visible outcome: Every run names one compute variant and carries a compute manifest with
+  its model, precision, backend, device, partition and fallback policy.
+- Scope boundary: The manifest as a `record` contract with the spec section 7.3 fields, `opaque`
+  with a reason where a black box hides one, and the variant identity in the cohort key. Analog
+  and in-sensor stages use the same record. No runtime is added here.
+- Data and artifact paths: `contracts/record/compute-manifest/`, `src/ss_track/contract/`,
+  `tests/contract/`.
+- Execution path: Add the contract, its registry entry and golden fixtures for a CPU reference, a
+  declared mixed-device profile and an opaque variant.
+- Acceptance gates: A manifest with an undeclared partition or a missing model hash is refused,
+  an opaque field needs its reason, and a changed precision, backend or partition changes the
+  variant identity. `make ci` passes.
+- Documentation target: [Current implementation](current.md#areas), page `current/bench.md`.
+
+#### backend-capability-probe
+
+A listed device or runtime provider does not show that a graph runs on it.
+
+- Serves: `tensor-compute-backends` -- [Compute variants](../design/spec.md#194-compute-variants-and-energy-per-decision)
+- Agent status: CLEAR
+- Milestone: M7
+- Dependencies: compute-manifest-contract, host-capability-probe.
+- User-visible outcome: `ss-track hardware-probe` compiles and runs a representative graph for a
+  requested variant and reports `SUPPORTED`, `UNSUPPORTED` or `MEASURE_REQUIRED` with the
+  partition it observed.
+- Scope boundary: A backend adapter interface, the pinned CPU reference execution, and recorded
+  fixture backends. A real accelerated runtime stays under `modules/`, outside the core lock, and
+  arrives with the variant that needs it.
+- Data and artifact paths: `src/ss_track/probe/`, `tests/probe/`, `modules/`.
+- Execution path: Add the adapter interface and the probe step with fixture backends that lack an
+  operator, fall back silently and run fully.
+- Acceptance gates: An accelerator-only request that needs CPU fallback is `UNSUPPORTED`, a
+  declared mixed profile is accepted with its observed partition, and discovery alone never
+  yields `SUPPORTED`. A frame-attributed undeclared fallback is a `MODULE_FAULT` under spec
+  section 7.3.
+- Documentation target: [Current implementation](current.md#areas), page `current/bench.md`.
+
+#### compute-variant-suite
+
+A faster variant is no gain when it changes the answers or draws more over a mission.
+
+- Serves: `tensor-compute-backends` -- [Compute variants](../design/spec.md#194-compute-variants-and-energy-per-decision)
+- Agent status: CLEAR
+- Milestone: M7
+- Dependencies: backend-capability-probe, energy-metric-suite, development-decision-status,
+  paced-frame-release.
+- User-visible outcome: A report compares each supported variant with the CPU reference on one
+  frozen workload: quality difference, latency, energy per scheduled decision and installed idle
+  power.
+- Scope boundary: The spec section 19.4 measures over saved bundles and traces, with
+  `quality_equivalent` only under a predeclared margin. One host, workload, schedule and meter
+  boundary per comparison. No operator microbenchmark as a result.
+- Data and artifact paths: `src/ss_track/suites/`, `tests/suites/`.
+- Execution path: Add the suite with recorded traces of known joules, a marked idle interval, a
+  cold start and a variant that emits few results.
+- Acceptance gates: Hand-calculated energy per decision, idle power and latency percentiles
+  match. Energy divides by scheduled decisions, so a variant that emits few results gains
+  nothing. An unverified backend's timing and energy are `UNSUPPORTED`, and a variant outside the
+  margin is reported as a separate quality-cost point.
+- Documentation target: [Current implementation](current.md#areas), page `current/bench.md`.
+
+#### tensor-compute-backends-audit (optional)
+
+The manifest, the probe and the suite each state what ran where, and a run credited to a device it
+did not use would pass all three separately.
+
+- Serves: `tensor-compute-backends` -- [Compute variants](../design/spec.md#194-compute-variants-and-energy-per-decision)
+- Agent status: CLEAR
+- Milestone: M7
+- Effort: high
+- Dependencies: every other agent task in this group.
+- User-visible outcome: A variant's quality, timing and energy all rest on one verified statement
+  of what executed.
+- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
+  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
+  score or refusal code.
+- Data and artifact paths: `contracts/record/compute-manifest/`, `src/ss_track/contract/`,
+  `src/ss_track/probe/`, `src/ss_track/suites/`, `tests/contract/`, `tests/probe/`,
+  `tests/suites/`.
+- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from
+  every place a device or partition is named, and from each energy figure and the interval it
+  divides.
+- Acceptance gates: Fallback fixtures keep their statuses, energy per decision recomputes from
+  retained traces, and no result names a device its manifest does not show. Every finding is fixed,
+  routed to a task or dropped with its reason, and `make quality` passes. Finding nothing is a valid
+  result when the record states what was reviewed.
+- Documentation target: [Current implementation](current.md#areas), page `current/bench.md`.
+
+### Resource-aware sensing -- `resource-aware-sensing`
+
+#### platform-energy-budget
+
+A payload's joules mean little without the battery and the flight power they come out of.
+
+- Serves: `resource-aware-sensing` -- [Platform energy budget](../design/spec.md#710-platform-energy-budget)
+- Agent status: CLEAR
+- Milestone: M7
+- Dependencies: energy-metric-suite.
+- User-visible outcome: A scenario declares a platform energy budget, and a report states measured
+  payload energy as a fraction of its allowance, with model-derived endurance shown apart.
+- Scope boundary: The budget as a `declaration` contract with the origin of each figure, the
+  fraction, margin and peak checks over saved energy results, and one named endurance model. No
+  propulsion measurement and no battery model beyond the declared figures.
+- Data and artifact paths: `src/ss_track/energy/`, `tests/energy/`, `contracts/`, `scenarios/`.
+- Execution path: Add the declaration, the calculation over `energy-metric-suite` results, and
+  table-driven fixtures with measured, datasheet and assumed figures.
+- Acceptance gates: Hand-calculated fractions, margins and overruns match. An unmeasured energy
+  yields no fraction, a model-derived value never appears in a measured column, and a budget with
+  only datasheet or assumed figures is labelled a design comparison.
+- Documentation target: [Current implementation](current.md#areas), page `current/bench.md`.
+
+#### acquisition-policy-contract
+
+A policy can look efficient by deciding with information it could not have had.
+
+- Serves: `resource-aware-sensing` -- [Energy-budgeted acquisition](../design/spec.md#195-energy-budgeted-acquisition)
+- Agent status: CLEAR
+- Milestone: M7
+- Dependencies: event-time-replay, sensor-observation-contract, platform-energy-budget.
+- User-visible outcome: A policy module emits one `AcquisitionDecision` before each action, the
+  runner applies it to recorded streams, and `BudgetState` tracks the declared window and limits.
+- Scope boundary: The decision and budget events, the spec section 19.5 action space over
+  installed sensors, camera rate and region, recognizer and tracker, causal enforcement in
+  replay, wake latency and wake energy from a mode profile, and the energy tier of every result.
+  Replay suppresses inputs only, so a result is `not_measurable` with no mode profile and
+  `profile_derived` with one. A `measured` tier needs a live paired trial.
+- Data and artifact paths: `src/ss_track/contract/`, `src/ss_track/runner/`, `tests/contract/`,
+  `tests/runner/`.
+- Execution path: Extend the event contract and the replay path, with a fixture mode profile and
+  fixture policies that read the future, skip everything, exceed the budget and toggle a sensor
+  faster than its wake latency.
+- Acceptance gates: A causal test changes later observations and holds every earlier decision
+  unchanged. A decision that names an uninstalled component or an unmeasured mode is refused, a
+  skipped true event stays a miss in the fixed denominator, and a budget overrun is recorded as a
+  violation. A sensor asked for data before its wake latency has passed returns a missing
+  observation and is charged its wake energy, and every result states its energy tier.
+- Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
+
+#### policy-comparator-suite
+
+An adaptive policy means nothing until the fixed configurations it must beat have run on the same
+encounters.
+
+- Serves: `resource-aware-sensing` -- [Energy-budgeted acquisition](../design/spec.md#195-energy-budgeted-acquisition)
+- Agent status: CLEAR
+- Milestone: M7
+- Dependencies: acquisition-policy-contract, late-fusion-baseline, installed-system-suite.
+- User-visible outcome: `ss-track policy sweep` runs always-on, fixed-rate, fixed-subset,
+  random-skip and event-triggered comparators, and reports quality, coverage, deadlines and budget
+  use at one fixed task denominator.
+- Scope boundary: The mandatory comparators of spec section 7.7, the labelled oracle upper bound,
+  and the claim rule of spec section 19.5. Quality and process latency come from replay, a
+  `profile_derived` energy supports a design comparison, and a saving needs `measured` trials. No
+  learned controller.
+- Data and artifact paths: `src/ss_track/policy/`, `src/ss_track/suites/`, `tests/policy/`,
+  `tests/suites/`.
+- Execution path: Add the comparators behind one policy interface and the suite, with skip-heavy,
+  deadline, peak and rolling-budget fixtures.
+- Acceptance gates: Hand-audited fixtures reproduce each comparator's misses, violations and
+  budget use. A saving is reported only when the quality interval clears the predeclared margin
+  and the whole energy interval lies below zero by more than the meter uncertainty. Any other
+  outcome is `inconclusive` or `no_saving`. A `profile_derived` figure never appears in a measured
+  column, and the oracle row is labelled a diagnostic.
+- Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
+
+#### voi-reference-policy (optional)
+
+A threshold rule reacts to uncertainty but does not weigh what an action costs against what it
+would gain.
+
+- Serves: `resource-aware-sensing` -- [Acquisition policy](../design/spec.md#77-resource-aware-acquisition-and-processing-policy)
+- Agent status: CLEAR
+- Milestone: M7
+- Research: yes
+- Dependencies: policy-comparator-suite, measure-sensor-power-modes.
+- User-visible outcome: A one-step value-of-information policy chooses among feasible actions
+  under the declared deadline, peak and rolling-energy limits, beside the mandatory comparators.
+- Scope boundary: A calibrated one-step estimate fitted on development and calibration encounters
+  only. A budgeted planner, a bandit and a learned controller stay out of scope.
+- Data and artifact paths: `src/ss_track/policy/`, `tests/policy/`.
+- Execution path: Add the policy behind the comparator interface, record predicted and realized
+  task loss, energy and latency for every feasible action, and measure prediction error on
+  encounters the fit never saw.
+- Acceptance gates: The paired comparison against the best fixed configuration reports its status
+  per [section 6.3](../design/spec.md#63-comparisons-and-decision-status) at matched quality. An
+  inaccurate cost or benefit model is shown even when its choices succeeded, and no gain is
+  claimed from a gain-per-joule ratio alone.
+- Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
+
+#### resource-aware-sensing-audit (optional)
+
+A budget, a decision and an energy result each carry a notion of what was measured, and a modelled
+figure that crosses between them becomes a claim.
+
+- Serves: `resource-aware-sensing` -- [Acquisition policy](../design/spec.md#77-resource-aware-acquisition-and-processing-policy)
+- Agent status: CLEAR
+- Milestone: M7
+- Effort: high
+- Dependencies: every other agent task in this group.
+- User-visible outcome: Every policy result keeps its fixed denominator, and no modelled or
+  suppressed-stream figure reads as measured energy.
+- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
+  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
+  score or refusal code.
+- Data and artifact paths: `src/ss_track/energy/`, `src/ss_track/policy/`,
+  `src/ss_track/runner/`, `src/ss_track/suites/`, `tests/energy/`, `tests/policy/`,
+  `tests/suites/`.
+- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from
+  every value a decision can read and when it became available, and from each energy figure and its
+  origin.
+- Acceptance gates: The causal replay test holds, each comparator keeps its hand-audited misses, and
+  an unmeasured energy yields no fraction and no saving. Every finding is fixed, routed to a task or
+  dropped with its reason, and `make quality` passes. Finding nothing is a valid result when the
+  record states what was reviewed.
+- Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
+
+### Stand-off following evaluation -- `standoff-following-evaluation`
+
+#### following-simulator
+
+A following law cannot be judged on recorded video, because the recording shows only the path its
+operator flew.
+
+- Serves: `standoff-following-evaluation` -- [Stand-off following](../design/spec.md#196-stand-off-following-evaluation)
+- Agent status: CLEAR
+- Milestone: M8
+- Research: yes
+- Dependencies: plugin-evaluator-core, scenario-pack-contract, platform-energy-budget.
+- User-visible outcome: `ss-track follow evaluate` moves a simulated observer under a following
+  law against reviewed or synthetic target trajectories, and records every step in a run bundle.
+- Scope boundary: A kinematic observer in a local level frame with declared speed, acceleration
+  and turn limits, a sensor envelope, a seeded wind disturbance, targets that do not react, and
+  the `FollowingCommand` event in the `CLOSED_LOOP_SIM` lane. A law receives an estimated target
+  state under a declared error model of range error, bearing error and latency, and every
+  violation is scored on the true range. No vehicle dynamics model and no flight-controller,
+  autopilot or radio interface.
+- Data and artifact paths: `src/ss_track/following/`, `tests/following/`, `scenarios/`,
+  `$DATA_DIR/run/<run-id>/`.
+- Execution path: Add a fixed-step deterministic simulator with a declared support region, and
+  straight, turning, hovering and nest-return fixture trajectories.
+- Acceptance gates: A rerun with one seed is byte-identical, and replaying logged commands
+  reproduces the path exactly. A law that tries to read the true target state fails conformance.
+  A trajectory that leaves support is a failure or `ABORT`, never an exclusion. An import-boundary
+  test shows that the package depends on no vehicle interface.
+- Documentation target: [Current implementation](current.md#areas), new page
+  `current/following.md`.
+
+#### standoff-following-law
+
+The reference implementation has no control law, and a law taken from pursuit guidance would close
+on the target it is meant to leave undisturbed.
+
+- Serves: `standoff-following-evaluation` -- [Stand-off following](../design/spec.md#196-stand-off-following-evaluation)
+- Agent status: CLEAR
+- Milestone: M8
+- Research: yes
+- Dependencies: following-simulator.
+- User-visible outcome: A reference law holds a stand-off range and bearing with a bounded closing
+  speed, beside a stationary observer and a pursuit law clamped at the minimum stand-off.
+- Scope boundary: Three laws behind one interface that emit `FollowingCommand` only, reading the
+  tracker state, the platform state and the envelope. No law closes inside the minimum stand-off
+  by design, and none has contact or capture as its objective.
+- Data and artifact paths: `src/ss_track/following/`, `tests/following/`.
+- Execution path: Add the six rules of the spec section 19.6 reference law and both comparators,
+  with hand-audited fixtures for a steady target, a target that turns toward the observer, a lost
+  track, an exclusion zone on the direct path and a set-point under the margin.
+- Acceptance gates: Hand-computed commands match for each law and each rule. A scenario whose
+  stand-off is under `d_min` plus the margin is refused before the run. A lost or stale track
+  yields `HOLD`, `CLIMB_AWAY` or `ABORT`, never a command toward the last position. A target that
+  turns toward the observer makes the law open the range, no command closes inside `d_alert`, and
+  a conformance fixture rejects any command type other than `FollowingCommand`.
+- Documentation target: [Current implementation](current.md#areas), page `current/following.md`.
+
+#### following-quality-suite
+
+A law that keeps the target in view by crowding it has failed, and a coverage number alone would
+call it a success.
+
+- Serves: `standoff-following-evaluation` -- [Stand-off following](../design/spec.md#196-stand-off-following-evaluation)
+- Agent status: CLEAR
+- Milestone: M8
+- Dependencies: standoff-following-law, development-decision-status, visibility-gate.
+- User-visible outcome: A report shows observation coverage, envelope violations, terminal
+  observation, aborts and model-derived energy for each law on identical trajectories.
+- Scope boundary: The spec section 19.6 quantities over saved simulation bundles, with a fixture
+  envelope, including the error tolerance over declared grades of range error and latency. The
+  mission pack is evaluated only with the envelope that `define-non-disturbance-envelope`
+  supplies. No disturbance claim and no field result.
+- Data and artifact paths: `src/ss_track/suites/`, `tests/suites/`, `src/ss_track/report/`,
+  `tests/report/`.
+- Execution path: Add the suite and a report panel, with a fixture law that violates the minimum
+  stand-off and a paired comparison against the stationary observer.
+- Acceptance gates: Hand-audited coverage, violations on the true range, error tolerance and
+  aborts match. Any violation fails its encounter and blocks an improved status. A terminal zone
+  is named by its identifier and never by coordinates, and a restricted pack's result is refused
+  by a shareable export.
+- Documentation target: [Current implementation](current.md#areas), page `current/following.md`.
+
+#### standoff-following-evaluation-audit (optional)
+
+The simulator, the laws and the suite each read the envelope, and one of them reading it loosely
+would let a violation pass as coverage.
+
+- Serves: `standoff-following-evaluation` -- [Stand-off following](../design/spec.md#196-stand-off-following-evaluation)
+- Agent status: CLEAR
+- Milestone: M8
+- Effort: high
+- Dependencies: every other agent task in this group.
+- User-visible outcome: One reading of the envelope decides every violation, and no path leads
+  from a following law to a vehicle.
+- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
+  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
+  score or refusal code.
+- Data and artifact paths: `src/ss_track/following/`, `src/ss_track/suites/`,
+  `src/ss_track/report/`, `tests/following/`, `tests/suites/`, `tests/report/`.
+- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from
+  every comparison against an envelope value, every output type a law can emit, and each place a
+  zone position could reach a report.
+- Acceptance gates: The violating fixture law fails on every path, no module imports a vehicle
+  interface, and no coordinate of a terminal zone appears in any output. Every finding is fixed,
+  routed to a task or dropped with its reason, and `make quality` passes. Finding nothing is a valid
+  result when the record states what was reviewed.
+- Documentation target: [Current implementation](current.md#areas), page `current/following.md`.
+
+### Autonomous mission evaluation -- `autonomous-mission-evaluation`
+
+#### autonomy-level-contract
+
+A result obtained with an operator confirming every target can be read as an autonomous one unless
+the run states which decisions a person took.
+
+- Serves: `autonomous-mission-evaluation` -- [Autonomy levels](../design/spec.md#192-autonomy-chain-and-autonomy-levels)
+- Agent status: CLEAR
+- Milestone: M9
+- Dependencies: operator-session-contract, recognition-suite.
+- User-visible outcome: A scenario declares one autonomy level, the operator script acts only as
+  that level permits, and every result and report names the level.
+- Scope boundary: `A0_OPERATOR_SEEDED` to `A3_AUTONOMOUS` in the scenario and its cohort key, the
+  confirmation and veto behavior of the script, and unanswered prompts at A3. No new operator
+  model.
+- Data and artifact paths: `src/ss_track/contract/`, `src/ss_track/runner/`, `tests/contract/`,
+  `tests/runner/`.
+- Execution path: Extend the scenario and the operator script, with fixtures for a confirmed
+  proposal, a vetoed declaration, a veto after its window and an unanswered prompt.
+- Acceptance gates: A changed level changes the cohort key, and a comparison across levels is
+  refused unless it is declared as a level comparison. No action is released at A3, a veto after
+  its window has no effect, and a prompt changes no denominator at any level.
+- Documentation target: [Current implementation](current.md#areas), page `current/runner.md`.
+
+#### mission-evidence-tables
+
+A mission simulation is only as honest as the numbers it draws from, and a guessed number looks
+like a measured one once it sits in a table.
+
+- Serves: `autonomous-mission-evaluation` -- [Autonomous mission](../design/spec.md#197-autonomous-mission-evaluation)
+- Agent status: CLEAR
+- Milestone: M9
+- Dependencies: extent-envelope-view, recognition-suite, compute-variant-suite,
+  acquisition-policy-contract, platform-energy-budget.
+- User-visible outcome: `ss-track mission evaluate` reads evidence tables built from saved suite
+  results, each with its origin and the hash of the run it came from.
+- Scope boundary: A `declaration` contract for the spec section 19.7 tables, a builder that fills
+  a table from saved results without recomputing them, and the origins `measured`, `datasheet`
+  and `assumed`. No interpolation across an empty bin: an empty cell stays empty and is reported.
+- Data and artifact paths: `contracts/declaration/mission-evidence/`, `src/ss_track/mission/`,
+  `tests/mission/`, `scenarios/`.
+- Execution path: Add the contract and the builder with fixture results, a missing bin, a mixed
+  origin and a source run whose hash has changed.
+- Acceptance gates: A `measured` cell with no source hash is refused, a changed source run is
+  refused, and an empty bin is never filled from its neighbors. A table with any `datasheet` or
+  `assumed` cell marks every result that reads it `design_only`.
+- Documentation target: [Current implementation](current.md#areas), new page
+  `current/mission.md`.
+
+#### mission-simulator
+
+Each suite scores one decision on frozen input, and none shows whether the decisions complete a
+mission together.
+
+- Serves: `autonomous-mission-evaluation` -- [Autonomous mission](../design/spec.md#197-autonomous-mission-evaluation)
+- Agent status: CLEAR
+- Milestone: M9
+- Research: yes
+- Dependencies: following-simulator, standoff-following-law, mission-evidence-tables,
+  autonomy-level-contract.
+- User-visible outcome: A mission episode runs acquisition, recognition, the acquisition policy
+  and following in one closed loop, and ends in exactly one outcome.
+- Scope boundary: The kinematic simulator of `following-simulator` with surrogate perception
+  drawn from the evidence tables under a recorded seed, range turned into extent through the
+  measured angular resolution and the pack's declared target size, and the outcome precedence of
+  spec section 19.7. No image rendering, no reacting target and no vehicle interface.
+- Data and artifact paths: `src/ss_track/mission/`, `tests/mission/`, `scenarios/`,
+  `$DATA_DIR/run/<run-id>/`.
+- Execution path: Add the episode loop over the existing simulator and laws, with one fixture
+  episode per outcome and tables of probability 0 and 1.
+- Acceptance gates: Tables of probability 0 and 1 give hand-computed outcomes, a fixed seed gives
+  byte-identical bundles, and each fixture episode ends in its expected outcome under the
+  precedence. A table with known probabilities reproduces its expected fractions within the
+  declared tolerance, and the stated independence of draws appears in every result.
+- Documentation target: [Current implementation](current.md#areas), page `current/mission.md`.
+
+#### mission-outcome-suite
+
+A success rate at one distance hides what the mission's two constraints cost each other.
+
+- Serves: `autonomous-mission-evaluation` -- [Autonomous mission](../design/spec.md#197-autonomous-mission-evaluation)
+- Agent status: CLEAR
+- Milestone: M9
+- Dependencies: mission-simulator, following-quality-suite, operator-workload-suite.
+- User-visible outcome: A report shows outcome fractions per autonomy level, interventions per
+  mission at A1 and A2, and the stand-off trade-off of recall, time to declaration, energy and
+  outcomes against distance.
+- Scope boundary: The spec section 19.7 quantities over saved episode bundles, with intervals
+  clustered by trajectory. No field, range or disturbance claim, and no recomputation of a
+  surrogate's source result.
+- Data and artifact paths: `src/ss_track/suites/`, `tests/suites/`, `src/ss_track/report/`,
+  `tests/report/`.
+- Execution path: Add the suite and a report panel, with fixture episodes at three stand-off
+  levels and two autonomy levels.
+- Acceptance gates: Hand-computed fractions, intervals and trade-off points match. A stand-off
+  under the margin is refused, a `design_only` result is labelled in every panel, and a restricted
+  pack's result is refused by a shareable export.
+- Documentation target: [Current implementation](current.md#areas), page `current/mission.md`.
+
+#### autonomous-mission-run
+
+Phase 2 ends on a mission result for the mission pack, including one that says the mission is not
+feasible with the installed sensors.
+
+- Serves: `autonomous-mission-evaluation` -- [Autonomous mission](../design/spec.md#197-autonomous-mission-evaluation)
+- Agent status: RUN NEEDED
+- Milestone: M9
+- Dependencies: mission-outcome-suite, define-non-disturbance-envelope,
+  declare-platform-energy-budget.
+- User-visible outcome: The mission pack has outcome fractions at `A1_OPERATOR_CONFIRMED` and
+  `A3_AUTONOMOUS` and a stand-off trade-off, with each table's origin shown.
+- Scope boundary: The approved envelope, the declared budget and whatever measured tables exist.
+  A table still `assumed` or `datasheet` keeps the result `design_only`. No flight and no claim
+  about a living subject.
+- Data and artifact paths: `scenarios/`, `$DATA_DIR/run/<run-id>/`, `$DATA_DIR/report/<run-id>/`.
+- Execution path: Declared run of the mission scenario through `ss-track mission evaluate` at the
+  declared stand-off and autonomy levels.
+- Acceptance gates: Every Phase 2 mission row of the acceptance matrix passes, and recompute matches
+  stored results. A result that no permitted stand-off leaves an identifiable extent, or that no
+  policy meets the budget, is reported with its evidence and returns to hardware selection. Episode
+  scratch is a registered [data clean](current/corpus.md#cleaning-the-data-root) kind with a restore
+  path and a test.
+- Documentation target: [Current implementation](current.md#areas), page `current/mission.md`.
+
+#### autonomous-mission-evaluation-audit (optional)
+
+The mission result reads numbers from every other Phase 2 suite, and one table that drifts from
+its source would change the outcome with nothing to show it.
+
+- Serves: `autonomous-mission-evaluation` -- [Autonomous mission](../design/spec.md#197-autonomous-mission-evaluation)
+- Agent status: CLEAR
+- Milestone: M9
+- Effort: high
+- Dependencies: every other agent task in this group.
+- User-visible outcome: Every mission outcome traces to source results by hash, and no modelled
+  or assumed figure reads as measured.
+- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
+  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
+  score or refusal code.
+- Data and artifact paths: `src/ss_track/mission/`, `src/ss_track/suites/`,
+  `src/ss_track/report/`, `tests/mission/`, `tests/suites/`, `tests/report/`.
+- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from each
+  table cell and its source, the definition of a violation here and in the following suite, and
+  every place an origin label is shown.
+- Acceptance gates: Outcome fixtures keep their precedence, a changed source run is refused, and
+  `design_only` appears wherever an unmeasured table is read. Every finding is fixed, routed to a
+  task or dropped with its reason, and `make quality` passes. Finding nothing is a valid result when
+  the record states what was reviewed.
+- Documentation target: [Current implementation](current.md#areas), page `current/mission.md`.
+
 ### Paced thermal trial -- `paced-thermal-trial`
 
 #### thermal-rig-controller (optional)
@@ -1814,7 +2707,8 @@ Heat must be the only difference between cool and hot runs.
 - Execution path: Add the block scheduler with a seeded order fixture and a marker for the timed
   interval.
 - Acceptance gates: Fixtures prove module state does not carry between runs and order is balanced.
-  Setup energy never enters ranked energy.
+  Setup energy never enters ranked energy. Per-run caches and container state are a registered
+  [data clean](current/corpus.md#cleaning-the-data-root) kind with a test.
 - Documentation target: [Current implementation](current.md#areas), page `current/bench.md`.
 
 #### thermal-effect-evaluation (optional)
@@ -1944,8 +2838,7 @@ Finished devices need a suite that works without an operator seed.
 - Acceptance gates: A device with no output path is `UNSUPPORTED`. Only same-stimulus, same-class,
   same-boundary cases are compared; incompatible or missing references are refused. Results
   are unranked and never pooled into a hardware-agnostic ranking.
-- Documentation target: [Current implementation](current.md#areas), new page
-  `current/bench.md`.
+- Documentation target: [Current implementation](current.md#areas), new page `current/bench.md`.
 
 #### device-bench-evaluation-audit (optional)
 
@@ -1989,8 +2882,10 @@ Telemetry has nowhere to live as evidence, because import takes only video.
   `corpus/storage/`, and the source-terms checks by generalizing them, with no parallel copy. Store
   one little-endian file per field under a sealed index.
 - Acceptance gates: Two stagings across data roots, and on x86-64 and arm64, give one hash. A float
-  column round-trips bit-exact, including NaN payloads. A flipped column byte fails `verify` by name.
-  Rights and retention refuse as they do for a recording.
+  column round-trips bit-exact, including NaN payloads. A flipped column byte fails `verify` by
+  name. Rights and retention refuse as they do for a recording. Staging scratch and decoded
+  intermediates are registered [data clean](current/corpus.md#cleaning-the-data-root) kinds with
+  restore paths and tests.
 - Documentation target: [Current implementation](current.md#areas), new page `current/telemetry.md`.
 
 #### telemetry-profiles (optional)
@@ -2269,6 +3164,26 @@ Structural checks pass even when a task depends on nothing real, so gating can d
   audit is not ready while another agent task of its group is open.
 - Documentation target: [Governance](current/governance.md).
 
+#### current-corpus-page-split (optional)
+
+The corpus page has grown far past an orientation, so a reader cannot find a rule, and two of its
+sections can state one rule differently.
+
+- Serves: `documentation-integrity` -- [Planning integrity](../design/spec.md#documentation-and-planning-integrity)
+- Agent status: CLEAR
+- Dependencies: none.
+- User-visible outcome: `current/corpus.md` is a short orientation and index, and each topic has
+  one focused page under `current/corpus/`.
+- Scope boundary: A move of text with its anchors. No behavior statement changes. Anchors that a
+  closed record links stay resolvable, because a closed record is not rewritten.
+- Data and artifact paths: `docs/impl/current/corpus.md`, `docs/impl/current/corpus/`,
+  `docs/impl/plan.md`, `docs/design/`, `docs/impl/workloads/`.
+- Execution path: Split along the page's second-level sections, keep one statement of each rule,
+  and update every inbound link in the plan, the specification, the guides and the workloads.
+- Acceptance gates: `make lint-doc-links` and `make lint-md` pass, no rule is stated on two pages,
+  and every record link still resolves.
+- Documentation target: [Corpus](current/corpus.md).
+
 #### documentation-integrity-audit (optional)
 
 A rule stated in prose can drift from the checker, and a rule nobody can check is one nobody keeps.
@@ -2322,47 +3237,27 @@ A locked test needs a named custodian and access rules that no software can supp
   `locked` split stays membership only and no held-out claim is made.
 - Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
 
-### Self-supervised video corpus -- `self-supervised-corpus`
-
-#### authorize-video-corpus-sources
-
-A large candidate pool needs source permissions, available storage and a spending envelope a tool
-cannot grant itself.
-
-- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
-- Agent status: HUMAN-GATED
-- Dependencies: none.
-- User-visible outcome: The owner approves a source list, corpus size and diversity targets, permitted
-  processing, compute and storage budgets, and a baseline review budget.
-- Scope boundary: Authorized public or private sources, benchmarking, model processing and derived
-  artifacts, retention and access; public redistribution is a separate permission.
-- Data and artifact paths: `$DATA_DIR/self-supervised-corpus/<run-id>/`, `$DATA_DIR/import/`.
-- Execution path: Record each source's terms, allowed uses, retention and handling, and select an
-  explicit resource envelope before acquiring or running over the sources.
-- Acceptance gates: Every selected source has verifiable rights and retention, a named owner of the
-  approval, approved model use and cost limits, and target coverage and negative cases. No eligible
-  source or inadequate budget is a recorded valid negative and authorizes no acquisition.
-- Documentation target: [Corpus](current/corpus.md).
-
-#### review-video-corpus-sample
-
-The usefulness and missed cases of self-supervised selection require independent human judgment.
-
-- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
-- Agent status: HUMAN-GATED
-- Dependencies: authorize-video-corpus-sources, corpus-selection-evaluation, corpus-review-and-freeze.
-- User-visible outcome: Reviewers adjudicate selected and independently sampled unselected material,
-  including negative windows, confusers and small or uncertain birds.
-- Scope boundary: A predeclared independent audit sample, grouping decisions and reviewer time; the
-  existing annotation authority owns final labels and a locked set needs its custodian.
-- Data and artifact paths: `$DATA_DIR/self-supervised-corpus/<run-id>/`, `$DATA_DIR/corpus/<corpus-id>/labels/`.
-- Execution path: Freeze the baseline and sampling plan before review; reviewers record source and
-  frame decisions, uncertainty, disagreements and time, and settle them under named authority.
-- Acceptance gates: Reviewed samples and exclusions are frozen and hashed; absent or uncertain labels
-  stay unknown, unreviewed exposure is reported, and insufficient sample size is inconclusive.
-- Documentation target: [Corpus](current/corpus.md).
-
 ### Annotation and selection -- `annotation-selection`
+
+#### approve-mission-scenario-pack
+
+The mission's classes, smallest scorable extents and strata are the owner's to state, and labels
+frozen against a draft pack would have to be made again.
+
+- Serves: `annotation-selection` -- [Mission and phases](../design/spec.md#mission-and-phases)
+- Agent status: HUMAN-GATED
+- Milestone: M1
+- Dependencies: scenario-pack-contract.
+- User-visible outcome: The `aerial-small-objects` pack has owner-approved classes, roles, minimum
+  extents, extent bins, floors and observer-platform strata, and its hash is recorded.
+- Scope boundary: Phase 1 values only. Fine-grained species and drone types and the
+  non-disturbance envelope are later human tasks and stay empty slots.
+- Data and artifact paths: `scenarios/packs/`.
+- Execution path: The owner reviews the draft against the pilot footage and states each value with
+  its basis. An agent validates the pack and records its hash.
+- Acceptance gates: The pack validates and every value has a stated basis. A value the owner
+  cannot state stays unset, and each view that needs it is reported unavailable.
+- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
 
 #### label-pilot-encounters
 
@@ -2371,7 +3266,7 @@ G0a needs only one positive and one negative encounter, so it should not wait fo
 - Serves: `annotation-selection` -- [Annotation contract](../design/spec.md#42-annotation-contract)
 - Agent status: HUMAN-GATED
 - Milestone: M1
-- Dependencies: annotation-review-tools.
+- Dependencies: annotation-review-tools, approve-mission-scenario-pack.
 - User-visible outcome: Two encounters have frozen labels, selections and masks.
 - Scope boundary: The pilot encounters, including motion events. The pass also measures labelling
   time per encounter. Review every frame of the selected negative window for target absence, and
@@ -2398,6 +3293,32 @@ Within-corpus comparisons need reviewed labels across independent encounters.
 - Acceptance gates: Validation passes, groups are independent by the spec section 4.1 rule, and the
   revision is frozen. Unlabelable objects stay `unknown`.
 - Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
+
+### Self-supervised video corpus -- `self-supervised-corpus`
+
+#### authorize-airborne-observer-sources
+
+The Phase 1 mission claim needs footage from a flying observer, and the reviewed pilot holds
+almost none.
+
+- Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
+- Agent status: HUMAN-GATED
+- Dependencies: recording-capture-vocabulary.
+- User-visible outcome: An approval record names each airborne-observer source the owner permits,
+  with its terms, transfer budget and intended split, or states that none is available.
+- Scope boundary: Sources whose camera flew, including the owner's own recordings and public
+  collections such as the
+  [Airborne Object Tracking dataset](https://registry.opendata.aws/airborne-object-tracking/) and
+  [Det-Fly](https://github.com/Jake-WU/Det-Fly). Each candidate's license, annotation semantics
+  and overlap with other sources are checked first. No capture is solicited to fill a stratum, and
+  a source that ships as images waits for `frame-sequence-source-import`.
+- Data and artifact paths: `docs/impl/workloads/`, `$DATA_DIR/self-supervised-corpus/<run-id>/`.
+- Execution path: An agent inventories each candidate's terms and upstream identity through the
+  source inventory. The owner approves or declines each one and declares its observer platform.
+- Acceptance gates: Every approved source has recorded terms, attribution and an observer
+  platform. A declined or unavailable source is recorded with its reason, and with none approved
+  the extent envelope states that it holds no airborne-observer encounter.
+- Documentation target: [Corpus](current/corpus.md).
 
 ### Controlled bench, timing and energy -- `controlled-bench-timing-energy`
 
@@ -2493,7 +3414,8 @@ A characterization stand needs candidate interfaces before any final sensor choi
   quantity.
 - Acceptance gates: Every candidate has an executable measurement plan and a supported software need.
   Missing references or unaffordable candidates remain unmeasured with the limitation recorded.
-- Documentation target: [Current implementation](current.md#areas), page `current/hardware-selection.md`.
+- Documentation target: [Current implementation](current.md#areas), page
+  `current/hardware-selection.md`.
 
 #### select-mesh-sensors
 
@@ -2593,6 +3515,118 @@ The project's second goal needs a measured result.
   Recompute matches stored results. A sensor that adds nothing is documented; its selection record
   is revised from evidence and a reduced configuration starts a new cohort.
 - Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
+
+### Autonomous target recognition -- `target-recognition`
+
+#### label-recognition-material
+
+A species or drone type can be scored only against labels from someone able to identify it.
+
+- Serves: `target-recognition` -- [Target recognition](../design/spec.md#193-autonomous-target-recognition)
+- Agent status: HUMAN-GATED
+- Milestone: M7
+- Dependencies: scenario-pack-contract, annotation-review-tools, recognition-suite.
+- User-visible outcome: The mission pack names its target set and unknown-class set, and reviewed
+  tracks carry expert class labels in development, calibration and evaluation encounters.
+- Scope boundary: Fine-grained class labels on visually identifiable material, the minimum
+  identifiable extent and the false-declaration burden. No behavior label and no individual
+  identity. Material nobody can identify stays `unknown`.
+- Data and artifact paths: `scenarios/packs/`, `$DATA_DIR/corpus/<corpus-id>/labels/`.
+- Execution path: A person with the needed expertise labels and reviews under a named authority.
+  An agent validates, freezes and hashes the revision.
+- Acceptance gates: Validation passes, the three splits are disjoint by encounter, and each class
+  states its label count. A class with too few labels is recorded as such and its claim stays
+  closed.
+- Documentation target: [Current implementation](current.md#areas), page `current/recognition.md`.
+
+### Compute variants -- `tensor-compute-backends`
+
+#### measure-compute-variants
+
+Energy per decision is a property of a real device on a real supply.
+
+- Serves: `tensor-compute-backends` -- [Compute variants](../design/spec.md#194-compute-variants-and-energy-per-decision)
+- Agent status: BLOCKED BY HUMAN
+- Milestone: M7
+- Dependencies: compute-variant-suite, reference-recognizer, select-reference-host,
+  calibrate-bench-instruments.
+- User-visible outcome: The reference recognizer has measured quality, latency, energy per
+  decision and idle power on the CPU reference and on each accelerated or analog variant the
+  owner can supply.
+- Scope boundary: The selected host under the spec section 7.9 protocol. No purchase is required,
+  and zero accelerated variants is a stated result.
+- Data and artifact paths: `$DATA_DIR/trial/<trial-id>/`, `modules/`.
+- Execution path: A person installs each device and connects the meter. An agent probes each
+  variant and runs the paced workload with marked intervals.
+- Acceptance gates: Raw traces reproduce every figure with its uncertainty. An unsupported or
+  unverified variant is recorded as such, and with no accelerated variant the CPU reference
+  result stands alone.
+- Documentation target: [Current implementation](current.md#areas), page `current/bench.md`.
+
+### Resource-aware sensing -- `resource-aware-sensing`
+
+#### declare-platform-energy-budget
+
+An energy budget is a statement about a real aircraft, and only its owner can make it.
+
+- Serves: `resource-aware-sensing` -- [Platform energy budget](../design/spec.md#710-platform-energy-budget)
+- Agent status: HUMAN-GATED
+- Milestone: M7
+- Dependencies: platform-energy-budget.
+- User-visible outcome: A versioned budget states usable battery energy, propulsion power, payload
+  mass and power allowance and mission duration for the intended platform, each with its origin.
+- Scope boundary: Declared figures and their basis. No flight test is required, and an `assumed`
+  figure stays labelled.
+- Data and artifact paths: `scenarios/`, `$DATA_DIR/selection/<selection-id>/`.
+- Execution path: The owner states each figure and its source. An agent validates the declaration
+  and records its hash.
+- Acceptance gates: Every figure has an origin. A budget with no measured figure is accepted as a
+  design comparison only, and a figure the owner cannot state leaves the budget unavailable.
+- Documentation target: [Current implementation](current.md#areas), page `current/bench.md`.
+
+#### measure-sensor-power-modes
+
+Suppressing a recorded stream saves no energy, so a policy's saving needs each sensor's real
+power in every mode.
+
+- Serves: `resource-aware-sensing` -- [Acquisition policy](../design/spec.md#77-resource-aware-acquisition-and-processing-policy)
+- Agent status: BLOCKED BY HUMAN
+- Milestone: M7
+- Dependencies: run-mesh-trials, acquisition-policy-contract.
+- User-visible outcome: Each installed sensor has measured active, standby and off power and wake
+  latency and energy at the installed-system boundary.
+- Scope boundary: The selected mesh on Stand C under the spec section 7.9 protocol. A rail that
+  cannot be separated stays shared.
+- Data and artifact paths: `$DATA_DIR/trial/<trial-id>/`.
+- Execution path: A person operates the stand, and an agent runs the protocol through each mode
+  transition with the meter boundary fixed.
+- Acceptance gates: Raw traces reproduce each estimate with its uncertainty. A mode that cannot be
+  switched or measured is `NOT_MEASURABLE`, and every policy energy claim that needs it stays
+  closed.
+- Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
+
+### Stand-off following evaluation -- `standoff-following-evaluation`
+
+#### define-non-disturbance-envelope
+
+How close an observer may come to a bird, its nest or another aircraft is a judgment about a
+species and a site that no software can supply.
+
+- Serves: `standoff-following-evaluation` -- [Scenario safety](../design/spec.md#11-scenario-safety-privacy-and-data-governance)
+- Agent status: HUMAN-GATED
+- Milestone: M8
+- Dependencies: scenario-pack-contract, following-quality-suite.
+- User-visible outcome: The mission pack carries an approved non-disturbance envelope, and the
+  following laws have results against it.
+- Scope boundary: Minimum stand-off, closing speed, approach directions, altitude band, exclusion
+  zones, following time and end conditions for each living-subject class, and a collision-risk
+  envelope for drone targets. Simulation only. A field flight needs its own approvals.
+- Data and artifact paths: `scenarios/packs/`, `$DATA_DIR/run/<run-id>/`.
+- Execution path: A named responsible person states each value with its basis and signs the
+  approval record. An agent validates the pack and runs the mission following scenario.
+- Acceptance gates: Every value has a basis and an approver. Zone positions stay restricted. With
+  no approved envelope the mission pack has no following result, and that is the stated outcome.
+- Documentation target: [Current implementation](current.md#areas), page `current/following.md`.
 
 ### Paced thermal trial -- `paced-thermal-trial`
 

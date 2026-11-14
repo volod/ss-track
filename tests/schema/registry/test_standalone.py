@@ -82,6 +82,41 @@ def test_an_altered_copy_is_refused(
     assert _verdict(only_contracts, altered, tmp_path) == "invalid"
 
 
+def _sibling_time_alone(record: dict[str, Any]) -> None:
+    sibling = next(item for item in record["candidates"] if item["origin"]["source"] != "pool")
+    del sibling["window"]
+
+
+def _no_rights_reference(record: dict[str, Any]) -> None:
+    del record["source_manifest_sha256"]
+
+
+def _certain_but_unselected(record: dict[str, Any]) -> None:
+    unselected = next(
+        item for item in record["candidates"] if item["selection"]["status"] == "not_selected"
+    )
+    unselected["selection"]["probability"] = 1.0
+
+
+def _time_instead_of_frames(record: dict[str, Any]) -> None:
+    record["candidates"][0]["window"] = {"start_seconds": 0.0, "end_seconds": 0.32}
+
+
+@pytest.mark.parametrize(
+    "alter",
+    [_sibling_time_alone, _no_rights_reference, _certain_but_unselected, _time_instead_of_frames],
+)
+def test_a_contract_only_consumer_refuses_an_ambiguous_candidate(
+    only_contracts: Path, tmp_path: Path, alter: Callable[[dict[str, Any]], None]
+) -> None:
+    record = json.loads((EXAMPLES / "record-candidate-inventory.json").read_text(encoding="ascii"))
+    alter(record)
+    altered = tmp_path / "altered.json"
+    altered.write_text(json.dumps(record), encoding="ascii")
+
+    assert _verdict(only_contracts, altered, tmp_path) == "invalid"
+
+
 def test_the_seal_rule_in_words_is_enough_to_recompute_a_seal() -> None:
     """A schema cannot check a seal, so `x-rules` must state it exactly: this follows its words."""
     record = json.loads(KEPT_FRAME_SET.read_text(encoding="ascii"))

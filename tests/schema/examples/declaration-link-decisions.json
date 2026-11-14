@@ -1,0 +1,22 @@
+{
+  "decisions": [
+    {
+      "decision": "unrelated",
+      "note": "independent synthetic scenes",
+      "sources": [
+        "ab996a72e94701cd9945aaef68f8444ed4e9275a56d5e7aeb7735af45eef7414",
+        "2743e1be96d8a56a5a58e561d04333a887a3f4ff1c57455f597ae3c82bd49c5e"
+      ]
+    },
+    {
+      "decision": "related",
+      "note": "two batteries of one flight",
+      "sources": [
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      ]
+    }
+  ],
+  "reviewer": "site lead",
+  "schema_version": 1
+}

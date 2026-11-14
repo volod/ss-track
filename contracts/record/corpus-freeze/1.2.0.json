@@ -1,0 +1,775 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ss-track:contract:record:corpus-freeze:1.2.0",
+  "title": "Corpus freeze",
+  "description": "The sealed export of one frozen corpus version: which reviewed candidate windows became its streams, under which group, split and source terms, what was excluded and why, what stayed unreviewed or withheld, and the discovery run, link review and reviewer decisions it rests on. Freezing holds no label: an observation is what a reviewer saw, and labels come only from a frozen annotation revision.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind",
+    "schema_version",
+    "manifest_sha256",
+    "corpus_id",
+    "corpus_manifest_sha256",
+    "frame_set_sha256",
+    "discovery",
+    "links",
+    "review",
+    "label_revision",
+    "members",
+    "exclusions",
+    "unreviewed",
+    "withheld",
+    "sources",
+    "superseded"
+  ],
+  "properties": {
+    "kind": {
+      "type": "string",
+      "const": "ss-track.corpus-freeze",
+      "description": "Record kind."
+    },
+    "schema_version": {
+      "type": "integer",
+      "const": 1,
+      "minimum": 0,
+      "x-unit": "1",
+      "description": "Record major."
+    },
+    "manifest_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Seal over every other field."
+    },
+    "corpus_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "The frozen corpus version."
+    },
+    "corpus_manifest_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "The frozen version's manifest seal."
+    },
+    "frame_set_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "The frozen version's frame set seal."
+    },
+    "discovery": {
+      "type": "object",
+      "description": "The discovery run whose candidates were reviewed.",
+      "properties": {
+        "run_id": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+          "description": "Discovery run."
+        },
+        "run_sha256": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+          "description": "The run record's seal."
+        },
+        "corpus_id": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+          "description": "The corpus version the run read: the candidate pool."
+        },
+        "frame_set_sha256": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+          "description": "The pool version's frame set the run read."
+        }
+      },
+      "required": [
+        "run_id",
+        "run_sha256",
+        "corpus_id",
+        "frame_set_sha256"
+      ],
+      "additionalProperties": false
+    },
+    "links": {
+      "type": "object",
+      "description": "The frozen version's link review.",
+      "properties": {
+        "run_id": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+          "description": "Link review run."
+        },
+        "links_sha256": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+          "description": "The link review's seal."
+        },
+        "status": {
+          "type": "string",
+          "description": "The review's status: clear when every link is decided, else unresolved.",
+          "enum": [
+            "clear",
+            "unresolved"
+          ]
+        },
+        "unresolved_same_split": {
+          "type": "integer",
+          "description": "Undecided links whose groups share one split; an undecided link across splits refuses the freeze.",
+          "x-unit": "1",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "run_id",
+        "links_sha256",
+        "status",
+        "unresolved_same_split"
+      ],
+      "additionalProperties": false
+    },
+    "review": {
+      "type": "object",
+      "description": "The reviewer's decisions.",
+      "properties": {
+        "reviewer": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Who decided, as the review states."
+        },
+        "review_sha256": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+          "description": "SHA-256 of the review declaration's canonical JSON."
+        },
+        "offered_count": {
+          "type": "integer",
+          "description": "Candidates the run offered for review.",
+          "x-unit": "1",
+          "minimum": 0
+        },
+        "decision_count": {
+          "type": "integer",
+          "description": "Include and exclude decisions.",
+          "x-unit": "1",
+          "minimum": 0
+        },
+        "independence": {
+          "type": "string",
+          "description": "Whether independence of selection was declared. Absent when the review does not state it. A declaration is not a verification.",
+          "enum": [
+            "declared",
+            "not_declared"
+          ]
+        },
+        "blinding": {
+          "type": "string",
+          "description": "Whether blinding to selection, scores, offer reasons and source labels was declared. Absent when the review does not state it. A declaration is not a verification.",
+          "enum": [
+            "declared",
+            "not_declared"
+          ]
+        },
+        "reviewer_minutes": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "min",
+          "description": "Minutes the reviewer recorded. Absent when the review did not state them."
+        },
+        "audit_id": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+          "description": "Blinded audit the review was mapped from. Absent when the review names none."
+        },
+        "selection_pass": {
+          "type": "object",
+          "description": "A selection pass: every window the run selected and offers, reviewed again, including windows the audit sample also showed. It makes each run's selection work its selected count, whatever the audit overlap. It never changes selection, the audit draw or the audit weights. Absent when no pass was recorded.",
+          "additionalProperties": false,
+          "required": [
+            "reviewer",
+            "windows"
+          ],
+          "properties": {
+            "reviewer": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Who reviewed the selected windows again, as the review states."
+            },
+            "reviewer_minutes": {
+              "type": "integer",
+              "minimum": 0,
+              "x-unit": "min",
+              "description": "Minutes the pass reviewer recorded. Absent when the review did not state them."
+            },
+            "windows": {
+              "type": "array",
+              "minItems": 0,
+              "description": "Reviewed windows, ascending by stream and candidate, each at most once.",
+              "items": {
+                "type": "object",
+                "description": "One selected window reviewed again in the pass.",
+                "additionalProperties": false,
+                "required": [
+                  "stream_id",
+                  "candidate_id",
+                  "observation"
+                ],
+                "properties": {
+                  "stream_id": {
+                    "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                    "description": "The stream of the discovery run whose inventory holds the candidate."
+                  },
+                  "candidate_id": {
+                    "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                    "description": "The candidate, as its inventory names it."
+                  },
+                  "observation": {
+                    "type": "string",
+                    "description": "What the pass reviewer saw in the window, with the meanings a decision's observation has. It is reported as review yield and never replaces the audit observation of the window in an estimate. An observation is never a label.",
+                    "enum": [
+                      "target_present",
+                      "target_absent",
+                      "confuser",
+                      "unknown"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "required": [
+        "reviewer",
+        "review_sha256",
+        "offered_count",
+        "decision_count"
+      ],
+      "additionalProperties": false
+    },
+    "label_revision": {
+      "type": "null",
+      "description": "Always null: a frozen corpus version holds no label, and no observation is one."
+    },
+    "members": {
+      "type": "array",
+      "description": "Each stream of the frozen version, ascending by stream_id.",
+      "minItems": 0,
+      "items": {
+        "type": "object",
+        "description": "One frozen stream: a maximal run of included windows of one pool stream.",
+        "properties": {
+          "stream_id": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+            "description": "The frozen version's stream."
+          },
+          "pool_stream_id": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+            "description": "The pool version's stream it was cut from."
+          },
+          "group_id": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+            "description": "Group, the pool stream's."
+          },
+          "split": {
+            "type": "string",
+            "description": "Evaluation partition.",
+            "enum": [
+              "development",
+              "calibration",
+              "locked"
+            ],
+            "x-sensitivity": "public"
+          },
+          "source_sha256": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+            "description": "Source identity."
+          },
+          "window": {
+            "type": "object",
+            "description": "The frozen stream's half-open window of source frames: the union of its candidates.",
+            "properties": {
+              "start_frame": {
+                "type": "integer",
+                "description": "Inclusive zero-based source frame index.",
+                "x-unit": "1",
+                "minimum": 0
+              },
+              "end_frame": {
+                "type": "integer",
+                "description": "Exclusive zero-based source frame index.",
+                "x-unit": "1",
+                "minimum": 1
+              }
+            },
+            "required": [
+              "start_frame",
+              "end_frame"
+            ],
+            "additionalProperties": false,
+            "x-rules": {
+              "order": "start_frame is strictly before end_frame."
+            }
+          },
+          "candidates": {
+            "type": "array",
+            "description": "The included candidates whose windows it joins, ascending by window.",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "description": "One included candidate.",
+              "properties": {
+                "stream_id": {
+                  "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                  "description": "The discovery run's stream that holds the candidate."
+                },
+                "candidate_id": {
+                  "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                  "description": "The candidate, as its inventory names it."
+                },
+                "window": {
+                  "type": "object",
+                  "description": "The candidate's half-open window of source frames.",
+                  "properties": {
+                    "start_frame": {
+                      "type": "integer",
+                      "description": "Inclusive zero-based source frame index.",
+                      "x-unit": "1",
+                      "minimum": 0
+                    },
+                    "end_frame": {
+                      "type": "integer",
+                      "description": "Exclusive zero-based source frame index.",
+                      "x-unit": "1",
+                      "minimum": 1
+                    }
+                  },
+                  "required": [
+                    "start_frame",
+                    "end_frame"
+                  ],
+                  "additionalProperties": false,
+                  "x-rules": {
+                    "order": "start_frame is strictly before end_frame."
+                  }
+                },
+                "offers": {
+                  "type": "array",
+                  "description": "Why review offered the candidate, ascending.",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string",
+                    "description": "selected: selection ranked it. audit_sample: the audit sample drew it. sibling: an ss-video hint proposed it.",
+                    "enum": [
+                      "audit_sample",
+                      "selected",
+                      "sibling"
+                    ]
+                  }
+                },
+                "observation": {
+                  "type": "string",
+                  "description": "What the reviewer saw in the window. target_present: a target in at least one frame. target_absent: no target seen, which is a review, not a verified absence. confuser: no target seen, but a moving object a model or a reviewer could mistake for one. unknown: the reviewer could not tell. An observation is never a label.",
+                  "enum": [
+                    "target_present",
+                    "target_absent",
+                    "confuser",
+                    "unknown"
+                  ]
+                },
+                "note": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The reviewer's note, as declared."
+                }
+              },
+              "required": [
+                "stream_id",
+                "candidate_id",
+                "window",
+                "offers",
+                "observation"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "stream_id",
+          "pool_stream_id",
+          "group_id",
+          "split",
+          "source_sha256",
+          "window",
+          "candidates"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "exclusions": {
+      "type": "array",
+      "description": "Each excluded candidate, ascending by stream and candidate.",
+      "minItems": 0,
+      "items": {
+        "type": "object",
+        "description": "One excluded candidate.",
+        "properties": {
+          "stream_id": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+            "description": "The discovery run's stream that holds the candidate."
+          },
+          "candidate_id": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+            "description": "The candidate, as its inventory names it."
+          },
+          "window": {
+            "type": "object",
+            "description": "The candidate's half-open window of source frames.",
+            "properties": {
+              "start_frame": {
+                "type": "integer",
+                "description": "Inclusive zero-based source frame index.",
+                "x-unit": "1",
+                "minimum": 0
+              },
+              "end_frame": {
+                "type": "integer",
+                "description": "Exclusive zero-based source frame index.",
+                "x-unit": "1",
+                "minimum": 1
+              }
+            },
+            "required": [
+              "start_frame",
+              "end_frame"
+            ],
+            "additionalProperties": false,
+            "x-rules": {
+              "order": "start_frame is strictly before end_frame."
+            }
+          },
+          "offers": {
+            "type": "array",
+            "description": "Why review offered the candidate, ascending.",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "description": "selected: selection ranked it. audit_sample: the audit sample drew it. sibling: an ss-video hint proposed it.",
+              "enum": [
+                "audit_sample",
+                "selected",
+                "sibling"
+              ]
+            }
+          },
+          "observation": {
+            "type": "string",
+            "description": "What the reviewer saw in the window. target_present: a target in at least one frame. target_absent: no target seen, which is a review, not a verified absence. confuser: no target seen, but a moving object a model or a reviewer could mistake for one. unknown: the reviewer could not tell. An observation is never a label.",
+            "enum": [
+              "target_present",
+              "target_absent",
+              "confuser",
+              "unknown"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why the window stays out. no_value: nothing the corpus needs. quality: blur, damage or compression make it unusable. sensitive: it shows people, plates or other sensitive content. rights: its terms do not cover this use. duplicate: it repeats material already included. other: stated in the note.",
+            "enum": [
+              "no_value",
+              "quality",
+              "sensitive",
+              "rights",
+              "duplicate",
+              "other"
+            ]
+          },
+          "note": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The reviewer's note, as declared."
+          }
+        },
+        "required": [
+          "stream_id",
+          "candidate_id",
+          "window",
+          "offers",
+          "observation",
+          "reason"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "unreviewed": {
+      "type": "array",
+      "description": "Each offered candidate left undecided, ascending by stream and candidate. Unreviewed exposure: none is a member.",
+      "minItems": 0,
+      "items": {
+        "type": "object",
+        "description": "One offered candidate no one decided.",
+        "properties": {
+          "stream_id": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+            "description": "The discovery run's stream that holds the candidate."
+          },
+          "candidate_id": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+            "description": "The candidate, as its inventory names it."
+          },
+          "window": {
+            "type": "object",
+            "description": "The candidate's half-open window of source frames.",
+            "properties": {
+              "start_frame": {
+                "type": "integer",
+                "description": "Inclusive zero-based source frame index.",
+                "x-unit": "1",
+                "minimum": 0
+              },
+              "end_frame": {
+                "type": "integer",
+                "description": "Exclusive zero-based source frame index.",
+                "x-unit": "1",
+                "minimum": 1
+              }
+            },
+            "required": [
+              "start_frame",
+              "end_frame"
+            ],
+            "additionalProperties": false,
+            "x-rules": {
+              "order": "start_frame is strictly before end_frame."
+            }
+          },
+          "offers": {
+            "type": "array",
+            "description": "Why review offered the candidate, ascending.",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "description": "selected: selection ranked it. audit_sample: the audit sample drew it. sibling: an ss-video hint proposed it.",
+              "enum": [
+                "audit_sample",
+                "selected",
+                "sibling"
+              ]
+            }
+          }
+        },
+        "required": [
+          "stream_id",
+          "candidate_id",
+          "window",
+          "offers"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "withheld": {
+      "type": "array",
+      "description": "Pool streams whose offered windows review withheld, ascending by stream.",
+      "minItems": 0,
+      "items": {
+        "type": "object",
+        "description": "One withheld stream.",
+        "properties": {
+          "stream_id": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+            "description": "Pool stream."
+          },
+          "reason": {
+            "type": "string",
+            "description": "locked_without_policy: the stream is in the locked split and no custodian policy allows its review.",
+            "enum": [
+              "locked_without_policy"
+            ]
+          },
+          "count": {
+            "type": "integer",
+            "description": "Offered windows withheld.",
+            "x-unit": "1",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "stream_id",
+          "reason",
+          "count"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "sources": {
+      "type": "array",
+      "description": "Each source of the frozen version with the terms its pinned record states, ascending by source.",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "description": "One source.",
+        "properties": {
+          "source_sha256": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+            "description": "Source identity."
+          },
+          "source_manifest_sha256": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+            "description": "The pinned source record."
+          },
+          "group_id": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+            "description": "Its one group."
+          },
+          "split": {
+            "type": "string",
+            "description": "Evaluation partition.",
+            "enum": [
+              "development",
+              "calibration",
+              "locked"
+            ],
+            "x-sensitivity": "public"
+          },
+          "rights": {
+            "type": "object",
+            "description": "Operator-declared source terms.",
+            "properties": {
+              "holder": {
+                "type": "string",
+                "description": "Rights holder.",
+                "minLength": 1,
+                "x-sensitivity": "sensitive"
+              },
+              "basis": {
+                "type": "string",
+                "description": "Authority for using the source.",
+                "enum": [
+                  "owned",
+                  "licensed",
+                  "consented",
+                  "public_domain"
+                ],
+                "x-sensitivity": "public"
+              },
+              "retention": {
+                "type": "string",
+                "description": "Human-readable retention rule.",
+                "minLength": 1,
+                "x-sensitivity": "sensitive"
+              },
+              "retain_until": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Last UTC calendar day on which retention is allowed; null means no dated end.",
+                "format": "date",
+                "x-sensitivity": "public"
+              },
+              "derived_frames": {
+                "type": "boolean",
+                "description": "Whether derived frames may be retained.",
+                "x-sensitivity": "public"
+              },
+              "sharing": {
+                "type": "string",
+                "description": "Permitted disclosure scope.",
+                "enum": [
+                  "restricted",
+                  "public"
+                ],
+                "x-sensitivity": "public"
+              }
+            },
+            "required": [
+              "holder",
+              "basis",
+              "retention",
+              "retain_until",
+              "derived_frames",
+              "sharing"
+            ],
+            "additionalProperties": false
+          },
+          "sensitivity": {
+            "type": "object",
+            "description": "Declared handling requirements.",
+            "properties": {
+              "level": {
+                "type": "string",
+                "description": "Declared sensitivity.",
+                "enum": [
+                  "low",
+                  "moderate",
+                  "high"
+                ],
+                "x-sensitivity": "public"
+              },
+              "notes": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Operator notes; null means none supplied.",
+                "x-sensitivity": "sensitive"
+              }
+            },
+            "required": [
+              "level",
+              "notes"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "source_sha256",
+          "source_manifest_sha256",
+          "group_id",
+          "split",
+          "rights",
+          "sensitivity"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "superseded": {
+      "type": "object",
+      "description": "The versions the frozen one supersedes, against which the reviewer's related decisions were applied.",
+      "properties": {
+        "compared_versions": {
+          "type": "array",
+          "description": "Versions compared, nearest first.",
+          "minItems": 0,
+          "items": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+            "description": "A superseded version."
+          }
+        },
+        "not_compared": {
+          "type": "array",
+          "description": "Versions whose format holds no placement, nearest first.",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "description": "One version not compared.",
+            "properties": {
+              "corpus_id": {
+                "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                "description": "Version."
+              },
+              "reason": {
+                "type": "string",
+                "description": "other_schema: its major keeps no comparison projection.",
+                "enum": [
+                  "other_schema"
+                ]
+              }
+            },
+            "required": [
+              "corpus_id",
+              "reason"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "compared_versions",
+        "not_compared"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "x-rules": {
+    "membership": "The members are exactly the frozen manifest's streams, each a maximal run of overlapping or adjacent included windows of one pool stream, and no excluded window shares a frame with a member.",
+    "decisions": "Every offered candidate appears once among members' candidates, exclusions and unreviewed; a withheld window appears in none.",
+    "order": "Every list keeps the order its description states."
+  }
+}

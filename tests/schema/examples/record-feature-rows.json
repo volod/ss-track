@@ -1,0 +1,33 @@
+{
+  "bundle_sha256": "1f7b73c8b19aeb19e6944e8134a5a46edd733959453eadb1dc969a6692d1b696",
+  "corpus_id": "pilot-v1",
+  "dimensions": 4,
+  "extractor_id": "clip-b16",
+  "frame_stride": 8,
+  "kind": "ss-track.feature-rows",
+  "manifest_sha256": "86ddffb2da7ce055c38680f11e1df9d06cf1891d907bcafb713d58c43a063704",
+  "rows": [
+    {
+      "frame_index": 0,
+      "frame_sha256": "f8952f8aff2a83a859aa47f33adb73441412143c3982ae0e7ec57d49d0ba7320"
+    },
+    {
+      "frame_index": 8,
+      "frame_sha256": "11a13fc03f9c31511c4c69fbb7435c150293b23f049e6123eeb1c95990eb46cd"
+    },
+    {
+      "frame_index": 16,
+      "frame_sha256": "03ec6905cfd132ab399fa8d575d12fc4dc74d22d494c3663d7a7098cc857da1a"
+    }
+  ],
+  "run_id": "discovery-1",
+  "schema_version": 1,
+  "stream_id": "one",
+  "vectors": {
+    "byte_order": "little",
+    "dtype": "float32",
+    "file": "one.f32",
+    "sha256": "31cfe40cbf2cff090f2776a574a157ff4dc1119954f6be87cf98c285b067ee98",
+    "size_bytes": 48
+  }
+}

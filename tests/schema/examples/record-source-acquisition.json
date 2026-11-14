@@ -1,0 +1,25 @@
+{
+  "archive_md5": null,
+  "archive_sha256": null,
+  "collection_id": "owner/repo",
+  "input_inventory_sha256": "ef05ce0fd332db5a09f0802e6a82a53a59b18c4351fe2d1e9af3fbe03cbc68ed",
+  "inventory_sha256": "ef05ce0fd332db5a09f0802e6a82a53a59b18c4351fe2d1e9af3fbe03cbc68ed",
+  "kind": "ss-track.source-acquisition",
+  "manifest_sha256": "8986cce2809673d84bffed47f05f9e91fc94155e7f20ec1631f93025eb12be16",
+  "metadata_files": [],
+  "provider": "huggingface",
+  "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "schema_version": 1,
+  "split_md5": null,
+  "split_sha256": null,
+  "videos": [
+    {
+      "git_oid": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "lfs_sha256": "cf5664a86426afa42799efd6c0e8b2e9df0ef34c9024dc89e132032872edf938",
+      "local_path": "media/videos/a.mp4",
+      "path": "videos/a.mp4",
+      "sha256": "cf5664a86426afa42799efd6c0e8b2e9df0ef34c9024dc89e132032872edf938",
+      "size": 13
+    }
+  ]
+}

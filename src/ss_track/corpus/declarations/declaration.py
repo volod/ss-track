@@ -7,6 +7,7 @@ from pathlib import Path
 from ss_track.core.refusal import JsonValue
 from ss_track.corpus.cases.recipes import CaseRecipe, read_recipe
 from ss_track.corpus.declarations.fields import Fields, Selection, invalid
+from ss_track.corpus.declarations.origin import OriginMembership, read_origins
 from ss_track.corpus.decoding.declared_color import matrix_code
 from ss_track.schema.validation.enforce import read_declaration
 
@@ -64,6 +65,7 @@ class RecordingDeclaration:
     sensitivity: Sensitivity
     capture_clock_evidence: str | None
     capture: dict[str, JsonValue]
+    origin: tuple[OriginMembership, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -144,6 +146,7 @@ def load_recording_declaration(path: Path) -> RecordingDeclaration:
         sensitivity=_read_sensitivity(fields.child("sensitivity")),
         capture_clock_evidence=timestamps.optional_text("capture_clock_evidence"),
         capture=_read_capture(fields.optional_child("capture")),
+        origin=read_origins(fields),
     )
 
 

@@ -54,5 +54,36 @@ Copy the [template](template.md) using the
 | 0047 | `bundle-reuse-across-versions` | [0047-corpus-provenance-bundle-reuse-across-versions](0047-corpus-provenance-bundle-reuse-across-versions.md) |
 | 0048 | `near-duplicates-outside-the-chain` | [0048-corpus-provenance-near-duplicates-outside-the-chain](0048-corpus-provenance-near-duplicates-outside-the-chain.md) |
 | 0049 | `corpus-provenance-audit` | [0049-corpus-provenance-corpus-provenance-audit](0049-corpus-provenance-corpus-provenance-audit.md) |
+| 0050 | `corpus-sibling-integration-study` | [0050-self-supervised-corpus-corpus-sibling-integration-study](0050-self-supervised-corpus-corpus-sibling-integration-study.md) |
+| 0051 | `corpus-discovery-contract` | [0051-self-supervised-corpus-corpus-discovery-contract](0051-self-supervised-corpus-corpus-discovery-contract.md) |
+| 0052 | `corpus-video-index-adapter` | [0052-self-supervised-corpus-corpus-video-index-adapter](0052-self-supervised-corpus-corpus-video-index-adapter.md) |
+| 0053 | `corpus-ssl-selection` | [0053-self-supervised-corpus-corpus-ssl-selection](0053-self-supervised-corpus-corpus-ssl-selection.md) |
+| 0054 | `corpus-group-and-leakage-review` | [0054-self-supervised-corpus-corpus-group-and-leakage-review](0054-self-supervised-corpus-corpus-group-and-leakage-review.md) |
+| 0055 | `corpus-review-and-freeze` | [0055-self-supervised-corpus-corpus-review-and-freeze](0055-self-supervised-corpus-corpus-review-and-freeze.md) |
+| 0056 | `corpus-selection-evaluation` | [0056-self-supervised-corpus-corpus-selection-evaluation](0056-self-supervised-corpus-corpus-selection-evaluation.md) |
+| 0057 | `corpus-source-architecture-plan` | [0057-adhoc-corpus-source-architecture-plan](0057-adhoc-corpus-source-architecture-plan.md) |
+| 0058 | `corpus-source-inventory` | [0058-self-supervised-corpus-corpus-source-inventory](0058-self-supervised-corpus-corpus-source-inventory.md) |
+| 0059 | `corpus-source-acquisition` | [0059-self-supervised-corpus-corpus-source-acquisition](0059-self-supervised-corpus-corpus-source-acquisition.md) |
+| 0060 | `sibling-defect-test-skips` | [0060-adhoc-sibling-defect-test-skips](0060-adhoc-sibling-defect-test-skips.md) |
+| 0061 | `lightweight-ci-tests` | [0061-adhoc-lightweight-ci-tests](0061-adhoc-lightweight-ci-tests.md) |
+| 0062 | `corpus-combined-pool` | [0062-self-supervised-corpus-corpus-combined-pool](0062-self-supervised-corpus-corpus-combined-pool.md) |
+| 0063 | `corpus-blinded-audit-review` | [0063-self-supervised-corpus-corpus-blinded-audit-review](0063-self-supervised-corpus-corpus-blinded-audit-review.md) |
+| 0064 | `corpus-evaluation-result-contract` | [0064-self-supervised-corpus-corpus-evaluation-result-contract](0064-self-supervised-corpus-corpus-evaluation-result-contract.md) |
+| 0065 | `corpus-evaluation-review-budget` | [0065-self-supervised-corpus-corpus-evaluation-review-budget](0065-self-supervised-corpus-corpus-evaluation-review-budget.md) |
+| 0066 | `corpus-evaluation-by-source` | [0066-self-supervised-corpus-corpus-evaluation-by-source](0066-self-supervised-corpus-corpus-evaluation-by-source.md) |
+| 0067 | `corpus-two-source-pilot` | [0067-self-supervised-corpus-corpus-two-source-pilot](0067-self-supervised-corpus-corpus-two-source-pilot.md) |
+| 0068 | `authorize-video-corpus-sources` | [0068-self-supervised-corpus-authorize-video-corpus-sources](0068-self-supervised-corpus-authorize-video-corpus-sources.md) |
+| 0069 | `corpus-motion-parallelism` | [0069-self-supervised-corpus-corpus-motion-parallelism](0069-self-supervised-corpus-corpus-motion-parallelism.md) |
+| 0070 | `corpus-balanced-review-budget` | [0070-self-supervised-corpus-corpus-balanced-review-budget](0070-self-supervised-corpus-corpus-balanced-review-budget.md) |
+| 0071 | `corpus-interactive-link-review` | [0071-self-supervised-corpus-corpus-interactive-link-review](0071-self-supervised-corpus-corpus-interactive-link-review.md) |
+| 0072 | `remote-link-review-plan` | [0072-adhoc-remote-link-review-plan](0072-adhoc-remote-link-review-plan.md) |
+| 0073 | `corpus-portable-link-review` | [0073-self-supervised-corpus-corpus-portable-link-review](0073-self-supervised-corpus-corpus-portable-link-review.md) |
+| 0074 | `data-clean-command` | [0074-adhoc-data-clean-command](0074-adhoc-data-clean-command.md) |
+| 0075 | `review-pilot-recording-links` | [0075-self-supervised-corpus-review-pilot-recording-links](0075-self-supervised-corpus-review-pilot-recording-links.md) |
+| 0076 | `interactive-audit-review` | [0076-adhoc-interactive-audit-review](0076-adhoc-interactive-audit-review.md) |
+| 0077 | `interactive-selection-pass` | [0077-adhoc-interactive-selection-pass](0077-adhoc-interactive-selection-pass.md) |
+| 0078 | `review-video-corpus-sample` | [0078-self-supervised-corpus-review-video-corpus-sample](0078-self-supervised-corpus-review-video-corpus-sample.md) |
+| 0079 | `mission-alignment-audit` | [0079-adhoc-mission-alignment-audit](0079-adhoc-mission-alignment-audit.md) |
+| 0080 | `phase-2-plan` | [0080-adhoc-phase-2-plan](0080-adhoc-phase-2-plan.md) |
 
-Next unused sequence: `0050`.
+Next unused sequence: `0081`.

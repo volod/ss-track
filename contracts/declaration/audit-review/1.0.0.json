@@ -1,0 +1,187 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ss-track:contract:declaration:audit-review:1.0.0",
+  "title": "Blinded audit review",
+  "description": "A reviewer's decisions on the common audit sample, named by item id. The file carries no stream, candidate, score, method, offer reason, filename or source identifier. Independence and blinding record what was declared. They do not verify that the procedure was followed. An observation is not a label.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "audit_id",
+    "reviewer",
+    "independence",
+    "blinding",
+    "reviewer_minutes",
+    "observations"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1,
+      "minimum": 0,
+      "x-unit": "1",
+      "description": "Declaration major."
+    },
+    "audit_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "The blinded audit these decisions belong to."
+    },
+    "reviewer": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Who made these decisions: a person or a role the owner recognizes.",
+      "x-rules": {
+        "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+      }
+    },
+    "independence": {
+      "type": "string",
+      "description": "declared: the reviewer says the review was independent of selection. not_declared: the reviewer does not say that. This is a declaration, not a verification.",
+      "enum": [
+        "declared",
+        "not_declared"
+      ]
+    },
+    "blinding": {
+      "type": "string",
+      "description": "declared: the reviewer says the review was blinded to selection, scores, offer reasons and source labels. not_declared: the reviewer does not say that. This is a declaration, not a verification.",
+      "enum": [
+        "declared",
+        "not_declared"
+      ]
+    },
+    "reviewer_minutes": {
+      "type": "integer",
+      "minimum": 0,
+      "x-unit": "min",
+      "description": "Minutes the reviewer recorded spending on this sample."
+    },
+    "observations": {
+      "type": "array",
+      "description": "Decisions in any order. An item is decided at most once.",
+      "minItems": 0,
+      "items": {
+        "description": "One decision on one blinded item.",
+        "oneOf": [
+          {
+            "type": "object",
+            "description": "An include decision.",
+            "additionalProperties": false,
+            "required": [
+              "item_id",
+              "decision",
+              "observation"
+            ],
+            "properties": {
+              "item_id": {
+                "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                "description": "The blinded item."
+              },
+              "decision": {
+                "type": "string",
+                "description": "include: the window may join a frozen corpus version.",
+                "const": "include"
+              },
+              "observation": {
+                "type": "string",
+                "description": "What the reviewer saw. target_present: a target in at least one frame. target_absent: no target seen, which is not a verified absence. confuser: no target seen, but a moving object that could pass for one. unknown: the reviewer could not tell. An observation is never a label.",
+                "enum": [
+                  "target_present",
+                  "target_absent",
+                  "confuser",
+                  "unknown"
+                ]
+              },
+              "note": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Why, in the reviewer's words.",
+                "x-rules": {
+                  "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "description": "An exclude decision.",
+            "additionalProperties": false,
+            "required": [
+              "item_id",
+              "decision",
+              "observation",
+              "reason"
+            ],
+            "properties": {
+              "item_id": {
+                "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                "description": "The blinded item."
+              },
+              "decision": {
+                "type": "string",
+                "description": "exclude: the window stays out of a frozen corpus version.",
+                "const": "exclude"
+              },
+              "observation": {
+                "type": "string",
+                "description": "What the reviewer saw. target_present: a target in at least one frame. target_absent: no target seen, which is not a verified absence. confuser: no target seen, but a moving object that could pass for one. unknown: the reviewer could not tell. An observation is never a label.",
+                "enum": [
+                  "target_present",
+                  "target_absent",
+                  "confuser",
+                  "unknown"
+                ]
+              },
+              "reason": {
+                "type": "string",
+                "description": "Why the window stays out. no_value: nothing the corpus needs. quality: blur, damage or compression make it unusable. sensitive: it shows people, plates or other sensitive content. rights: its terms do not cover this use. duplicate: it repeats material already included. other: stated in the note.",
+                "enum": [
+                  "no_value",
+                  "quality",
+                  "sensitive",
+                  "rights",
+                  "duplicate",
+                  "other"
+                ]
+              },
+              "note": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Why, in the reviewer's words. Required when the reason is other.",
+                "x-rules": {
+                  "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "description": "An unreviewed decision.",
+            "additionalProperties": false,
+            "required": [
+              "item_id",
+              "decision"
+            ],
+            "properties": {
+              "item_id": {
+                "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                "description": "The blinded item."
+              },
+              "decision": {
+                "type": "string",
+                "description": "unreviewed: the reviewer has not decided the window. It stays out and is reported as unreviewed exposure.",
+                "const": "unreviewed"
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "x-rules": {
+    "once": "An item is decided at most once.",
+    "complete": "Unblinding requires every item of the private mapping and no other item.",
+    "other-note": "An exclude decision with the reason other states a note.",
+    "declared": "independence and blinding record a declaration. They do not verify that the procedure was followed."
+  }
+}

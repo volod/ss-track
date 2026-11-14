@@ -86,6 +86,13 @@ Describe the unresolved operator problem in present or future tense.
 The plan integrity gate requires every field. Human-lane tasks use a human-lane status. Optional work
 follows required work within its capability, and an Agent-lane group ends with its audit.
 
+A task that will leave reproducible bytes in a data root, such as staged frames, downloads, build or
+tool caches, scratch, sandbox state or a dataset recreated on another host, states in its
+acceptance gates that each new kind is registered with
+[`ss-track data clean`](../impl/current/corpus.md#cleaning-the-data-root), with its restore path
+and a test. Sealed records, imported sources, declarations and review decisions are evidence and
+are never a clean kind.
+
 ## Ordering
 
 Capability groups follow the registry. Within a group:

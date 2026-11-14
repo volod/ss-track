@@ -133,7 +133,7 @@ def test_each_index_imports_and_stages_its_own_frames(
             with pytest.raises(CorpusRefusal) as caught:
                 validate_file(imported.manifest_path, version="2.1.0")
             assert caught.value.code is RefusalCode.RECORD_INVALID
-            assert validate_file(imported.manifest_path).version == "2.3.0"
+            assert validate_file(imported.manifest_path).version == "2.4.0"
         build_corpus(write_corpus([stream_of(imported)]), root)
         assert stage_corpus(_CORPUS, root).status == "staged"
         pixels[index] = _frame(root)

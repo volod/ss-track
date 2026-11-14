@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ss-track:contract:declaration:video-hints:1.0.0",
+  "title": "Video hints",
+  "description": "Matches an ss-video index returned, joined to the source file hash, with the sampling facts that turn a sibling time into a window of ss-track frames. A match is a hint, never a label.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "project",
+    "commit",
+    "ffmpeg_version",
+    "sample_rate",
+    "matches"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1,
+      "minimum": 0,
+      "x-unit": "1",
+      "description": "Declaration major."
+    },
+    "project": {
+      "type": "string",
+      "description": "Sibling project that produced the matches.",
+      "enum": [
+        "ss-video"
+      ]
+    },
+    "commit": {
+      "type": "string",
+      "description": "Full lowercase Git commit hash.",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "ffmpeg_version": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Version of the ffmpeg that sampled the source, which decides the slot rule.",
+      "x-rules": {
+        "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+      }
+    },
+    "sample_rate": {
+      "type": "string",
+      "description": "Frames per second the sibling sampled at, as a rational numerator/denominator.",
+      "pattern": "^[1-9][0-9]*/[1-9][0-9]*$",
+      "x-unit": "Hz"
+    },
+    "matches": {
+      "type": "array",
+      "description": "Matches in any order; repeats name one window.",
+      "items": {
+        "type": "object",
+        "description": "One match.",
+        "properties": {
+          "file_sha256": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+            "description": "SHA-256 of the indexed file, from ss-video processed_files.file_hash."
+          },
+          "t_sec": {
+            "type": "number",
+            "description": "Sibling time of the match: its sample index divided by sample_rate.",
+            "x-unit": "s",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "file_sha256",
+          "t_sec"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1
+    }
+  },
+  "x-rules": {
+    "slot": "t_sec times sample_rate is a whole sample index; a time between samples is not mapped."
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "kind": "ss-track.audit-blinding",
+  "schema_version": 1,
+  "audit_id": "audit-1",
+  "corpus_id": "pilot-v1",
+  "frame_set_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "runs": [
+    {
+      "run_id": "discovery-1",
+      "run_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    }
+  ],
+  "items": [
+    {
+      "item_id": "item-000",
+      "stream_id": "one",
+      "candidate_id": "pool-000",
+      "window": {
+        "start_frame": 0,
+        "end_frame": 8
+      },
+      "frame_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    }
+  ],
+  "withheld": [
+    {
+      "stream_id": "three",
+      "reason": "locked_without_policy",
+      "count": 1
+    }
+  ],
+  "outside_sample": 0,
+  "manifest_sha256": "3cb5bc627e2ed86b6f6c5d4f7248a46113d3818648626a16fcbb07a1089b9eb3"
+}
