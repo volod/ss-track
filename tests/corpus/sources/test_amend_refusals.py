@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
+from ss_track.core.evidence.sealing import sha256_file
 from ss_track.corpus import ImportResult, RefusalCode, amend_source_terms, import_source
-from ss_track.corpus.records.sealing import sha256_file
 from tests.corpus._amending import evidence, read_source, refused
 from tests.corpus._media import WIDTH, write_clip
 from tests.corpus.conftest import WriteRecording, imported_names, reseal
@@ -151,7 +151,7 @@ def test_an_unreadable_source_is_refused(
 def test_a_newer_record_is_refused_and_left_alone(
     imported: ImportResult, write_recording: WriteRecording, data_root: Path
 ) -> None:
-    reseal(imported.manifest_path, schema_version=3)
+    reseal(imported.manifest_path, schema_version=4)
     before = imported.manifest_path.read_bytes()
     declared = write_recording(sensitivity={"level": "high"})
 

@@ -11,8 +11,8 @@ from typing import Any
 import pytest
 from referencing import Registry
 
+from ss_track.core.evidence.read_window import View, apply_views, check_view, view_findings
 from ss_track.core.refusal import JsonValue
-from ss_track.corpus.records.read_window import View, apply_views, check_view, view_findings
 from ss_track.schema.compatibility.dispositions import disposition_floor
 from ss_track.schema.compatibility.evolution import diff_schemas, required_bump
 from ss_track.schema.registry.contract import FACTS, VIEW

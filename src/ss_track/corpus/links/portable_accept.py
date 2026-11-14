@@ -6,7 +6,9 @@ from tempfile import TemporaryDirectory
 from typing import Any, cast
 
 from ss_track.core.canonical import SEAL_FIELD, sha256_bytes
+from ss_track.core.evidence.sealing import write_sealed
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
+from ss_track.core.scratch import exclusive_lock, write_atomically
 from ss_track.corpus.hosts.hash_comparison import compare_staged_hashes
 from ss_track.corpus.hosts.host_hashes import read_staged_hashes, record_staged_hashes
 from ss_track.corpus.links.interactive_state import read_checkpoint
@@ -20,9 +22,7 @@ from ss_track.corpus.links.portable_archive import (
 )
 from ss_track.corpus.links.portable_state import accepted_path, checkpoint_path, file_digest
 from ss_track.corpus.links.records import read_links
-from ss_track.corpus.records.sealing import write_sealed
 from ss_track.corpus.storage.layout import links_path
-from ss_track.corpus.storage.scratch import exclusive_lock, write_atomically
 
 
 def _temporary_records(archive: PortableArchive, directory: Path) -> tuple[Path, Path]:

@@ -3,10 +3,10 @@
 from pathlib import Path
 
 from ss_track.core.canonical import sha256_bytes
+from ss_track.core.evidence.sealed import read_sealed
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
 from ss_track.corpus.links.interactive_state import CHECKPOINT_NAME
 from ss_track.corpus.records.kinds import LINK_REVIEW_HANDOFF
-from ss_track.corpus.records.sealed import read_sealed
 from ss_track.corpus.storage.layout import discovery_run_directory
 
 STATE_DIRECTORY = "portable-review"

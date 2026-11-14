@@ -27,6 +27,7 @@ tasks, their decisions and their acceptance evidence:
 [repeated frames in one group](../records/0032-corpus-provenance-group-repeated-frames.md),
 [arm64 reproducibility](../records/0011-corpus-provenance-arm64-reproducibility.md),
 [source terms amendment](../records/0014-corpus-provenance-source-terms-amendment.md),
+[source capture inspection](../records/0086-corpus-provenance-source-capture-inspection.md),
 [amendment impact](../records/0034-corpus-provenance-amendment-impact-report.md),
 [record read gate](../records/0016-data-contracts-record-read-gate.md) and the
 [corpus provenance group audit](../records/0049-corpus-provenance-corpus-provenance-audit.md).
@@ -261,11 +262,33 @@ not prove negative absence in every frame: the pilot-labeling task reviews all f
 uncertainty visible. These are not frozen labels or held-out evidence. See the
 [selection record](../records/0037-corpus-provenance-select-development-workload.md).
 
+## Source capture inspection
+
+`corpus inspect-source` reads the current source manifest or, when a seal is supplied, the
+retained record under that seal. It reports the original capture object, source record major and
+seal, and its evidence disposition (`current`, `view`, or `facts`). An absent platform is reported
+as `unknown` separately; the capture object is not modified. Inspection uses `read_stated`, checks
+the seal and kind, and does not promote historical facts to evidence. It needs no source media and
+writes nothing. The implementation is in `corpus/sources/inspection.py`;
+`tests/corpus/records/test_source_inspection.py` covers retained records and refusals.
+
+Recording declarations and source manifests use major 3. Omitted camera control and observer
+platform judgments become `unknown`. The two fields accept only the values shown below; other
+capture facts remain descriptive. Historical major 1 and 2 source records are inspectable but
+cannot serve as current evidence. To migrate one, restate its capture facts and explicitly select
+the judgments with `import --amend-capture`; the original bytes are retained under their seal.
+The operation needs no media when the declaration supplies the source hash. Add `--amend-terms`
+and/or `--redecode` if the refusal names them as required. Only those explicitly requested
+operations change their respective facts. Versions pinning the old record refuse until a successor
+is built. See the [implementation record](../records/0087-corpus-provenance-recording-capture-vocabulary.md).
+
 ## Commands
 
 ```bash
 ss-track import --source recording.yaml
 ss-track import --source recording.yaml --amend-terms
+ss-track import --source recording.yaml --amend-capture [--amend-terms] [--redecode]
+ss-track corpus inspect-source --source-sha256 <source-sha256> [--manifest-sha256 <manifest-sha256>]
 ss-track corpus build --manifest corpus.yaml
 ss-track corpus stage --corpus pilot-v1
 ss-track corpus verify --corpus pilot-v1
@@ -301,12 +324,12 @@ traceback. Import and stage remove their scratch before that record is written:
 
 ## Declarations
 
-Each file is checked in full against its contract on read, `declaration/recording` 2.4.0 and
-`declaration/corpus` 3.2.0, before any reader takes a value from it. Recording 2.4.0 adds optional
+Each file is checked in full against its contract on read, `declaration/recording` 3.0.0 and
+`declaration/corpus` 3.2.0, before any reader takes a value from it. A recording may carry optional
 `origin`. An import omits it when the declaration has none, and an amendment or redecode that drops
 a recorded origin is refused. Both contracts reject unknown fields, repeated keys, non-finite
 numbers and any other schema version, so a misspelled key cannot silently drop a fact. A recording
-is schema 2 and a corpus is schema 3. There are no defaults for rights,
+is schema 3 and a corpus is schema 3. There are no defaults for rights,
 sensitivity, split or scenario rights: a declaration without them is refused, and `basis` has no
 `unknown` value. A refusal names the contract version and the first violation by JSON pointer, a wrong
 `schema_version` before anything else, and its details list up to 20 violations, as
@@ -325,7 +348,7 @@ unquoted date as its ISO text.
 
 ```yaml
 # recording.yaml
-schema_version: 2
+schema_version: 3
 source:
   path: clip.mkv             # relative to this file
   sha256: "<64 hex>"         # optional; declare it at capture, see Integrity limits
@@ -343,8 +366,10 @@ sensitivity:
 timestamps:                  # optional
   capture_clock_evidence: hardware clock, PTP disciplined
 capture:                     # optional; every absent fact is stored as unknown
-  camera: bench camera       # also lens, exposure, focus, fov, camera_control_mode,
-  range:                     # lighting, background, motion and object_pixel_extent
+  camera: bench camera       # also lens, exposure, focus, fov, lighting, background, motion
+  camera_control_mode: fixed_camera # operator_steered, fixed_camera, autonomous_camera, unknown
+  observer_platform: ground_fixed # ground_fixed, ground_handheld, airborne, unknown
+  range:                     # object_pixel_extent is also descriptive
     status: measured         # measured, estimated or unknown
     value_m: 12.5
     method: laser rangefinder
@@ -453,8 +478,9 @@ relative to the data root.
 The command does not decide what is obsolete, delete a whole data root or touch another host. A
 second data root made only to check reproduction is the operator's to remove once its comparison
 record is kept; cleaning its frames and cache first leaves only small records.
-`corpus/storage/clean.py` plans and removes; `corpus/storage/clean_kinds.py` registers the kinds.
-A task that first writes another disposable artifact registers its kind there, with its restore
+`core/clean.py` plans and removes using the registry in `core/clean_kinds.py`;
+`corpus/storage/clean_kinds.py` supplies corpus kinds. A task that first writes another disposable
+artifact registers its kind with the shared registry, with its restore
 path and a test, in the same change. `tests/corpus/storage/test_clean.py` covers planning, release
 and restaging to the same frame set, held locks, scratch, caches and refusals. The
 [task record](../records/0074-adhoc-data-clean-command.md) holds the acceptance evidence.
@@ -482,7 +508,7 @@ the bytes retained. The finished directory is published by one rename, so a fail
 that looks complete.
 
 `src/ss_track/corpus/storage/layout.py` composes every path in the table, and
-`src/ss_track/corpus/storage/scratch.py` is the one way a command writes there. A writer works in a
+`src/ss_track/core/scratch.py` is the one way a command writes there. A writer works in a
 name that starts with `.incoming-` and publishes by rename, and the next run that holds the same
 lock removes scratch that a killed run left: staging under `.staging.lock`, amendments and redecodes
 under `.amendment.lock`, descriptor publication under `.describe.lock`, and imports under
@@ -542,6 +568,26 @@ and streams, with generated cases on a line of their own:
  "development": {"group_count": 1, "encounter_count": 1, "stream_count": 2,
  "generated_case_count": 2}}}
 ```
+
+The same result carries `capture_encounters`. `camera_control_mode` and `observer_platform` each
+list every vocabulary value, and a value no encounter uses is `0`:
+
+```json
+{"capture_encounters": {"camera_control_mode": {"operator_steered": 0, "fixed_camera": 1,
+ "autonomous_camera": 0, "unknown": 1}, "observer_platform": {"ground_fixed": 1,
+ "ground_handheld": 0, "airborne": 0, "unknown": 1}}}
+```
+
+The number in a bin is distinct encounters. Two streams of one encounter that share a value count
+once. An encounter whose streams use different values counts once in each of those values, so
+adding the bins does not recover the encounter total. A generated case adds no encounter. The
+counts are read from the verified source records and are absent from the corpus manifest, so a
+second build of the same declaration keeps the manifest seal. A historical source record is
+refused with its migration remedy. After `import --amend-capture` and a new build, the counts use
+the amended judgments. `src/ss_track/corpus/versions/capture_counts.py` owns the count.
+`src/ss_track/corpus/versions/placement.py` reads the judgments while it places each stream.
+`tests/corpus/versions/test_capture_counts.py` covers the bins. See the
+[implementation record](../records/0088-corpus-provenance-capture-encounter-counts.md).
 
 `modality` is always `camera`, because import accepts only video. Streams of one encounter are not
 declared synchronized: no clock relation between them is recorded.
@@ -871,11 +917,11 @@ with `RIGHTS_CONFLICT`, naming its parent stream and source. `grouping.py` check
 execution or corpus publication. Both new fields are required. Quoted and unquoted YAML dates
 normalize to the same ISO string. Numbers, timestamps, invalid dates and string booleans are refused.
 
-Source manifests now use schema 2. Old source manifests and corpus records missing the new terms
-are refused with `RECORD_SCHEMA_UNSUPPORTED` and the `facts` disposition; their terms are never
-guessed. A
+Source manifests use schema 3. Historical source records and corpus records missing required terms
+are refused with `RECORD_SCHEMA_UNSUPPORTED` and the `facts` disposition; their terms and capture
+judgments are never guessed. A
 [re-import over an old source](#reading-sealed-records) is refused the same way. An old source record
-gains its terms through an [amendment](#withdrawing-rights), and a new corpus version then uses it. No
+requires `--amend-capture` and any other missing operations before a new corpus version can use it. No
 automatic migration runs.
 
 The manifest pins each source record. `corpus stage` and `corpus verify` re-read every source record
@@ -941,8 +987,8 @@ until it is decoded again.
 | Changed `capture` or capture-clock evidence | `IMPORT_CONFLICT`, naming `changed_facts` |
 | File that contradicts its declared hash | `SOURCE_HASH_MISMATCH` |
 | File gone and no declared hash | `SOURCE_NOT_FOUND` |
-| Schema 1 record holding every current decoded fact | Gains the terms and schema 2. Schema 1 is a `facts` major, read as written through `read_stated` |
-| Schema 1 record short of a decoded fact | `RECORD_SCHEMA_UNSUPPORTED`, naming each `violations` entry of the current source contract the carried record breaks, with the remedy: [`--redecode --amend-terms`](#redecoding-under-a-new-policy) together |
+| Historical source record | Requires `--amend-capture`; a schema 1 record missing terms also requires `--amend-terms` |
+| Historical record short of decoded facts | `RECORD_SCHEMA_UNSUPPORTED` names the missing operations, including `--redecode` |
 | Any newer record | `RECORD_SCHEMA_UNSUPPORTED` |
 
 Every corpus version that pinned the old record then refuses at `corpus stage` and `corpus verify`.
@@ -1082,7 +1128,7 @@ record keeps its policy.
 
 ```bash
 ss-track import --source recording.yaml --redecode                   # carries its terms over
-ss-track import --source recording.yaml --redecode --amend-terms     # takes terms from this file too
+ss-track import --source recording.yaml --redecode --amend-terms --amend-capture # combined migration
 ```
 
 ```json
@@ -1104,16 +1150,15 @@ A plain `--redecode` carries the existing `rights` and `sensitivity` forward unc
 recorded, because terms are never invented. A record whose carried terms then fall short of the
 current major, such as a schema 1 record still missing `retain_until` and `derived_frames`, is
 `RECORD_SCHEMA_UNSUPPORTED` naming `--amend-terms`. Adding `--amend-terms` takes the terms from the
-declaration instead, exactly as a plain amendment does, so a record too old for `--amend-terms`
-alone -- one still short a decoded fact too -- reaches the current major only this way, because the
-decode and the declared term arrive together. `successor_of` in `replacement.py` raises this
+declaration instead. Historical records also require explicit `--amend-capture`; records short of
+decoded facts need all applicable operations together. `successor_of` in `replacement.py` raises this
 refusal from either path.
 
 Every corpus version that pinned the old record then refuses at `corpus stage` and `corpus verify`
 with `SOURCE_RECORD_CHANGED`, exactly as after an amendment, and the result lists them in `impact`
 the same way. A new corpus version built after the redecode accepts the source. `capture` and
-capture-clock evidence cannot change through a redecode either, so a declaration that disagrees
-with the carried record is `IMPORT_CONFLICT`.
+capture-clock evidence cannot change through a redecode alone, so a declaration that disagrees
+with the carried record is `IMPORT_CONFLICT`. Add `--amend-capture` to replace the two judgments.
 
 ## Frame bundles
 
@@ -1336,7 +1381,7 @@ written by one host and carried to the other, so no binary enters the repository
 [developer tooling page](developer-tooling.md#quality-gates) describes the job that does this. The
 host rows below were measured when the fixture held seven transforms (78 bundles, 879 frames).
 Compression, variable timing and the track-following cases are integer transforms. Their bytes are
-pinned by the golden hashes, which that job runs with the rest of the fixture.
+pinned by the golden hashes, which that job runs alongside the cross-host fixture.
 
 | Host pair | Result |
 | --- | --- |
@@ -1666,20 +1711,26 @@ MPEG program streams import as `missing`, because they do not store a presentati
 
 ## Reading sealed records
 
-`src/ss_track/corpus/records/sealed.py` is the one way to read a sealed record, and
+The shared evidence package owns sealing, reads and read windows. Corpus registers its comparison
+projections and historic shapes, supplying the source-term amendment command to the shape remedy.
+The shared registry does not import corpus. The [task record](../records/0081-corpus-provenance-shared-evidence-primitives.md)
+holds the migration and acceptance evidence.
+
+`src/ss_track/core/evidence/sealed.py` is the one way to read a sealed record, and
 `tests/corpus/records/test_sealed_reads.py` scans the package so that no module reads around
 it, calls `read_stated` outside the amendment, or compares a record's `schema_version` outside the
 read path. Each read verifies the seal, then the kind, and interprets nothing before the seal has
-held. Each format is one `RecordFormat` (`corpus/records/kinds.py`) beside its writer, holding its
-kind and the one major this code writes. A record is never rewritten to fit. Three modules divide
-the work: `sealed.py` decides how a record is read, `read_refusals.py` states each refusal it
-raises, and `sealing.py` validates, seals and writes a record and hashes the files records pin. The
+held. Each corpus format is one `RecordFormat` (`corpus/records/kinds.py`) beside its writer,
+holding its kind and the one major this code writes. A record is never rewritten to fit. Three
+modules divide the work: `sealed.py` decides how a record is read, `read_refusals.py` states each
+refusal it raises, and `sealing.py` validates, seals and writes a record and hashes the files records
+pin. The
 read path has three entries:
 
 | Entry | Returns | Used by |
 | --- | --- | --- |
 | `read_sealed` | Evidence: a record of the current major as written, or of a `view` major as the current major, in memory | Every command that uses a record |
-| `read_stated` | A record of the current major, or a `facts` or `view` major, as written, with its disposition | `ss-track import --amend-terms` and `--redecode` only |
+| `read_stated` | A record of the current major, or a `facts` or `view` major, as written, with its disposition | source inspection, capture and terms amendment, and `--redecode` |
 | `read_comparable` | The seal, the major and the major's comparison projection, or none, for a record of any major | Lineage, shared-frame checks and the near-duplicate report |
 
 A record of an earlier major takes the strictest disposition of each major it steps through, from the
@@ -1690,7 +1741,7 @@ both.
 
 | Format | Writes | Older majors and their disposition | Remedy for an older record |
 | --- | --- | --- | --- |
-| Source manifest | 2 | 1: `facts` | `ss-track import --amend-terms` |
+| Source manifest | 3 | 1, 2: `facts` | `ss-track import --amend-capture`, with other operations when required |
 | Corpus manifest | 3 | 1, 2: `retired`; schema 3 without source terms: `facts` | Build a new corpus version that names it in `supersedes` |
 | Frame bundle | 3 | 1, 2: `retired` | Build and stage a new corpus version |
 | Frame set, staged hashes | 1 | None | No older major exists |
@@ -1701,7 +1752,7 @@ A refusal says what an operator needs to act on it:
 {"status": "refused", "code": "RECORD_SCHEMA_UNSUPPORTED",
  "message": "manifest.json (ss-track.source-manifest) has older schema 1 (facts); ...",
  "details": {"record": "manifest.json", "path": ".../import/<sha256>/manifest.json",
-  "kind": "ss-track.source-manifest", "found_schema_version": 1, "accepted_schema_versions": [2],
+  "kind": "ss-track.source-manifest", "found_schema_version": 1, "accepted_schema_versions": [3],
   "age": "older", "disposition": "facts",
   "remedy": "Record its terms with ss-track import --amend-terms."}}
 ```
@@ -1715,7 +1766,8 @@ contract's change log, its one statement: a historic major's own entry in `retir
 the first major transition after it. A major with neither, which no ss-track version wrote, is told
 to restore the record from a trusted copy.
 
-**Views.** `src/ss_track/corpus/records/read_window.py` holds one `View` per `view` major: the kind,
+**Views.** `src/ss_track/core/evidence/read_window.py` provides the shared view registry and
+`View` type. Each area registers one `View` per `view` major: the kind,
 the major it reads, a pure `upcast` to the next major, and `derived`, the JSON pointers of every
 value it derives, with `*` for any list position. Views compose one major at a time, the read path
 stamps the new major and keeps the original seal, so every pin, frame set and cohort key stays as it

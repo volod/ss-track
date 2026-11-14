@@ -35,63 +35,6 @@ hardware or private data.
 
 ### Corpus provenance -- `corpus-provenance`
 
-#### shared-evidence-primitives
-
-Sealed records, atomic writes, locks and the clean-kind registry live inside the corpus package,
-and its record reader imports a source module. Labels, run bundles, host profiles and trials need
-the same primitives, and each would otherwise copy them or import corpus internals.
-
-- Serves: `corpus-provenance` -- [Corpus
-  identity](../design/spec.md#41-corpus-identity-and-input-handling)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: Every area seals, reads, locks and cleans evidence through one shared
-  package, and no area imports a corpus module to do so.
-- Scope boundary: A move of the sealing and sealed-read path, the read window, atomic scratch
-  writes, locks and the clean-kind registry. Corpus-specific kinds, layout and projections stay in
-  the corpus area and register themselves. The one term the read path takes from a source module
-  becomes a value its caller supplies. No sealed byte, hash, refusal code or contract moves.
-- Data and artifact paths: `src/ss_track/core/`, `src/ss_track/corpus/records/`,
-  `src/ss_track/corpus/storage/`, `tests/core/`, `tests/corpus/`, `AGENTS.md`,
-  `docs/guide/planning-workflow.md`.
-- Execution path: Move the primitives under unchanged function names where possible, let each area
-  register its record kinds and clean kinds, and add an import-boundary test. Update the clean-kind
-  path that `AGENTS.md` and the planning workflow name.
-- Acceptance gates: Every sealed fixture and historic record reads to the same bytes and hashes. An
-  import-boundary test fails when the shared package imports an area, or when a module outside the
-  corpus area imports it for sealing, locking or cleaning. `make ci` passes.
-- Documentation target: [Corpus](current/corpus.md).
-
-#### recording-capture-vocabulary
-
-The specification gives camera control a closed vocabulary, but a recording stores it as free text,
-and no recording says whether its camera stood on the ground or flew. Reports cannot stratify by
-either, so ground footage could stand in for an airborne observer unnoticed.
-
-- Serves: `corpus-provenance` -- [Evidence lanes](../design/spec.md#2-evidence-lanes-and-claims)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: A recording declares camera control and observer platform from closed
-  vocabularies, a corpus build counts its encounters by both, and any other value is refused.
-- Scope boundary: `capture.camera_control_mode` as `operator_steered`, `fixed_camera`,
-  `autonomous_camera` or `unknown`, and `capture.observer_platform` as `ground_fixed`,
-  `ground_handheld`, `airborne` or `unknown`, in the recording declaration and the source record.
-  An absent value reads as `unknown`. A record written before this change keeps its bytes, and its
-  free text is shown as stated and never mapped by guesswork. Other capture facts stay descriptive.
-- Data and artifact paths: `contracts/declaration/recording/`, `contracts/record/source-manifest/`,
-  `src/ss_track/corpus/declarations/`, `src/ss_track/corpus/versions/`, `tests/corpus/`,
-  `docs/impl/workloads/`.
-- Execution path: Evolve both contracts under the spec section 17.3 rules, with the version bump
-  the change requires and a read disposition for older records. Add counts by control mode and
-  platform to the build result, and restate the checked-in workload declarations.
-- Acceptance gates: A value outside either vocabulary is refused with its field named. An older
-  record reads with no byte or hash moved and reports its control mode as stated text. A build
-  result counts encounters by control mode and observer platform, with `unknown` shown. Frozen
-  contracts and `make ci` pass.
-- Documentation target: [Corpus](current/corpus.md).
-
 #### scale-reduction-case
 
 No generated case makes a target smaller, so the benchmark cannot show where a module stops seeing
@@ -125,7 +68,7 @@ stream of one file, so such a source cannot enter a corpus.
 
 - Serves: `corpus-provenance` -- [Corpus identity](../design/spec.md#41-corpus-identity-and-input-handling)
 - Agent status: CLEAR
-- Dependencies: recording-capture-vocabulary.
+- Dependencies: none.
 - User-visible outcome: A recording declares an ordered image sequence as its source, and import,
   build, stage and verify treat it as they treat a video stream.
 - Scope boundary: Lossless image files in a declared order, with one source identity over the
@@ -206,7 +149,7 @@ Labels need stable identity and a frozen mask before scores can mean anything.
 - Serves: `annotation-selection` -- [Annotation contract](../design/spec.md#42-annotation-contract)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: scenario-pack-contract, shared-evidence-primitives.
+- Dependencies: scenario-pack-contract.
 - User-visible outcome: An operator validates visibility status, geometry, instance identity, motion
   events, operator seeds and masks against a versioned contract.
 - Scope boundary: Label, seed and mask contracts, validation and frozen seed replay, in the stored
@@ -357,7 +300,7 @@ Every score must be recomputable from immutable evidence.
 - Serves: `module-contract-runner` -- [Run artifacts](../design/spec.md#10-run-artifacts-and-comparison-dashboard)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: scenario-contract, shared-evidence-primitives.
+- Dependencies: scenario-contract.
 - User-visible outcome: A run leaves a complete read-only bundle, or one marked incomplete.
 - Scope boundary: The spec section 10 artifact set, write-then-rename finalize, idempotent IDs, and a
   visibility field that defaults to restricted. `loc-lm-bench` is a pattern to check, not an import.
@@ -1092,7 +1035,7 @@ argument parsing.
 
 - Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: CLEAR
-- Dependencies: shared-evidence-primitives.
+- Dependencies: none.
 - User-visible outcome: Corpus provenance and corpus discovery are separate area packages, with
   imports in one direction, from discovery to provenance.
 - Scope boundary: A move of the inventory, acquisition, pool, sibling, selection, discovery,
@@ -3303,7 +3246,7 @@ almost none.
 
 - Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: HUMAN-GATED
-- Dependencies: recording-capture-vocabulary.
+- Dependencies: none.
 - User-visible outcome: An approval record names each airborne-observer source the owner permits,
   with its terms, transfer budget and intended split, or states that none is available.
 - Scope boundary: Sources whose camera flew, including the owner's own recordings and public

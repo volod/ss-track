@@ -8,16 +8,16 @@ from typing import Any
 import pytest
 
 from ss_track.cli import main
+from ss_track.core.evidence.sealing import seal
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
+from ss_track.core.scratch import exclusive_lock
 from ss_track.corpus import ImportResult, build_corpus, stage_corpus
 from ss_track.corpus.discovery.features import FeatureFile
 from ss_track.corpus.discovery.plan import read_discovery_plan
 from ss_track.corpus.discovery.reader import read_discovery, verify_discovery
 from ss_track.corpus.discovery.records import DiscoveryRecords, seal_discovery, write_discovery
 from ss_track.corpus.discovery.run import build_discovery, run_discovery
-from ss_track.corpus.records.sealing import seal
 from ss_track.corpus.storage.layout import discovery_root, discovery_run_directory
-from ss_track.corpus.storage.scratch import exclusive_lock
 from tests.corpus.conftest import WriteCorpus, last_record, stream_of
 from tests.corpus.discovery._plan import (
     RUN_ID,

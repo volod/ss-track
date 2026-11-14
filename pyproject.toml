@@ -61,6 +61,7 @@ packages = [
   "ss_track.commands",
   "ss_track.contract_files",
   "ss_track.core",
+  "ss_track.core.evidence",
   "ss_track.corpus",
   "ss_track.corpus.bundles",
   "ss_track.corpus.cases",

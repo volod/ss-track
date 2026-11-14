@@ -9,9 +9,9 @@ from typing import Any
 import pytest
 import yaml
 
+from ss_track.core.evidence.sealing import sha256_file
 from ss_track.corpus import import_source
 from ss_track.corpus.bundles.frames import bundle_hash
-from ss_track.corpus.records.sealing import sha256_file
 from ss_track.corpus.sources.importer import ImportResult
 from tests._sealing import self_sealed
 from tests.corpus._media import WIDTH, X264_WITH_B_FRAMES, remux, write_clip
@@ -27,7 +27,7 @@ TAIL = {"start_frame": 4, "end_frame": 8}  # and the four after them
 def recording_declaration(source: str = "clip.mkv") -> Recording:
     """Return a complete recording declaration that a test may then damage."""
     return {
-        "schema_version": 2,
+        "schema_version": 3,
         "source": {"path": source},
         "rights": {
             "holder": "Project Contributors",

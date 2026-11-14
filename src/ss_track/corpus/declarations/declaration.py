@@ -13,7 +13,7 @@ from ss_track.schema.validation.enforce import read_declaration
 
 RECORDING_CONTRACT = "declaration/recording"
 CORPUS_CONTRACT = "declaration/corpus"
-RECORDING_SCHEMA_VERSION = 2
+RECORDING_SCHEMA_VERSION = 3
 CORPUS_SCHEMA_VERSION = 3
 # Orders the contracts do not state, which the rights checks compare by.
 SHARING_SCOPES = ("restricted", "public")  # narrowest first
@@ -25,7 +25,6 @@ CAPTURE_FIELDS = (
     "exposure",
     "focus",
     "fov",
-    "camera_control_mode",
     "lighting",
     "background",
     "motion",
@@ -193,6 +192,8 @@ def _read_sensitivity(fields: Fields) -> Sensitivity:
 
 def _read_capture(fields: Fields) -> dict[str, JsonValue]:
     capture: dict[str, JsonValue] = {name: fields.scalar(name) for name in CAPTURE_FIELDS}
+    for name in ("camera_control_mode", "observer_platform"):
+        capture[name] = fields.text(name) if fields.has(name) else "unknown"
     capture["range"] = _read_range(fields.optional_child("range"))
     return capture
 

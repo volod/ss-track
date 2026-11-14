@@ -8,6 +8,7 @@ from typing import Any
 import pytest
 
 from ss_track.cli import main
+from ss_track.core.evidence.sealed import read_sealed
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
 from ss_track.corpus import ImportResult, build_corpus, import_source, stage_corpus
 from ss_track.corpus.links.interactive import conduct_review
@@ -15,7 +16,6 @@ from ss_track.corpus.links.interactive_state import save_checkpoint
 from ss_track.corpus.links.records import read_links
 from ss_track.corpus.links.run import LinkRequest, write_links
 from ss_track.corpus.records.kinds import CORPUS_LINKS
-from ss_track.corpus.records.sealed import read_sealed
 from ss_track.corpus.storage.layout import discovery_run_directory, frame_set_path
 from tests.corpus._media import write_clip
 from tests.corpus.conftest import (

@@ -14,12 +14,13 @@ from pathlib import Path
 from typing import Any
 
 from ss_track.core.canonical import SEAL_FIELD
+from ss_track.core.evidence.read_refusals import schema_details
+from ss_track.core.evidence.sealed import read_sealed, read_stated
+from ss_track.core.evidence.sealing import seal, seal_violations, write_sealed
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
+from ss_track.core.scratch import READ_ONLY_FILE_MODE, exclusive_lock, write_atomically
 from ss_track.corpus.declarations.declaration import RecordingDeclaration
 from ss_track.corpus.records.kinds import SOURCE_MANIFEST
-from ss_track.corpus.records.read_refusals import schema_details
-from ss_track.corpus.records.sealed import read_sealed, read_stated
-from ss_track.corpus.records.sealing import seal, seal_violations, write_sealed
 from ss_track.corpus.sources.source_record import changed_facts
 from ss_track.corpus.sources.terms import changed_terms
 from ss_track.corpus.storage.layout import (
@@ -29,12 +30,11 @@ from ss_track.corpus.storage.layout import (
     replaced_record_path,
     source_directory,
 )
-from ss_track.corpus.storage.scratch import exclusive_lock
 from ss_track.corpus.versions.impact import AmendmentImpact, report_amendment_impact
 from ss_track.schema.registry.contract import FACTS, VERSION_FIELD, VIEW
 
 UNCHANGED = "unchanged"
-REDECODE_REMEDY = "supply them together with ss-track import --redecode --amend-terms"
+REDECODE_REMEDY = "supply the missing operations together: ss-track import --amend-capture --redecode --amend-terms"
 _LOCK_NAME = ".amendment.lock"
 
 
@@ -130,15 +130,56 @@ def successor_of(
     return successor
 
 
+def require_migration_operations(
+    existing: ExistingRecord,
+    source_sha256: str,
+    *,
+    amend_capture: bool,
+    amend_terms: bool,
+    redecode: bool,
+) -> None:
+    """Name all operations needed to carry historical facts into the current major."""
+    if existing.disposition != FACTS:
+        return
+    body = dict(existing.record) | {VERSION_FIELD: SOURCE_MANIFEST.major}
+    violations = seal_violations(body)
+    missing: list[JsonValue] = []
+    if not amend_capture:
+        missing.append("--amend-capture")
+    if not amend_terms and any(
+        v.pointer.startswith(("/rights", "/sensitivity")) for v in violations
+    ):
+        missing.append("--amend-terms")
+    if not redecode and any(
+        v.pointer.startswith(("/sequence", "/decode_policy")) for v in violations
+    ):
+        missing.append("--redecode")
+    if missing:
+        raise CorpusRefusal(
+            RefusalCode.RECORD_SCHEMA_UNSUPPORTED,
+            "migration requires additional operations: " + ", ".join(str(op) for op in missing),
+            schema_details(existing.path, SOURCE_MANIFEST, existing.record[VERSION_FIELD])
+            | {
+                "source_sha256": source_sha256,
+                "missing_operations": missing,
+                "violations": [item.to_record() for item in violations],
+            },
+        )
+
+
 def require_unchanged_facts(
-    record: Mapping[str, Any], declaration: RecordingDeclaration, source_sha256: str
+    record: Mapping[str, Any],
+    declaration: RecordingDeclaration,
+    source_sha256: str,
+    *,
+    amend_capture: bool = False,
 ) -> None:
     """Refuse a declaration that disagrees with the carried capture facts, inventing nothing."""
-    facts = changed_facts(record, declaration)
+    facts = changed_facts(record, declaration, amend_capture=amend_capture)
     if facts:
         raise CorpusRefusal(
             RefusalCode.IMPORT_CONFLICT,
-            "an amendment or a redecode changes no capture fact",
+            "the declaration changes capture facts not covered by the requested operations",
             {"source_sha256": source_sha256, "changed_facts": list(facts)},
         )
 
@@ -165,7 +206,8 @@ def replace_record(
         )
     replaced_sha256 = str(existing.written[SEAL_FIELD])
     replaced = replaced_record_path(path.parent, replaced_sha256)
-    write_sealed(replaced, existing.written)
+    replaced.parent.mkdir(parents=True, exist_ok=True)
+    write_atomically(replaced, path.read_bytes(), mode=READ_ONLY_FILE_MODE)
     write_sealed(path, sealed)
     return ReplacementResult(
         status=status,

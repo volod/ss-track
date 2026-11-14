@@ -2,8 +2,8 @@ from pathlib import Path
 
 import pytest
 
+from ss_track.core.evidence.sealing import sha256_file
 from ss_track.corpus import CorpusRefusal, RefusalCode, import_source
-from ss_track.corpus.records.sealing import sha256_file
 from tests.corpus._media import write_clip, write_clip_with_pts
 from tests.corpus.conftest import WriteRecording, imported_names
 

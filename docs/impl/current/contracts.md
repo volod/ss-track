@@ -21,7 +21,7 @@ baseline scope and evidence. The installed set contains these document contracts
 | `declaration/link-decisions` | `1.0.0`, `1.1.0` |
 | `declaration/source-inventory` | `1.0.0` |
 | `declaration/corpus-pool` | `1.0.0`, `1.1.0` |
-| `declaration/recording` | `2.0.0`, `2.1.0`, `2.2.0`, `2.3.0`, `2.4.0` |
+| `declaration/recording` | `2.0.0`, `2.1.0`, `2.2.0`, `2.3.0`, `2.4.0`, `3.0.0` |
 | `declaration/video-hints` | `1.0.0` |
 | `record/candidate-inventory` | `1.0.0` |
 | `record/audit-blinding` | `1.0.0` |
@@ -37,8 +37,13 @@ baseline scope and evidence. The installed set contains these document contracts
 | `record/link-review-handoff` | `1.0.0` |
 | `record/source-acquisition` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0` |
 | `record/corpus-pool` | `1.0.0` |
-| `record/source-manifest` | `2.0.0`, `2.1.0`, `2.2.0`, `2.3.0`, `2.4.0` |
-| `result/command` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0`, `1.4.0`, `1.5.0`, `1.6.0`, `1.7.0`, `1.8.0`, `1.9.0`, `1.9.1`, `1.10.0`, `1.11.0`, `1.12.0`, `1.13.0`, `1.14.0`, `1.15.0`, `1.16.0`, `1.17.0`, `1.18.0`, `1.19.0`, `1.20.0`, `1.21.0`, `1.22.0`, `1.23.0`, `1.24.0`, `1.25.0`, `1.26.0` |
+| `record/source-manifest` | `2.0.0`, `2.1.0`, `2.2.0`, `2.3.0`, `2.4.0`, `3.0.0` |
+| `result/command` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0`, `1.4.0`, `1.5.0`, `1.6.0`, `1.7.0`, `1.8.0`, `1.9.0`, `1.9.1`, `1.10.0`, `1.11.0`, `1.12.0`, `1.13.0`, `1.14.0`, `1.15.0`, `1.16.0`, `1.17.0`, `1.18.0`, `1.19.0`, `1.20.0`, `1.21.0`, `1.22.0`, `1.23.0`, `1.24.0`, `1.25.0`, `1.26.0`, `1.27.0`, `1.28.0` |
+
+`result/command` `1.28.0` adds optional `capture_encounters` on a corpus build. Each camera-control
+mode and each observer platform has its own encounter count, including a count of zero.
+
+`result/command` `1.27.0` adds the `inspected` status and `source_inspection` result.
 
 `result/command` `1.26.0` adds the `planned` and `cleaned` statuses, the `clean` object of
 `data clean` and `DATA_ROOT_BUSY`.
@@ -56,6 +61,9 @@ file hash. `declaration/recording` 2.2.0 adds optional
 `declaration/recording` 2.3.0 adds optional `color.matrix`. `declaration/recording` 2.4.0 and
 `record/source-manifest` 2.4.0 add optional `origin`, omitted when a recording names no upstream
 collection. Origin on a source manifest is sensitive, so a public descriptor omits it.
+`declaration/recording` 3.0.0 and `record/source-manifest` 3.0.0 close `camera_control_mode` and
+`observer_platform`. An omitted judgment is stored as `unknown`. Earlier source majors remain
+`facts`.
 `declaration/corpus-pool` 1.0.0 and `record/corpus-pool` 1.0.0 state a combined-pool selection and
 its sealed result. `declaration/corpus-pool` 1.1.0 adds optional per-collection `metadata_names`,
 the operator's CSV name-to-path rules. `record/source-manifest` 2.3.0 and
@@ -190,7 +198,7 @@ readers had:
   `corpus/declarations/fields.py` and apply only the rules a contract states as `x-rules` or does
   not state.
 - `require_record` validates a record, already holding its seal, under the newest frozen version of
-  the major it stamps, and `corpus/records/sealing.py` `seal` calls it before returning. A writer defect,
+  the major it stamps, and `core/evidence/sealing.py` `seal` calls it before returning. A writer defect,
   including an unregistered kind, a major with no frozen version or a `NaN`, is `RECORD_INVALID`
   with nothing written. `record_violations` returns the same check's findings without refusing, and
   `sealing.seal_violations` asks it for a body before sealing: an amendment that carries an older
@@ -426,7 +434,8 @@ than an annotation: the read path checks a view's derived pointers by name witho
 contract, and a test holds every name to a property some installed contract states. The floor reads
 property names on each major change's pointer, and inside an added node except what an added list
 holds, since a view may derive an empty list. A removal never raises it. A freeze installs no view:
-a view is code in `corpus/records/read_window.py`, and a declared view with no function there is
+the owning area registers a view with `core/evidence/read_window.py`, and a declared view with no
+function installed is
 `CONTRACT_SET_INVALID` when a record of that major is read. `CONTRACT_SET_INVALID` also reports a
 bad candidate or forbidden publication. Directory locking and an atomic registry replacement prevent
 concurrent freezes from losing entries. A crash between schema creation and registry replacement

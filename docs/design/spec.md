@@ -419,6 +419,50 @@ were released stages again to the same frame set. It does not choose what is obs
 whole data root or touch another host. A task that introduces a new kind of disposable artifact
 registers that kind, with its restore path and a test, in the same change.
 
+#### Capture vocabulary and historical source records
+
+New recording declarations and source records use the two closed capture vocabularies above.
+An omitted declaration value becomes `unknown` in a newly written source record. That is a
+statement of unavailable knowledge, not a classification inferred from footage or descriptive text.
+Other capture metadata remains descriptive.
+
+Historical capture values remain readable as stated, including text, numbers and null. Source
+inspection uses the shared stated-record reader and returns the original major, seal, disposition
+and capture fields without reading media or writing a record. It never presents historical free
+text as a member of the new vocabulary. Missing historical platform data is reported as unknown
+in the inspection result without inserting a field into the stored record.
+
+The vocabulary restriction takes a new major for both contracts. Earlier source majors use the
+`facts` disposition: inspection remains possible, but they cannot serve as current evidence.
+This transition ships together with `ss-track import --amend-capture`. That explicit operation
+uses the operator's current recording declaration to replace only the two capture vocabulary
+fields, retains the original record under its seal, and preserves source identity, media, other
+capture fields, terms and decoded facts. It reuses the source replacement lock and impact report.
+Ordinary import, terms amendment and redecode never silently restate capture judgments.
+
+Capture amendment may be combined with terms amendment and redecode when an older record also
+lacks their facts. A refusal names every additionally required operation; no partial successor is
+published. Missing media permits a metadata-only amendment by declared source identity, but not a
+redecode. Repeating an accepted amendment writes nothing. Versions pinning the replaced record
+remain unchanged and refuse use; the operator builds a successor version with the original groups
+and splits. A vocabulary migration never bypasses a leakage comparison or changes a source hash.
+
+Build reports count distinct encounters separately for each control mode and platform, including
+all vocabulary bins with zero counts. Repeated streams in one encounter count once per bin;
+an encounter with streams in different bins counts once in each applicable bin. Consequently the
+bin totals need not equal the encounter total. Generated cases add no encounters. Historical
+free text never enters these categorical counts, because historical source records first require
+an explicit amendment.
+
+Evaluation uses deterministic fixtures covering both vocabularies, absent and invalid values,
+historical text/numeric/null values, replacement interrupted before publication, repeated
+amendments, mixed-stream encounters and generated cases. Acceptance requires unchanged original
+bytes and seals, precise refusals, a usable migration followed by a successor build, and exact
+encounter counts. An unsupported historical record is a valid refusal with its remedy, never a
+successful vocabulary classification; refusing all historical records without a usable migration
+is not acceptance. No image-based classification, new camera acquisition or physical claim is
+part of this capability.
+
 ### 4.1a Self-supervised video corpus formation
 
 Operators need a larger and more varied collection of authorized video encounters, including rare

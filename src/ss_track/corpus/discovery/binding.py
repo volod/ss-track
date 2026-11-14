@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from ss_track.core.canonical import SEAL_FIELD
+from ss_track.core.evidence.read_refusals import incomplete_record
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
 from ss_track.corpus.bundles.bundle_reader import open_corpus_bundle
 from ss_track.corpus.bundles.frame_set import read_frame_set
@@ -25,7 +26,6 @@ from ss_track.corpus.discovery.findings import (
     require_no_findings,
 )
 from ss_track.corpus.discovery.sibling_check import sibling_findings
-from ss_track.corpus.records.read_refusals import incomplete_record
 from ss_track.corpus.storage.layout import DISCOVERY_RUN_NAME, frames_root
 from ss_track.corpus.versions.manifests import load_corpus_manifest
 

@@ -7,11 +7,11 @@ from pathlib import Path
 
 import pytest
 
+from ss_track.core.evidence.sealed import read_sealed
+from ss_track.core.evidence.sealing import sha256_file
 from ss_track.corpus import CorpusRefusal, RefusalCode, import_source
 from ss_track.corpus.decoding.decode_policy import DecodePolicy
 from ss_track.corpus.records.kinds import SOURCE_MANIFEST
-from ss_track.corpus.records.sealed import read_sealed
-from ss_track.corpus.records.sealing import sha256_file
 from tests.corpus._media import FRAME_COUNT, write_clip
 from tests.corpus.conftest import WriteRecording, imported_names
 

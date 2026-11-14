@@ -7,10 +7,10 @@ from pathlib import Path
 import pytest
 
 from ss_track.core.canonical import sha256_bytes
+from ss_track.core.evidence.sealing import sha256_file
 from ss_track.corpus import CorpusRefusal, ImportResult, RefusalCode, open_frame_bundle
 from ss_track.corpus.bundles import frames
 from ss_track.corpus.bundles.frames import FileDigests
-from ss_track.corpus.records.sealing import sha256_file
 from tests.corpus._media import FRAME_COUNT, HEIGHT, WIDTH
 from tests.corpus.bundles._staged_frames import delete_frame, flip_byte, stage_two_streams
 from tests.corpus.conftest import WriteCorpus, WriteRecording

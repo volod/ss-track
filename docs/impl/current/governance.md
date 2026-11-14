@@ -39,3 +39,9 @@ workflow and full task template live in
 
 Documentation category directories use singular names: `design/`, `guide/`, and `impl/`. Page names
 remain specific to their content, and each category `README.md` file provides its local index.
+
+A started task may be decomposed while its record remains active: preserve its original scope,
+assign every remaining acceptance gate to an explicit dependent task, and keep planned behavior
+out of current-state product documentation. The
+[capture decomposition record](../records/0085-adhoc-capture-vocabulary-decomposition.md)
+records one such scope allocation; its implementation task remains unaccepted.

@@ -1,7 +1,7 @@
-"""`ss-track import --amend-terms`: record new terms for an imported source, decoding nothing.
+"""Record explicit terms or capture judgments for an imported source, decoding nothing.
 
-Only rights and sensitivity change. Every other section is carried from the existing record, so
-restoring the old terms of a current record restores its seal. Stored bytes are not read: a
+Only explicitly requested terms or capture judgments change. Other facts are carried from the
+existing record, so restoring a current record's prior values restores its seal. Stored bytes are not read: a
 withdrawal must stay recordable after an operator has already removed them, and `corpus build`
 hashes them again regardless. The installed decoder is not consulted either, because recording
 narrower terms must not need a decode of the material they withdraw. The successor is written as
@@ -12,6 +12,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from ss_track.core.refusal import JsonValue
 from ss_track.corpus.declarations.declaration import (
     RecordingDeclaration,
     load_recording_declaration,
@@ -22,6 +23,7 @@ from ss_track.corpus.sources.replacement import (
     ReplacementResult,
     replace_record,
     replacing_source,
+    require_migration_operations,
     require_unchanged_facts,
     successor_of,
 )
@@ -34,13 +36,25 @@ _NOT_IMPORTED = (
 )
 
 
-def amend_source_terms(declaration_path: Path, data_root: Path) -> ReplacementResult:
-    """Replace one source record's terms in one atomic step, keeping the record it replaces."""
+def amend_source_terms(
+    declaration_path: Path,
+    data_root: Path,
+    *,
+    amend_capture: bool = False,
+    amend_terms: bool = True,
+) -> ReplacementResult:
+    """Replace the requested source facts atomically, keeping the record it replaces."""
     declaration = load_recording_declaration(declaration_path)
     sha256 = named_source(declaration)
     with replacing_source(data_root, sha256, _NOT_IMPORTED) as existing:
-        successor = successor_of(existing, declared_terms(declaration), sha256)
-        require_unchanged_facts(existing.record, declaration, sha256)
+        require_migration_operations(
+            existing, sha256, amend_capture=amend_capture, amend_terms=amend_terms, redecode=False
+        )
+        require_unchanged_facts(existing.record, declaration, sha256, amend_capture=amend_capture)
+        changes = declared_terms(declaration) if amend_terms else {}
+        if amend_capture:
+            changes.update(capture_changes(existing.record, declaration))
+        successor = successor_of(existing, changes, sha256)
         current = _policy_is_installed(existing.record)
         return replace_record(
             AMENDED, existing, successor, sha256, data_root, policy_current=current
@@ -59,3 +73,13 @@ def named_source(declaration: RecordingDeclaration) -> str:
 
 def _policy_is_installed(record: Mapping[str, Any]) -> bool:
     return bool(record.get("decode_policy_sha256") == current_decode_policy().sha256())
+
+
+def capture_changes(
+    record: Mapping[str, Any], declaration: RecordingDeclaration
+) -> dict[str, JsonValue]:
+    """Replace only the explicit capture judgments, retaining every other capture fact."""
+    capture = dict(record["capture"])
+    for name in ("camera_control_mode", "observer_platform"):
+        capture[name] = declaration.capture[name]
+    return {"capture": capture}

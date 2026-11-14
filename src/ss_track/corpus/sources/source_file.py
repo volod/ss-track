@@ -9,9 +9,9 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
+from ss_track.core.evidence.sealing import copy_with_sha256, sha256_file
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
 from ss_track.corpus.declarations.declaration import RecordingDeclaration
-from ss_track.corpus.records.sealing import copy_with_sha256, sha256_file
 
 
 def require_regular_file(path: Path) -> None:

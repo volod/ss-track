@@ -7,6 +7,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -73,7 +74,11 @@ jobs:
       - name: Refuse a runner that is not arm64
         run: test "$(uname -m)" = aarch64
 
-      - name: Run the tests, golden transforms included
+      - name: Run architecture-sensitive tests
+        run: make test-architecture
+
+      - name: Run the full suite on request
+        if: github.event_name == 'workflow_dispatch'
         run: make test
 
       - name: Take the sources x86-64 wrote

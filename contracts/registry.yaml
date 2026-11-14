@@ -245,6 +245,16 @@ contracts:
     change:
       class: minor
       summary: Record optional upstream collection membership on a recording.
+  - version: 3.0.0
+    file_sha256: 5e325c399111264171d0aad96be01a3dbafbe264d6bbc8b45c4d0d53998c8145
+    fingerprints:
+      structure: 09164a5cca8f16034ba8271728ba5957fae385a4a967b12568c96bb1b81ab460
+      meaning: 2f9e64701e39c3628346edaf818a348a48082bd3fe49652e393dd3db2560d3cc
+    change:
+      class: major
+      summary: Close capture judgments.
+      migration: Restate capture judgments explicitly in a major 3 declaration.
+      disposition: facts
   retired_majors:
   - major: 1
     status: retired
@@ -703,6 +713,17 @@ contracts:
     change:
       class: minor
       summary: Record optional upstream collection membership on a source.
+  - version: 3.0.0
+    file_sha256: 24c4e04ca282dbb7c24c3051aa2bc752698ed36c1fa32b1c989b0abb0c84eab4
+    fingerprints:
+      structure: d180d69aff1f556f1912b08702cf105fc1ff47fa3d2092d287deddf02282eaa3
+      meaning: 6fb8eeb77a9238db218d5c309c0c9f6489ac54a8ea579f631f91f26dc0707a9f
+    change:
+      class: major
+      summary: Close capture judgments.
+      migration: Inspect the retained record and explicitly amend capture judgments,
+        combining terms and redecode when required.
+      disposition: facts
   retired_majors:
   - major: 1
     status: facts
@@ -970,6 +991,22 @@ contracts:
       class: minor
       summary: 'Add data clean: statuses planned and cleaned, the clean object and
         DATA_ROOT_BUSY.'
+  - version: 1.27.0
+    file_sha256: 25d627ee73abc08ae22fe02535c7767b72808b4829223517adf18dae19d3d089
+    fingerprints:
+      structure: a325bad04050339d6f37ef98bfc9c941d3669c8c055cf53fce1dce3dda195367
+      meaning: cdf9805ba2e7e33bdc44615a3a4ca7eec68c86f9f759edf9e6433b121c464e56
+    change:
+      class: minor
+      summary: Add source capture inspection results.
+  - version: 1.28.0
+    file_sha256: 129e78a6301df69d4bea974859cc8ab92e6d63011f166d20168946f04160f772
+    fingerprints:
+      structure: 508a5548ca3c3a415c0d9d2bae5607303c2ba5d3e1c290248017bfca802f09df
+      meaning: bdfd6e1b2b61bfddf79c6e0b7c2d396d9392fd6ba5173cd20163650edd65e3a7
+    change:
+      class: minor
+      summary: Count distinct encounters by camera-control mode and observer platform.
 - family: shared
   id: types
   owner: data-contracts

@@ -12,7 +12,10 @@ from pathlib import Path
 from typing import Any
 
 from ss_track.core.canonical import SEAL_FIELD
+from ss_track.core.evidence.sealed import read_sealed
+from ss_track.core.evidence.sealing import seal, write_sealed
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
+from ss_track.core.scratch import READ_ONLY_FILE_MODE, scratch_directory, shared_lock
 from ss_track.corpus.declarations.declaration import (
     RecordingDeclaration,
     load_recording_declaration,
@@ -20,8 +23,6 @@ from ss_track.corpus.declarations.declaration import (
 from ss_track.corpus.decoding.decode import MediaInspection, inspect_media
 from ss_track.corpus.decoding.decode_policy import DecodePolicy, current_decode_policy
 from ss_track.corpus.records.kinds import SOURCE_MANIFEST
-from ss_track.corpus.records.sealed import read_sealed
-from ss_track.corpus.records.sealing import seal, write_sealed
 from ss_track.corpus.sources.identity import (
     addressed_identity,
     require_stored_source,
@@ -32,7 +33,6 @@ from ss_track.corpus.sources.source_record import changed_facts, declared_terms,
 from ss_track.corpus.sources.terms import AMEND_COMMAND, changed_terms
 from ss_track.corpus.sources.timestamps import TimestampQuality, assess_timestamps
 from ss_track.corpus.storage.layout import MANIFEST_NAME, import_root, source_directory
-from ss_track.corpus.storage.scratch import READ_ONLY_FILE_MODE, scratch_directory, shared_lock
 
 IMPORTED = "imported"
 UNCHANGED = "unchanged"

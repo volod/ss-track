@@ -11,9 +11,9 @@ from pathlib import Path
 from typing import Any
 
 from ss_track.core.canonical import canonical_json, sha256_bytes
+from ss_track.core.evidence.sealing import sha256_file
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.decoding.streams import recorded_video_stream_index
-from ss_track.corpus.records.sealing import sha256_file
 
 CONTENT_SHA256 = "content_sha256"
 _IDENTITY_KIND = "video-stream"

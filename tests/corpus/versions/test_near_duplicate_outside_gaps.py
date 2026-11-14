@@ -6,10 +6,10 @@ from pathlib import Path
 import pytest
 
 from ss_track.commands.corpus import _run_corpus_build
+from ss_track.core.evidence.sealed import read_sealed
 from ss_track.corpus import ImportResult, build_corpus
 from ss_track.corpus.records.kinds import CORPUS_MANIFEST
 from ss_track.corpus.records.projections import OTHER_SCHEMA
-from ss_track.corpus.records.sealed import read_sealed
 from ss_track.corpus.versions.scan import UNREADABLE
 from tests.corpus.conftest import WriteCorpus, last_record, reseal, single_group, stream_of
 from tests.corpus.versions._lineage_build import build_version

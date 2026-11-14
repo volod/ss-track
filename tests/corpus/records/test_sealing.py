@@ -8,10 +8,10 @@ from typing import Any
 import pytest
 
 from ss_track.core.canonical import SEAL_FIELD, canonical_json, sha256_bytes
+from ss_track.core.evidence.sealed import read_sealed
+from ss_track.core.evidence.sealing import copy_with_sha256, seal, sha256_file, write_sealed
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
 from ss_track.corpus.records.kinds import RecordFormat
-from ss_track.corpus.records.sealed import read_sealed
-from ss_track.corpus.records.sealing import copy_with_sha256, seal, sha256_file, write_sealed
 from tests._sealing import self_sealed
 from tests.corpus._historic import RECORDS
 

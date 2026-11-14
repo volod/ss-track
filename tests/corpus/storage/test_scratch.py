@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
-from ss_track.corpus.storage.scratch import (
+from ss_track.core.scratch import (
     READ_ONLY_FILE_MODE,
     SCRATCH_PREFIX,
     clear_scratch,

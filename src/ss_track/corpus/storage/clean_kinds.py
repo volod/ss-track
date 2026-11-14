@@ -8,12 +8,13 @@ first writes such an artifact.
 
 import fcntl
 import os
-from collections.abc import Callable, Iterator
-from contextlib import AbstractContextManager, ExitStack, contextmanager
-from dataclasses import dataclass
+from collections.abc import Iterator
+from contextlib import ExitStack, contextmanager
 from pathlib import Path
 
+from ss_track.core.clean_kinds import SCRATCH_KIND, CleanKind
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
+from ss_track.core.scratch import SCRATCH_PREFIX, exclusive_lock
 from ss_track.corpus.storage.layout import (
     DISCOVERY_DIRECTORY,
     corpus_manifest_path,
@@ -21,7 +22,6 @@ from ss_track.corpus.storage.layout import (
     frame_set_path,
     frames_root,
 )
-from ss_track.corpus.storage.scratch import SCRATCH_PREFIX, exclusive_lock
 
 ACQUISITION_RECORD = "acquisition.json"
 ACQUISITION_LOCK = ".acquisition.lock"
@@ -31,24 +31,6 @@ STAGING_LOCK = ".staging.lock"
 LOCK_SUFFIX = ".lock"
 TOOL_CACHES = ("complexipy", "mypy", "pytest", "ruff")
 CACHE_DIRECTORY = "cache"
-SCRATCH_KIND = "scratch"
-
-Collect = Callable[[Path, str | None], list[Path]]
-Locked = Callable[[Path, str | None], AbstractContextManager[None]]
-
-
-@dataclass(frozen=True, slots=True)
-class CleanKind:
-    """One registered kind: what it removes, for which target, and how it is restored."""
-
-    name: str
-    target: str | None
-    restore: str
-    collect: Collect
-    locked: Locked
-
-    def restore_for(self, target: str | None) -> str:
-        return self.restore.format(target=target)
 
 
 def _staged_frames(data_root: Path, corpus_id: str | None) -> list[Path]:

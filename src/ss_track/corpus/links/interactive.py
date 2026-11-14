@@ -9,6 +9,7 @@ from typing import Any, TextIO
 
 from ss_track.core.canonical import SEAL_FIELD
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
+from ss_track.core.scratch import exclusive_lock
 from ss_track.core.terminal import controlling_terminal
 from ss_track.corpus.bundles.version_bundles import require_sources_hold
 from ss_track.corpus.decoding.streams import recorded_video_stream_index
@@ -24,7 +25,6 @@ from ss_track.corpus.links.records import read_links
 from ss_track.corpus.sources.stored import load_verified_source
 from ss_track.corpus.sources.terms import evaluation_date
 from ss_track.corpus.storage.layout import discovery_run_directory
-from ss_track.corpus.storage.scratch import exclusive_lock
 from ss_track.corpus.versions.manifests import load_corpus_manifest
 
 INSTRUCTIONS = """Recording relationship review

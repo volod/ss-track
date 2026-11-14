@@ -3,6 +3,7 @@
 import json
 from pathlib import Path
 
+from ss_track.core.evidence.sealing import sha256_file
 from ss_track.corpus import (
     ImportResult,
     RefusalCode,
@@ -12,7 +13,6 @@ from ss_track.corpus import (
     redecode_source,
     stage_corpus,
 )
-from ss_track.corpus.records.sealing import sha256_file
 from ss_track.corpus.sources.identity import source_identity
 from ss_track.schema import validate_file
 from tests.corpus._media import HEIGHT, WIDTH, write_dual_video
@@ -61,7 +61,7 @@ def test_both_indexes_import_and_the_first_keeps_a_one_stream_manifest(
     assert first.manifest_path.parent.name == file_hash
     assert sha256_file(first.manifest_path.parent / "source.mkv") == file_hash
     assert sha256_file(second.manifest_path.parent / "source.mkv") == file_hash
-    assert validate_file(first.manifest_path, version="2.1.0").version == "2.1.0"
+    assert validate_file(first.manifest_path, version="3.0.0").version == "3.0.0"
     assert first_body["source"]["sha256"] == file_hash
     assert second_body["source"]["sha256"] == file_hash
     assert "video_stream_index" not in first_body["sequence"]

@@ -13,12 +13,12 @@ from typing import Any
 import numpy as np
 
 from ss_track.core.canonical import SEAL_FIELD, sha256_bytes
+from ss_track.core.evidence.sealing import seal, sha256_file
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.bundles.frames import FrameBundle
 from ss_track.corpus.discovery.findings import RUN_RECORD, Finding
 from ss_track.corpus.discovery.run_rules import ordered
 from ss_track.corpus.records.kinds import FEATURE_ROWS
-from ss_track.corpus.records.sealing import seal, sha256_file
 from ss_track.corpus.siblings.embedding import StreamRows
 from ss_track.corpus.storage.layout import feature_rows_name, feature_vectors_name
 

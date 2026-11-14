@@ -10,11 +10,11 @@ from pathlib import Path
 import pytest
 
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
+from ss_track.core.scratch import exclusive_lock
 from ss_track.corpus.links import interactive
 from ss_track.corpus.links.decisions import read_decisions
 from ss_track.corpus.links.interactive import conduct_review
 from ss_track.corpus.storage.layout import discovery_run_directory
-from ss_track.corpus.storage.scratch import exclusive_lock
 
 A, B, C, D = ("a" * 64, "b" * 64, "c" * 64, "d" * 64)
 

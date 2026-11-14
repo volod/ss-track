@@ -7,6 +7,7 @@ from typing import Any
 
 import av
 
+from ss_track.core.evidence.sealing import seal, write_sealed
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.bundles.bundle_reader import open_frame_bundle
 from ss_track.corpus.bundles.bundle_record import stream_bundle_body
@@ -23,7 +24,6 @@ from ss_track.corpus.decoding.pixels import (
     uses_color_matrix,
 )
 from ss_track.corpus.decoding.streams import VIDEO_STREAM_INDEX, recorded_video_stream_index
-from ss_track.corpus.records.sealing import seal, write_sealed
 from ss_track.corpus.sources.source_record import decoded_facts
 from ss_track.corpus.sources.stored import VerifiedSource, load_verified_source
 from ss_track.corpus.storage.layout import MANIFEST_NAME

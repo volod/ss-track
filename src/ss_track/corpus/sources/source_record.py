@@ -58,11 +58,13 @@ def declared_terms(declaration: RecordingDeclaration) -> dict[str, JsonValue]:
     }
 
 
-def changed_facts(record: Mapping[str, Any], declaration: RecordingDeclaration) -> list[str]:
+def changed_facts(
+    record: Mapping[str, Any], declaration: RecordingDeclaration, *, amend_capture: bool = False
+) -> list[str]:
     """Name each declared fact, other than the terms, that differs from a source record."""
     sequence = record.get("sequence", {})
     changed: list[str] = []
-    if record.get("capture") != declaration.capture:
+    if _capture_changed(record, declaration, amend_capture):
         changed.append("capture")
     if sequence.get("capture_clock_evidence") != declaration.capture_clock_evidence:
         changed.append("sequence.capture_clock_evidence")
@@ -79,3 +81,15 @@ def changed_facts(record: Mapping[str, Any], declaration: RecordingDeclaration) 
     elif stored_origin is not None:
         changed.append("origin")
     return changed
+
+
+def _capture_changed(
+    record: Mapping[str, Any], declaration: RecordingDeclaration, amend_capture: bool
+) -> bool:
+    capture = record.get("capture", {})
+    if not amend_capture:
+        return bool(capture != declaration.capture)
+    judgments = {"camera_control_mode", "observer_platform"}
+    carried = {key: value for key, value in capture.items() if key not in judgments}
+    declared = {key: value for key, value in declaration.capture.items() if key not in judgments}
+    return carried != declared

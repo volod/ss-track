@@ -12,6 +12,7 @@ from typing import Any
 
 from ss_track.core.canonical import sha256_bytes
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
+from ss_track.core.scratch import write_atomically
 from ss_track.corpus.bundles.bundle_reader import open_corpus_bundle
 from ss_track.corpus.bundles.frames import FrameBundle
 from ss_track.corpus.cases.case_model import Region
@@ -24,7 +25,6 @@ from ss_track.corpus.cases.preview_png import (
 )
 from ss_track.corpus.decoding.pixels import OUTPUT_PIXEL_FORMAT
 from ss_track.corpus.storage.layout import corpus_root, frames_root
-from ss_track.corpus.storage.scratch import write_atomically
 from ss_track.corpus.versions.manifests import load_corpus_manifest
 
 ROLE_PARENT = "parent"

@@ -7,6 +7,7 @@ import pytest
 
 from ss_track.cli import build_parser, main
 from ss_track.commands.report import EXIT_OK, EXIT_REFUSED
+from ss_track.core.evidence.sealed import read_sealed
 from ss_track.corpus import (
     ImportResult,
     RefusalCode,
@@ -18,7 +19,6 @@ from ss_track.corpus import (
 )
 from ss_track.corpus.decoding.decode_policy import DecodePolicy
 from ss_track.corpus.records.kinds import CORPUS_MANIFEST
-from ss_track.corpus.records.sealed import read_sealed
 from tests.corpus._amending import (
     CORPUS,
     evidence,

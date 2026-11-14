@@ -5,10 +5,7 @@ by one value, and a format change has one place to go: a new major is one edit b
 holds to the newest frozen contract of that kind.
 """
 
-from dataclasses import dataclass
-
-from ss_track.core.refusal import JsonValue
-from ss_track.schema.registry.contract import KIND_FIELD, VERSION_FIELD
+from ss_track.core.evidence.format import RecordFormat
 
 SOURCE_MANIFEST_KIND = "ss-track.source-manifest"
 CORPUS_MANIFEST_KIND = "ss-track.corpus-manifest"
@@ -27,19 +24,7 @@ AUDIT_BLINDING_KIND = "ss-track.audit-blinding"
 LINK_REVIEW_HANDOFF_KIND = "ss-track.link-review-handoff"
 
 
-@dataclass(frozen=True, slots=True)
-class RecordFormat:
-    """One kind of sealed record and the major this code reads and writes: their one statement."""
-
-    kind: str
-    major: int
-
-    def stamp(self) -> dict[str, JsonValue]:
-        """Return the fields every record of this format opens with, as its writer writes them."""
-        return {KIND_FIELD: self.kind, VERSION_FIELD: self.major}
-
-
-SOURCE_MANIFEST = RecordFormat(SOURCE_MANIFEST_KIND, major=2)
+SOURCE_MANIFEST = RecordFormat(SOURCE_MANIFEST_KIND, major=3)
 CORPUS_MANIFEST = RecordFormat(CORPUS_MANIFEST_KIND, major=3)
 FRAME_BUNDLE = RecordFormat(FRAME_BUNDLE_KIND, major=3)
 FRAME_SET = RecordFormat(FRAME_SET_KIND, major=1)

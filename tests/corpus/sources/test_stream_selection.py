@@ -8,6 +8,8 @@ import pytest
 
 from ss_track.cli import main
 from ss_track.commands.report import EXIT_REFUSED
+from ss_track.core.evidence.sealed import read_sealed
+from ss_track.core.evidence.sealing import sha256_file
 from ss_track.corpus import (
     CorpusRefusal,
     RefusalCode,
@@ -19,8 +21,6 @@ from ss_track.corpus import (
 from ss_track.corpus.bundles.frames import frame_name
 from ss_track.corpus.decoding.pixels import OUTPUT_PIXEL_FORMAT
 from ss_track.corpus.records.kinds import SOURCE_MANIFEST
-from ss_track.corpus.records.sealed import read_sealed
-from ss_track.corpus.records.sealing import sha256_file
 from ss_track.corpus.sources.importer import ImportResult
 from ss_track.schema import validate_file
 from tests.corpus._media import (
@@ -133,7 +133,7 @@ def test_each_index_imports_and_stages_its_own_frames(
             with pytest.raises(CorpusRefusal) as caught:
                 validate_file(imported.manifest_path, version="2.1.0")
             assert caught.value.code is RefusalCode.RECORD_INVALID
-            assert validate_file(imported.manifest_path).version == "2.4.0"
+            assert validate_file(imported.manifest_path).version == "3.0.0"
         build_corpus(write_corpus([stream_of(imported)]), root)
         assert stage_corpus(_CORPUS, root).status == "staged"
         pixels[index] = _frame(root)
@@ -171,7 +171,7 @@ def test_naming_the_only_stream_keeps_the_previous_manifest(
     body = json.loads(omitted.manifest_path.read_bytes())
     assert body["source"]["sha256"] == omitted.source_sha256
     assert "video_stream_index" not in body["sequence"]
-    assert validate_file(omitted.manifest_path, version="2.1.0").version == "2.1.0"
+    assert validate_file(omitted.manifest_path, version="3.0.0").version == "3.0.0"
 
 
 def test_an_index_that_is_not_a_video_stream_lists_both(
