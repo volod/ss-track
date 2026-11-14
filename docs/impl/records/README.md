@@ -83,5 +83,7 @@ Copy the [template](template.md) using the
 | 0076 | `interactive-audit-review` | [0076-adhoc-interactive-audit-review](0076-adhoc-interactive-audit-review.md) |
 | 0077 | `interactive-selection-pass` | [0077-adhoc-interactive-selection-pass](0077-adhoc-interactive-selection-pass.md) |
 | 0078 | `review-video-corpus-sample` | [0078-self-supervised-corpus-review-video-corpus-sample](0078-self-supervised-corpus-review-video-corpus-sample.md) |
+| 0079 | `mission-alignment-audit` | [0079-adhoc-mission-alignment-audit](0079-adhoc-mission-alignment-audit.md) |
+| 0080 | `phase-2-plan` | [0080-adhoc-phase-2-plan](0080-adhoc-phase-2-plan.md) |
 
-Next unused sequence: `0079`.
+Next unused sequence: `0081`.

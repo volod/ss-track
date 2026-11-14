@@ -15,6 +15,11 @@ The project supports a broader effort to build autonomous robots and energy-effi
 systems. In that setting, a useful perception module is one whose quality, uncertainty, latency,
 memory use, and electrical cost are known under a stated workload.
 
+Its first mission is detecting and tracking small aerial objects, birds and drones, from a small
+autonomous observation drone: first with a human operator, then autonomously and inside an energy
+budget, and never by disturbing a living subject. The
+[specification](docs/design/spec.md#mission-and-phases) states both phases and what each excludes.
+
 `ss-track` will provide the  evidence needed to choose and improve such modules, including
 the cases where a sensor, algorithm, or hardware platform does not meet a requirement.
 The same evidence can inform a robot's sensing policy: when to use a wide camera, when

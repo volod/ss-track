@@ -32,7 +32,10 @@ scores do not authorize vehicle actuation, approach to a protected subject, or o
 road or park. Closed-loop and field claims have separate gates.
 
 The repository's scope is software development and hardware support design for two outcomes:
-correct benchmarks and a reference sensor mesh object-tracking implementation. Software contracts,
+correct benchmarks and a reference sensor mesh object-tracking implementation. The reference
+implementation covers sensor front ends, fusion, track maintenance and, in Phase 2, an acquisition
+policy and a following law that runs only in simulation. It is built for measured energy
+efficiency and stays replaceable part by part across hardware. Software contracts,
 measurement methods, reproducible reports and test-stand requirements belong here. Hardware
 selection is a separate human-assisted evidence flow: requirements come from the software, and
 measured choices, rejected alternatives and limitations return to current-state documentation.
@@ -40,6 +43,29 @@ Startup strategy, commercial terms, staffing, public entry policy, dispute opera
 approval and launch execution belong in an owner-managed organizational to-do outside this
 repository's Git control. They are not software capabilities or implementation prerequisites.
 Rights, access controls and measurement validity remain software/data contracts here.
+
+### Mission and phases
+
+The governing mission is detecting and tracking **small aerial objects**, birds and drones, from a
+small autonomous observation drone. An operator or the system surveys an area, detects motion at
+long range, recognizes a declared target such as a pygmy owl, and follows it, possibly as far as
+its nest, without changing its behavior. The same chain applies to an unauthorized drone inside a
+nature reserve. Bird safety and the energy balance of sensing, fusion and onboard computing are
+constraints on every stage, not later refinements. The contract stays generic, so another domain
+can add a scenario pack, but the first pack, `aerial-small-objects`, sets scheduling priority: a
+capability that does not serve this mission is an optional extension.
+
+| Phase | Priorities | Capabilities | Outside the phase |
+| --- | --- | --- | --- |
+| **Phase 1 -- operator-assisted** | Long-range detection of small targets, tracking, and interaction with a human operator | The offline pipeline, metrology and reference mesh of M1 to M3, with the [small-target extent envelope](#67-small-target-extent-envelope) and the [operator session](#169-operator-session-evaluation) | Behavior patterns of a species, autonomous target declaration, vehicle control |
+| **Phase 2 -- autonomous** | Autonomous recognition of a declared species or drone type, sensing and computing inside an energy budget, and following at a stand-off | [Target recognition](#193-autonomous-target-recognition), [compute variants](#194-compute-variants-and-energy-per-decision), the [acquisition policy](#195-energy-budgeted-acquisition) under a [platform energy budget](#710-platform-energy-budget), [stand-off following](#196-stand-off-following-evaluation) and the [autonomous mission](#197-autonomous-mission-evaluation), both in simulation | Field operation, and any claim that a subject was not disturbed |
+
+Phase 2 starts from Phase 1 evidence: a recognition or policy claim needs the labels, the measured
+energy boundary and the mesh results that Phase 1 produces. Behavior of a species, such as hunting
+or nesting patterns, belongs to neither phase and stays an
+[unscheduled candidate](#12-unscheduled-design-candidates). Each phase closes on the evidence listed
+under [phase exits](#phase-exits), and [section 19](#19-phase-2-autonomous-operation) is the
+normative specification of Phase 2.
 
 ### Design rules
 
@@ -82,9 +108,13 @@ Historical operator-controlled footage is conditioned on the operator's camera p
 underrepresent difficult losses because such footage can be missing, discarded or unusable. Each
 recording declares `operator_steered`, `fixed_camera`, `autonomous_camera` or `unknown` control and,
 when known, why it was retained. The report states this selection limit next to offline tracking
-scores. Scenario packs define classes, annotation vocabulary, operational limits and access policy
-for settings such as protected habitats, roads and laboratory benches; results from different packs
-are stratified unless a predeclared common metric and sampling frame justify pooling.
+scores. Each recording also declares its observer platform, `ground_fixed`, `ground_handheld`,
+`airborne` or `unknown`, and reports stratify by it. A score on ground-camera footage does not
+establish air-to-air performance, so a Phase 1 mission claim rests on airborne-observer encounters
+or states that it has none. Scenario packs define classes, annotation vocabulary, operational limits
+and access policy for settings such as protected habitats, roads and laboratory benches; results
+from different packs are stratified unless a predeclared common metric and sampling frame justify
+pooling.
 
 ## 3. Scope and delivery gates
 
@@ -105,7 +135,11 @@ what a G0 report may claim. Delivery milestones in the engine design implement b
 these gates: M1 closes on G0a with two pilot encounters; M2 supplies host measurement and selection;
 M3 evaluates the reference mesh at four boundaries. None claims all G1/G2 capabilities are shipped.
 Thermal experiments and ranking are optional M4 work, cross-device cases are optional M5 work, and
-telemetry analysis is optional M6 work.
+telemetry analysis is optional M6 work. M1 to M3 deliver [Phase 1](#mission-and-phases). M7,
+autonomous recognition inside an energy budget, M8, stand-off following in simulation, and M9, the
+autonomous mission evaluation, deliver Phase 2 under the gates of
+[section 19.1](#191-entry-conditions-gates-and-milestones). They start from M3 evidence, and none
+waits for M4 to M6.
 
 Available laptops or small Linux boards may bootstrap development; no model is the assumed final
 host. Final host and sensor configurations follow measured selection against versioned stand
@@ -124,6 +158,24 @@ mode, CPU instruction extensions and available compute devices from the start. S
 tensor implementations are explicit, separately identified variants against a portable reference
 execution. A binary event format alone does not prove a latency bound.
 
+### Phase exits
+
+Phase 1 closes when each of these exists as retained evidence or as a stated valid negative
+result:
+
+1. `g0a-pipeline-run` passes the G0a rows on two labelled pilot encounters, with the reference
+   tracker's two declared versions.
+2. A [small-target extent envelope](#67-small-target-extent-envelope) on airborne-observer
+   encounters, or the statement that the corpus holds none.
+3. An [operator-session](#169-operator-session-evaluation) result for the reference tracker:
+   assisted and unassisted coverage, interventions and silent failures.
+4. A selected reference host with a calibrated meter boundary, or energy `NOT_MEASURABLE` with
+   its cause.
+5. Reference mesh results at the four G2 boundaries, including what each sensor adds.
+
+G0b, MOT and the optional extensions do not gate it. The Phase 2 exit is in
+[section 19.8](#198-phase-2-exit).
+
 ## 4. Corpus, rights, splits and annotation
 
 ### 4.1 Corpus identity and input handling
@@ -133,11 +185,13 @@ encounter grouping and split, scenario-pack class taxonomy, annotation revision,
 policy, generated-case recipes and transform revisions. A metric suite is versioned separately. Each
 sequence records container/codec, original and decoded dimensions, display rotation, pixel format,
 frame index and PTS, timestamp quality (`measured`, `derived`, `missing`),
-camera/lens/exposure/focus/FOV when known, camera-control mode, lighting/background/motion notes,
-object pixel extent and measured versus estimated versus unknown range. Never infer measured range
-from lens metadata alone. Class names and hierarchy live in the scenario pack; stable class IDs and
-instance/track IDs are distinct. The generic contract must not require a biological species or a
-drone.
+camera/lens/exposure/focus/FOV when known, camera-control mode, observer platform,
+lighting/background/motion notes, object pixel extent and measured versus estimated versus unknown
+range. Never infer measured range from lens metadata alone. Camera-control mode and observer
+platform take the closed vocabularies of [section 2](#2-evidence-lanes-and-claims); a value outside
+them is refused, not kept as free text. Class names and hierarchy live in the scenario pack; stable
+class IDs and instance/track IDs are distinct. The generic contract must not require a biological
+species or a drone.
 
 A multi-sensor encounter identifies **every declared sensor stream**, including camera, audio,
 radar, range, trigger/contact and platform-state streams, by source hash and modality-specific raw
@@ -653,6 +707,16 @@ report then shows each module's quality against that severity, so a comparison s
 degrades, not only whether it does. The curve is one parameter on one encounter set. It is a
 diagnostic, it enters no composite score, and it is never field evidence.
 
+A scale-reduction case probes how small a target can become. It resamples every frame by a
+declared factor with an area-average filter that belongs to the transform's revision, and scales
+label geometry, localization uncertainty and the plausible extent of a point-only label by the
+same factor. A box that falls below the scenario pack's minimum box extent becomes `point_only`,
+and a target below the pack's minimum point extent becomes `unlocalizable`, so a module is never
+scored against geometry that no reviewer could have drawn at that size. Cases at several factors
+give the generated half of the [small-target extent envelope](#67-small-target-extent-envelope).
+The case removes pixels. It adds no atmosphere, optics blur, sensor noise or motion blur, so it
+bounds a module's behavior on fewer pixels and is never a detection range.
+
 Fusion fixtures add controlled timestamp skew, jitter, late and out-of-order packets, complete or
 intermittent modality loss, degraded/noisy measurements, calibration perturbation, shared artifacts,
 duplicate source events, contradictory observations and sensor-health misreports. These act on a
@@ -676,21 +740,24 @@ Required record families are `RunManifest`, `FrameRef`, `TargetSelection`, `Fram
 `CalibrationRecord` with the section 7.9 evidence and uncertainty fields. Later G2 suites add
 `SensorObservation`, `FusionEpoch`, `FusionResult`, `FusedObservation`, `TrackerEpoch`,
 `TrackerResult`, `AcquisitionDecision` and `BudgetState` without changing G0 `FrameResult`
-semantics. `RunManifest` identifies corpus/split/annotation/mask, scenario pack and class map,
-metric suite, module binary/configuration, schema, decoder, host, kernel/scheduler profile, active
-compute variant and evaluator revisions. A compute variant identifies its scalar or vector kernel
-and ISA, or its tensor graph/model, precision, backend and device, as applicable; the detailed
-provenance contract is in section 7. `FrameRef` identifies stream, source-media hash, zero-based frame
-index, the frame whose pixels it shows, PTS, decoded dimensions/pixel format, transform, time evidence
-and staged-bundle access.
-`Detection` carries class ID, confidence and geometry; `TrackState` carries instance/track ID,
-presence confidence and geometry. `FrameResult` acknowledges exactly one input frame and contains
-zero or more outputs; an empty valid result is different from a missing result. `PowerSample`
-declares instrument, measurement boundary, synchronized voltage/current or measured watts,
-timestamp/clock domain, calibration, sample-quality flags and uncertainty; derived joules retain the
-integration method and exact interval. `ResourceSample` declares counter scope, unit, clock, source
-and validity or multiplexing status. Every event has a stable ID and source frame or explicit
-unframed interval. Retried IDs are idempotent.
+semantics. On the same terms, operator sessions add `OperatorPrompt` and `OperatorAction` under
+[section 16.9](#169-operator-session-evaluation), and Phase 2 adds `RecognitionResult` and
+`FollowingCommand` under sections [19.3](#193-autonomous-target-recognition) and
+[19.6](#196-stand-off-following-evaluation). `RunManifest` identifies
+corpus/split/annotation/mask, scenario pack and class map, metric suite, module
+binary/configuration, schema, decoder, host, kernel/scheduler profile, active compute variant and
+evaluator revisions. A compute variant identifies its scalar or vector kernel and ISA, or its tensor
+graph/model, precision, backend and device, as applicable; the detailed provenance contract is in
+section 7. `FrameRef` identifies stream, source-media hash, zero-based frame index, the frame whose
+pixels it shows, PTS, decoded dimensions/pixel format, transform, time evidence and staged-bundle
+access. `Detection` carries class ID, confidence and geometry; `TrackState` carries instance/track
+ID, presence confidence and geometry. `FrameResult` acknowledges exactly one input frame and
+contains zero or more outputs; an empty valid result is different from a missing result.
+`PowerSample` declares instrument, measurement boundary, synchronized voltage/current or measured
+watts, timestamp/clock domain, calibration, sample-quality flags and uncertainty; derived joules
+retain the integration method and exact interval. `ResourceSample` declares counter scope, unit,
+clock, source and validity or multiplexing status. Every event has a stable ID and source frame or
+explicit unframed interval. Retried IDs are idempotent.
 
 `SensorObservation` references staged raw data or a derived measurement and identifies its modality,
 evidence role, stream, calibration, capture interval, arrival time, clock uncertainty, coordinate
@@ -1000,6 +1067,39 @@ have a valid full-system score without any component score. TrackEval applies to
 tracker and system boundaries; it does not measure sensor complementarity, fusion probability or
 joules.
 
+### 6.7 Small-target extent envelope
+
+Long-range detection is the first Phase 1 priority, and an offline benchmark cannot measure a
+range. It can measure how quality changes as the target covers fewer pixels, which is the quantity
+a later range claim rests on. Every tracking and motion suite therefore reports an **extent
+envelope**: its primary measure per bin of target extent `s_gt = sqrt(w_gt * h_gt)`, in pixels of
+the frame the module received, with a point-only label binned by its reviewed maximum plausible
+extent. The bin edges come from the scenario pack and are part of the cohort. Each bin shows its
+numerator, denominator, scorable exposure, encounter count and interval, and a bin with fewer
+encounters than the suite's declared minimum reports `insufficient_data`, not a value.
+
+The envelope's summary is the **smallest supported extent**: the lowest bin from which every
+larger bin with sufficient data has an interval whose lower bound clears a floor the scenario
+declared before the run. For motion proposals the measure is event recall at the declared
+operator-burden operating point, so a module cannot lower its supported extent by proposing
+everywhere. No supported bin is a valid result and is reported as one.
+
+Real encounters and [scale-reduction cases](#43-deterministic-cases-and-negative-evidence) form
+two separate curves. The generated curve shows where a module degrades when pixels are removed
+from footage it already handles. It is a diagnostic, joins no field aggregate and never fills an
+empty real bin. Angular extent is reported beside pixels only when the recording states a measured
+field of view, and a distance only for an independently measured range under
+[section 4.1](#41-corpus-identity-and-input-handling). An extent is never converted to metres from
+an assumed object size.
+
+Boundary: the envelope describes one corpus, optics and observer platform. It is not a detection
+range, and ground-camera footage does not stand in for an airborne observer.
+
+Evaluation: hand-built encounters at known extents reproduce each bin's numerator, denominator and
+status, the supported extent, and the separation of real and generated curves. Valid negative
+results are no supported bin, and a corpus whose extents do not reach the small bins, which states
+the smallest extent it holds.
+
 ## 7. Hardware profiles, sensor fusion, compute optimization, real-time behavior and energy
 
 ### 7.1 Probe and adaptive launch
@@ -1110,6 +1210,15 @@ queueing, inference, postprocessing, output publication and any fallback. Asynch
 must be synchronized at the declared completion boundary before an output or elapsed time is
 counted. Fixed batch and concurrent-stream workload definitions prevent throughput gains from
 concealing missed per-frame deadlines.
+
+The compute contract is neutral about substrate. An analog or mixed-signal front end, in-sensor
+processing, a neuromorphic or event-driven processor, or any other non-digital stage is a compute
+variant on the same terms as a GPU or NPU. It declares its place in the pipeline, its output
+passes the same task-level evaluation against the portable reference where one exists, internal
+fields it cannot expose are `opaque`, and its energy counts only when its supply lies inside a
+measured boundary of [section 7.9.4](#794-electrical-power-thermal-state-and-motion). A datasheet
+power figure for such a part is a design input. Its part-to-part and temperature drift is reported
+as repeat-trial spread on the tested unit, since no bit-exact reference bounds it.
 
 ### 7.4 Linux real-time profile and timing evidence
 
@@ -1333,6 +1442,17 @@ trials. Policy comparisons use the fixed baselines and, where measured, the fron
 Every skipped true event is a miss; a policy fails its declared quality target or no-loss claim when
 that miss contributes to a violation of the predeclared floor or margin.
 
+`resource-aware-sensing` schedules this section as Phase 2 work: the decision contract and causal
+replay first, then the mandatory comparators on recorded mesh encounters, then measured sensor
+power modes for any energy claim. Its budget comes from the
+[platform energy budget](#710-platform-energy-budget), and
+[section 19.5](#195-energy-budgeted-acquisition) fixes its action space, energy tiers and claim
+rule. Its boundary is the one stated above:
+offline replay compares input and processing choices only. Its evaluation is the G2 adaptive
+policy and energy row of the [acceptance matrix](#13-acceptance-and-negative-result-matrix), and a
+valid negative result is an adaptive policy that does not beat the best fixed configuration at
+matched quality.
+
 ### 7.8 TDD reference tracker and stagewise development
 
 Implement a deliberately simple **reference tracker** as an executable module, not as an accuracy
@@ -1345,7 +1465,11 @@ observation is available, it acknowledges the scheduled frame/epoch and emits `l
 preserving a confident stale box; a calibrated track-existence probability is added only after a
 separate calibration suite supports it. Its seed, parameters, thresholds, numerical tolerances and
 source revision are fixed in each run. The G0 baseline validates the runner, labels and score
-calculations; it does not set a minimum target score for future models.
+calculations; it does not set a minimum target score for future models. Its two declared G0a
+versions differ in one stated way: the proposal front end runs without and with global-motion
+compensation of the frame. The mission's observer moves, and a frame difference on an
+uncompensated moving camera proposes the background. Which version scores higher is a result, not
+an assumption.
 
 At G2, front ends, the deterministic late-fusion reference, track maintenance and the optional
 resource policy are independently replaceable; section 6.6 isolates the first three and evaluates
@@ -1586,6 +1710,45 @@ When payload integration becomes a claim, measure the installed assembly includi
 cables/mount/regulator on a calibrated scale and record mass and center-of-gravity method; bench
 computer watts or nominal battery capacity alone cannot predict flight endurance.
 
+### 7.10 Platform energy budget
+
+A small observation drone spends most of its battery on flight. A payload's joules matter in
+proportion to what the platform can spare, and its mass costs flight power that no payload meter
+sees. A scenario therefore declares a **platform energy budget** before any policy or
+hardware-selection claim cites one: usable battery energy, the propulsion power of the platform in
+its declared flight state, the mass and power the payload may take, the mission duration, and the
+origin of each figure as `measured`, `datasheet` or `assumed`.
+
+Against that declaration a report states the measured payload energy of a trial as a fraction of
+the payload allowance over the same duration, the margin or overrun, and peak power against the
+declared limit. These are arithmetic on a measured installed-system boundary and inherit its
+validity: an energy that is `NOT_MEASURABLE` gives no budget fraction. The effect of payload mass
+and power on endurance is a **model-derived** estimate, shown apart with its model named and every
+`datasheet` or `assumed` input listed. It becomes a measurement only when the vehicle boundary
+itself is metered in flight, which this repository does not schedule.
+
+With `E_pay` the measured payload energy of a trial of duration `T`, `P_allow` the declared
+payload power allowance, `E_batt` the usable battery energy and `T_mission` the declared mission
+duration, the **budget fraction** is `E_pay / (P_allow * T)`, the **margin** is
+`P_allow * T - E_pay`, and the **battery share** is `(E_pay / T) * T_mission / E_batt`. The
+model-derived endurance is `E_batt / (P_prop(m_0 + m_pay) + P_pay)`, where `P_prop` is the
+declared propulsion power at platform mass `m_0` plus payload mass `m_pay`, and `P_pay` is the
+mean payload power. The named model states how `P_prop` varies with mass, and a model with no
+mass term says so.
+
+The budget also sets the rolling energy window and hard limits of `BudgetState` in
+[section 7.7](#77-resource-aware-acquisition-and-processing-policy), so an acquisition policy is
+judged against the platform it would fly on.
+
+Boundary: no flight-time prediction, no propulsion measurement and no battery model beyond the
+declared figures. A budget built only from `datasheet` and `assumed` figures supports a design
+comparison and no efficiency claim.
+
+Evaluation: fixture declarations and recorded trials reproduce hand-calculated fractions, margins
+and overruns. An unmeasured energy yields no fraction, and a model-derived value never appears in a
+measured column. Valid negative results are a payload that exceeds its allowance, and a budget
+whose inputs are too uncertain to separate two configurations.
+
 ## 8. TrackEval adapter and upgrade policy
 
 [TrackEval](https://github.com/JonathonLuiten/TrackEval) is the reference MOT evaluator once a
@@ -1645,7 +1808,9 @@ leave supported source view as failures or `ABORT`, not exclusions. More complet
 versioned vehicle/camera/environment and energy models. Simulation scores do not establish
 real-world safety without independent field evidence. The first scheduled instance of this simulator
 is the guidance pointing-quality measurement in
-[section 16.8](#168-guidance-pointing-law-and-quality-measurement).
+[section 16.8](#168-guidance-pointing-law-and-quality-measurement). The second is the kinematic
+simulator of [section 19.6](#196-stand-off-following-evaluation), which moves a simulated
+observer where the first moves a crop window.
 
 ## 10. Run artifacts and comparison dashboard
 
@@ -1674,7 +1839,9 @@ ss-track sensor-set evaluate --scenario <declared sensor-set scenario> # G2 fron
 ss-track fusion evaluate --scenario <fixed observation bundle>        # G2 fusion/analysis
 ss-track tracker evaluate --scenario <fixed observation bundle>       # G2 tracker
 ss-track system evaluate --scenario <installed-system scenario>       # G2 full pipeline
-ss-track policy sweep --scenario <budgeted scenario>              # later resource suite
+ss-track policy sweep --scenario <budgeted scenario>              # Phase 2 resource suite
+ss-track follow evaluate --scenario <closed-loop scenario>        # Phase 2 stand-off following
+ss-track mission evaluate --scenario <mission scenario>           # Phase 2 autonomous mission
 ss-track ingest --manifest external-run.yaml --events <event bundle>
 ss-track compare --runs <run-a>,<run-b> --out report/
 ss-track telemetry import --source telemetry.yaml
@@ -1686,30 +1853,30 @@ ss-track telemetry export --bundle <sha256> --format parquet --out export/
 ```
 
 The scenario pins the domain pack/class taxonomy, corpus/split, frame-set hash, annotation and
-eligibility-mask hashes, selection set, canonical decode/frame delivery, replay mode, module
-configuration, metric suite, seed, camera/host profile where applicable, deadlines, sensor-absence
-policy, energy boundary
-and sampling protocol. A G1 or G2 hardware claim also pins the section 7.9 `HardwareTrial` protocol and
-instrument/calibration revision. A G2 scenario additionally pins **one of the four evaluation
-boundaries**, allowed inputs, upstream bundle/producer hashes, sensor opportunity profile, declared
-feasible sensor subsets, calibration/clock versions and tolerances, fusion/tracker epochs,
-association and missing-source policy, probability definitions and calibration revision. A resource
-scenario pins the policy/action space, decision-time feature set, candidate-mode profiles,
-false-alarm and quality constraints, peak and rolling budgets, workload and fixed-baseline sweep. A
-compute-profile declaration additionally pins the workload's input shape/layout, precision, batch,
-concurrency, requested backend and permitted partition/fallback, cold versus warmed interval and
-comparison boundary. The runner assigns the run ID. Artifacts contain the manifest, input/output
-hashes, raw event records, validation and fault reports, metrics with
-numerator/denominator/exposure, environment, timing/resource/power evidence, per-encounter results
-and frame-linked failure references. Hardware artifacts contain the protocol, physical boundary,
-instrument/check records, raw sensor/power/reference traces and hashes, alignment/uncertainty
-budget, sample gaps, validity decisions, per-trial metrics and paired-trial order; a plotted summary
-cannot replace the raw evidence. Fusion artifacts include raw-source lineage, alignment/calibration
-evidence, decisions made before acquisition, predicted versus actual costs, source availability,
-posterior/calibration evidence and budget violations. Compute artifacts include the actual
-kernel/ISA or tensor device/operator partition, runtime/driver/firmware and model/calibration
-provenance, compilation/cache and transfer evidence, and profile deviations. A local HTML/JSON
-report is G0's dashboard. Hosting and a shared service are outside the scheduled scope.
+eligibility-mask hashes, selection set and operator script, canonical decode/frame delivery, replay
+mode, module configuration, metric suite, seed, camera/host profile where applicable, deadlines,
+sensor-absence policy, energy boundary and sampling protocol. A G1 or G2 hardware claim also pins
+the section 7.9 `HardwareTrial` protocol and instrument/calibration revision. A G2 scenario
+additionally pins **one of the four evaluation boundaries**, allowed inputs, upstream
+bundle/producer hashes, sensor opportunity profile, declared feasible sensor subsets,
+calibration/clock versions and tolerances, fusion/tracker epochs, association and missing-source
+policy, probability definitions and calibration revision. A resource scenario pins the policy/action
+space, decision-time feature set, candidate-mode profiles, false-alarm and quality constraints, peak
+and rolling budgets, workload and fixed-baseline sweep. A compute-profile declaration additionally
+pins the workload's input shape/layout, precision, batch, concurrency, requested backend and
+permitted partition/fallback, cold versus warmed interval and comparison boundary. The runner
+assigns the run ID. Artifacts contain the manifest, input/output hashes, raw event records,
+validation and fault reports, metrics with numerator/denominator/exposure, environment,
+timing/resource/power evidence, per-encounter results and frame-linked failure references. Hardware
+artifacts contain the protocol, physical boundary, instrument/check records, raw
+sensor/power/reference traces and hashes, alignment/uncertainty budget, sample gaps, validity
+decisions, per-trial metrics and paired-trial order; a plotted summary cannot replace the raw
+evidence. Fusion artifacts include raw-source lineage, alignment/calibration evidence, decisions
+made before acquisition, predicted versus actual costs, source availability, posterior/calibration
+evidence and budget violations. Compute artifacts include the actual kernel/ISA or tensor
+device/operator partition, runtime/driver/firmware and model/calibration provenance,
+compilation/cache and transfer evidence, and profile deviations. A local HTML/JSON report is G0's
+dashboard. Hosting and a shared service are outside the scheduled scope.
 
 An **algorithm-only** accuracy comparison requires the same scenario pack and class map, corpus,
 split, annotation, selection and mask, transforms, metric suite, evidence lane and input
@@ -1783,33 +1950,58 @@ observed responses and distances are context dependent in one wildlife scenario;
 universal safe distance for other objects or sites. The dashboard emphasizes performance at a
 declared object pixel extent and does not reward closest approach.
 
+A scenario pack for a living subject carries a **non-disturbance envelope**, approved by a named
+responsible person before any following evaluation uses it: minimum stand-off distance, maximum
+closing speed, permitted approach directions and altitude band, exclusion zones around nests, dens
+and roosts, maximum continuous following time and the conditions that end an encounter. The
+benchmark counts violations of that envelope. It never states that a subject was not disturbed,
+because the envelope is a human judgment about a species and a site, and a simulated or recorded
+subject does not react. A nest or roost position is location-bearing and stays restricted: a
+report names a terminal zone by its declared identifier, never by coordinates. A drone target has
+an envelope as well, set by collision risk and the reserve's rules instead of by behavior.
+
 ### Measurement-only scope
 
 ss-track measures detection, tracking and energy for monitoring, warning and situational awareness.
 It does not evaluate or tune a system whose tracker output steers, cues or triggers a weapon,
 interceptor or other effector, and it publishes no engagement metrics. A tracking or pointing law
-adapted from interceptor or capture-guidance literature, such as a proportional-navigation-derived law
-for steering toward a target, stays in scope only as a camera- or sensor-pointing study under
-[section 9](#9-offline-advisory-actions-and-later-closed-loop); using it to steer an interceptor, net
-or other effector toward a target is out of scope regardless of the algorithm's published origin. A
-**sensitive device** is any
-system sold for defense, security, counter-drone or law-enforcement use, or subject to export
-control. Results on a sensitive device stay restricted unless the project owner releases them.
+adapted from interceptor or capture-guidance literature, such as a proportional-navigation-derived
+law for steering toward a target, stays in scope only as a camera- or sensor-pointing study under
+[section 9](#9-offline-advisory-actions-and-later-closed-loop); using it to steer an interceptor,
+net or other effector toward a target is out of scope regardless of the algorithm's published
+origin. An observer vehicle that follows a target at a declared stand-off, for observation and in
+simulation only, is in scope under [section 19.6](#196-stand-off-following-evaluation). A law
+whose objective closes to contact or capture is out of scope whatever it is called. A **sensitive
+device** is any system sold for defense, security, counter-drone or law-enforcement use, or subject
+to export control. Results on a sensitive device stay restricted unless the project owner releases
+them.
 
 ## 12. Unscheduled design candidates
 
 These candidates are design input, not implementation commitments. Scheduling one requires a
-[capability registry](#capability-registry) entry and plan tasks with declared acceptance gates.
+[capability registry](#capability-registry) entry and plan tasks with declared acceptance gates,
+and each row states the evidence that would justify that step. A candidate marked Phase 1 or
+Phase 2 extends that phase and gates neither [phase exit](#phase-exits). A candidate marked
+`later` serves neither phase.
 
-| Capability | How it is evaluated |
-| --- | --- |
-| `scalar-vector-cpu-kernels` | Scalar C++20 reference and optional Neon/SVE/x86/RISC-V paths pass conformance and measured quality-latency-energy comparison |
-| `tensor-compute-backends` | Pinned CPU reference and optional accelerated graph pass support, partition/fallback, precision, task-quality and end-to-end cost fixtures |
-| `external-event-ingest` | Second-host contract tests, frame match and clock-validity cases |
-| `advisory-diagnostics` | Recorded-path and operator-agreement diagnostics remain separate; no G0/G1 actuation path |
-| `resource-aware-sensing` | Causal policy decisions, fixed-configuration and VOI/event-trigger comparators, task quality at energy/deadline budgets and measured sensor-plus-compute cost |
-| `stereo-range` | Independent distance reference, calibration/synchronization uncertainty, range error and unsupported-mode coverage |
-| `closed-loop-simulation` | Action changes the next supported observation; out-of-support action fails or aborts; energy model declared |
+| Candidate | Phase | Problem it would solve | How it would be evaluated | Prerequisite and scheduling trigger |
+| --- | --- | --- | --- | --- |
+| `external-event-ingest` | Phase 1 | A module that runs on another host or device cannot be scored | Second-host contract tests, frame match and clock-validity cases | A second host that emits contract events, and binary event framing |
+| `advisory-diagnostics` | Phase 1 | An operator steering a camera gets no measured recommendation | Recorded-path and operator-agreement diagnostics remain separate; no G0/G1 actuation path | Recordings with aligned operator telemetry |
+| `scalar-vector-cpu-kernels` | Phase 2 | A scalar hot path misses its deadline or energy allowance on the selected host | Scalar C++20 reference and optional Neon/SVE/x86/RISC-V paths pass conformance and measured quality-latency-energy comparison | A measured deadline or budget miss that the compute-variant suite attributes to one kernel |
+| `stereo-range` | Phase 2 | Stand-off following assumes a range that no installed sensor has been shown to measure | Independent distance reference, calibration/synchronization uncertainty, range error and unsupported-mode coverage | Two characterized cameras and an owner-declared range tolerance; required before any bench or field following claim |
+| `learned-fusion` | Phase 2 | The late-fusion rule cannot use raw-signal relations between sensors | The fixed-observation fusion boundary against the late-fusion baseline, with missing-modality behavior, training split, compute and energy cost | A governed training split, and a late-fusion result that leaves a measured gap |
+| `acoustic-species-cue` | Phase 2 | A calling bird can be named by sound when its image is too small to identify | Call detection and class evidence against expert labels; association with a track only under calibrated array geometry; slices by platform noise | A selected microphone array, the section 11 audio rules and a measured propeller-noise floor |
+| `rf-emission-cue` | Phase 2 | A drone can reveal its presence by radio before it is visible | Presence and bearing events against a reference transmitter log, and false alarms per hour; no demodulation or decoding | A selected passive receiver and the section 11 spectrum rules; a presence or bearing role only |
+| `low-light-operation` | Phase 2 | A crepuscular target is active when a visible camera sees least | The extent envelope and recognition by illumination stratum, with a thermal or near-infrared front end under section 7.6 | Authorized low-light encounters and a selected sensor with measured sensitivity |
+| `area-search-policy` | Phase 2 | Surveying an area needs a scan pattern, and a lost target needs a search | Time to first acquisition and area coverage in simulation under the energy budget, against fixed-stare and raster baselines | Mission results that show acquisition, not recognition, limits success |
+| `pointing-hardware-characterization` | Phase 2 | A pointing-coverage result assumes a gimbal response nobody measured | Measured slew rate, settling time and latency combined with section 16.8 results | A selected gimbal or steerable mount |
+| `closed-loop-simulation` | later | A claim needs scene or vehicle effects that the crop and kinematic simulators leave out | Action changes the next supported observation; out-of-support action fails or aborts; energy model declared | A validated vehicle or scene model and a claim the scheduled simulators cannot express |
+| `object-activity-state` | later | Behavior such as hunting, perching or nesting is not recognized | Per-state precision/recall and transition delay against an expert-defined behavior vocabulary; no state from image displacement alone | A behavior vocabulary and expert labels; outside both phases by the mission statement |
+| `platform-flight-energy` | later | The endurance effect of a payload is only model-derived | Vehicle-boundary metering in flight with a calibrated logger | An approved flight test; turns the model-derived values of section 7.10 into measurements |
+| `disturbance-response-evidence` | later | The non-disturbance envelope is a judgment that no result here tests | Reviewed behavioral-response labels at recorded distances under a responsible person's protocol | An approved field protocol; never from simulation |
+| `field-following-trial` | later | Following is shown only in simulation | The section 11 approvals, a trained operator, stop criteria and an independent position reference | The Phase 2 exit, measured range sensing and those approvals |
+| `multi-observer-cooperation` | later | One observer cannot keep a fast target in view without closing on it | Hand-off continuity and combined coverage in simulation | A single-observer mission result that leaves a coverage gap |
 
 ## 13. Acceptance and negative-result matrix
 
@@ -1845,6 +2037,13 @@ These candidates are design input, not implementation commitments. Scheduling on
 | G2 range | Uncalibrated stereo, radar mode without calibrated range or absent independent distance reference | `UNSUPPORTED` or `NOT_SCOREABLE` with coverage and uncertainty; no range inferred from modality name |
 | G3 closed loop | Candidate actions alter future view; action leaves simulator support | Model-bounded score; unsupported path fails or aborts, not excluded |
 | Paced frame release | Fixture module attempts to read a future frame | Read fails; the run reports a conformance failure |
+| Small-target extent envelope | Hand-built encounters at known extents; scale-reduction cases at several factors; a bin under the encounter minimum; a module that proposes everywhere | Each bin reproduces its counts and status; real and generated curves stay separate; an underfilled bin is `insufficient_data`; flooding proposals lowers no supported extent |
+| Operator session | Scripted operator with a declared delay over recovered-loss, wrong-target, silent-failure and unwarranted-request fixtures; the same module with the script disabled | Assisted and unassisted coverage, interventions per tracked minute, hand-back delay and silent failures match hand counts; no action precedes its cause; a prompt makes no frame unscorable |
+| Phase 2 target declaration | Known-target, look-alike, unknown-class, too-small, untracked, reversed and confident-wrong fixtures at a declared false-declaration burden; exposure too short for that burden | Declaration recall over eligible instances, time to declaration, abstention, instability and calibration match hand results; an untracked target stays a miss; an unknown class is never forced into the target set; short exposure names no operating point |
+| Phase 2 compute variant energy | CPU reference and one accelerated variant on a frozen workload; recorded traces with known joules; an undeclared fallback; a marked idle interval | Quality difference, latency, energy per scheduled decision and installed idle power match hand calculation; an unverified backend is not credited; a variant that emits few results gains no energy advantage |
+| Phase 2 platform energy budget | Budgets with measured, datasheet and assumed figures; a trial with unmeasured energy | Fractions, margins and overruns match hand calculation; no fraction without measured energy; a model-derived endurance value stays out of measured columns |
+| Phase 2 stand-off following | Simulated straight, turning, hovering and nest-return targets; graded range error and latency; a law that closes inside the minimum stand-off; a set-point under the margin; a target leaving simulator support | Observation coverage, envelope violations, error tolerance and aborts match hand-audited values on the true range; a set-point under the margin is refused; any violation fails its encounter and blocks an improved status; leaving support is a failure or `ABORT`; no vehicle interface exists |
+| Phase 2 autonomous mission | Evidence tables of probability 0 and 1; a fixed seed; a table of known probabilities; an assumed table; one episode per outcome; several stand-off levels | Hand-computed outcomes and their precedence; byte-identical reruns; fractions within the declared tolerance; an assumed or datasheet table marks the result `design_only`; the stand-off trade-off reports each level |
 | Optional thermal trial | Identical frames at two chip temperatures; frequency-capped cool arm; load-calibrated baseline; fresh state; randomized order | Mechanism supported only if all four conditions hold; no throttling is `not_tested`; a negative result is retained |
 | Optional cohort rank | Fixture cohorts: median-run choice, every-run floor, anchored tiers, fault penalty, null row, fewer than three qualifying projects, cohort-key mismatch | Expected rank, tier, `inconclusive` or refusal; no rank published under the minimum; null row is never subtracted |
 | Export boundary | Restricted or unmarked bundle passed to a shareable export | Export refuses without leaking values; local restricted analysis remains available |
@@ -1868,8 +2067,10 @@ fixture is not evidence of field safety or a specific detection range.
 | [VOT long-term methodology](https://arxiv.org/abs/1906.08675) and [OxUvA](https://arxiv.org/abs/1803.09502) | Presence/absence and re-detection evaluation | Different capture conditions; use method, not transferred performance |
 | [LaSOT](https://openaccess.thecvf.com/content_CVPR_2019/papers/Fan_LaSOT_A_High-Quality_Benchmark_for_Large-Scale_Single_Object_Tracking_CVPR_2019_paper.pdf) | SOT success/precision and long-sequence stress views | No onboard timing or energy contract |
 | [UAVDT](https://openaccess.thecvf.com/content_ECCV_2018/papers/Dawei_Du_The_Unmanned_Aerial_ECCV_2018_paper.pdf) and [VisDrone](https://arxiv.org/abs/1804.07437) | Mobile-camera motion, small-object and attribute slices | Different class mix and dataset rights |
+| [Airborne Object Tracking dataset](https://registry.opendata.aws/airborne-object-tracking/) and [Det-Fly](https://github.com/Jake-WU/Det-Fly) | Candidate airborne-observer footage of small aerial objects | Image sequences, not video; birds and drones are incidental in the first; rights, annotation semantics and overlap are unchecked until an owner authorizes a source |
 | [SMOT4SB](https://arxiv.org/abs/2507.12832) | Small-bird point/dot similarity and SO-HOTA candidate | Domain-specific MOT; not a universal SOT or safety suite |
 | [DAgger](https://arxiv.org/abs/1011.0686) | Learner actions change future observations | Motivates lane separation; does not validate a simulator or policy |
+| [Mid-air drone interception tracking](https://arxiv.org/abs/2405.13542) | IMM state estimation for a maneuvering aerial target and a feedforward line-of-sight guidance structure; the paper that sections 16.7, 16.8 and the IMM and JIPDA variants adapt | Its net capture of the target is outside the [measurement-only scope](#measurement-only-scope); only the estimator and a sensor-pointing or stand-off form of the guidance are adapted, and none of its results transfers |
 | [Attention and Anticipation](https://arxiv.org/abs/1610.03344) | Task-conditioned resource selection | Navigation performance gains do not transfer to object perception |
 | [SLAMBench](https://arxiv.org/abs/1410.2167) and [MLPerf Tiny rules](https://github.com/mlcommons/tiny/blob/master/benchmark/MLPerfTiny_Rules.adoc) | Paired accuracy/runtime/energy evaluation and declared measurement procedure | Different task, device and energy boundary; use methodology, not scores |
 | [NIST uncertainty guidance](https://physics.nist.gov/cuu/pdf/tn1297.pdf) and [MLPerf power policy](https://github.com/mlcommons/inference_policies/blob/master/power_measurement.adoc) | Traceable uncertainty, paired power/performance trials and an explicit system boundary | Instrument calibration, sampling and uncertainty must be set for this system; neither source supplies a measured joule value |
@@ -1907,7 +2108,14 @@ are required **before the named later claim or gate**, rather than blocking G0a:
 | Input | Required before |
 | --- | --- |
 | Scenario packs, class taxonomy, recording rights/retention, locked-test custodian and access policy | Creating a locked test or shared dashboard for each domain |
+| Mission scenario pack: target and confuser classes, minimum box and point extents, extent bins and floors, observer-platform strata | Freezing G0 labels or reporting a small-target extent envelope |
 | Annotation reviewers and disagreement authority | Freezing G0 labels; a small two-reviewer set is the G0 default |
+| Operator response delay and the actions an operator may take | An operator-session result beyond the engineering default |
+| Expert-labelled, visually identifiable material for each declared species or drone type, with an unknown-class set | Any autonomous target declaration claim |
+| Target set, unknown-class set, minimum identifiable extent, declaration deadline and burden | Any P2b recognition result |
+| Declared target size, stand-off levels, coverage floor and autonomy levels | A mission simulation result |
+| Platform energy budget with the origin of each figure | A budget fraction, or a policy or hardware-selection claim that cites the platform |
+| Non-disturbance envelope approved by a named responsible person for each living-subject pack | Any stand-off following evaluation of that pack |
 | Operator-relevant motion response window, onboard deadlines and stress workload | Locked motion evaluation or real-time claim |
 | Camera/lens modes and actual Raspberry Pi Zero/Rockchip revisions | Declaring those hardware profiles supported |
 | Versioned section 7.9 protocol, independent target/trajectory reference, optical/time calibration fixtures, instrument identities/checks, declared workload and uncertainty/decision margin | Opening a G1 hardware accuracy, latency, optical or sustained-performance claim |
@@ -2138,10 +2346,12 @@ The calibration suite fits only on the disjoint split and validates each claimed
 independent outcomes. Insufficient labels or calibration produces an explicit unavailable quantity
 and coverage, while deterministic association and tracking can still be evaluated.
 
-Boundary: the mesh is a reference baseline and not an accuracy ceiling. Resource-aware policy,
-recognition, stereo range and learned fusion stay in [section 12](#12-unscheduled-design-candidates).
-It makes
-no field-range claim and has no actuation path.
+Boundary: the mesh is a reference baseline and not an accuracy ceiling. The acquisition policy of
+[section 7.7](#77-resource-aware-acquisition-and-processing-policy) and the fine-grained
+recognition of [section 19.3](#193-autonomous-target-recognition) are separate Phase 2
+capabilities that start from the mesh's evidence. Stereo range and learned fusion stay in
+[section 12](#12-unscheduled-design-candidates). It makes no field-range claim and has no
+actuation path.
 
 Evaluation: the G2 rows of the [acceptance matrix](#13-acceptance-and-negative-result-matrix) for
 the four boundaries. A valid negative result is a sensor that adds no measured evidence. That finding
@@ -2172,13 +2382,14 @@ set, for example drone, bird, person, vehicle, animal and clutter, fused from cu
 at the section 6.6 boundaries: motion-model mode-probability history and speed profile from the
 tracker stage, a micro-Doppler signature where an installed radar source resolves one, and a
 camera-crop classifier run only on confirmed-track regions of interest. Track existence and class
-probability stay distinct quantities under section 6.5; neither alone raises an alarm, and a confirmed
-track with low class confidence remains a confirmed track. Only an installed, available cue
-contributes: an uninstalled or infeasible source yields no class evidence from that cue, not a default
-class, and a camera crop with no usable pixels yields an explicit abstention rather than a confident
-guess. Calibration fits each cue and the fused posterior on a disjoint split against independent class
-labels; a species- or subtype-level claim needs expert-labelled, visually identifiable material, per
-[section 6.4](#64-later-metric-suites).
+probability stay distinct quantities under section 6.5; neither alone raises an alarm, and a
+confirmed track with low class confidence remains a confirmed track. Only an installed, available
+cue contributes: an uninstalled or infeasible source yields no class evidence from that cue, not a
+default class, and a camera crop with no usable pixels yields an explicit abstention rather than a
+confident guess. Calibration fits each cue and the fused posterior on a disjoint split against
+independent class labels; a species- or subtype-level claim needs expert-labelled, visually
+identifiable material, per [section 6.4](#64-later-metric-suites), and belongs to [section
+19.3](#193-autonomous-target-recognition).
 
 Boundary: classification reads only the confirmed-track state and the typed observations already
 permitted at its declared evaluation boundary; it adds no new sensor access, raw-pixel reach or
@@ -2243,6 +2454,54 @@ plain-PN baseline, on identical bundles, reports `improved_on_development_corpus
 [section 6.3](#63-comparisons-and-decision-status). A valid negative result is a law variant that does
 not improve pointing coverage over the fixed-stare null, or a feedforward term that shows no measured
 benefit at the declared latency.
+
+### 16.9 Operator session evaluation
+
+`operator-session-evaluation` measures how much a human operator must do to keep a module on its
+target, which is the Phase 1 form of autonomy. A motion suite counts proposals and a tracking
+suite scores one seed. Neither shows a module that loses its target silently, asks for help it did
+not need, or needs a new selection every few seconds.
+
+A **session** is an episode with two more event families. A module may emit an `OperatorPrompt`:
+`REQUEST_SELECTION` when it has lost the target, `CONFIRM_TARGET` when it holds a candidate it
+will not track unconfirmed, or `ALERT` for a proposal it ranks worth attention. The runner, never
+the module, answers with an `OperatorAction` from a frozen **operator script**: `SELECT`,
+`CORRECT`, `REJECT` or `RELEASE`. The script is a deterministic stand-in for a careful operator.
+It answers a prompt, or a sustained failure it is declared to notice, after a declared response
+delay. The action names the frame the operator saw, which is the frame of its cause, and carries
+the reviewed target geometry of that frame perturbed by the declared seed-quality category. It is
+released one response delay later, so a module receives a selection that is already old, as it
+would over a radio link, and must bring it forward itself. The script rejects a candidate that is
+not the selected instance. The script, its delay and
+its perturbation seed are part of the scenario and its cohort, so two modules face one operator.
+An action is released only after the event that caused it, and the recorded operator seed of
+[section 4.2](#42-annotation-contract) stays the first selection. A session with no recognizer
+runs at autonomy level `A0_OPERATOR_SEEDED` of
+[section 19.2](#192-autonomy-chain-and-autonomy-levels), and the same script serves levels A1 and
+A2.
+
+The suite `operator-v1-dev` reports, per encounter and with denominators:
+
+- **Assisted and unassisted lock coverage**, `C_j` of
+  [section 6.1](#61-operator-selected-tracking-sot-v2-dev) with the script enabled and disabled on
+  identical frames. A reselection counts as a loss at its time in both.
+- **Interventions per tracked minute**, by action type.
+- **Hand-back delay**, from the first miss of a sustained failure to the module's
+  `REQUEST_SELECTION`.
+- **Silent failures**, sustained failures with no prompt before the script's own notice delay,
+  with their exposure. This is the failure an operator cannot recover from.
+- **Unwarranted prompts** per minute: requests and confirmations issued while the frozen labels
+  show a held lock, and alerts on confirmed target-absent sequences.
+
+Boundary: the script is not a human-factors study. It models no attention, fatigue, display or
+control latency, and its delay is an engineering default until the owner declares one. No operator
+console is built here; the local report shows the session timeline. A prompt never changes what is
+scorable: a frame on which a module asked for help stays in every denominator.
+
+Evaluation: hand-audited fixtures for a recovered loss, a wrong-target confirmation, a silent
+failure and an unwarranted request reproduce every count, and a causal test shows that no action
+precedes its cause. Valid negative results are assistance that raises no coverage, and a module
+that emits no prompt, which is scored as before with its silent failures shown.
 
 ## 17. Data contracts and schema evolution
 
@@ -2593,6 +2852,369 @@ overflow, disconnect and recovery with exact loss accounting. Claiming a real fo
 real logs from named firmware. A format no reader can decode without an undisclosed key, or a source
 that exposes nothing to an unprivileged process, is a valid negative result.
 
+## 19. Phase 2: autonomous operation
+
+Phase 2 replaces the operator one decision at a time and prices each replacement in joules. This
+section is normative for it. It claims nothing that a Phase 1 result does not support, so every
+Phase 2 capability names the evidence it starts from, and a capability whose evidence is missing
+still runs on fixtures and makes no claim.
+
+### 19.1 Entry conditions, gates and milestones
+
+| Phase 2 work | Starts from | Without it |
+| --- | --- | --- |
+| Fixtures of every Phase 2 suite and simulator | M1 contracts, evaluator and scenario pack | Cannot start |
+| A recognition result on real material | Frozen mesh tracks, expert labels and the extent envelope of the same corpus | Fixtures only; no recognition claim |
+| Energy of a compute variant | The selected host and its calibrated meter boundary | Quality and timing only; energy `NOT_MEASURABLE` |
+| An energy saving of an acquisition policy | The installed-system boundary and measured sensor power modes | Quality and process latency only |
+| Following on the mission pack | An approved non-disturbance envelope and a declared platform energy budget | A fixture envelope only |
+| A mission simulation on measured evidence | The extent envelope, recognition by extent bin, power modes and energy per decision | Declared tables labelled `assumed`; a design comparison only |
+
+The Phase 2 gates are subsets of G2 and G3 in [section 3](#3-scope-and-delivery-gates), as
+milestones are subsets of gates:
+
+| Gate | Required outcome | Explicit boundary |
+| --- | --- | --- |
+| **P2a -- fixture validity** | Every Phase 2 suite and simulator reproduces its hand-audited fixtures; causal, conformance and import-boundary tests pass | Contracts and arithmetic only; no recognition, energy, following or mission claim |
+| **P2b -- development evidence** | Recognition by extent bin against the coarse posterior on expert labels; compute variants with measured energy per decision; policy comparators on recorded mesh encounters, with measured power modes for any saving; paired statuses per section 6.3 | A development corpus and one bench under the G2 rules; no held-out, range or field claim |
+| **P2c -- mission simulation** | The autonomy chain runs in `CLOSED_LOOP_SIM` on the mission pack under an approved envelope and a declared budget; outcomes, interventions avoided, violations and energy are reported per autonomy level and stand-off | Model-bounded under the G3 rules: a target that does not react, a kinematic observer and surrogate perception; no disturbance, range or flight claim |
+
+M7 is autonomous recognition inside an energy budget: target recognition, compute variants and the
+acquisition policy, through P2a and P2b. M8 is stand-off following, through P2a and its part of
+P2c. M9 is the autonomous mission evaluation that joins them, through P2c.
+
+### 19.2 Autonomy chain and autonomy levels
+
+Autonomy is a chain of decisions, each of which an operator takes in Phase 1:
+
+| Stage | Decision the system takes | Event | Phase 1 counterpart | Scored in |
+| --- | --- | --- | --- | --- |
+| Acquire | A candidate becomes a confirmed track with no seed | `TrackState` | Operator `SELECT` | The mesh tracker and MOT suites, at a fixed false-track burden |
+| Recognize | The track is declared a target, rejected or left undecided | `RecognitionResult` | Operator confirmation or `REJECT` | [Section 19.3](#193-autonomous-target-recognition) |
+| Spend | Which sensor, mode and model run next | `AcquisitionDecision` | Everything on | [Section 19.5](#195-energy-budgeted-acquisition) |
+| Follow | Where the observer moves | `FollowingCommand` | The path the operator flew | [Section 19.6](#196-stand-off-following-evaluation) |
+| Hand back | The system asks for help or stops | `OperatorPrompt`, `ABORT` | The same | [Section 16.9](#169-operator-session-evaluation) |
+
+A scenario declares one **autonomy level**, which is part of its cohort:
+
+- `A0_OPERATOR_SEEDED`: the operator selects the target. Every Phase 1 tracking result is at this
+  level.
+- `A1_OPERATOR_CONFIRMED`: the system acquires and proposes with `CONFIRM_TARGET`, and the
+  scripted operator of section 16.9 confirms or rejects each proposal.
+- `A2_OPERATOR_VETO`: the system declares and acts, and the scripted operator may reject within a
+  declared veto window.
+- `A3_AUTONOMOUS`: no operator action is released. Prompts are recorded and stay unanswered.
+
+Full autonomy is `A3_AUTONOMOUS`. A result at one level supports no claim at a higher one. The
+informative comparison is one module at A1 and at A3 on identical encounters: the interventions
+that A3 avoided, beside the false declarations the operator would have rejected and the targets
+the system let go. At every level a prompt changes no denominator, and a sustained failure with
+no prompt remains a silent failure.
+
+### 19.3 Autonomous target recognition
+
+`target-recognition` is the Phase 2 replacement for the operator's confirmation. The system itself
+declares that a confirmed track belongs to a **declared target set**, such as one owl species or one
+class of drone, or that it does not, or that it cannot tell. It builds on the coarse class posterior
+of [section 16.7](#167-track-level-classification) and adds the fine-grained classes that section
+leaves out.
+
+The scenario pack declares, before any recognizer runs:
+
+| Declaration | Meaning |
+| --- | --- |
+| `target_set` | The fine-grained class IDs a declaration may name |
+| `known_non_targets` | Labelled look-alike classes a recognizer may be fitted on |
+| `unknown_set` | Encounters of classes outside the pack's fine-grained list, never used for fitting or for choosing a threshold |
+| `min_identifiable_extent` | Per class, the extent below which expert reviewers could not identify it |
+| `identifiable_duration` | How long an instance must stay at that extent to be eligible; engineering default 1.0 s |
+| `declaration_deadline` | Time after eligibility by which a declaration is useful; engineering default 10 s |
+| `declaration_burden` | Permitted false declarations per hour of scored exposure; engineering default 1 |
+
+A `RecognitionResult` belongs to one track at one epoch. It carries the track ID, a posterior over
+the fine-grained classes with an explicit `unknown` mass, a decision of `DECLARED`, `REJECTED` or
+`ABSTAIN`, the class a declaration names, the threshold revision, the source observation IDs and
+cues used, the target extent at the decision, the compute variant, and for an abstention one
+reason of `too_small`, `low_quality`, `insufficient_evidence`, `out_of_set` or `budget`. The first
+`DECLARED` or `REJECTED` of a track is its declaration. A later result that reverses it is kept
+and counted as instability, and does not replace it. The recognizer reads only the confirmed track
+and the observations its evaluation boundary permits.
+
+The scoring unit is the expert-labelled **instance**, not the module's track, so a target the
+system never tracked is still a miss:
+
+- An instance is **eligible** when it belongs to the target set and stays at or above its minimum
+  identifiable extent for the identifiable duration. Exposure below that extent is reported as
+  not identifiable and enters no recall denominator.
+- **Declaration recall** is the eligible instances with a correct declaration inside the
+  deadline, over all eligible instances. A track is matched to an instance by the identity rule
+  of the tracker suite at its boundary.
+- A **false declaration** is a `DECLARED` on a track matched to a non-target, to an unknown-set
+  instance or to nothing, or one that names the wrong target class. The **burden** is false
+  declarations per hour of scored exposure.
+- The **operating point** is the threshold at which the burden on development encounters meets
+  the declared burden. It is frozen before any calibration or evaluation encounter is scored.
+  Exposure shorter than three times the reciprocal of the declared burden cannot resolve it. The
+  result then states the observed count and exposure and names no operating point.
+- **Time to declaration** runs from the instance's first eligible frame, so slow acquisition is
+  not hidden, and is also shown from track confirmation.
+- **Open-set behavior** is the fraction of unknown-set instances declared as a target, with its
+  count. **Abstention** is shown as a risk-coverage curve, **calibration** as reliability and a
+  proper score on the disjoint calibration split, and **instability** as reversals per declared
+  track.
+
+Recall is reported with a 95% encounter-cluster interval and by [extent
+bin](#67-small-target-extent-envelope). A class with fewer than 10 independent encounter groups of
+eligible instances reports `insufficient_data`. The energy of the recognition stage is reported per
+decision under [section 19.4](#194-compute-variants-and-energy-per-decision), so a recognizer that
+needs a narrow camera or a large model shows that cost. The defaults above are engineering values
+for development, and the owner sets them before P2b.
+
+Boundary: species and drone-type truth comes only from expert-labelled, visually identifiable
+material. An upstream folder name or a model's prediction is not a label. Recognition names a class.
+It infers no behavior, intent or individual animal, it triggers no action, and the [measurement-only
+scope](#measurement-only-scope) applies unchanged. Fitting or adapting a model uses development
+encounters only.
+
+Evaluation: the G2 recognition/state and Phase 2 target declaration rows of the [acceptance
+matrix](#13-acceptance-and-negative-result-matrix). Valid negative results are a target set that
+cannot be identified at the extents the corpus holds, a recognizer no better than the coarse
+posterior, and too few expert labels, which leaves the claim closed.
+
+### 19.4 Compute variants and energy per decision
+
+`tensor-compute-backends` measures what a decision costs on each way of computing it. The recognizer
+and any learned detector dominate onboard computing, and one model may run on the CPU, on a GPU or
+NPU, or on an analog or in-sensor stage. [Section
+7.3](#73-tensor-graphs-and-heterogeneous-compute-backends) states the provenance and fallback rules.
+This section schedules them and defines the measures.
+
+A **compute variant** is one model or kernel, precision, backend, device and operator partition,
+recorded in a compute manifest. Before a run, the capability probe of [section
+7.1](#71-probe-and-adaptive-launch) compiles and executes a representative graph and answers
+`SUPPORTED`, `UNSUPPORTED` or `MEASURE_REQUIRED` with the partition it observed. Each supported
+variant then runs one frozen workload in a paced run on the selected host:
+
+- **Task quality**: the primary measure of the suite that owns the workload, with the paired
+  encounter-level difference against the pinned CPU reference execution. `quality_equivalent`
+  needs the predeclared non-inferiority margin of section 7.2. Without it the variant is a
+  separately scored quality-cost point.
+- **Timing**: p50, p95, p99 and maximum latency per decision, deadline misses against the fixed
+  schedule, and cold-start time to the first result.
+- **Energy per decision**: `E_[a,b]` of section 7.9.4 over the marked interval, divided by the
+  **scheduled** decisions of that interval, at the host boundary, and at the accelerator supply
+  where that is separately measurable. Cold-start energy and warmed steady energy are separate.
+- **Installed idle power**: what the variant's device draws while installed and unused, from a
+  marked idle interval. An accelerator that saves joules per decision can still cost more over a
+  mission, so the platform budget of [section 7.10](#710-platform-energy-budget) takes both figures.
+
+An undeclared fallback follows section 7.3. A variant with opaque internals is scored and metered
+like any other, and withholds only the claims section 7.3 names.
+
+Boundary: no runtime, device or accelerator is required. A comparison holds the host, workload,
+schedule and meter boundary fixed, and results on another host are stratified. A timing of one
+operator or kernel is a diagnostic and never the result.
+
+Evaluation: the G1 tensor backend and Phase 2 compute variant rows of the [acceptance
+matrix](#13-acceptance-and-negative-result-matrix). Valid negative results are no supported
+accelerated variant on the selected host, a faster variant that is not `quality_equivalent`, and a
+variant whose energy per decision falls while its mission energy rises.
+
+### 19.5 Energy-budgeted acquisition
+
+`resource-aware-sensing` chooses what to sense and compute at each epoch inside the [platform energy
+budget](#710-platform-energy-budget). [Section
+7.7](#77-resource-aware-acquisition-and-processing-policy) states the policy rules. This section
+fixes what the reference mesh evaluates.
+
+The scenario declares the **action space** before the run, over installed components only:
+
+| Dimension | Values |
+| --- | --- |
+| Each installed sensor | `active`, `standby` or `off`, from its measured mode profile |
+| Each camera | Full or a declared reduced rate; full frame or a declared region |
+| Recognizer | Run or skip this epoch; which declared compute variant |
+| Tracker | Measurement update, or prediction only |
+
+One `AcquisitionDecision` per fusion epoch names one value per dimension. A sensor that leaves
+`standby` or `off` delivers nothing until its measured wake latency has passed, and is charged
+its measured wake energy. A decision that asks for data sooner receives a missing observation,
+which stays in the denominator.
+
+Energy evidence has three tiers, and every result names its tier:
+
+| Tier | How the energy is obtained | What it supports |
+| --- | --- | --- |
+| `not_measurable` | Replay that suppresses recorded streams | Quality and process latency of the choices only |
+| `profile_derived` | Replay priced with the measured power of each mode, wake energy and energy per decision | A design comparison against the budget; no saving claim |
+| `measured` | A live paired trial at one installed-system boundary with real mode switching | An energy saving claim |
+
+Every policy reports lock coverage and declaration recall at the fixed burden, deadline misses,
+energy per scheduled epoch at its tier, the budget fraction, and each peak and rolling-window
+violation. A policy **saves energy at matched quality** only when, on `measured` trials, the
+paired quality difference against the always-on configuration has a lower interval bound above
+the negative of a predeclared margin, and the whole paired energy interval lies below zero by
+more than the meter uncertainty. Any other outcome is `inconclusive` or `no_saving`. The mandatory
+comparators and the labelled oracle diagnostic are those of section 7.7.
+
+Boundary: actions exist only for installed components with a measured mode profile, and a mode
+that cannot be switched is not an action. Replay cannot show a scene's response to an active
+sensor. A `profile_derived` figure is a model and never appears in a measured column.
+
+Evaluation: the G2 adaptive policy and energy row of the [acceptance
+matrix](#13-acceptance-and-negative-result-matrix). Valid negative results are an adaptive policy
+that does not beat the best fixed configuration at matched quality, wake costs that cancel a saving,
+and a budget that no configuration meets.
+
+### 19.6 Stand-off following evaluation
+
+`standoff-following-evaluation` covers the drone-control part of the reference implementation:
+keeping a moving target observable, possibly until it reaches its nest, from outside the distance
+at which the observer would disturb it. It is evaluated only in `CLOSED_LOOP_SIM`.
+
+The simulator works in a local level frame, in metres, with a fixed declared time step. It holds
+the true target trajectory, the observer's state and the estimate a tracker would hand the law.
+A law never reads the truth. It reads an **estimated** target position and velocity under a
+declared error model of range error as a fraction of range, bearing error and latency, with the
+platform state and the envelope. Every violation is scored on the true range. The observer is
+kinematic, with declared speed, acceleration and turn limits, a sensor field of regard and a
+useful range taken from measured mesh evidence where it exists. Target trajectories are reviewed
+tracks or declared synthetic motion, and the target does not react.
+
+The [non-disturbance envelope](#11-scenario-safety-privacy-and-data-governance) supplies `d_min`,
+the minimum stand-off as slant range; `d_alert`, inside which the observer may not close at all;
+`v_close_max`, the largest closing speed outside it; permitted approach sectors in bearing and
+elevation; exclusion zones, each a restricted centre with a radius and height; `t_follow_max`; and
+the end conditions.
+
+A law emits a `FollowingCommand`: a velocity and heading set-point for the **simulated**
+observer, or `HOLD`, `CLIMB_AWAY` or `ABORT`. The reference law is:
+
+1. **Set-point.** Hold the declared stand-off `d_s` on the declared bearing, where
+   `d_s >= d_min + m`. The margin `m = k * sigma_r(d_s) + v_T * tau` covers the declared range
+   error `sigma_r`, the fastest declared target speed `v_T` and the total latency `tau`. A
+   scenario with a smaller `d_s` is refused before the run.
+2. **Command.** `v_cmd = v_T_est + K * (p_set - p_obs)`, limited to the platform's declared
+   speed, acceleration and turn rate.
+3. **Closing clamp.** Remove the part of `v_cmd` that closes the estimated range faster than
+   `v_close_max`, and every closing part when the estimated range is inside `d_alert`.
+4. **Retreat.** When the estimated range is below `d_min + m`, move away along the line of sight,
+   or emit `CLIMB_AWAY` where a sector rule requires it.
+5. **Zones.** A set-point inside an exclusion zone, or a path through one, moves to the nearest
+   permitted point outside it.
+6. **Loss.** With no track update for `t_hold`, emit `HOLD`, and after `t_abort`, emit `ABORT`. No
+   command is ever aimed at a last known position.
+
+The required comparators are a stationary observer, and a pursuit law that flies to `d_min + m`
+with the same clamp and no velocity feedforward.
+
+Per encounter the suite reports:
+
+- **Observation coverage**: the fraction of target time, with the media-time weights of [section
+  6.1](#61-operator-selected-tracking-sot-v2-dev), in which the true range is within the sensor's
+  useful range and the target is inside its field of regard.
+- **Envelope violations**: time with the true range below `d_min`, time above the closing limit,
+  each exclusion-zone entry, and the minimum true range reached.
+- **Terminal observation**: whether the target's entry into a declared terminal zone was observed
+  from outside that zone's exclusion radius.
+- **Holds and aborts**, with their causes, and model-derived energy against the
+  [platform energy budget](#710-platform-energy-budget).
+- **Error tolerance**: over declared grades of range error and latency, the largest grade at
+  which no violation occurs.
+
+A violation is a hard failure of its encounter. Coverage is never traded against it, and a law
+with any violation cannot receive an improved status.
+
+Boundary: there is no flight-controller, autopilot or radio interface, and a module that carries one
+fails conformance. The simulated target does not react to the observer, so a result says nothing
+about disturbance: the envelope is counted against, never validated. The range a law reads is a
+declared model until [stereo range](#12-unscheduled-design-candidates) or another sensor measures
+it. No law closes inside the minimum stand-off by design, and a law whose objective is contact or
+capture is outside the [measurement-only scope](#measurement-only-scope). A real flight needs the
+approvals of [section 11](#11-scenario-safety-privacy-and-data-governance) and evidence this
+repository does not produce.
+
+Evaluation: the Phase 2 stand-off following row of the [acceptance
+matrix](#13-acceptance-and-negative-result-matrix), with a paired comparison against the stationary
+observer per [section 6.3](#63-comparisons-and-decision-status). Valid negative results are a law
+that observes no more than a stationary observer, an envelope no law can satisfy on the declared
+platform, and a trajectory that leaves simulator support, which is a failure or `ABORT`.
+
+### 19.7 Autonomous mission evaluation
+
+`autonomous-mission-evaluation` joins the chain. Each Phase 2 suite scores one decision on frozen
+input. None shows whether a system that acquires, recognizes, spends and follows by itself
+completes a mission, or what keeping its distance costs.
+
+A **mission episode** runs in `CLOSED_LOOP_SIM` on the mission pack. A target or a confuser flies
+a declared trajectory. The observer acquires it, declares or rejects it, follows a declared target
+at a stand-off, and observes it to a terminal zone or the end of the episode. No image is
+rendered. Perception is a **surrogate** drawn, with a recorded seed, from evidence tables:
+
+| Table | Indexed by | Measured source |
+| --- | --- | --- |
+| Acquisition probability and delay | Extent bin, sensor set | The extent envelope and mesh tracker results |
+| False tracks per hour | Sensor set | The same results |
+| Recognition outcome and delay | Extent bin, class, compute variant | Section 19.3 results |
+| Power per sensor mode, wake energy and latency | Sensor, mode | Measured sensor power modes |
+| Energy and latency per decision, idle power | Compute variant | Section 19.4 results |
+| Propulsion power | Flight state | The platform energy budget |
+
+Each table states its origin as `measured`, with the hash of the run it came from, `datasheet` or
+`assumed`. The simulator turns simulated range into extent with the camera's measured angular
+resolution and the pack's declared target size. That is a model input, and it restates no
+measured result in metres. Draws are independent between epochs unless a table supplies a
+measured dependence. The report says so, because independence flatters a system whose failures
+cluster.
+
+Every episode ends in exactly one outcome, taken in this order:
+
+1. `ENVELOPE_VIOLATION`: any violation of section 19.6.
+2. `FALSE_DECLARATION`: a confuser or an unknown was declared a target.
+3. `BUDGET_EXCEEDED`: payload energy passed its allowance, or a hard limit was broken.
+4. `LOST`: a correctly declared target was handed back or abandoned before the end condition.
+5. `MISSED`: a target was never acquired, or never declared inside the deadline.
+6. `SUCCESS`: a target was correctly declared and observed at or above the declared coverage
+   floor to the end condition, or a confuser was never declared.
+
+The suite reports outcome fractions with intervals clustered by trajectory at each declared
+autonomy level, with interventions per mission at A1 and A2. Its central result is the **stand-off
+trade-off**: the same episodes at each declared stand-off from `d_min + m` outward, showing
+declaration recall, time to declaration, energy per mission and the outcome fractions against
+distance. This is where the mission's two constraints meet. A larger stand-off protects the
+subject and leaves fewer pixels, which costs recognition, or the joules of a narrower camera and
+a larger model.
+
+Boundary: the result is model-bounded. It carries no field, range or disturbance claim, and any
+`assumed` or `datasheet` table marks it `design_only`. It does not replace a suite: a surrogate
+table is only as good as the fixed-input result it came from.
+
+Evaluation: the Phase 2 autonomous mission row of the [acceptance
+matrix](#13-acceptance-and-negative-result-matrix). Valid negative results are that no permitted
+stand-off leaves an identifiable extent with the installed optics, which returns to hardware
+selection; a budget that no policy meets; and autonomy at A3 that loses more targets than the
+interventions it saves.
+
+### 19.8 Phase 2 exit
+
+Phase 2 closes when each of these exists as retained evidence or as a stated valid negative
+result:
+
+1. P2a for every Phase 2 suite and simulator.
+2. A recognition result by extent bin for the declared target set against the coarse posterior,
+   with its open-set behavior.
+3. Energy per decision and installed idle power for the CPU reference and each supported compute
+   variant on the selected host.
+4. The policy comparators on recorded mesh encounters, each at its stated energy tier.
+5. Following results on the mission pack under an approved envelope, with the error tolerance.
+6. A mission result at `A1_OPERATOR_CONFIRMED` and `A3_AUTONOMOUS` with the stand-off trade-off,
+   marked `design_only` where a table is not measured.
+
+Outside Phase 2 are any flight, any claim that a subject was not disturbed, a held-out claim
+without the locked-test policy of [section 15](#15-owner-inputs-and-change-control), behavior of a
+species, and identity of an individual animal. The candidates that would extend it are in
+[section 12](#12-unscheduled-design-candidates).
+
 ## Repository foundation
 
 The repository carries the product through one traceable chain:
@@ -2664,6 +3286,10 @@ Each scheduled software or hardware-support capability appears once. `planned` r
 Unscheduled design candidates remain in section 12 until their evaluation and work are scheduled.
 
 Row order prioritizes required core software and hardware evidence before optional extensions.
+The M1 offline pipeline and the operator session precede further corpus formation, because G0a
+needs two encounters and no score exists until the pipeline does. The Phase 2 capabilities follow
+the reference mesh they start from, in the order of the autonomy chain, and precede the optional
+extensions.
 Both plan lanes follow this order. Tasks within a capability can span milestones; explicit
 dependencies handle cross-lane handoffs, such as characterization before final hardware selection.
 Group order alone never establishes readiness.
@@ -2672,33 +3298,39 @@ Group order alone never establishes readiness.
 | --- | --- | --- | --- | --- |
 | 1 | `reproducible-environment` | shipped | A fresh locked environment reaches the complete CI gate without manual repair | [Developer tooling](../impl/current/developer-tooling.md) |
 | 2 | `project-identity` | shipped | Import, CLI, and distribution-build tests agree on the project identity | [Product core](../impl/current/product-core.md) |
-| 3 | `corpus-provenance` | planned | Import/hash/canonical-decode, staged frame bundles, a kept source reuses a linked version's frames by hard link, synchronized multi-stream grouping, generated cases, version lineage, duplicate-frame and source-term refusals and scenario-rights/split fixtures; malformed source yields structured failure; a likely re-encode across groups, including one outside the declared chain on the same data root, is reported and not refused; `data clean` removes only named reproducible kinds, never a sealed record, and released frames stage again to the same frame set | - |
-| 4 | `self-supervised-corpus` | planned | Pinned sibling integrations and deterministic fixtures preserve authorized provenance and split isolation; reviewed audit samples compare recall, candidate yield, diversity and cost against a declared baseline, or report a valid negative | - |
-| 5 | `data-contracts` | shipped | Every shipped record and declaration conforms unchanged to its frozen contract; every section 17.3 change classifies as declared, with an independent checker agreeing on structure; real records of every historic major read under their disposition with no byte or hash moved; a consumer with only the contracts validates a record; optional descriptors validate and leak nothing | [Contracts](../impl/current/contracts.md) |
-| 6 | `annotation-selection` | planned | Two-reviewer G0 labels, stable class/instance IDs, frozen mask and identical seed replay | - |
-| 7 | `module-contract-runner` | planned | Oracle, null, dropper, crash, schema and class-identity fixtures pass with exact frame accounting | - |
-| 8 | `motion-sot-evaluation` | planned | Hand-computed fixture metrics, denominators and time weights match evaluator output | - |
-| 9 | `reference-tracker` | planned | Deterministic seeded SOT and proposal front end pass continuity, lost/re-entry, identity and deadline fixtures; optional load setting preserves lockstep outputs | - |
-| 10 | `comparison-report` | planned | Compatible-cohort report exposes errors; incompatible runs are refused with reason | - |
-| 11 | `hardware-probe-adaptive-launch` | planned | Recorded and live host probes report CPU, memory, storage, scheduler, frequency and throttle evidence, and select a supported profile, `UNSUPPORTED` or `MEASURE_REQUIRED` | - |
-| 12 | `controlled-bench-timing-energy` | planned | section 7.9 versioned trials retain instrument/calibration and raw-trace hashes and compute timing, resource, thermal and energy estimates with uncertainty and explicit validity | - |
-| 13 | `hardware-selection` | planned | Fixture configurations against a stated budget; only measured configurations are chosen; a selection record states rejected and unmeasured options; none qualifying is stated | - |
-| 14 | `sensor-joint-mode-probe` | planned | Every installed sensor's modes and simultaneous joint modes are probed under sustained load and yield a supported profile or explicit fallback | - |
-| 15 | `camera-bench-characterization` | planned | Independent stimulus, capture, optics and vibration trials retain raw evidence and report estimates with uncertainty and explicit validity | - |
-| 16 | `sensor-adapter-frontends` | planned | Typed observations, mixed-modality bundles and four scenario boundaries pass conformance; fake-driver capture covers skew, overflow, outage and recovery before live acceptance | - |
-| 17 | `fusion-analysis` | planned | Fixed hashed observation bundles isolate event-time association, deduplication, calibrated existence/class evidence, abstention and degraded-source behavior | - |
-| 18 | `fixed-input-tracker-evaluation` | planned | Fixed hashed observations and schedule isolate SOT/MOT identity, re-entry, prediction, confidence and tracker-stage cost | - |
-| 19 | `multi-source-reference-tracker` | planned | The staged reference tracker consumes frozen observation bundles and passes hand-audited provenance, identity and deadline fixtures | - |
-| 20 | `track-classification` | planned | Known-class, unknown-subtype, too-small-object and confident-wrong-class fixtures pass with coverage and class-probability calibration; an uninstalled or uncalibrated cue abstains rather than inventing a class | - |
-| 21 | `pointing-guidance-evaluation` | planned | Hand-audited cruise, sudden-turn, near-stationary and induced-loss fixtures reproduce expected pointing coverage, angular error and reacquisition delay; a law never emits a vehicle or effector command | - |
-| 22 | `g2-sensor-set-evaluation` | planned | Feasible single, paired, all-installed and leave-one-out sets run through one frozen reference fusion rule; achieved quality and oracle observability ceiling remain distinct | - |
-| 23 | `installed-system-evaluation` | planned | Same-trial raw-to-output quality, timing and installed-boundary energy retain validity; four local report panels distinguish component from whole-system results | - |
-| 24 | `mot-trackeval` | planned | Byte-exact per-class export fixtures, pinned environment and hand-audited MOT results | - |
-| 25 | `paced-thermal-trial` | planned | Hand-audited cool, hot and capped fixtures on identical frames, then a live baseline run; a hot run with no throttling is `not_tested`, and a failed bet is published | - |
-| 26 | `benchmark-ranking` | planned | Optional matched-cohort fixtures yield rank, tier, inconclusive or refusal; scores recompute exactly; below the minimum every row stays unranked | - |
-| 27 | `device-bench-evaluation` | planned | Optional same-stimulus fixtures validate unranked cross-host cases; incompatible references are refused and missing device output is UNSUPPORTED | - |
-| 28 | `telemetry-ingest` | planned | Optional readers match an independent reader on generated logs; bundles hash identically across hosts; drift, loss and truncation are reported and never filled; a declared layout needs no new code; live fixtures account for all loss | - |
-| 29 | `documentation-integrity` | shipped | Link, registry-plan, task-lane, metadata, ordering, and forward-language checks pass over fixtures and the repository tree | [Governance](../impl/current/governance.md) |
+| 3 | `corpus-provenance` | planned | Import/hash/canonical-decode, staged frame bundles, a kept source reuses a linked version's frames by hard link, synchronized multi-stream grouping, generated cases, version lineage, duplicate-frame and source-term refusals and scenario-rights/split fixtures; malformed source yields structured failure; a likely re-encode across groups, including one outside the declared chain on the same data root, is reported and not refused; `data clean` removes only named reproducible kinds, never a sealed record, and released frames stage again to the same frame set; capture vocabularies are closed, and a scale-reduction case scales its labels with its pixels | - |
+| 4 | `data-contracts` | shipped | Every shipped record and declaration conforms unchanged to its frozen contract; every section 17.3 change classifies as declared, with an independent checker agreeing on structure; real records of every historic major read under their disposition with no byte or hash moved; a consumer with only the contracts validates a record; optional descriptors validate and leak nothing | [Contracts](../impl/current/contracts.md) |
+| 5 | `annotation-selection` | planned | A scenario pack validates and pins the class map; two-reviewer G0 labels, stable class/instance IDs, frozen mask and identical seed replay | - |
+| 6 | `module-contract-runner` | planned | Oracle, null, dropper, crash, schema and class-identity fixtures pass with exact frame accounting | - |
+| 7 | `motion-sot-evaluation` | planned | Hand-computed fixture metrics, denominators and time weights match evaluator output; extent-envelope bins and the smallest supported extent match hand-built encounters | - |
+| 8 | `reference-tracker` | planned | Deterministic seeded SOT and a proposal front end, without and with global-motion compensation, pass continuity, lost/re-entry, identity and deadline fixtures; optional load setting preserves lockstep outputs | - |
+| 9 | `comparison-report` | planned | Compatible-cohort report exposes errors; incompatible runs are refused with reason | - |
+| 10 | `operator-session-evaluation` | planned | Hand-audited recovered-loss, wrong-target, silent-failure and unwarranted-request fixtures reproduce assisted and unassisted coverage, interventions, hand-back delay and silent failures; no operator action precedes its cause | - |
+| 11 | `self-supervised-corpus` | planned | Pinned sibling integrations and deterministic fixtures preserve authorized provenance and split isolation; reviewed audit samples compare recall, candidate yield, diversity and cost against a declared baseline, or report a valid negative | - |
+| 12 | `hardware-probe-adaptive-launch` | planned | Recorded and live host probes report CPU, memory, storage, scheduler, frequency and throttle evidence, and select a supported profile, `UNSUPPORTED` or `MEASURE_REQUIRED` | - |
+| 13 | `controlled-bench-timing-energy` | planned | section 7.9 versioned trials retain instrument/calibration and raw-trace hashes and compute timing, resource, thermal and energy estimates with uncertainty and explicit validity | - |
+| 14 | `hardware-selection` | planned | Fixture configurations against a stated budget; only measured configurations are chosen; a selection record states rejected and unmeasured options; none qualifying is stated | - |
+| 15 | `sensor-joint-mode-probe` | planned | Every installed sensor's modes and simultaneous joint modes are probed under sustained load and yield a supported profile or explicit fallback | - |
+| 16 | `camera-bench-characterization` | planned | Independent stimulus, capture, optics and vibration trials retain raw evidence and report estimates with uncertainty and explicit validity | - |
+| 17 | `sensor-adapter-frontends` | planned | Typed observations, mixed-modality bundles and four scenario boundaries pass conformance; fake-driver capture covers skew, overflow, outage and recovery before live acceptance | - |
+| 18 | `fusion-analysis` | planned | Fixed hashed observation bundles isolate event-time association, deduplication, calibrated existence/class evidence, abstention and degraded-source behavior | - |
+| 19 | `fixed-input-tracker-evaluation` | planned | Fixed hashed observations and schedule isolate SOT/MOT identity, re-entry, prediction, confidence and tracker-stage cost | - |
+| 20 | `multi-source-reference-tracker` | planned | The staged reference tracker consumes frozen observation bundles and passes hand-audited provenance, identity and deadline fixtures | - |
+| 21 | `track-classification` | planned | Known-class, unknown-subtype, too-small-object and confident-wrong-class fixtures pass with coverage and class-probability calibration; an uninstalled or uncalibrated cue abstains rather than inventing a class | - |
+| 22 | `pointing-guidance-evaluation` | planned | Hand-audited cruise, sudden-turn, near-stationary and induced-loss fixtures reproduce expected pointing coverage, angular error and reacquisition delay; a law never emits a vehicle or effector command | - |
+| 23 | `g2-sensor-set-evaluation` | planned | Feasible single, paired, all-installed and leave-one-out sets run through one frozen reference fusion rule; achieved quality and oracle observability ceiling remain distinct | - |
+| 24 | `installed-system-evaluation` | planned | Same-trial raw-to-output quality, timing and installed-boundary energy retain validity; four local report panels distinguish component from whole-system results | - |
+| 25 | `mot-trackeval` | planned | Byte-exact per-class export fixtures, pinned environment and hand-audited MOT results | - |
+| 26 | `target-recognition` | planned | Known-target, look-alike, unknown-class, too-small and confident-wrong fixtures reproduce declaration recall over eligible instances at a fixed false-declaration burden, time to declaration, abstention and calibration; an unknown class is never forced into the target set | - |
+| 27 | `tensor-compute-backends` | planned | The pinned CPU reference and each supported variant run one frozen workload; partition and fallback fixtures follow section 7.3; quality difference, latency, energy per scheduled decision and installed idle power match hand-calculated traces; an unverified backend is never credited | - |
+| 28 | `resource-aware-sensing` | planned | Causal replay holds earlier decisions fixed when later data changes; always-on, fixed-rate, fixed-subset, random-skip and event-triggered comparators run at one fixed task denominator; budget fractions match hand calculation; every result names its energy tier, and a saving needs measured sensor power modes | - |
+| 29 | `standoff-following-evaluation` | planned | Simulated straight, turning, hovering and nest-return fixtures reproduce observation coverage, envelope violations on the true range, error tolerance and aborts; any violation blocks an improved status; no vehicle interface exists | - |
+| 30 | `autonomous-mission-evaluation` | planned | Evidence tables of probability 0 and 1 give hand-computed outcomes; fixed-seed episodes are byte-identical; outcome precedence, autonomy levels and the stand-off trade-off reproduce fixture results; an assumed table marks a result design-only | - |
+| 31 | `paced-thermal-trial` | planned | Hand-audited cool, hot and capped fixtures on identical frames, then a live baseline run; a hot run with no throttling is `not_tested`, and a failed bet is published | - |
+| 32 | `benchmark-ranking` | planned | Optional matched-cohort fixtures yield rank, tier, inconclusive or refusal; scores recompute exactly; below the minimum every row stays unranked | - |
+| 33 | `device-bench-evaluation` | planned | Optional same-stimulus fixtures validate unranked cross-host cases; incompatible references are refused and missing device output is UNSUPPORTED | - |
+| 34 | `telemetry-ingest` | planned | Optional readers match an independent reader on generated logs; bundles hash identically across hosts; drift, loss and truncation are reported and never filled; a declared layout needs no new code; live fixtures account for all loss | - |
+| 35 | `documentation-integrity` | shipped | Link, registry-plan, task-lane, metadata, ordering, and forward-language checks pass over fixtures and the repository tree | [Governance](../impl/current/governance.md) |
 
 Every task declares its outcome, scope, evidence, execution and acceptance. Only tested and
 documented implementation changes a capability to `shipped`. Optional branches cannot gate

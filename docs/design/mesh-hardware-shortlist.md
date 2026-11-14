@@ -10,16 +10,18 @@ through `ss-track hardware-select` against versioned Stand A/B/C requirements. F
 against vendor material on 2026-11-05 where a citation is given; unmarked figures are long-standing
 public specifications and must still be confirmed against the current datasheet before acquisition.
 
-This list responds to the sensor set proposed in `Adapting arXiv 2405.13542 tracking for area
-safety.pdf` (repository root): two or more visible/thermal cameras, a scanning or solid-state lidar,
-a synchronized microphone array, and an FMCW or Doppler radar, run on a Raspberry Pi 5 or Rockchip
-RK3588-class board. That source also proposes a four-model IMM-JIPDA tracker variant and a
-multi-cue track classifier -- see [spec section 16.7](spec.md#167-track-level-classification) and the
-`imm-motion-model-bank`, `jipda-track-existence`, `imm-jipda-mesh-variant` and `track-cue-fusion` plan
-tasks -- and a camera-pointing law. Its net-capture/interceptor application stays outside this
-project's [measurement-only scope](spec.md#measurement-only-scope); the sensor-pointing-only variant
-is scheduled as its own capability, with its own quality measurement, in
-[spec section 16.8](spec.md#168-guidance-pointing-law-and-quality-measurement) and the
+This list responds to the sensor set proposed in the working note `Adapting arXiv 2405.13542
+tracking for area safety.pdf`, which adapts [the mid-air interception
+paper](https://arxiv.org/abs/2405.13542) and is not kept in this repository: two or more
+visible/thermal cameras, a scanning or solid-state lidar, a synchronized microphone array, and an
+FMCW or Doppler radar, run on a Raspberry Pi 5 or Rockchip RK3588-class board. That source also
+proposes a four-model IMM-JIPDA tracker variant and a multi-cue track classifier -- see [spec
+section 16.7](spec.md#167-track-level-classification) and the `imm-motion-model-bank`,
+`jipda-track-existence`, `imm-jipda-mesh-variant` and `track-cue-fusion` plan tasks -- and a
+camera-pointing law. Its net-capture/interceptor application stays outside this project's
+[measurement-only scope](spec.md#measurement-only-scope); the sensor-pointing-only variant is
+scheduled as its own capability, with its own quality measurement, in [spec section
+16.8](spec.md#168-guidance-pointing-law-and-quality-measurement) and the
 `sensor-pointing-guidance-law` / `pointing-guidance-quality-suite` plan tasks.
 
 ## Stand A: compute host candidates
@@ -56,11 +58,11 @@ this list, decides between them.
 ### Microphone / acoustic array (`AIRBORNE_CANDIDATE` only with calibrated geometry)
 
 Verified against the vendor's own microphone-specific selection guide,
-`infineon-xensiv-mems-microphones-productselectionguide-en.pdf` (repository root, "XENSIV MEMS
-microphones," version V1.0_EN, dated 05/2026) -- this replaces the earlier press-release-sourced
-figures in this document with the exact product-table values. SNR and AOP (1%/10% THD) are both
-dB(A)/dBSPL unless noted; all digital parts share a PDM interface and bit clock, the property a
-TDOA/beamforming array needs for sample-level synchronization "for free."
+`infineon-xensiv-mems-microphones-productselectionguide-en.pdf` (not kept in this repository,
+"XENSIV MEMS microphones," version V1.0_EN, dated 05/2026) -- this replaces the earlier
+press-release-sourced figures in this document with the exact product-table values. SNR and AOP
+(1%/10% THD) are both dB(A)/dBSPL unless noted; all digital parts share a PDM interface and bit
+clock, the property a TDOA/beamforming array needs for sample-level synchronization "for free."
 
 | Candidate | Qualification | SNR | AOP (1%/10% THD) | Current | Package (mm) | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -86,9 +88,9 @@ qualification's cost and lower SNR are not needed.
 ### Radar (`AIRBORNE_CANDIDATE`, RF scatter)
 
 Verified against the vendor's own radar-specific selection guide,
-`infineon-xensiv-radar-sensors-productselectionguide-en.pdf` (repository root, "XENSIV radar
-sensors," version V1.0_EN, dated 05/2026) -- this corrects and replaces the earlier, search-sourced
-radar entries in this document.
+`infineon-xensiv-radar-sensors-productselectionguide-en.pdf` (not kept in this repository, "XENSIV
+radar sensors," version V1.0_EN, dated 05/2026) -- this corrects and replaces the earlier,
+search-sourced radar entries in this document.
 
 | Candidate | Band / mode | Verified facts | Guide page |
 | --- | --- | --- | --- |
@@ -124,10 +126,10 @@ a measured claim for this project's small-airborne-target scenario.
   claim. The radar and microphone tables are now both read directly from the vendor's own
   family-specific selection guides, with page citations, superseding the earlier search-sourced
   figures; the general `infineon-xensiv-sensor-solutions-product-selection-guide-en.pdf` (120 pages,
-  repository root) was also read and its radar and MEMS-microphone sections (pages 85-100 and 77-84)
-  confirmed as the same content as the two dedicated guides, so no further sensor family in that
-  broader catalog (current, position, pressure, gas sensors) adds a candidate for this project's camera
-  / lidar / microphone / radar / compute-host shortlist.
+  not kept in this repository) was also read and its radar and MEMS-microphone sections (pages
+  85-100 and 77-84) confirmed as the same content as the two dedicated guides, so no further sensor
+  family in that broader catalog (current, position, pressure, gas sensors) adds a candidate for
+  this project's camera / lidar / microphone / radar / compute-host shortlist.
 - Thermal imaging, event cameras and contact/vibration sensors from the spec section 7.6 registry are
   not shortlisted here because the source document did not propose them; they remain candidates under
   the existing registry if a later gap calls for them.

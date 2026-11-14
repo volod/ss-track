@@ -81,12 +81,23 @@ execution graph; independent fixture work can start before a human gate has supp
 | M4: optional thermal experiment and ranking | M1 comparison, M2 host and instruments, reviewed development corpus | Thermal mechanism assessed including negative outcomes; frozen comparison protocol, local snapshot and independent recompute/re-run evidence; no rank if requirements fail |
 | M5: optional device cases | M2 measurement and M3 installed-system software; accessible devices | Same-stimulus unranked cases or explicit unavailable/unsupported results |
 | M6: optional telemetry analysis | M1 contracts; generated logs, then any authorized real logs | Readers match an independent reader, loss and drift are reported, and real-format coverage is stated or explicitly absent |
+| M7: autonomous recognition inside an energy budget | M3 tracks, observations and installed-boundary energy; expert-labelled target material; a declared platform energy budget | The recognition suite and reference recognizer report declaration quality by extent bin, each supported compute variant has energy per decision and idle power beside the CPU reference, the policy comparators run at one fixed task denominator, and each energy claim names its tier and rests on measured sensor power modes or stays closed |
+| M8: stand-off following in simulation | M1 evaluator and scenario pack; an approved non-disturbance envelope for the mission pack | The following laws report observation coverage, envelope violations on the true range, error tolerance and aborts against a stationary observer, with no vehicle interface and no disturbance claim |
+| M9: autonomous mission evaluation | M7 and M8 results as evidence tables; a declared target size, stand-off levels and autonomy levels | `autonomous-mission-run` reports outcome fractions at the operator-confirmed and autonomous levels and the stand-off trade-off, marked design-only where a table is not measured; an infeasible mission is a stated result |
+
+M1 to M3 deliver [Phase 1 of the mission](spec.md#mission-and-phases), and M7 to M9 deliver
+Phase 2 under the gates of [spec section 19.1](spec.md#191-entry-conditions-gates-and-milestones).
+The numbers are stable identifiers, not an order: M7 to M9 follow M3 and wait for none of M4, M5
+or M6. [Phase exits](spec.md#phase-exits) state the evidence that closes each phase. M1 also
+carries the scenario pack, the small-target extent envelope and the shared evidence primitives
+that later areas reuse, and M2 carries the operator session.
 
 M3 does not depend on M4, M5 or M6. A documented negative result closes an experiment's evaluation,
 but unavailable hardware does not mean the mesh implementation shipped. Keep the corresponding
 implementation task open until its software acceptance gates pass. A reduced sensor set needs a new
 selection/configuration revision. Sections 3 and 13 of the spec define broader G1/G2 claims; these
-milestones do not silently claim optional recognition, resource policy, stereo or field behavior.
+milestones do not silently claim stereo range or field behavior, and recognition, compute variants
+and the resource policy are claimed only through M7.
 
 ## Hardware handoff
 
