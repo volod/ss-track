@@ -35,31 +35,6 @@ hardware or private data.
 
 ### Corpus provenance -- `corpus-provenance`
 
-#### source-capture-inspection
-
-Historical capture descriptions need to remain visible when a newer source contract refuses them
-as evidence. No operator-facing command currently exposes their original values and disposition.
-
-- Serves: `corpus-provenance` -- [Capture compatibility](../design/spec.md#capture-vocabulary-and-historical-source-records)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: Source inspection shows the stated capture fields, original major and seal,
-  and evidence disposition, including a historical numeric or null control description.
-- Scope boundary: Read-only inspection by source identity and optional retained-record seal.
-  Missing platform is reported as unknown separately from the original fields. No classification,
-  evidence promotion, media decoding or source mutation.
-- Data and artifact paths: `src/ss_track/commands/corpus.py`, `src/ss_track/corpus/sources/`,
-  `tests/corpus/`, retained source records under `$DATA_DIR/import/<source-sha256>/`.
-- Execution path: Add `ss-track corpus inspect-source --source-sha256 HASH` with optional
-  `--manifest-sha256 HASH`, using `read_stated` and existing source path validation. Keep domain
-  logic outside the handler and state the command-result interface in its contract.
-- Acceptance gates: Real retained records and text/numeric/null fixtures report exact original
-  values. Missing records, bad identifiers, tampered seals and wrong kinds refuse. Inspection
-  works without source media, writes nothing and preserves bytes and seals. Frozen contracts and
-  `make ci` pass.
-- Documentation target: [Corpus](current/corpus.md).
-
 #### recording-capture-vocabulary
 
 Recording declarations accept arbitrary control descriptions and lack observer platform. Closing
@@ -68,7 +43,7 @@ these vocabularies without an explicit successor path would strand retained sour
 - Serves: `corpus-provenance` -- [Capture compatibility](../design/spec.md#capture-vocabulary-and-historical-source-records)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: source-capture-inspection.
+- Dependencies: none.
 - User-visible outcome: New sources declare closed capture values; an operator can migrate an old
   source explicitly while retaining its exact original record and all source bytes.
 - Scope boundary: Control values are `operator_steered`, `fixed_camera`, `autonomous_camera`,

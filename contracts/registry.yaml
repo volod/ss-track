@@ -970,6 +970,14 @@ contracts:
       class: minor
       summary: 'Add data clean: statuses planned and cleaned, the clean object and
         DATA_ROOT_BUSY.'
+  - version: 1.27.0
+    file_sha256: 25d627ee73abc08ae22fe02535c7767b72808b4829223517adf18dae19d3d089
+    fingerprints:
+      structure: a325bad04050339d6f37ef98bfc9c941d3669c8c055cf53fce1dce3dda195367
+      meaning: cdf9805ba2e7e33bdc44615a3a4ca7eec68c86f9f759edf9e6433b121c464e56
+    change:
+      class: minor
+      summary: Add source capture inspection results.
 - family: shared
   id: types
   owner: data-contracts

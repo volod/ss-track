@@ -18,6 +18,7 @@ from ss_track.corpus import import_source as run_import
 from ss_track.corpus.cases.preview import preview_stream
 from ss_track.corpus.descriptors.descriptor import RESTRICTED, VISIBILITIES, describe_corpus
 from ss_track.corpus.review.freeze import freeze_corpus
+from ss_track.corpus.sources.inspection import inspect_source
 
 
 def add_corpus_commands(subcommands: Subcommands) -> None:
@@ -41,6 +42,12 @@ def add_corpus_commands(subcommands: Subcommands) -> None:
 
     corpus = subcommands.add_parser("corpus", help="manage corpus versions")
     corpus_commands = corpus.add_subparsers(dest="corpus_command", required=True)
+    inspect = corpus_commands.add_parser(
+        "inspect-source", help="inspect stated source capture facts"
+    )
+    inspect.add_argument("--source-sha256", required=True)
+    inspect.add_argument("--manifest-sha256")
+    inspect.set_defaults(handler=_run_inspect_source)
     build = corpus_commands.add_parser("build", help="build one corpus version")
     build.add_argument("--manifest", type=Path, required=True, help="corpus declaration (YAML)")
     build.set_defaults(handler=_run_corpus_build)
@@ -135,4 +142,10 @@ def _run_corpus_preview(args: argparse.Namespace) -> int:
 def _run_corpus_freeze(args: argparse.Namespace) -> int:
     return reported_on_data_root(
         lambda data_root: freeze_corpus(args.corpus, args.review, args.links, data_root)
+    )
+
+
+def _run_inspect_source(args: argparse.Namespace) -> int:
+    return reported_on_data_root(
+        lambda data_root: inspect_source(args.source_sha256, args.manifest_sha256, data_root)
     )

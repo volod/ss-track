@@ -27,6 +27,7 @@ tasks, their decisions and their acceptance evidence:
 [repeated frames in one group](../records/0032-corpus-provenance-group-repeated-frames.md),
 [arm64 reproducibility](../records/0011-corpus-provenance-arm64-reproducibility.md),
 [source terms amendment](../records/0014-corpus-provenance-source-terms-amendment.md),
+[source capture inspection](../records/0086-corpus-provenance-source-capture-inspection.md),
 [amendment impact](../records/0034-corpus-provenance-amendment-impact-report.md),
 [record read gate](../records/0016-data-contracts-record-read-gate.md) and the
 [corpus provenance group audit](../records/0049-corpus-provenance-corpus-provenance-audit.md).
@@ -261,11 +262,22 @@ not prove negative absence in every frame: the pilot-labeling task reviews all f
 uncertainty visible. These are not frozen labels or held-out evidence. See the
 [selection record](../records/0037-corpus-provenance-select-development-workload.md).
 
+## Source capture inspection
+
+`corpus inspect-source` reads the current source manifest or, when a seal is supplied, the
+retained record under that seal. It reports the original capture object, source record major and
+seal, and its evidence disposition (`current`, `view`, or `facts`). An absent platform is reported
+as `unknown` separately; the capture object is not modified. Inspection uses `read_stated`, checks
+the seal and kind, and does not promote historical facts to evidence. It needs no source media and
+writes nothing. The implementation is in `corpus/sources/inspection.py`;
+`tests/corpus/records/test_source_inspection.py` covers retained records and refusals.
+
 ## Commands
 
 ```bash
 ss-track import --source recording.yaml
 ss-track import --source recording.yaml --amend-terms
+ss-track corpus inspect-source --source-sha256 <source-sha256> [--manifest-sha256 <manifest-sha256>]
 ss-track corpus build --manifest corpus.yaml
 ss-track corpus stage --corpus pilot-v1
 ss-track corpus verify --corpus pilot-v1

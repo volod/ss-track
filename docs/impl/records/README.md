@@ -91,4 +91,6 @@ Copy the [template](template.md) using the
 | 0084 | `recording-capture-vocabulary` | [0084-corpus-provenance-recording-capture-vocabulary](0084-corpus-provenance-recording-capture-vocabulary.md) |
 | 0085 | `capture-vocabulary-decomposition` | [0085-adhoc-capture-vocabulary-decomposition](0085-adhoc-capture-vocabulary-decomposition.md) |
 
-Next unused sequence: `0086`.
+| 0086 | `source-capture-inspection` | [0086-corpus-provenance-source-capture-inspection](0086-corpus-provenance-source-capture-inspection.md) |
+
+Next unused sequence: `0087`.
