@@ -569,6 +569,26 @@ and streams, with generated cases on a line of their own:
  "generated_case_count": 2}}}
 ```
 
+The same result carries `capture_encounters`. `camera_control_mode` and `observer_platform` each
+list every vocabulary value, and a value no encounter uses is `0`:
+
+```json
+{"capture_encounters": {"camera_control_mode": {"operator_steered": 0, "fixed_camera": 1,
+ "autonomous_camera": 0, "unknown": 1}, "observer_platform": {"ground_fixed": 1,
+ "ground_handheld": 0, "airborne": 0, "unknown": 1}}}
+```
+
+The number in a bin is distinct encounters. Two streams of one encounter that share a value count
+once. An encounter whose streams use different values counts once in each of those values, so
+adding the bins does not recover the encounter total. A generated case adds no encounter. The
+counts are read from the verified source records and are absent from the corpus manifest, so a
+second build of the same declaration keeps the manifest seal. A historical source record is
+refused with its migration remedy. After `import --amend-capture` and a new build, the counts use
+the amended judgments. `src/ss_track/corpus/versions/capture_counts.py` owns the count.
+`src/ss_track/corpus/versions/placement.py` reads the judgments while it places each stream.
+`tests/corpus/versions/test_capture_counts.py` covers the bins. See the
+[implementation record](../records/0088-corpus-provenance-capture-encounter-counts.md).
+
 `modality` is always `camera`, because import accepts only video. Streams of one encounter are not
 declared synchronized: no clock relation between them is recorded.
 

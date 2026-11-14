@@ -999,6 +999,14 @@ contracts:
     change:
       class: minor
       summary: Add source capture inspection results.
+  - version: 1.28.0
+    file_sha256: 129e78a6301df69d4bea974859cc8ab92e6d63011f166d20168946f04160f772
+    fingerprints:
+      structure: 508a5548ca3c3a415c0d9d2bae5607303c2ba5d3e1c290248017bfca802f09df
+      meaning: bdfd6e1b2b61bfddf79c6e0b7c2d396d9392fd6ba5173cd20163650edd65e3a7
+    change:
+      class: minor
+      summary: Count distinct encounters by camera-control mode and observer platform.
 - family: shared
   id: types
   owner: data-contracts

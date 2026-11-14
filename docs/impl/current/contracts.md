@@ -21,7 +21,7 @@ baseline scope and evidence. The installed set contains these document contracts
 | `declaration/link-decisions` | `1.0.0`, `1.1.0` |
 | `declaration/source-inventory` | `1.0.0` |
 | `declaration/corpus-pool` | `1.0.0`, `1.1.0` |
-| `declaration/recording` | `2.0.0`, `2.1.0`, `2.2.0`, `2.3.0`, `2.4.0` |
+| `declaration/recording` | `2.0.0`, `2.1.0`, `2.2.0`, `2.3.0`, `2.4.0`, `3.0.0` |
 | `declaration/video-hints` | `1.0.0` |
 | `record/candidate-inventory` | `1.0.0` |
 | `record/audit-blinding` | `1.0.0` |
@@ -37,8 +37,11 @@ baseline scope and evidence. The installed set contains these document contracts
 | `record/link-review-handoff` | `1.0.0` |
 | `record/source-acquisition` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0` |
 | `record/corpus-pool` | `1.0.0` |
-| `record/source-manifest` | `2.0.0`, `2.1.0`, `2.2.0`, `2.3.0`, `2.4.0` |
-| `result/command` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0`, `1.4.0`, `1.5.0`, `1.6.0`, `1.7.0`, `1.8.0`, `1.9.0`, `1.9.1`, `1.10.0`, `1.11.0`, `1.12.0`, `1.13.0`, `1.14.0`, `1.15.0`, `1.16.0`, `1.17.0`, `1.18.0`, `1.19.0`, `1.20.0`, `1.21.0`, `1.22.0`, `1.23.0`, `1.24.0`, `1.25.0`, `1.26.0`, `1.27.0` |
+| `record/source-manifest` | `2.0.0`, `2.1.0`, `2.2.0`, `2.3.0`, `2.4.0`, `3.0.0` |
+| `result/command` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0`, `1.4.0`, `1.5.0`, `1.6.0`, `1.7.0`, `1.8.0`, `1.9.0`, `1.9.1`, `1.10.0`, `1.11.0`, `1.12.0`, `1.13.0`, `1.14.0`, `1.15.0`, `1.16.0`, `1.17.0`, `1.18.0`, `1.19.0`, `1.20.0`, `1.21.0`, `1.22.0`, `1.23.0`, `1.24.0`, `1.25.0`, `1.26.0`, `1.27.0`, `1.28.0` |
+
+`result/command` `1.28.0` adds optional `capture_encounters` on a corpus build. Each camera-control
+mode and each observer platform has its own encounter count, including a count of zero.
 
 `result/command` `1.27.0` adds the `inspected` status and `source_inspection` result.
 
@@ -58,6 +61,9 @@ file hash. `declaration/recording` 2.2.0 adds optional
 `declaration/recording` 2.3.0 adds optional `color.matrix`. `declaration/recording` 2.4.0 and
 `record/source-manifest` 2.4.0 add optional `origin`, omitted when a recording names no upstream
 collection. Origin on a source manifest is sensitive, so a public descriptor omits it.
+`declaration/recording` 3.0.0 and `record/source-manifest` 3.0.0 close `camera_control_mode` and
+`observer_platform`. An omitted judgment is stored as `unknown`. Earlier source majors remain
+`facts`.
 `declaration/corpus-pool` 1.0.0 and `record/corpus-pool` 1.0.0 state a combined-pool selection and
 its sealed result. `declaration/corpus-pool` 1.1.0 adds optional per-collection `metadata_names`,
 the operator's CSV name-to-path rules. `record/source-manifest` 2.3.0 and

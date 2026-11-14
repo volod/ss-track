@@ -35,30 +35,6 @@ hardware or private data.
 
 ### Corpus provenance -- `corpus-provenance`
 
-#### capture-encounter-counts
-
-A build reports split counts but cannot expose how much of its evidence uses each camera-control
-mode or observer platform, leaving ground footage indistinguishable from airborne evidence.
-
-- Serves: `corpus-provenance` -- [Capture compatibility](../design/spec.md#capture-vocabulary-and-historical-source-records)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: Build results report distinct encounter counts for every control-mode and
-  observer-platform bin, including unknown and zero bins.
-- Scope boundary: Count each encounter once in each applicable bin; mixed-stream encounters can
-  enter several bins. Generated cases do not contribute. No score, joint histogram, inferred
-  classification or claim that bin totals are additive.
-- Data and artifact paths: `src/ss_track/corpus/versions/`, `tests/corpus/`, command-result contracts.
-- Execution path: Reuse the verified source records used to build streams, retain capture data
-  only as needed for the result, and avoid changing sealed corpus bytes for reporting alone.
-  Document result field names and the multi-stream counting rule.
-- Acceptance gates: Hand-counted fixtures cover every value, omission, repeated streams, mixed
-  values in one encounter, multiple encounters and generated cases. A rerun has the same counts
-  and manifest seal. Historical sources refuse with the migration remedy and count correctly
-  after explicit amendment and successor build. Frozen contracts and `make ci` pass.
-- Documentation target: [Corpus](current/corpus.md).
-
 #### scale-reduction-case
 
 No generated case makes a target smaller, so the benchmark cannot show where a module stops seeing
