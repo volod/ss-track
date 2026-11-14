@@ -85,5 +85,8 @@ Copy the [template](template.md) using the
 | 0078 | `review-video-corpus-sample` | [0078-self-supervised-corpus-review-video-corpus-sample](0078-self-supervised-corpus-review-video-corpus-sample.md) |
 | 0079 | `mission-alignment-audit` | [0079-adhoc-mission-alignment-audit](0079-adhoc-mission-alignment-audit.md) |
 | 0080 | `phase-2-plan` | [0080-adhoc-phase-2-plan](0080-adhoc-phase-2-plan.md) |
+| 0081 | `shared-evidence-primitives` | [0081-corpus-provenance-shared-evidence-primitives](0081-corpus-provenance-shared-evidence-primitives.md) |
+| 0082 | `arm-ci-workload` | [0082-adhoc-arm-ci-workload](0082-adhoc-arm-ci-workload.md) |
+| 0083 | `resolve-closed-record-markdown` | [0083-reproducible-environment-resolve-closed-record-markdown](0083-reproducible-environment-resolve-closed-record-markdown.md) |
 
-Next unused sequence: `0081`.
+Next unused sequence: `0084`.

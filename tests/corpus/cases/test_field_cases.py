@@ -6,6 +6,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from ss_track.core.evidence.sealed import read_sealed
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
 from ss_track.corpus import (
     build_corpus,
@@ -16,7 +17,6 @@ from ss_track.corpus import (
 from ss_track.corpus.cases.case_model import Pixels
 from ss_track.corpus.cases.transforms import prepare_case
 from ss_track.corpus.records.kinds import FRAME_BUNDLE
-from ss_track.corpus.records.sealed import read_sealed
 from tests.corpus._media import FRAME_COUNT, flat_rgb, write_clip
 from tests.corpus.cases._case_frames import FRAMES, case_record, prepare, window
 from tests.corpus.cases._staged_cases import CORPUS, stage_cases

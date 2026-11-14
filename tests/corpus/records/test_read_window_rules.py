@@ -6,11 +6,11 @@ from pathlib import Path
 
 import pytest
 
+from ss_track.core.evidence.read_window import View, apply_views, check_view, view_findings
+from ss_track.core.evidence.sealed import read_comparable
 from ss_track.core.refusal import JsonValue
 from ss_track.corpus import CorpusRefusal, ImportResult, RefusalCode, build_corpus, stage_corpus
 from ss_track.corpus.records.kinds import CORPUS_MANIFEST
-from ss_track.corpus.records.read_window import View, apply_views, check_view, view_findings
-from ss_track.corpus.records.sealed import read_comparable
 from tests.corpus._shared_frames import V0, V1, V2, check_of, not_compared
 from tests.corpus.conftest import WriteCorpus, reseal, self_sealed, single_group, stream_of
 

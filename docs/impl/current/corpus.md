@@ -453,8 +453,9 @@ relative to the data root.
 The command does not decide what is obsolete, delete a whole data root or touch another host. A
 second data root made only to check reproduction is the operator's to remove once its comparison
 record is kept; cleaning its frames and cache first leaves only small records.
-`corpus/storage/clean.py` plans and removes; `corpus/storage/clean_kinds.py` registers the kinds.
-A task that first writes another disposable artifact registers its kind there, with its restore
+`core/clean.py` plans and removes using the registry in `core/clean_kinds.py`;
+`corpus/storage/clean_kinds.py` supplies corpus kinds. A task that first writes another disposable
+artifact registers its kind with the shared registry, with its restore
 path and a test, in the same change. `tests/corpus/storage/test_clean.py` covers planning, release
 and restaging to the same frame set, held locks, scratch, caches and refusals. The
 [task record](../records/0074-adhoc-data-clean-command.md) holds the acceptance evidence.
@@ -482,7 +483,7 @@ the bytes retained. The finished directory is published by one rename, so a fail
 that looks complete.
 
 `src/ss_track/corpus/storage/layout.py` composes every path in the table, and
-`src/ss_track/corpus/storage/scratch.py` is the one way a command writes there. A writer works in a
+`src/ss_track/core/scratch.py` is the one way a command writes there. A writer works in a
 name that starts with `.incoming-` and publishes by rename, and the next run that holds the same
 lock removes scratch that a killed run left: staging under `.staging.lock`, amendments and redecodes
 under `.amendment.lock`, descriptor publication under `.describe.lock`, and imports under
@@ -1336,7 +1337,7 @@ written by one host and carried to the other, so no binary enters the repository
 [developer tooling page](developer-tooling.md#quality-gates) describes the job that does this. The
 host rows below were measured when the fixture held seven transforms (78 bundles, 879 frames).
 Compression, variable timing and the track-following cases are integer transforms. Their bytes are
-pinned by the golden hashes, which that job runs with the rest of the fixture.
+pinned by the golden hashes, which that job runs alongside the cross-host fixture.
 
 | Host pair | Result |
 | --- | --- |
@@ -1666,14 +1667,20 @@ MPEG program streams import as `missing`, because they do not store a presentati
 
 ## Reading sealed records
 
-`src/ss_track/corpus/records/sealed.py` is the one way to read a sealed record, and
+The shared evidence package owns sealing, reads and read windows. Corpus registers its comparison
+projections and historic shapes, supplying the source-term amendment command to the shape remedy.
+The shared registry does not import corpus. The [task record](../records/0081-corpus-provenance-shared-evidence-primitives.md)
+holds the migration and acceptance evidence.
+
+`src/ss_track/core/evidence/sealed.py` is the one way to read a sealed record, and
 `tests/corpus/records/test_sealed_reads.py` scans the package so that no module reads around
 it, calls `read_stated` outside the amendment, or compares a record's `schema_version` outside the
 read path. Each read verifies the seal, then the kind, and interprets nothing before the seal has
-held. Each format is one `RecordFormat` (`corpus/records/kinds.py`) beside its writer, holding its
-kind and the one major this code writes. A record is never rewritten to fit. Three modules divide
-the work: `sealed.py` decides how a record is read, `read_refusals.py` states each refusal it
-raises, and `sealing.py` validates, seals and writes a record and hashes the files records pin. The
+held. Each corpus format is one `RecordFormat` (`corpus/records/kinds.py`) beside its writer,
+holding its kind and the one major this code writes. A record is never rewritten to fit. Three
+modules divide the work: `sealed.py` decides how a record is read, `read_refusals.py` states each
+refusal it raises, and `sealing.py` validates, seals and writes a record and hashes the files records
+pin. The
 read path has three entries:
 
 | Entry | Returns | Used by |
@@ -1715,7 +1722,8 @@ contract's change log, its one statement: a historic major's own entry in `retir
 the first major transition after it. A major with neither, which no ss-track version wrote, is told
 to restore the record from a trusted copy.
 
-**Views.** `src/ss_track/corpus/records/read_window.py` holds one `View` per `view` major: the kind,
+**Views.** `src/ss_track/core/evidence/read_window.py` provides the shared view registry and
+`View` type. Each area registers one `View` per `view` major: the kind,
 the major it reads, a pure `upcast` to the next major, and `derived`, the JSON pointers of every
 value it derives, with `*` for any list position. Views compose one major at a time, the read path
 stamps the new major and keeps the original seal, so every pin, frame set and cohort key stays as it

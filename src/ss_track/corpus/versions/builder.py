@@ -7,6 +7,9 @@ from pathlib import Path
 from typing import Any
 
 from ss_track.core.canonical import SEAL_FIELD
+from ss_track.core.evidence.read_refusals import incomplete_record
+from ss_track.core.evidence.sealed import read_sealed
+from ss_track.core.evidence.sealing import seal, write_sealed
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.cases.recipes import case_records
 from ss_track.corpus.declarations.declaration import (
@@ -23,9 +26,6 @@ from ss_track.corpus.decoding.decode_policy import (
 )
 from ss_track.corpus.decoding.streams import recorded_video_stream_index
 from ss_track.corpus.records.kinds import CORPUS_MANIFEST
-from ss_track.corpus.records.read_refusals import incomplete_record
-from ss_track.corpus.records.sealed import read_sealed
-from ss_track.corpus.records.sealing import seal, write_sealed
 from ss_track.corpus.sources.identity import recorded_content_sha256, source_identity
 from ss_track.corpus.sources.stored import load_verified_source
 from ss_track.corpus.sources.terms import evaluation_date, require_retention

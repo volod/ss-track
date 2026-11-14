@@ -15,11 +15,11 @@ from typing import Any
 
 import pytest
 
+from ss_track.core.evidence import read_window, registry
+from ss_track.core.evidence.read_window import View
 from ss_track.core.refusal import JsonValue
 from ss_track.corpus.records import projections as projection_table
-from ss_track.corpus.records import read_window
 from ss_track.corpus.records.kinds import CORPUS_MANIFEST, RecordFormat
-from ss_track.corpus.records.read_window import View
 from ss_track.corpus.versions import builder, manifests
 from ss_track.quality.project_root import discover_project_root
 from ss_track.schema.compatibility.freeze import freeze_contract
@@ -92,7 +92,7 @@ def read_as_next(
     for reader in (builder, manifests):
         monkeypatch.setattr(reader, "CORPUS_MANIFEST", RecordFormat(kind, NEXT))
     projected = projection_table.installed_projections()[(kind, CURRENT)]
-    monkeypatch.setitem(projection_table.INSTALLED_PROJECTIONS, (kind, NEXT), projected)
+    monkeypatch.setitem(registry.PROJECTIONS, (kind, NEXT), projected)
     if upcast is not None:
         derived = tuple(view.get("derived", ()))
         monkeypatch.setitem(

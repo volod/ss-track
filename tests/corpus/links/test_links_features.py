@@ -5,12 +5,12 @@ from typing import Any
 
 import pytest
 
+from ss_track.core.evidence.sealed import read_sealed
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
 from ss_track.corpus import ImportResult, build_corpus, stage_corpus
 from ss_track.corpus.discovery.run import run_discovery
 from ss_track.corpus.links.run import LinkRequest, write_links
 from ss_track.corpus.records.kinds import CORPUS_LINKS
-from ss_track.corpus.records.sealed import read_sealed
 from tests.corpus.conftest import WriteCorpus, encounter_of, group_of, stream_of
 from tests.corpus.discovery._plan import RUN_ID, plan_document, worker_environ, write_plan
 from tests.corpus.discovery.conftest import caches, sibling_python

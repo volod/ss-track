@@ -14,20 +14,20 @@ from pathlib import Path
 from typing import Any
 
 from ss_track.core.canonical import SEAL_FIELD
+from ss_track.core.evidence.sealing import seal, write_sealed
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
+from ss_track.core.scratch import exclusive_lock
 from ss_track.corpus.bundles.verification import verify_corpus_frames
 from ss_track.corpus.bundles.version_bundles import require_sources_hold
 from ss_track.corpus.links.records import read_links
 from ss_track.corpus.links.review import UNRESOLVED
 from ss_track.corpus.links.run import staged_frame_set
-from ss_track.corpus.records.sealing import seal, write_sealed
 from ss_track.corpus.review.export import Reviewed, apply_review, require_current_terms
 from ss_track.corpus.review.freeze_record import freeze_body, read_freeze
 from ss_track.corpus.review.result import FreezeResult, review_counts
 from ss_track.corpus.review.superseded import require_related_together
 from ss_track.corpus.sources.terms import evaluation_date
 from ss_track.corpus.storage.layout import FREEZE_LOCK, corpus_root, freeze_path
-from ss_track.corpus.storage.scratch import exclusive_lock
 from ss_track.corpus.versions.manifests import load_corpus_manifest
 
 FROZEN = "frozen"

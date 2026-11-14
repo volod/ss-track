@@ -3,9 +3,9 @@
 from collections.abc import Callable
 from pathlib import Path
 
+from ss_track.core.evidence.sealed import read_sealed
 from ss_track.corpus import ImportResult, import_source
 from ss_track.corpus.records.kinds import CORPUS_MANIFEST
-from ss_track.corpus.records.sealed import read_sealed
 from ss_track.corpus.versions.fingerprint import SIMILARITY_THRESHOLD
 from tests.corpus._media import expected_rgb, flat_rgb, write_clip
 from tests.corpus.conftest import WriteCorpus, WriteRecording, reseal, single_group, stream_of

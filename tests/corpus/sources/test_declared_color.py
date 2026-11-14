@@ -9,6 +9,7 @@ import pytest
 
 from ss_track.cli import main
 from ss_track.commands.report import EXIT_REFUSED
+from ss_track.core.evidence.sealed import read_sealed
 from ss_track.corpus import (
     CorpusRefusal,
     RefusalCode,
@@ -20,7 +21,6 @@ from ss_track.corpus import (
     stage_corpus,
 )
 from ss_track.corpus.records.kinds import FRAME_BUNDLE, SOURCE_MANIFEST
-from ss_track.corpus.records.sealed import read_sealed
 from tests.corpus._media import write_clip
 from tests.corpus.bundles._bundle_writing import CORPUS, bundle_dir
 from tests.corpus.conftest import (

@@ -8,6 +8,8 @@ import pytest
 
 from ss_track.cli import main
 from ss_track.commands.report import EXIT_REFUSED
+from ss_track.core.evidence.sealed import read_sealed
+from ss_track.core.evidence.sealing import sha256_file
 from ss_track.corpus import (
     CorpusRefusal,
     RefusalCode,
@@ -19,8 +21,6 @@ from ss_track.corpus import (
 from ss_track.corpus.bundles.frames import frame_name
 from ss_track.corpus.decoding.pixels import OUTPUT_PIXEL_FORMAT
 from ss_track.corpus.records.kinds import SOURCE_MANIFEST
-from ss_track.corpus.records.sealed import read_sealed
-from ss_track.corpus.records.sealing import sha256_file
 from ss_track.corpus.sources.importer import ImportResult
 from ss_track.schema import validate_file
 from tests.corpus._media import (

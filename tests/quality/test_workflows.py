@@ -43,7 +43,9 @@ def test_arm64_refuses_a_runner_that_is_not_arm64_before_anything_else_counts(
 def test_arm64_runs_the_golden_tests_and_compares_the_two_hosts(jobs: dict[str, Any]) -> None:
     commands = _commands(jobs["arm64"])
 
-    assert "make test" in commands
+    assert "make test-architecture" in commands
+    full_suite = next(step for step in jobs["arm64"]["steps"] if step.get("run") == "make test")
+    assert full_suite["if"] == "github.event_name == 'workflow_dispatch'"
     assert _position(commands, "fixed-corpus-stage") < _position(commands, "fixed-corpus-compare")
 
 
@@ -68,3 +70,21 @@ def test_every_make_target_the_workflow_calls_exists(jobs: dict[str, Any]) -> No
 
     assert targets
     assert all(re.search(rf"^{name}:", makefile, re.MULTILINE) for name in targets)
+
+
+def test_full_arm_suite_is_available_only_by_manual_dispatch() -> None:
+    workflow: dict[str, Any] = yaml.safe_load(_WORKFLOW.read_text(encoding="utf-8"))
+    events = workflow.get("on", workflow.get(True))
+    assert "workflow_dispatch" in events
+    assert "pull_request" in events
+
+
+def test_architecture_target_keeps_the_cpu_and_golden_regressions() -> None:
+    makefile = (_ROOT / "Makefile").read_text(encoding="utf-8")
+    target = makefile.split("test-architecture:", 1)[1].split("\n\n", 1)[0]
+    for test in (
+        "tests/corpus/decoding/test_pixels.py",
+        "tests/corpus/decoding/test_decode_policy.py",
+        "tests/corpus/cases/test_transform_golden.py",
+    ):
+        assert test in target

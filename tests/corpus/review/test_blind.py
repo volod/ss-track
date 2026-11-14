@@ -9,13 +9,13 @@ import pytest
 import yaml
 
 from ss_track.cli import main
+from ss_track.core.evidence.sealed import read_sealed
+from ss_track.core.evidence.sealing import seal
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
 from ss_track.corpus.discovery.run import run_discovery
 from ss_track.corpus.evaluation.inputs import read_evidence
 from ss_track.corpus.evaluation.report import claim
 from ss_track.corpus.records.kinds import AUDIT_BLINDING, CORPUS_FREEZE
-from ss_track.corpus.records.sealed import read_sealed
-from ss_track.corpus.records.sealing import seal
 from ss_track.corpus.review.blind import present_audit, unblind_audit
 from ss_track.corpus.review.blind_key import read_blinding
 from ss_track.corpus.review.blind_review import read_audit_review

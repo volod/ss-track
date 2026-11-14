@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from ss_track.core.evidence.sealed import read_stated
 from ss_track.core.refusal import JsonValue
 from ss_track.corpus import (
     CorpusRefusal,
@@ -15,7 +16,6 @@ from ss_track.corpus import (
     stage_corpus,
 )
 from ss_track.corpus.records.kinds import SOURCE_MANIFEST
-from ss_track.corpus.records.sealed import read_stated
 from tests.corpus.conftest import WriteCorpus, recording_declaration, stream_of
 
 CORPUS = "pilot-v1"

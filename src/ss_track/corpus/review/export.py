@@ -19,6 +19,7 @@ import yaml
 
 from ss_track.core.canonical import sha256_bytes
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
+from ss_track.core.scratch import write_atomically
 from ss_track.corpus.bundles.version_bundles import require_sources_hold
 from ss_track.corpus.declarations.declaration import CORPUS_CONTRACT, CORPUS_SCHEMA_VERSION
 from ss_track.corpus.declarations.fields import invalid
@@ -28,7 +29,6 @@ from ss_track.corpus.review.membership import Membership, corpus_document, revie
 from ss_track.corpus.review.queue import ReviewQueue, review_queue
 from ss_track.corpus.review.result import ExportResult, review_counts
 from ss_track.corpus.sources.terms import evaluation_date
-from ss_track.corpus.storage.scratch import write_atomically
 from ss_track.corpus.versions.manifests import load_corpus_manifest
 from ss_track.schema.validation.enforce import (
     installed_contracts,

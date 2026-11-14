@@ -3,8 +3,8 @@
 Three entries answer three questions, and no caller reads a sealed record any other way, as
 `tests/corpus/records/test_sealed_reads.py` holds. `read_sealed` serves evidence, `read_stated`
 serves an inspection or an amendment, and `read_comparable` serves a comparison rule through a
-projection. Writing a record is `corpus.records.sealing`; the refusals these reads raise are
-`corpus.records.read_refusals`.
+projection. Writing a record is `core.evidence.sealing`; the refusals these reads raise are
+`core.evidence.read_refusals`.
 """
 
 import json
@@ -12,21 +12,21 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from ss_track.core.canonical import SEAL_FIELD, seal_of
-from ss_track.core.refusal import JsonValue
-from ss_track.corpus.records.kinds import RecordFormat
-from ss_track.corpus.records.projections import installed_projections
-from ss_track.corpus.records.read_refusals import (
+from ss_track.core.evidence.format import RecordFormat
+from ss_track.core.evidence.read_refusals import (
     incomplete_record,
     schema_refusal,
     shape_refusal,
     tampered,
 )
-from ss_track.corpus.records.read_window import (
+from ss_track.core.evidence.read_window import (
     StatedShape,
     apply_views,
     installed_views,
     stated_shape,
 )
+from ss_track.core.evidence.registry import installed_projections
+from ss_track.core.refusal import JsonValue
 from ss_track.schema.registry.contract import DISPOSITIONS, FACTS, KIND_FIELD, VERSION_FIELD, VIEW
 from ss_track.schema.validation.enforce import older_disposition
 

@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from ss_track.core.canonical import SEAL_FIELD
+from ss_track.core.evidence.sealing import seal, write_sealed
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.bundles.bundle_reader import open_frame_bundle, read_bundle_record
 from ss_track.corpus.bundles.frame_store import require_space, store_frame
@@ -18,7 +19,6 @@ from ss_track.corpus.bundles.frames import FrameBundle, bundle_hash
 from ss_track.corpus.bundles.publish import publish_bundle
 from ss_track.corpus.cases.case_model import Pixels, ReadFrame, Rendering, Slot, as_pixels
 from ss_track.corpus.cases.transforms import prepare_case
-from ss_track.corpus.records.sealing import seal, write_sealed
 from ss_track.corpus.sources.timestamps import TimestampQuality
 from ss_track.corpus.storage.layout import MANIFEST_NAME
 

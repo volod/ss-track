@@ -1,7 +1,7 @@
 """Writing a sealed record: validate it once, seal it, and replace its file in one read-only step.
 
 The bytes a record pins are hashed here too, because the hash a record holds and the hash a check
-compares it with must come from one function. Reading a sealed record is `corpus.records.sealed`.
+compares it with must come from one function. Reading a sealed record is `core.evidence.sealed`.
 """
 
 import hashlib
@@ -11,7 +11,7 @@ from pathlib import Path
 
 from ss_track.core.canonical import SEAL_FIELD, seal_of
 from ss_track.core.refusal import JsonValue
-from ss_track.corpus.storage.scratch import READ_ONLY_FILE_MODE, write_atomically
+from ss_track.core.scratch import READ_ONLY_FILE_MODE, write_atomically
 from ss_track.schema.validation.enforce import record_violations, require_record
 from ss_track.schema.validation.strict import Violation
 

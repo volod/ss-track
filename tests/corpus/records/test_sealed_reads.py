@@ -11,7 +11,7 @@ import ss_track
 from ss_track.schema import ValidationResult
 
 _PACKAGE = Path(ss_track.__file__).parent
-_GATE = Path("corpus/records/sealed.py")
+_GATE = Path("core/evidence/sealed.py")
 _FACTS_READERS = {
     Path("corpus/sources/replacement.py"),  # reads a `facts` record to write its successor
 }
@@ -168,7 +168,7 @@ def test_every_read_of_a_record_file_goes_through_the_gate() -> None:
     readers = [
         module
         for module in _modules()
-        if module.parts[0] == "corpus"
+        if (module.parts[0] == "corpus" or module == _GATE)
         and ".read_text(" in (_PACKAGE / module).read_text(encoding="utf-8")
     ]
 

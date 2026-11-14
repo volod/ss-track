@@ -190,7 +190,7 @@ readers had:
   `corpus/declarations/fields.py` and apply only the rules a contract states as `x-rules` or does
   not state.
 - `require_record` validates a record, already holding its seal, under the newest frozen version of
-  the major it stamps, and `corpus/records/sealing.py` `seal` calls it before returning. A writer defect,
+  the major it stamps, and `core/evidence/sealing.py` `seal` calls it before returning. A writer defect,
   including an unregistered kind, a major with no frozen version or a `NaN`, is `RECORD_INVALID`
   with nothing written. `record_violations` returns the same check's findings without refusing, and
   `sealing.seal_violations` asks it for a body before sealing: an amendment that carries an older
@@ -426,7 +426,8 @@ than an annotation: the read path checks a view's derived pointers by name witho
 contract, and a test holds every name to a property some installed contract states. The floor reads
 property names on each major change's pointer, and inside an added node except what an added list
 holds, since a view may derive an empty list. A removal never raises it. A freeze installs no view:
-a view is code in `corpus/records/read_window.py`, and a declared view with no function there is
+the owning area registers a view with `core/evidence/read_window.py`, and a declared view with no
+function installed is
 `CONTRACT_SET_INVALID` when a record of that major is read. `CONTRACT_SET_INVALID` also reports a
 bad candidate or forbidden publication. Directory locking and an atomic registry replacement prevent
 concurrent freezes from losing entries. A crash between schema creation and registry replacement

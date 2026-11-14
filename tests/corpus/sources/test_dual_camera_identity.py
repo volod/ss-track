@@ -3,6 +3,7 @@
 import json
 from pathlib import Path
 
+from ss_track.core.evidence.sealing import sha256_file
 from ss_track.corpus import (
     ImportResult,
     RefusalCode,
@@ -12,7 +13,6 @@ from ss_track.corpus import (
     redecode_source,
     stage_corpus,
 )
-from ss_track.corpus.records.sealing import sha256_file
 from ss_track.corpus.sources.identity import source_identity
 from ss_track.schema import validate_file
 from tests.corpus._media import HEIGHT, WIDTH, write_dual_video

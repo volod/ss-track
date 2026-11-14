@@ -50,7 +50,7 @@ already lives in a declaration or a pinned scenario.
 
 These are the reasons this work comes before labels and events.
 
-1. **One integer answers three questions.** `read_sealed` in `src/ss_track/corpus/records/sealed.py`
+1. **One integer answers three questions.** `read_sealed` in `src/ss_track/core/evidence/sealed.py`
    accepts one exact value, so a format change has only one possible outcome. The refusal is deliberate
    and safe, and what it costs is in [reading older records](#reading-older-records).
 2. **Version constants are shared across formats.** `CORPUS_SCHEMA_VERSION` versions both a

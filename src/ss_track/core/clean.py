@@ -13,8 +13,8 @@ from contextlib import ExitStack
 from dataclasses import dataclass
 from pathlib import Path
 
+from ss_track.core.clean_kinds import KINDS, SCRATCH_KIND, CleanKind
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
-from ss_track.corpus.storage.clean_kinds import KINDS, SCRATCH_KIND, CleanKind
 
 PLANNED = "planned"
 CLEANED = "cleaned"

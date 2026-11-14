@@ -6,13 +6,13 @@ from typing import Any
 import pytest
 
 from ss_track.cli import main
+from ss_track.core.evidence.sealed import read_sealed
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
 from ss_track.corpus import (
     ImportResult,
     import_source,
 )
 from ss_track.corpus.records.kinds import CORPUS_FREEZE
-from ss_track.corpus.records.sealed import read_sealed
 from ss_track.corpus.review.freeze import freeze_corpus
 from ss_track.corpus.storage.layout import freeze_path
 from tests.corpus.conftest import WriteRecording, last_record

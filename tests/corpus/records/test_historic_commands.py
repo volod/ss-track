@@ -12,6 +12,7 @@ import yaml
 
 from ss_track.cli import main
 from ss_track.commands.report import EXIT_REFUSED
+from ss_track.core.evidence.sealed import read_comparable, read_sealed
 from ss_track.corpus import (
     CorpusRefusal,
     ImportResult,
@@ -27,7 +28,6 @@ from ss_track.corpus.records.kinds import (
     SOURCE_MANIFEST,
     RecordFormat,
 )
-from ss_track.corpus.records.sealed import read_comparable, read_sealed
 from ss_track.schema.validation.enforce import older_remedy
 from tests.corpus._amending import read_source, rights_with
 from tests.corpus._historic import RECORDS, major_of, place_record

@@ -4,10 +4,10 @@ from pathlib import Path
 
 import pytest
 
+from ss_track.core.evidence.sealed import StatedRecord, read_sealed, read_stated
 from ss_track.core.refusal import JsonValue
 from ss_track.corpus import ImportResult, amend_source_terms
 from ss_track.corpus.records.kinds import SOURCE_MANIFEST
-from ss_track.corpus.records.sealed import StatedRecord, read_sealed, read_stated
 from ss_track.corpus.sources import replacement
 from ss_track.schema.registry.contract import VIEW
 from tests.corpus.conftest import WriteRecording

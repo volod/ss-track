@@ -31,10 +31,11 @@ makes it fail, and what it does not prove. A case with no task left is listed as
   and adds nothing to any evidence count. `tests/corpus/` covers them.
   Value: protects=reproducible cases that are not encounters; fails_when=a case counts as new
   evidence; no_claim=realism.
-- Golden transforms and the full test suite pass on arm64, and one fixed corpus staged from one set of
-  stored sources on x86-64 and arm64 stays `identical`, compared through `frame_set_sha256` and then
-  per source. The corpus holds every decoder family the wheel can encode, and each codec with no
-  normative inverse DCT. `.github/workflows/arm64-reproducibility.yml` runs them on hardware, and
+- Golden transforms and architecture-sensitive decode tests pass on arm64, and one fixed corpus
+  staged from one set of stored sources on x86-64 and arm64 stays `identical`, compared through
+  `frame_set_sha256` and then per source. The corpus holds every decoder family the wheel can encode,
+  and each codec with no normative inverse DCT. The GitHub workflow runs these on hardware; the full
+  arm64 suite runs locally or by manual workflow dispatch, rather than on every pull request.
   `tests/corpus/` covers the comparison.
   Value: protects=a stated cross-architecture boundary; fails_when=a difference goes unrecorded, a
   source is regenerated on one host, or a row does not decode as the format it claims; no_claim=macOS,

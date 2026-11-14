@@ -13,14 +13,14 @@ from pathlib import Path
 from typing import Any
 
 from ss_track.core.canonical import SEAL_FIELD
+from ss_track.core.evidence.sealed import read_sealed
+from ss_track.core.evidence.sealing import seal, write_sealed
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.bundles.bundle_reader import open_corpus_bundle
 from ss_track.corpus.bundles.frame_set import read_frame_set
 from ss_track.corpus.bundles.frames import FrameBundle
 from ss_track.corpus.bundles.verification import verify_corpus_frames
 from ss_track.corpus.records.kinds import STAGED_HASHES
-from ss_track.corpus.records.sealed import read_sealed
-from ss_track.corpus.records.sealing import seal, write_sealed
 from ss_track.corpus.sources.stored import load_source_record
 from ss_track.corpus.storage.layout import frames_root, run_root
 from ss_track.corpus.versions.manifests import load_corpus_manifest

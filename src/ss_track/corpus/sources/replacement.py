@@ -14,12 +14,13 @@ from pathlib import Path
 from typing import Any
 
 from ss_track.core.canonical import SEAL_FIELD
+from ss_track.core.evidence.read_refusals import schema_details
+from ss_track.core.evidence.sealed import read_sealed, read_stated
+from ss_track.core.evidence.sealing import seal, seal_violations, write_sealed
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
+from ss_track.core.scratch import exclusive_lock
 from ss_track.corpus.declarations.declaration import RecordingDeclaration
 from ss_track.corpus.records.kinds import SOURCE_MANIFEST
-from ss_track.corpus.records.read_refusals import schema_details
-from ss_track.corpus.records.sealed import read_sealed, read_stated
-from ss_track.corpus.records.sealing import seal, seal_violations, write_sealed
 from ss_track.corpus.sources.source_record import changed_facts
 from ss_track.corpus.sources.terms import changed_terms
 from ss_track.corpus.storage.layout import (
@@ -29,7 +30,6 @@ from ss_track.corpus.storage.layout import (
     replaced_record_path,
     source_directory,
 )
-from ss_track.corpus.storage.scratch import exclusive_lock
 from ss_track.corpus.versions.impact import AmendmentImpact, report_amendment_impact
 from ss_track.schema.registry.contract import FACTS, VERSION_FIELD, VIEW
 
