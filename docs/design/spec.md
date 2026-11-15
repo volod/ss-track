@@ -114,7 +114,9 @@ establish air-to-air performance, so a Phase 1 mission claim rests on airborne-o
 or states that it has none. Scenario packs define classes, annotation vocabulary, operational limits
 and access policy for settings such as protected habitats, roads and laboratory benches; results
 from different packs are stratified unless a predeclared common metric and sampling frame justify
-pooling.
+pooling. Each class has a stable id and one role, `scoring`, `distractor` or `ignore`. The access
+policy, the non-disturbance envelope and the Phase 2 declarations are slots on the pack. A slot the
+owner has not set is absent, and an envelope stated without its approval record is refused.
 
 ## 3. Scope and delivery gates
 
@@ -661,8 +663,11 @@ marked `unlocalizable`.
 All visible objects in the G0 scoring classes receive an instance ID or an explicit
 `identity_ambiguous` label, so a track on another object can be distinguished from a correct target
 track. Objects outside the scoring class set are marked `distractor`, `ignore_region` or `unknown`
-under a versioned scenario policy; these terms are not silently equated. Motion-event onset, onset
-uncertainty, target visibility, camera motion (`static`, `translation_or_pan`, `shake`, `unknown`),
+under a versioned scenario policy; these terms are not silently equated. A class role of `scoring`
+puts that class in the scoring set. `distractor` and `ignore` are the pack's distractor and
+ignore-region policy. `unknown` stays a label status and is not a class role. Motion-event
+onset, onset uncertainty, target visibility, camera motion (`static`, `translation_or_pan`,
+`shake`, `unknown`),
 selection quality and re-entry are recorded. Semantic states such as walking, riding, gliding or
 stationary use a later scenario-specific vocabulary; image-plane displacement alone does not
 establish physical state.
@@ -1134,7 +1139,9 @@ range. It can measure how quality changes as the target covers fewer pixels, whi
 a later range claim rests on. Every tracking and motion suite therefore reports an **extent
 envelope**: its primary measure per bin of target extent `s_gt = sqrt(w_gt * h_gt)`, in pixels of
 the frame the module received, with a point-only label binned by its reviewed maximum plausible
-extent. The bin edges come from the scenario pack and are part of the cohort. Each bin shows its
+extent. The bin edges come from the scenario pack and are part of the cohort. They are half-open
+pixel intervals that partition every extent from zero upward, without overlap or gap, and the last
+interval has no upper bound. No bin list means the envelope is not defined yet. Each bin shows its
 numerator, denominator, scorable exposure, encounter count and interval, and a bin with fewer
 encounters than the suite's declared minimum reports `insufficient_data`, not a value.
 
@@ -1143,6 +1150,16 @@ larger bin with sufficient data has an interval whose lower bound clears a floor
 declared before the run. For motion proposals the measure is event recall at the declared
 operator-burden operating point, so a module cannot lower its supported extent by proposing
 everywhere. No supported bin is a valid result and is reported as one.
+
+The scenario states one floor for each primary measure of its pinned suite, keyed by that measure's
+name and in that measure's units. Each floor carries its basis. A floor for a measure the suite does
+not report, or a value outside the measure's range, is refused. A measure with no floor still
+reports its bins, and its smallest supported extent is `unavailable`. That is not the same result
+as no supported bin. The floor is not a pack field. Bins describe the target domain, and every
+suite that scores the pack shares them. A floor is a quality threshold on one suite's measure, and
+the pack hash pins frozen labels, so a pack-level floor would make a new threshold re-freeze the
+labels. The scenario hash is in the cohort key, so a changed floor is a different cohort. Ranking
+floors in [section 16.1](#161-cohort-ranking) follow the same rule and live in the frozen protocol.
 
 Real encounters and [scale-reduction cases](#43-deterministic-cases-and-negative-evidence) form
 two separate curves. The generated curve shows where a module degrades when pixels are removed
@@ -2018,7 +2035,10 @@ benchmark counts violations of that envelope. It never states that a subject was
 because the envelope is a human judgment about a species and a site, and a simulated or recorded
 subject does not react. A nest or roost position is location-bearing and stays restricted: a
 report names a terminal zone by its declared identifier, never by coordinates. A drone target has
-an envelope as well, set by collision risk and the reserve's rules instead of by behavior.
+an envelope as well, set by collision risk and the reserve's rules instead of by behavior. Each
+envelope is a slot on the scenario pack, kind `living` or `collision`. Stating one without the
+approval record of the named responsible person is refused. A zone in the pack is an identifier, a
+radius and a height. Coordinates are not a pack field.
 
 ### Measurement-only scope
 
@@ -2168,7 +2188,8 @@ are required **before the named later claim or gate**, rather than blocking G0a:
 | Input | Required before |
 | --- | --- |
 | Scenario packs, class taxonomy, recording rights/retention, locked-test custodian and access policy | Creating a locked test or shared dashboard for each domain |
-| Mission scenario pack: target and confuser classes, minimum box and point extents, extent bins and floors, observer-platform strata | Freezing G0 labels or reporting a small-target extent envelope |
+| Mission scenario pack: target and confuser classes, minimum box and point extents, extent bins and observer-platform strata | Freezing G0 labels or reporting a small-target extent envelope |
+| Extent-envelope floor for each primary measure of the mission scenarios, with its basis, declared on the scenario and not on the pack ([section 6.7](#67-small-target-extent-envelope)) | Reporting a smallest supported extent; without it the envelope reports bins only |
 | Annotation reviewers and disagreement authority | Freezing G0 labels; a small two-reviewer set is the G0 default |
 | Operator response delay and the actions an operator may take | An operator-session result beyond the engineering default |
 | Expert-labelled, visually identifiable material for each declared species or drone type, with an unknown-class set | Any autonomous target declaration claim |
@@ -2979,7 +3000,9 @@ class of drone, or that it does not, or that it cannot tell. It builds on the co
 of [section 16.7](#167-track-level-classification) and adds the fine-grained classes that section
 leaves out.
 
-The scenario pack declares, before any recognizer runs:
+The scenario pack declares the following before any recognizer runs. Each row is a slot. The
+engineering defaults below are not written into a pack. A slot the owner has not set is absent, and
+a result that needs it is unavailable.
 
 | Declaration | Meaning |
 | --- | --- |
@@ -3223,9 +3246,10 @@ rendered. Perception is a **surrogate** drawn, with a recorded seed, from eviden
 Each table states its origin as `measured`, with the hash of the run it came from, `datasheet` or
 `assumed`. The simulator turns simulated range into extent with the camera's measured angular
 resolution and the pack's declared target size. That is a model input, and it restates no
-measured result in metres. Draws are independent between epochs unless a table supplies a
-measured dependence. The report says so, because independence flatters a system whose failures
-cluster.
+measured result in metres. Declared target size and the stand-off levels are slots on the pack and
+stay absent until the owner sets them. Draws are independent between epochs unless a table
+supplies a measured dependence. The report says so, because independence flatters a system whose
+failures cluster.
 
 Every episode ends in exactly one outcome, taken in this order:
 

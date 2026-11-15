@@ -341,11 +341,12 @@ traceback. Import and stage remove their scratch before that record is written:
 ## Declarations
 
 Each file is checked in full against its contract on read, `declaration/recording` 3.0.0 and
-`declaration/corpus` 3.3.0, before any reader takes a value from it. A recording may carry optional
-`origin`. An import omits it when the declaration has none, and an amendment or redecode that drops
-a recorded origin is refused. Both contracts reject unknown fields, repeated keys, non-finite
-numbers and any other schema version, so a misspelled key cannot silently drop a fact. A recording
-is schema 3 and a corpus is schema 3. There are no defaults for rights,
+`declaration/corpus` 3.3.0, before any reader takes a value from it. A scenario pack is
+`declaration/scenario-pack` 1.0.0. See [Scenario pack](#scenario-pack). A recording may carry
+optional `origin`. An import omits it when the declaration has none, and an amendment or redecode
+that drops a recorded origin is refused. Both contracts reject unknown fields, repeated keys,
+non-finite numbers and any other schema version, so a misspelled key cannot silently drop a fact.
+A recording is schema 3 and a corpus is schema 3. There are no defaults for rights,
 sensitivity, split or scenario rights: a declaration without them is refused, and `basis` has no
 `unknown` value. A refusal names the contract version and the first violation by JSON pointer, a wrong
 `schema_version` before anything else, and its details list up to 20 violations, as
@@ -419,6 +420,55 @@ groups:
           - stream_id: enc01-cam1
             source_sha256: "<64 hex>"
 ```
+
+### Scenario pack
+
+`declaration/scenario-pack` 1.0.0 pins the class map, annotation vocabulary, extent limits and
+observer-platform strata a later label or scenario names. `load_scenario_pack` in
+`src/ss_track/annotate/pack.py` reads one YAML file, applies the `x-rules` the schema cannot state,
+and returns one `pack_hash`. The hash is the SHA-256 of the canonical JSON of the validated
+document. Object key order and comments do not change it. Array order does. Changing a class, its
+role, a minimum extent or an extent bin changes it.
+
+The draft pack is `scenarios/packs/aerial-small-objects.yaml`. It names bird, bird of prey, drone,
+aircraft, insect and clutter. The roles, the `bird-of-prey` parent and the four observer platforms
+are unapproved placeholders so the file can validate. `approve-mission-scenario-pack` replaces
+them. Minimum box and point extents are null, the bin list is empty, and the access policy,
+non-disturbance envelopes and `phase2` object are absent. The file names no species and no envelope
+value. A class id is an identifier. The display name is separate, so `bird-of-prey` is not the
+words `bird of prey`.
+
+```bash
+ss-track contracts validate \
+  --file scenarios/packs/aerial-small-objects.yaml \
+  --contract declaration/scenario-pack
+```
+
+`contracts validate` checks structure. The loader also refuses a duplicate class id, a missing or
+cyclic parent, extent bins that do not partition pixel extent from 0 upward as half-open intervals,
+a point minimum above the box minimum, and an envelope stated without `approval.owner` and
+`approval.reference`. A class with no role fails the schema. A zone coordinate is not a field.
+Bins, when set, start at 0, meet at their edges and end with one unbounded bin. The pack has no
+extent-envelope floor, and a floor under `limits` or at the top level fails the schema. Spec
+[section 6.7](../../design/spec.md#67-small-target-extent-envelope) puts the floor on the
+scenario, one per primary measure, because a floor is a quality threshold of one suite and the
+pack hash pins frozen labels.
+
+An envelope kind is `living` or `collision`. A zone stores `zone_id`, `radius_m` and `height_m`.
+`phase2` holds `target_set`, `known_non_targets`, `unknown_set`, `identifiable_duration_s`,
+`declaration_deadline_s`, `declaration_burden_per_hour`, `target_size_m` and `stand_off_levels_m`.
+Per-class `min_identifiable_extent_px` sits on the class. Engineering defaults are not written in.
+`unknown_set: true` names no class. An absent key stays unset. Strata use the recording
+vocabulary: `ground_fixed`, `ground_handheld`, `airborne` and `unknown`.
+
+The closed vocabulary is visibility, geometry, camera motion and the non-scoring mark
+(`distractor`, `ignore_region`, `unknown`). `activity` stays empty until a vocabulary is declared.
+Class role `ignore` is the ignore-region policy. It is not the label mark `ignore_region`.
+
+Tests are `tests/annotate/test_scenario_pack.py` and `tests/annotate/test_pack_rules.py`. The JSON
+example `tests/schema/examples/declaration-scenario-pack.json` is the draft and has the same hash.
+The [task record](../records/0092-annotation-selection-scenario-pack-contract.md) holds the
+acceptance evidence.
 
 ### Ordered image sequences
 

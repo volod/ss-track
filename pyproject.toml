@@ -58,6 +58,7 @@ Repository = "https://github.com/volod/ss-track"
 include-package-data = false
 packages = [
   "ss_track",
+  "ss_track.annotate",
   "ss_track.commands",
   "ss_track.contract_files",
   "ss_track.core",

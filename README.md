@@ -398,8 +398,11 @@ supported robots, sensors, domains, and compute platforms grow.
 ## Development
 
 The benchmark capabilities above are planned. Today the repository provides the locked Python
-package, the `ss-track` command with [corpus source import](docs/impl/current/corpus.md), and the
-quality and planning infrastructure the rest will be built on.
+package, the `ss-track` command with [corpus source import](docs/impl/current/corpus.md), a draft
+[scenario pack](docs/impl/current/corpus.md#scenario-pack) for the aerial-small-objects mission,
+and the quality and planning infrastructure the rest will be built on. The draft names classes
+only. Its extents, access policy, non-disturbance envelope and Phase 2 declarations stay unset
+until the owner approves them.
 
 ### Quick start
 

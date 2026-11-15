@@ -280,6 +280,24 @@ contracts:
     migration: Set schema_version 2 and state rights.retain_until and rights.derived_frames,
       which only an operator can state.
 - family: declaration
+  id: scenario-pack
+  owner: annotation-selection
+  status: active
+  description: 'Operator declaration of one scenario pack: the class map, the annotation
+    vocabulary, extent limits, observer-platform strata, and the named slots a later
+    approval fills. It grants no permission to approach a subject, names no species,
+    and stores no exclusion-zone coordinates. An absent slot is unset. This contract
+    does not fill it.'
+  versions:
+  - version: 1.0.0
+    file_sha256: 07a5d2fd3bde6407ff6a582794d0f9973e1bb843f9fd30f30111b2664e67941e
+    fingerprints:
+      structure: 93093191cbafa48dbb85e5ea8f0da1a1177dbe2a3bfd239d0b1ade84a1709f60
+      meaning: 31646525fb3e37ae9ccbb287432daf4226b0d26a3aadc4248ecfeb660bf89d4a
+    change:
+      class: initial
+      summary: Initial contract.
+- family: declaration
   id: source-inventory
   owner: self-supervised-corpus
   status: active

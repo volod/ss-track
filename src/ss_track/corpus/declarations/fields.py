@@ -82,6 +82,16 @@ class Fields:
     def index(self, key: str) -> int:
         return self._get(key, int)
 
+    def nullable_index(self, key: str) -> int | None:
+        """Read a required integer or an explicit null."""
+        if self._raw[key] is None:
+            return None
+        return self.index(key)
+
+    def number(self, key: str) -> float:
+        """Read a required number. An integer declaration is that number."""
+        return float(self._get(key, (int, float)))
+
     def scalar(self, key: str) -> _Scalar | None:
         """Read an optional descriptive value, keeping an absent one as unknown."""
         return cast(_Scalar, self._get(key, (str, int, float))) if self.has(key) else None

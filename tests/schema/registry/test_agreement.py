@@ -61,6 +61,17 @@ def _types() -> dict[str, dict[str, str]]:
     return definitions
 
 
+def test_a_nullable_class_parent_repeats_the_shared_identifier_pattern() -> None:
+    contracts = load_contract_set(CONTRACTS)
+    contract = contracts.named("declaration/scenario-pack")
+    newest = contract.newest()
+    assert newest is not None
+    parent = contracts.frozen_schema(contract, newest)["$defs"]["class-entry"]["properties"]
+    parent = parent["parent_class_id"]
+
+    assert parent["pattern"] == _types()["identifier"]["pattern"]
+
+
 def test_a_nullable_identifier_repeats_the_shared_pattern() -> None:
     schema = json.loads(frame_set_path(CONTRACTS).read_text(encoding="utf-8"))
     parent = schema["$defs"]["bundle"]["properties"]["parent_stream_id"]

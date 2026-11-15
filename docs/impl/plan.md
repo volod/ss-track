@@ -35,34 +35,6 @@ hardware or private data.
 
 ### Annotation and selection -- `annotation-selection`
 
-#### scenario-pack-contract
-
-Labels, scenarios and reports all name a scenario pack, but no format defines one. A class ID has
-no pinned meaning, and the mission's targets exist only in prose.
-
-- Serves: `annotation-selection` -- [Evidence lanes](../design/spec.md#2-evidence-lanes-and-claims)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: `ss-track contracts validate` accepts a scenario pack that states its
-  classes, annotation vocabulary and limits, and a draft `aerial-small-objects` pack is the first.
-- Scope boundary: A `declaration` contract for a pack: stable class IDs with scoring, distractor
-  and ignore roles, a class hierarchy, minimum box, point and identifiable extents, extent bins,
-  observer-platform strata, and named slots for the access policy, the non-disturbance envelope
-  and the Phase 2 declarations of spec sections 19.3 and 19.7: target set, known non-targets,
-  unknown set, declaration deadline and burden, declared target size and stand-off levels. The
-  draft mission pack holds bird, bird of prey, drone, aircraft, insect and clutter classes. Its
-  values are the owner's, through `approve-mission-scenario-pack`. No species list and no
-  envelope value is invented here, and a Phase 2 slot stays empty until its human task fills it.
-- Data and artifact paths: `contracts/declaration/scenario-pack/`, `scenarios/packs/`,
-  `src/ss_track/annotate/`, `tests/annotate/`.
-- Execution path: Add the contract and its registry entry, a loader that returns one pack hash,
-  and positive and malformed fixtures.
-- Acceptance gates: A duplicate class ID, a class with no role, an extent bin that overlaps
-  another, and an envelope slot filled with no approval record are each refused with a reason.
-  Changing any class, role, extent or bin changes the pack hash. `make ci` passes.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
 #### annotation-contract
 
 Labels need stable identity and a frozen mask before scores can mean anything.
@@ -70,7 +42,7 @@ Labels need stable identity and a frozen mask before scores can mean anything.
 - Serves: `annotation-selection` -- [Annotation contract](../design/spec.md#42-annotation-contract)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: scenario-pack-contract.
+- Dependencies: none.
 - User-visible outcome: An operator validates visibility status, geometry, instance identity, motion
   events, operator seeds and masks against a versioned contract.
 - Scope boundary: Label, seed and mask contracts, validation and frozen seed replay, in the stored
@@ -205,11 +177,15 @@ A comparison must pin everything that can change its result.
 - User-visible outcome: A scenario file pins scenario pack, corpus, frame set, labels, selection,
   replay mode, metric suite, seed and deadlines, and yields one cohort key.
 - Scope boundary: The scenario schema, one cohort-key function, and one type that owns windows and
-  runs. G2 boundaries are out of scope.
+  runs. The scenario also holds the extent-envelope floors of spec section 6.7: an optional
+  `extent_floors` map from a primary-measure name to a value and its basis. The pack has no floor
+  field. An absent map or entry stays unset, and no default is written. Checking measure names
+  against a suite is `extent-envelope-view`'s job. G2 boundaries are out of scope.
 - Data and artifact paths: `src/ss_track/contract/`, `scenarios/`, `tests/contract/`.
 - Execution path: Add the scenario as a `declaration` contract with example scenarios, and
   table-driven cohort-key fixtures.
-- Acceptance gates: Changing any key field changes the cohort key. A scenario with a missing hash
+- Acceptance gates: Changing any key field, an extent floor included, changes the cohort key. A
+  floor with no basis is refused. A scenario with a missing hash
   refuses to run, as does one whose corpus fails `corpus verify` or whose pinned frame-set hash differs
   from the `frame_set_sha256` that command reports. The pin is the only check that sees a frame set
   rewritten on disk. A source with empty `completeness_checks` is reported, never assumed complete.
@@ -462,7 +438,7 @@ at which a module stops working.
 - Serves: `motion-sot-evaluation` -- [Extent envelope](../design/spec.md#67-small-target-extent-envelope)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: sot-suite, motion-suite, scenario-pack-contract.
+- Dependencies: sot-suite, motion-suite.
 - User-visible outcome: Each tracking and motion result carries an extent envelope by bin and a
   smallest supported extent, with real encounters and scale-reduction cases as separate curves.
 - Scope boundary: Bins from the pinned scenario pack and floors from the scenario. Pixels always,
@@ -474,7 +450,9 @@ at which a module stops working.
 - Acceptance gates: Hand-computed bin counts, intervals, statuses and the supported extent match.
   A bin under the encounter minimum is `insufficient_data`, a generated case never fills a real
   bin, and a module that proposes everywhere gains no smaller supported extent. No supported bin
-  is reported as a result, never as an error.
+  is reported as a result, never as an error. A measure with no floor reports its bins and an
+  `unavailable` supported extent, which is distinct from no supported bin. A floor for a measure
+  the suite does not report, or one outside that measure's range, is refused.
 - Documentation target: [Current implementation](current.md#areas), page `current/evaluation.md`.
 
 #### development-decision-status
@@ -1976,8 +1954,7 @@ scores a declaration, an abstention or an unknown class.
 - Serves: `target-recognition` -- [Target recognition](../design/spec.md#193-autonomous-target-recognition)
 - Agent status: CLEAR
 - Milestone: M7
-- Dependencies: tracker-epoch-suite, fusion-calibration-suite, scenario-pack-contract,
-  extent-envelope-view.
+- Dependencies: tracker-epoch-suite, fusion-calibration-suite, extent-envelope-view.
 - User-visible outcome: A recognizer's `RecognitionResult` events are scored for declaration recall
   at a fixed false-declaration burden, time to declaration, abstention, calibration and open-set
   behavior.
@@ -2290,7 +2267,7 @@ operator flew.
 - Agent status: CLEAR
 - Milestone: M8
 - Research: yes
-- Dependencies: plugin-evaluator-core, scenario-pack-contract, platform-energy-budget.
+- Dependencies: plugin-evaluator-core, platform-energy-budget.
 - User-visible outcome: `ss-track follow evaluate` moves a simulated observer under a following
   law against reviewed or synthetic target trajectories, and records every step in a run bundle.
 - Scope boundary: A kinematic observer in a local level frame with declared speed, acceleration
@@ -3114,11 +3091,13 @@ frozen against a draft pack would have to be made again.
 - Serves: `annotation-selection` -- [Mission and phases](../design/spec.md#mission-and-phases)
 - Agent status: HUMAN-GATED
 - Milestone: M1
-- Dependencies: scenario-pack-contract.
+- Dependencies: none.
 - User-visible outcome: The `aerial-small-objects` pack has owner-approved classes, roles, minimum
-  extents, extent bins, floors and observer-platform strata, and its hash is recorded.
-- Scope boundary: Phase 1 values only. Fine-grained species and drone types and the
-  non-disturbance envelope are later human tasks and stay empty slots.
+  extents, extent bins and observer-platform strata, and its hash is recorded. The
+  extent-envelope floor is a scenario value and belongs to `approve-mission-extent-floors`.
+- Scope boundary: Phase 1 values only. The draft leaves minimum extents and extent bins unset.
+  Fine-grained species and drone types and the non-disturbance envelope are later human tasks and
+  stay empty slots. This task does not invent those values.
 - Data and artifact paths: `scenarios/packs/`.
 - Execution path: The owner reviews the draft against the pilot footage and states each value with
   its basis. An agent validates the pack and records its hash.
@@ -3160,6 +3139,30 @@ Within-corpus comparisons need reviewed labels across independent encounters.
 - Acceptance gates: Validation passes, groups are independent by the spec section 4.1 rule, and the
   revision is frozen. Unlabelable objects stay `unknown`.
 - Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
+
+### Motion and tracking evaluation -- `motion-sot-evaluation`
+
+#### approve-mission-extent-floors
+
+The smallest supported extent depends on a quality floor that only the owner can set. An agent
+default would decide the headline result of the mission's first priority.
+
+- Serves: `motion-sot-evaluation` -- [Extent envelope](../design/spec.md#67-small-target-extent-envelope)
+- Agent status: HUMAN-GATED
+- Milestone: M1
+- Dependencies: scenario-contract.
+- User-visible outcome: The mission scenarios state an owner-approved extent-envelope floor, with
+  its basis, for the SOT success measure and for motion event recall at the declared
+  operator-burden operating point.
+- Scope boundary: Floors only, set on the scenario under spec section 6.7 and not on the pack.
+  Bins and minimum extents belong to `approve-mission-scenario-pack`. A floor the owner cannot
+  state stays unset, and that measure's smallest supported extent stays `unavailable`.
+- Data and artifact paths: `scenarios/`.
+- Execution path: The owner states each floor and its basis before any envelope run it covers. An
+  agent validates the scenarios and records their hashes.
+- Acceptance gates: The scenarios validate, every floor has a stated basis, and the floors are
+  committed before the first run that reports a supported extent against them.
+- Documentation target: [Current implementation](current.md#areas), page `current/evaluation.md`.
 
 ### Self-supervised video corpus -- `self-supervised-corpus`
 
@@ -3392,12 +3395,13 @@ A species or drone type can be scored only against labels from someone able to i
 - Serves: `target-recognition` -- [Target recognition](../design/spec.md#193-autonomous-target-recognition)
 - Agent status: HUMAN-GATED
 - Milestone: M7
-- Dependencies: scenario-pack-contract, annotation-review-tools, recognition-suite.
+- Dependencies: annotation-review-tools, recognition-suite.
 - User-visible outcome: The mission pack names its target set and unknown-class set, and reviewed
   tracks carry expert class labels in development, calibration and evaluation encounters.
 - Scope boundary: Fine-grained class labels on visually identifiable material, the minimum
-  identifiable extent and the false-declaration burden. No behavior label and no individual
-  identity. Material nobody can identify stays `unknown`.
+  identifiable extent and the false-declaration burden, stored on the pack as `phase2` and
+  per-class `min_identifiable_extent_px`. `unknown_set` names no class. No behavior label and no
+  individual identity. Material nobody can identify stays `unknown`.
 - Data and artifact paths: `scenarios/packs/`, `$DATA_DIR/corpus/<corpus-id>/labels/`.
 - Execution path: A person with the needed expertise labels and reviews under a named authority.
   An agent validates, freezes and hashes the revision.
@@ -3482,12 +3486,14 @@ species and a site that no software can supply.
 - Serves: `standoff-following-evaluation` -- [Scenario safety](../design/spec.md#11-scenario-safety-privacy-and-data-governance)
 - Agent status: HUMAN-GATED
 - Milestone: M8
-- Dependencies: scenario-pack-contract, following-quality-suite.
+- Dependencies: following-quality-suite.
 - User-visible outcome: The mission pack carries an approved non-disturbance envelope, and the
   following laws have results against it.
 - Scope boundary: Minimum stand-off, closing speed, approach directions, altitude band, exclusion
-  zones, following time and end conditions for each living-subject class, and a collision-risk
-  envelope for drone targets. Simulation only. A field flight needs its own approvals.
+  zones, following time and end conditions. The pack field is `non_disturbance_envelopes`, kind
+  `living` or `collision`, and `class_ids` may name the classes an entry covers. A zone stores an
+  identifier, radius and height, and stores no coordinates. Simulation only. A field flight needs
+  its own approvals.
 - Data and artifact paths: `scenarios/packs/`, `$DATA_DIR/run/<run-id>/`.
 - Execution path: A named responsible person states each value with its basis and signs the
   approval record. An agent validates the pack and runs the mission following scenario.
