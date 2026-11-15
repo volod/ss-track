@@ -11,6 +11,7 @@ from typing import Any
 from ss_track.core.canonical import SEAL_FIELD
 from ss_track.core.evidence.read_refusals import incomplete_record
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
+from ss_track.corpus.declarations.capture import recorded_judgments
 from ss_track.corpus.declarations.declaration import (
     EncounterDeclaration,
     GroupDeclaration,
@@ -21,7 +22,6 @@ from ss_track.corpus.decoding.streams import recorded_video_stream_index
 from ss_track.corpus.sources.identity import recorded_content_sha256, source_identity
 from ss_track.corpus.sources.stored import load_verified_source
 from ss_track.corpus.storage.layout import MANIFEST_NAME
-from ss_track.corpus.versions.capture_counts import capture_judgments
 
 CAMERA_MODALITY = "camera"
 
@@ -42,7 +42,7 @@ def stream_record(
     media = verified.sequence
     with incomplete_record(MANIFEST_NAME):
         record = _placed_stream(group, encounter, stream, manifest, media)
-        judgments = capture_judgments(manifest.get("capture"))
+        judgments = recorded_judgments(manifest.get("capture"))
     content = recorded_content_sha256(manifest)
     index = recorded_video_stream_index(media)
     if content != stream.source_sha256 and source_identity(content, index) == stream.source_sha256:

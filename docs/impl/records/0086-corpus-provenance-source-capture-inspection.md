@@ -5,7 +5,8 @@
 - Id / capability: `source-capture-inspection` / `corpus-provenance`
 - State: accepted
 - Source: plan task; start commit `6b20d0c`, clean worktree.
-- Plan counts at start: 165 (137 agent, 28 human); next agent `source-capture-inspection`, next human `define-locked-test-policy`.
+- Plan counts at start: 165 (137 agent, 28 human); next agent `source-capture-inspection`, next
+  human `define-locked-test-policy`.
 - Accepted task:
 
 ```markdown

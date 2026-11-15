@@ -17,7 +17,7 @@ from ss_track.commands.report import EXIT_OK, EXIT_REFUSED
 from ss_track.corpus import (
     ImportResult,
     RefusalCode,
-    amend_source_terms,
+    amend_source,
     build_corpus,
     redecode_source,
     verify_corpus_frames,
@@ -131,9 +131,7 @@ def test_an_older_record_is_amended_and_then_redecoded_and_builds(
 ) -> None:
     _older_record("source-schema-1-d6b704d.json", imported.manifest_path)
 
-    amended = amend_source_terms(
-        write_recording(rights=rights_with()), data_root, amend_capture=True
-    )
+    amended = amend_source(write_recording(rights=rights_with()), data_root, amend_capture=True)
     assert amended.status == "amended"
     assert amended.decode_policy_current is False
 
@@ -154,7 +152,7 @@ def test_a_record_too_old_for_amend_terms_alone_builds_through_both_flags_togeth
     _older_record("source-schema-1-0238d55.json", imported.manifest_path)
 
     refused(
-        lambda: amend_source_terms(write_recording(rights=rights_with()), data_root),
+        lambda: amend_source(write_recording(rights=rights_with()), data_root),
         RefusalCode.RECORD_SCHEMA_UNSUPPORTED,
     )
     refused(

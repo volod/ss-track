@@ -7,7 +7,7 @@ from ss_track.core.evidence.sealing import sha256_file
 from ss_track.corpus import (
     ImportResult,
     RefusalCode,
-    amend_source_terms,
+    amend_source,
     build_corpus,
     import_source,
     redecode_source,
@@ -242,7 +242,7 @@ def test_amending_one_camera_leaves_the_other_record(
     first, second, file_hash = _import_both(media, write_recording, data_root)
     before = first.manifest_path.read_bytes()
 
-    amended = amend_source_terms(
+    amended = amend_source(
         write_recording("dual.mkv", video_stream_index=1, sensitivity={"level": "high"}),
         data_root,
     )
@@ -254,7 +254,7 @@ def test_amending_one_camera_leaves_the_other_record(
         "unchanged"
     )
     (media / "dual.mkv").unlink()
-    after_removal = amend_source_terms(
+    after_removal = amend_source(
         write_recording(
             "dual.mkv", sha256=file_hash, video_stream_index=1, sensitivity={"level": "moderate"}
         ),

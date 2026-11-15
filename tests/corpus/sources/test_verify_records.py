@@ -10,7 +10,7 @@ from ss_track.corpus import (
     CorpusRefusal,
     ImportResult,
     RefusalCode,
-    amend_source_terms,
+    amend_source,
     build_corpus,
     import_source,
     stage_corpus,
@@ -73,7 +73,7 @@ def test_every_source_of_a_corpus_is_checked(
     stage_corpus(CORPUS, data_root)
     sharing = rights_with(sharing="public")
 
-    amend_source_terms(write_recording("clip-4.mkv", rights=sharing), data_root)
+    amend_source(write_recording("clip-4.mkv", rights=sharing), data_root)
 
     refusal = refused_verify(data_root, RefusalCode.SOURCE_RECORD_CHANGED)
     assert refusal.details["stream_id"] == "b"
@@ -100,7 +100,7 @@ def test_a_changed_record_refuses_before_any_frame_is_hashed(
     frame.chmod(0o644)
     frame.write_bytes(b"corrupted")
 
-    amend_source_terms(write_recording(sensitivity={"level": "high"}), data_root)
+    amend_source(write_recording(sensitivity={"level": "high"}), data_root)
 
     refused_verify(data_root, RefusalCode.SOURCE_RECORD_CHANGED)
 
@@ -124,7 +124,7 @@ def test_stage_and_verify_refuse_a_changed_record_the_same_way(
     data_root: Path,
 ) -> None:
     stage_before(imported, write_corpus, data_root)
-    amend_source_terms(write_recording(sensitivity={"level": "high"}), data_root)
+    amend_source(write_recording(sensitivity={"level": "high"}), data_root)
 
     for action in (stage_corpus, verify_corpus_frames):
         with pytest.raises(CorpusRefusal) as caught:

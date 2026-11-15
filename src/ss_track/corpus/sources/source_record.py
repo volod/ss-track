@@ -10,6 +10,7 @@ from dataclasses import asdict
 from typing import Any
 
 from ss_track.core.refusal import JsonValue
+from ss_track.corpus.declarations.capture import descriptive_facts
 from ss_track.corpus.declarations.declaration import RecordingDeclaration
 from ss_track.corpus.decoding.declared_color import (
     DECLARED_COLOR_FACT,
@@ -17,6 +18,7 @@ from ss_track.corpus.decoding.declared_color import (
     declaration_changed,
 )
 from ss_track.corpus.decoding.decode import MediaInspection
+from ss_track.corpus.decoding.image_sequence import time_base
 from ss_track.corpus.decoding.streams import VIDEO_STREAM_INDEX
 from ss_track.corpus.sources.timestamps import TimestampQuality
 
@@ -91,10 +93,7 @@ def _capture_changed(
     capture = record.get("capture", {})
     if not amend_capture:
         return bool(capture != declaration.capture)
-    judgments = {"camera_control_mode", "observer_platform"}
-    carried = {key: value for key, value in capture.items() if key not in judgments}
-    declared = {key: value for key, value in declaration.capture.items() if key not in judgments}
-    return carried != declared
+    return descriptive_facts(capture) != descriptive_facts(declaration.capture)
 
 
 def _sequence_timing_changed(
@@ -103,6 +102,4 @@ def _sequence_timing_changed(
     images = declaration.image_sequence
     if images is None:
         return False
-    rate = images.frame_rate
-    time_base = None if rate is None else f"{rate.denominator}/{rate.numerator}"
-    return bool(sequence.get("time_base") != time_base)
+    return bool(sequence.get("time_base") != time_base(images.frame_rate))

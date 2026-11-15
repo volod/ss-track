@@ -30,7 +30,8 @@ tasks, their decisions and their acceptance evidence:
 [source capture inspection](../records/0086-corpus-provenance-source-capture-inspection.md),
 [amendment impact](../records/0034-corpus-provenance-amendment-impact-report.md),
 [record read gate](../records/0016-data-contracts-record-read-gate.md) and the
-[corpus provenance group audit](../records/0049-corpus-provenance-corpus-provenance-audit.md).
+[corpus provenance group audits](../records/0049-corpus-provenance-corpus-provenance-audit.md)
+([second pass](../records/0091-corpus-provenance-corpus-provenance-audit.md)).
 
 The available corpus path imports declared sources and stages reviewed selections. `ss-track discover`
 proposes candidate windows of staged frames from pinned sibling embeddings and ss-video hints, scores
@@ -267,20 +268,35 @@ uncertainty visible. These are not frozen labels or held-out evidence. See the
 `corpus inspect-source` reads the current source manifest or, when a seal is supplied, the
 retained record under that seal. It reports the original capture object, source record major and
 seal, and its evidence disposition (`current`, `view`, or `facts`). An absent platform is reported
-as `unknown` separately; the capture object is not modified. Inspection uses `read_stated`, checks
-the seal and kind, and does not promote historical facts to evidence. It needs no source media and
-writes nothing. The implementation is in `corpus/sources/inspection.py`;
+as `unknown` separately; the capture object is not modified. `migration_operations` lists every
+`ss-track import` operation a `facts` record needs, to be given together, and is empty for a
+record that serves as it is:
+
+```json
+{"source_inspection": {"major": 1, "disposition": "facts", "platform": "unknown",
+ "capture": {"...": "as stated"},
+ "migration_operations": ["--amend-capture", "--amend-terms", "--redecode"]}}
+```
+
+Every older major needs `--amend-capture`; one that lacks terms or decoded facts also needs
+`--amend-terms` or `--redecode`. An import operation refuses with the same list in
+`missing_operations` when one is left out, because both come from
+`corpus/sources/replacement.py`. Inspection uses `read_stated`, checks the seal and kind, and does
+not promote historical facts to evidence. It needs no source media and writes nothing. The
+implementation is in `corpus/sources/inspection.py`;
 `tests/corpus/records/test_source_inspection.py` covers retained records and refusals.
 
 Recording declarations and source manifests use major 3. Omitted camera control and observer
 platform judgments become `unknown`. The two fields accept only the values shown below; other
-capture facts remain descriptive. Historical major 1 and 2 source records are inspectable but
-cannot serve as current evidence. To migrate one, restate its capture facts and explicitly select
-the judgments with `import --amend-capture`; the original bytes are retained under their seal.
-The operation needs no media when the declaration supplies the source hash. Add `--amend-terms`
-and/or `--redecode` if the refusal names them as required. Only those explicitly requested
-operations change their respective facts. Versions pinning the old record refuse until a successor
-is built. See the [implementation record](../records/0087-corpus-provenance-recording-capture-vocabulary.md).
+capture facts remain descriptive. `corpus/declarations/capture.py` states both vocabularies and
+reads the capture section; build counts, amendment and inspection take them from there. Historical
+major 1 and 2 source records are inspectable but cannot serve as current evidence. To migrate one,
+restate its capture facts and explicitly select the judgments with `import --amend-capture`; the
+original bytes are retained under their seal. The operation needs no media when the declaration
+supplies the source hash. Add `--amend-terms` and/or `--redecode` if the refusal names them as
+required. Only those explicitly requested operations change their respective facts. Versions pinning
+the old record refuse until a successor is built. See the [implementation
+record](../records/0087-corpus-provenance-recording-capture-vocabulary.md).
 
 ## Commands
 
@@ -439,12 +455,15 @@ and rate do not affect source identity. A different declared rate for an existin
 import conflict. Stored images and inventory are evidence, not a data-clean kind.
 
 `declarations/image_sequence.py` validates membership; `sources/image_sequence.py` copies and
-verifies it; `decoding/image_sequence.py` uses the pinned decoder for every image. The shared decode
-entry point serves import, staging, sampling and redecode. Build verifies retained image bytes;
-corpus verification retains its existing frame and source-record checks. Amendments can still
-address the identity after original images are removed using the declared hashes. Tests under
-`tests/corpus/sources/test_image_sequence.py` cover the complete flow and named failures; decoder
-fixtures live under `tests/corpus/decoding/test_image_sequence.py`. See the
+verifies it and reads its inventory; `decoding/image_sequence.py` uses the pinned decoder for every
+image. `sources/stored_media.py` is the one decode entry point for a stored source, a video file or
+a sequence directory, and serves import, staging, sampling and redecode. Interactive link review
+plays a sequence through FFmpeg's image demuxer at its declared rate, or the player's default when
+none was declared, and describes it as an image sequence instead of a video stream. Build verifies
+retained image bytes; corpus verification retains its existing frame and source-record checks.
+Amendments can still address the identity after original images are removed using the declared
+hashes. Tests under `tests/corpus/sources/test_image_sequence.py` cover the complete flow and named
+failures; decoder fixtures live under `tests/corpus/decoding/test_image_sequence.py`. See the
 [implementation record](../records/0090-corpus-provenance-frame-sequence-source-import.md).
 
 ### Video stream selection
@@ -521,11 +540,11 @@ relative to the data root.
 The command does not decide what is obsolete, delete a whole data root or touch another host. A
 second data root made only to check reproduction is the operator's to remove once its comparison
 record is kept; cleaning its frames and cache first leaves only small records.
-`core/clean.py` plans and removes using the registry in `core/clean_kinds.py`;
-`corpus/storage/clean_kinds.py` supplies corpus kinds. A task that first writes another disposable
-artifact registers its kind with the shared registry, with its restore
-path and a test, in the same change. `tests/corpus/storage/test_clean.py` covers planning, release
-and restaging to the same frame set, held locks, scratch, caches and refusals. The
+`core/clean.py` plans and removes using the registry in `core/clean_kinds.py`, which also holds
+`tool-caches` because no area owns those; `corpus/storage/clean_kinds.py` supplies the corpus kinds.
+A task that first writes another disposable artifact registers its kind with the shared registry,
+with its restore path and a test, in the same change. `tests/corpus/storage/test_clean.py` covers
+planning, release and restaging to the same frame set, held locks, scratch, caches and refusals. The
 [task record](../records/0074-adhoc-data-clean-command.md) holds the acceptance evidence.
 
 ## Stored evidence
@@ -632,8 +651,9 @@ the amended judgments. `src/ss_track/corpus/versions/capture_counts.py` owns the
 `tests/corpus/versions/test_capture_counts.py` covers the bins. See the
 [implementation record](../records/0088-corpus-provenance-capture-encounter-counts.md).
 
-`modality` is always `camera`, because import accepts only video. Streams of one encounter are not
-declared synchronized: no clock relation between them is recorded.
+`modality` is always `camera`, because every source is a camera's video file or image sequence.
+Streams of one encounter are not declared synchronized: no clock relation between them is
+recorded.
 
 `locked` records membership only. Nothing restricts who reads a locked stream, so no output may call
 it held-out. Changing any membership needs a new corpus version, and
@@ -1902,7 +1922,7 @@ accepted task, its decisions and its evidence.
 | `STREAM_OVERLAP` | Two streams use the same frames of one source, or two streams of one group share a run of identical frames |
 | `RIGHTS_CONFLICT` | Scenario sharing/sensitivity conflicts or a generated case lacks derivation permission |
 | `RETENTION_EXPIRED` | The evaluation day is after a source's inclusive retention deadline |
-| `CASE_INVALID` | A generated case does not fit its parent, changes no frame of it, does not match its parent's frame shape, or is named where preview expects the parent stream |
+| `CASE_INVALID` | A generated case does not fit its parent, changes no frame of it, does not have the frame shape its transform gives from its parent, or is named where preview expects the parent stream |
 | `TRANSFORM_REVISION_MISMATCH` | A stored case needs a transform revision this code does not provide |
 | `RECORD_TAMPERED` | A sealed record is missing, malformed, of another kind or fails its seal, states a value its contract forbids, such as a declared color matrix no conversion applies or a bundle pixel format other than `rgb24`, or a re-import finds changed stored bytes |
 | `RECORD_INVALID` | A writer produced a record its contract refuses, a reused bundle hashed other than its candidate, or a preview sheet does not fit its own layout; nothing is sealed or written. This is a defect of ss-track, not of the input. `discover verify` also refuses a run whose scores or selection its own feature rows and frames do not give, or whose method this ss-track does not know |

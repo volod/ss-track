@@ -13,7 +13,7 @@ from ss_track.corpus.hosts.hash_comparison import ComparisonResult, compare_stag
 from ss_track.corpus.hosts.host_hashes import StagedHashesResult, record_staged_hashes
 from ss_track.corpus.records.projections import installed_projections
 from ss_track.corpus.records.shapes import shapes
-from ss_track.corpus.sources.amendment import amend_source_terms
+from ss_track.corpus.sources.amendment import amend_source
 from ss_track.corpus.sources.importer import ImportResult, import_source
 from ss_track.corpus.sources.redecode import redecode_source
 from ss_track.corpus.sources.replacement import ReplacementResult
@@ -32,7 +32,7 @@ __all__ = [
     "RefusalCode",
     "ReplacementResult",
     "StagedHashesResult",
-    "amend_source_terms",
+    "amend_source",
     "build_corpus",
     "compare_staged_hashes",
     "import_source",

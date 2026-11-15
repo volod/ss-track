@@ -9,22 +9,10 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
 from ss_track.core.refusal import JsonValue
-
-CAMERA_CONTROL_MODES = (
-    "operator_steered",
-    "fixed_camera",
-    "autonomous_camera",
-    "unknown",
-)
-OBSERVER_PLATFORMS = (
-    "ground_fixed",
-    "ground_handheld",
-    "airborne",
-    "unknown",
-)
-_JUDGMENTS = (
-    ("camera_control_mode", CAMERA_CONTROL_MODES),
-    ("observer_platform", OBSERVER_PLATFORMS),
+from ss_track.corpus.declarations.capture import (
+    CAMERA_CONTROL_MODE,
+    JUDGMENTS,
+    OBSERVER_PLATFORM,
 )
 
 
@@ -38,16 +26,9 @@ class CaptureEncounterCounts:
     def to_record(self) -> dict[str, JsonValue]:
         """Return the JSON-compatible counts."""
         return {
-            "camera_control_mode": _json_counts(self.camera_control_mode),
-            "observer_platform": _json_counts(self.observer_platform),
+            CAMERA_CONTROL_MODE: dict(self.camera_control_mode),
+            OBSERVER_PLATFORM: dict(self.observer_platform),
         }
-
-
-def capture_judgments(capture: object) -> dict[str, str]:
-    """Return the two closed judgments a current source record stores."""
-    if not isinstance(capture, Mapping):
-        raise TypeError("capture")
-    return {name: _member(capture, name, vocabulary) for name, vocabulary in _JUDGMENTS}
 
 
 def count_capture_encounters(
@@ -58,30 +39,22 @@ def count_capture_encounters(
     Each item is one stream's encounter id and that stream's source judgments. Pass streams
     only: a generated case has no place in the sequence.
     """
-    bins: dict[str, dict[str, set[str]]] = {name: {} for name, _vocabulary in _JUDGMENTS}
-    for encounter_id, judgments in streams:
-        for name, _vocabulary in _JUDGMENTS:
-            bins[name].setdefault(encounter_id, set()).add(judgments[name])
+    bins = {
+        name: _distinct_encounters(streams, name, vocabulary)
+        for name, vocabulary in JUDGMENTS.items()
+    }
     return CaptureEncounterCounts(
-        camera_control_mode=_totals(bins["camera_control_mode"], CAMERA_CONTROL_MODES),
-        observer_platform=_totals(bins["observer_platform"], OBSERVER_PLATFORMS),
+        camera_control_mode=bins[CAMERA_CONTROL_MODE],
+        observer_platform=bins[OBSERVER_PLATFORM],
     )
 
 
-def _member(capture: Mapping[str, object], name: str, vocabulary: Sequence[str]) -> str:
-    value = capture[name]
-    if not isinstance(value, str) or value not in vocabulary:
-        raise TypeError(name)
-    return value
-
-
-def _totals(used: Mapping[str, set[str]], vocabulary: Sequence[str]) -> dict[str, int]:
+def _distinct_encounters(
+    streams: Sequence[tuple[str, Mapping[str, str]]], name: str, vocabulary: Sequence[str]
+) -> dict[str, int]:
     counts = dict.fromkeys(vocabulary, 0)
-    for values in used.values():
-        for value in values:
-            counts[value] += 1
+    for _encounter_id, value in {
+        (encounter_id, judgments[name]) for encounter_id, judgments in streams
+    }:
+        counts[value] += 1
     return counts
-
-
-def _json_counts(counts: Mapping[str, int]) -> dict[str, JsonValue]:
-    return {name: count for name, count in counts.items()}

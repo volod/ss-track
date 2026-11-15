@@ -11,7 +11,7 @@ from ss_track.core.evidence.sealed import read_sealed
 from ss_track.corpus import (
     ImportResult,
     RefusalCode,
-    amend_source_terms,
+    amend_source,
     build_corpus,
     import_source,
     stage_corpus,
@@ -51,10 +51,8 @@ def test_an_amendment_to_restricted_refuses_the_pinning_corpus_and_keeps_the_byt
     def no_decode(*_: object) -> None:
         raise AssertionError("an amendment decodes nothing")
 
-    monkeypatch.setattr("ss_track.corpus.sources.importer.inspect_media", no_decode)
-    result = amend_source_terms(
-        write_recording(rights=rights_with(sharing="restricted")), data_root
-    )
+    monkeypatch.setattr("ss_track.corpus.sources.importer.inspect_stored", no_decode)
+    result = amend_source(write_recording(rights=rights_with(sharing="restricted")), data_root)
     monkeypatch.undo()
 
     assert (result.status, result.changed_terms) == ("amended", ["rights.sharing"])
@@ -77,7 +75,7 @@ def test_an_amended_record_is_the_one_a_fresh_import_would_write(
     import_source(write_recording(), tmp_path / "old")
     changed = write_recording(sensitivity={"level": "high", "notes": "faces"})
 
-    amended = amend_source_terms(changed, tmp_path / "old")
+    amended = amend_source(changed, tmp_path / "old")
     fresh = import_source(changed, tmp_path / "fresh")
 
     assert amended.manifest_path.read_bytes() == fresh.manifest_path.read_bytes()
@@ -91,7 +89,7 @@ def test_a_new_corpus_version_builds_on_the_amended_record(
 ) -> None:
     staged(imported, write_corpus, data_root)
 
-    amended = amend_source_terms(write_recording(sensitivity={"level": "moderate"}), data_root)
+    amended = amend_source(write_recording(sensitivity={"level": "moderate"}), data_root)
 
     declared = write_corpus([stream_of(imported)], corpus_id="pilot-v2")
     assert build_corpus(declared, data_root).status == "built"
@@ -109,7 +107,7 @@ def test_a_linked_successor_replaces_a_version_the_amendment_refuses(
     data_root: Path,
 ) -> None:
     staged(imported, write_corpus, data_root)
-    amend_source_terms(write_recording(sensitivity={"level": "moderate"}), data_root)
+    amend_source(write_recording(sensitivity={"level": "moderate"}), data_root)
 
     declared = write_corpus([stream_of(imported)], corpus_id="pilot-v2", supersedes=CORPUS)
 
@@ -161,7 +159,7 @@ def test_after_an_amendment_only_the_new_declaration_imports_as_unchanged(
     imported: ImportResult, write_recording: WriteRecording, data_root: Path
 ) -> None:
     narrowed = write_recording(sensitivity={"level": "high"})
-    amended = amend_source_terms(narrowed, data_root)
+    amended = amend_source(narrowed, data_root)
 
     repeat = import_source(narrowed, data_root)
 
@@ -179,7 +177,7 @@ def test_a_withdrawal_stays_recordable_after_the_stored_bytes_are_removed(
     staged(imported, write_corpus, data_root)
     stored_source(imported).unlink()
 
-    amend_source_terms(write_recording(rights=rights_with(derived_frames=False)), data_root)
+    amend_source(write_recording(rights=rights_with(derived_frames=False)), data_root)
 
     refusal = refused(
         lambda: verify_corpus_frames(CORPUS, data_root), RefusalCode.SOURCE_RECORD_CHANGED
@@ -197,7 +195,7 @@ def test_an_installed_decoder_change_neither_blocks_nor_enters_an_amendment(
     upgraded = DecodePolicy(decoder="pyav", decoder_version="99", ffmpeg_version="99")
     monkeypatch.setattr("ss_track.corpus.sources.amendment.current_decode_policy", lambda: upgraded)
 
-    result = amend_source_terms(write_recording(sensitivity={"level": "high"}), data_root)
+    result = amend_source(write_recording(sensitivity={"level": "high"}), data_root)
 
     new = read_source(result.manifest_path)
     assert result.decode_policy_current is False
@@ -209,7 +207,7 @@ def test_an_installed_decoder_change_neither_blocks_nor_enters_an_amendment(
 def test_the_result_says_when_the_record_is_under_the_installed_decoder(
     imported: ImportResult, write_recording: WriteRecording, data_root: Path
 ) -> None:
-    amended = amend_source_terms(write_recording(sensitivity={"level": "high"}), data_root)
+    amended = amend_source(write_recording(sensitivity={"level": "high"}), data_root)
 
     assert amended.decode_policy_current is True
 

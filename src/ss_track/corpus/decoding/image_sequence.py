@@ -32,7 +32,7 @@ def inspect_image_sequence(
     on_frame: FrameConsumer,
     *,
     frame_rate: Fraction | None = None,
-    clock: deadline.Clock = deadline.decode_clock,
+    clock: deadline.Clock | None = None,
     decode_limit_seconds: float = deadline.DECODE_LIMIT_SECONDS,
 ) -> MediaInspection:
     """Decode each image in the supplied order, retaining only declared timing.
@@ -44,6 +44,7 @@ def inspect_image_sequence(
         raise CorpusRefusal(RefusalCode.SOURCE_NO_FRAMES, "image sequence is empty")
     if frame_rate is not None and frame_rate <= 0:
         raise ValueError("frame rate must be positive")
+    clock = deadline.decode_clock if clock is None else clock
     bound = deadline.DecodeDeadline(decode_limit_seconds, clock)
     first: MediaInspection | None = None
     for index, path in enumerate(paths):
@@ -60,7 +61,9 @@ def inspect_image_sequence(
             on_frame(frame_index, frame)
 
         try:
-            current = inspect_media(path, policy, deliver)
+            current = inspect_media(
+                path, policy, deliver, clock=clock, decode_limit_seconds=decode_limit_seconds
+            )
         except CorpusRefusal as error:
             raise CorpusRefusal(
                 error.code,
@@ -75,12 +78,17 @@ def inspect_image_sequence(
     return replace(
         first,
         container="image-sequence",
-        time_base=(
-            f"{frame_rate.denominator}/{frame_rate.numerator}" if frame_rate is not None else None
-        ),
+        time_base=time_base(frame_rate),
         pts=tuple(range(len(paths))) if frame_rate is not None else (None,) * len(paths),
         completeness_checks=(),
     )
+
+
+def time_base(frame_rate: Fraction | None) -> str | None:
+    """Return the time base a declared rate gives frame-index timestamps: its reciprocal."""
+    if frame_rate is None:
+        return None
+    return f"{frame_rate.denominator}/{frame_rate.numerator}"
 
 
 def _require_image(
@@ -100,26 +108,3 @@ def _require_image(
             f"sequence image format changed: {path.name}",
             {"frame_index": index, "name": path.name},
         )
-
-
-def inspect_stored_sequence(
-    path: Path,
-    policy: DecodePolicy,
-    on_frame: FrameConsumer,
-    clock: deadline.Clock,
-    decode_limit_seconds: float,
-) -> MediaInspection:
-    """Read the pinned sequence inventory used by all downstream decode paths."""
-    from ss_track.corpus.sources.image_sequence import image_name, read_index
-
-    inventory = read_index(path)
-    paths = [path / image_name(index) for index in range(len(inventory["hashes"]))]
-    rate = inventory["frame_rate"]
-    return inspect_image_sequence(
-        paths,
-        policy,
-        on_frame,
-        frame_rate=None if rate is None else Fraction(rate),
-        clock=clock,
-        decode_limit_seconds=decode_limit_seconds,
-    )

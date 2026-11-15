@@ -5,7 +5,8 @@
 - Id / capability: `recording-capture-vocabulary` / `corpus-provenance`
 - State: accepted
 - Source: plan task; start commit `89886a2`, clean worktree.
-- Plan counts at start: 164 (136 agent, 28 human); next agent `recording-capture-vocabulary`, next human `define-locked-test-policy`.
+- Plan counts at start: 164 (136 agent, 28 human); next agent `recording-capture-vocabulary`,
+  next human `define-locked-test-policy`.
 - Accepted task:
 
 ```markdown

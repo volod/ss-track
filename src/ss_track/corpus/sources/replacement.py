@@ -1,6 +1,6 @@
-"""Writing a successor source record, which `--amend-terms` and `--redecode` both do.
+"""Writing a successor source record, which `--amend-terms`, `--amend-capture` and `--redecode` do.
 
-Both run under one lock on the data root's imports, so two at once cannot lose a record neither
+Each runs under one lock on the data root's imports, so two at once cannot lose a record neither
 kept. Each carries every section of the existing record it does not replace, keeps the replaced
 record under its seal before writing, so a run killed at any point loses neither version, and then
 lists the corpus versions on this data root that pin the replaced record. The listing refuses
@@ -32,9 +32,17 @@ from ss_track.corpus.storage.layout import (
 )
 from ss_track.corpus.versions.impact import AmendmentImpact, report_amendment_impact
 from ss_track.schema.registry.contract import FACTS, VERSION_FIELD, VIEW
+from ss_track.schema.validation.strict import Violation
 
 UNCHANGED = "unchanged"
-REDECODE_REMEDY = "supply the missing operations together: ss-track import --amend-capture --redecode --amend-terms"
+UNSUPPLIED_REMEDY = (
+    "no import operation supplies these facts; restore the source record from a trusted copy"
+)
+AMEND_CAPTURE = "--amend-capture"
+AMEND_TERMS = "--amend-terms"
+REDECODE = "--redecode"
+_TERM_POINTERS = ("/rights", "/sensitivity")
+_DECODE_POINTERS = ("/sequence", "/decode_policy")
 _LOCK_NAME = ".amendment.lock"
 
 
@@ -109,11 +117,9 @@ def successor_of(
 ) -> dict[str, JsonValue]:
     """Return the existing record with `changes` at the current major, refusing one still short.
 
-    The current contract states every fact a record of this major holds. An amendment adds only
-    terms, and the earliest source records of major 1 also lack four decoded facts that only a
-    decode gives; a plain `--redecode` carries the existing terms forward unchanged, so a record
-    that predates required terms is short the same way. Only `--redecode --amend-terms` supply both
-    at once.
+    The current contract states every fact a record of this major holds.
+    `require_migration_operations` has already named each operation an older record needs, so a
+    successor still short here lacks a fact that no operation supplies, and nothing is written.
     """
     record = existing.record
     carried = {key: value for key, value in record.items() if key != SEAL_FIELD}
@@ -123,11 +129,26 @@ def successor_of(
         listed: list[JsonValue] = [item.to_record() for item in found]
         raise CorpusRefusal(
             RefusalCode.RECORD_SCHEMA_UNSUPPORTED,
-            "this record lacks facts of the current major that this command cannot supply alone",
+            "this record lacks facts of the current major that no import operation supplies",
             schema_details(existing.path, SOURCE_MANIFEST, record[VERSION_FIELD])
-            | {"source_sha256": source_sha256, "violations": listed, "remedy": REDECODE_REMEDY},
+            | {"source_sha256": source_sha256, "violations": listed, "remedy": UNSUPPLIED_REMEDY},
         )
     return successor
+
+
+def migration_operations(record: Mapping[str, Any]) -> tuple[list[str], list[Violation]]:
+    """Return every operation a record of an older major needs, and what it lacks today.
+
+    Every older major lacks the closed capture judgments, which only `--amend-capture` states.
+    Terms come only from `--amend-terms` and decoded facts only from `--redecode`.
+    """
+    violations = seal_violations(dict(record) | {VERSION_FIELD: SOURCE_MANIFEST.major})
+    needed = [AMEND_CAPTURE]
+    if any(item.pointer.startswith(_TERM_POINTERS) for item in violations):
+        needed.append(AMEND_TERMS)
+    if any(item.pointer.startswith(_DECODE_POINTERS) for item in violations):
+        needed.append(REDECODE)
+    return needed, violations
 
 
 def require_migration_operations(
@@ -138,22 +159,12 @@ def require_migration_operations(
     amend_terms: bool,
     redecode: bool,
 ) -> None:
-    """Name all operations needed to carry historical facts into the current major."""
+    """Refuse an older record unless every operation it needs was asked for, before any runs."""
     if existing.disposition != FACTS:
         return
-    body = dict(existing.record) | {VERSION_FIELD: SOURCE_MANIFEST.major}
-    violations = seal_violations(body)
-    missing: list[JsonValue] = []
-    if not amend_capture:
-        missing.append("--amend-capture")
-    if not amend_terms and any(
-        v.pointer.startswith(("/rights", "/sensitivity")) for v in violations
-    ):
-        missing.append("--amend-terms")
-    if not redecode and any(
-        v.pointer.startswith(("/sequence", "/decode_policy")) for v in violations
-    ):
-        missing.append("--redecode")
+    needed, violations = migration_operations(existing.record)
+    given = {AMEND_CAPTURE: amend_capture, AMEND_TERMS: amend_terms, REDECODE: redecode}
+    missing: list[JsonValue] = [operation for operation in needed if not given[operation]]
     if missing:
         raise CorpusRefusal(
             RefusalCode.RECORD_SCHEMA_UNSUPPORTED,

@@ -13,10 +13,10 @@ import av
 
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.decoding.declared_color import recorded_matrix
-from ss_track.corpus.decoding.decode import inspect_media
 from ss_track.corpus.decoding.decode_policy import current_decode_policy
 from ss_track.corpus.decoding.streams import recorded_video_stream_index
 from ss_track.corpus.sources.stored import load_verified_source
+from ss_track.corpus.sources.stored_media import inspect_stored
 from ss_track.corpus.versions.fingerprint import Grid, luma_grid, sample_indexes
 
 
@@ -48,7 +48,7 @@ def _decode_samples(stored: Path, sequence: Mapping[str, Any], wanted: set[int])
             raise _SamplesReady
 
     with suppress(_SamplesReady):
-        inspect_media(
+        inspect_stored(
             stored,
             policy,
             on_frame,

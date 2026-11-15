@@ -9,7 +9,7 @@ from ss_track.cli import main
 from ss_track.commands.report import EXIT_OK
 from ss_track.corpus import (
     ImportResult,
-    amend_source_terms,
+    amend_source,
     build_corpus,
     redecode_source,
     stage_corpus,
@@ -46,7 +46,7 @@ def _narrow(write_recording: WriteRecording, source: ImportResult) -> Path:
 def test_an_amendment_no_version_pins_omits_the_listing(
     imported: ImportResult, write_recording: WriteRecording, data_root: Path
 ) -> None:
-    result = amend_source_terms(_narrow(write_recording, imported), data_root)
+    result = amend_source(_narrow(write_recording, imported), data_root)
 
     assert result.status == "amended"
     assert "impact" not in result.to_record()
@@ -116,7 +116,7 @@ def test_a_version_is_listed_once_however_many_streams_pin_the_record(
     copy["stream_id"] = "two"
     reseal(built.manifest_path, streams=[streams[0], copy])
 
-    result = amend_source_terms(_narrow(write_recording, imported), data_root)
+    result = amend_source(_narrow(write_recording, imported), data_root)
 
     assert result.to_record()["impact"] == {"versions": [_version(data_root, "pilot-v1")]}
 
@@ -131,7 +131,7 @@ def test_an_unreadable_corpus_directory_does_not_fail_the_amendment(
     corpus = data_root / "corpus"
     corpus.chmod(0)
     try:
-        result = amend_source_terms(_narrow(write_recording, imported), data_root)
+        result = amend_source(_narrow(write_recording, imported), data_root)
     finally:
         corpus.chmod(0o755)
 

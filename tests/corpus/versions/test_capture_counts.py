@@ -4,9 +4,9 @@ import json
 from pathlib import Path
 
 from ss_track.core.evidence.sealed import read_sealed
-from ss_track.corpus import ImportResult, RefusalCode, amend_source_terms, build_corpus
+from ss_track.corpus import ImportResult, RefusalCode, amend_source, build_corpus
+from ss_track.corpus.declarations.capture import CAMERA_CONTROL_MODES, OBSERVER_PLATFORMS
 from ss_track.corpus.records.kinds import CORPUS_MANIFEST, SOURCE_MANIFEST
-from ss_track.corpus.versions.capture_counts import CAMERA_CONTROL_MODES, OBSERVER_PLATFORMS
 from ss_track.schema.registry.store import load_contract_set
 from ss_track.schema.validation.enforce import older_remedy
 from tests.corpus.conftest import (
@@ -169,7 +169,7 @@ def test_a_historical_source_refuses_then_counts_after_amendment(
         "clip-34.mkv",
         capture={"camera_control_mode": "operator_steered", "observer_platform": "airborne"},
     )
-    amended = amend_source_terms(declaration, data_root, amend_capture=True, amend_terms=False)
+    amended = amend_source(declaration, data_root, amend_capture=True, amend_terms=False)
     assert amended.replaced_path is not None
     assert amended.replaced_path.read_bytes() == historical
     built = build_corpus(write_grouped_corpus(groups), data_root)

@@ -33,37 +33,6 @@ hardware or private data.
 
 ## Agent Implementation Tasks
 
-### Corpus provenance -- `corpus-provenance`
-
-#### corpus-provenance-audit (optional)
-
-The corpus area needs a coherent account of source identity, capture facts, generated cases and
-the evidence linking them as implementation evolves.
-
-- Serves: `corpus-provenance` -- [Corpus
-  identity](../design/spec.md#41-corpus-identity-and-input-handling)
-- Agent status: CLEAR
-- Milestone: M1
-- Effort: high
-- Dependencies: every other agent task in this group.
-- User-visible outcome: Corpus evidence has clear, consistent contracts, lineage and governance,
-  with an implementation that supports effective future work.
-- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
-  audit](../guide/planning-workflow.md#group-audits) rules. Improve implementation and contracts when
-  doing so advances clarity, lineage, governance or future effectiveness; historical formats and
-  their bytes need not be preserved. Retain the integrity of current evidence, or regenerate it.
-- Data and artifact paths: `src/ss_track/core/`, `src/ss_track/corpus/`, `tests/core/`,
-  `tests/corpus/`, `contracts/`, and affected corpus evidence under `$DATA_DIR`.
-- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Trace source
-  identity, sealing, capture facts, generated cases and downstream consumers. Simplify obsolete
-  compatibility paths and update affected contracts, fixtures and documentation; regenerate affected
-  corpus evidence when needed.
-- Acceptance gates: Current contracts and evidence agree, import and verification protect source
-  integrity, lineage and governance are clear, and generated cases reproduce on rerun. Every finding
-  is fixed, routed to a task or dropped with its reason, and `make quality` passes. Finding nothing
-  is a valid result when the record states what was reviewed.
-- Documentation target: [Corpus](current/corpus.md).
-
 ### Annotation and selection -- `annotation-selection`
 
 #### scenario-pack-contract

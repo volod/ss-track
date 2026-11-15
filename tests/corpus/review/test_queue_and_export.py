@@ -9,7 +9,7 @@ import yaml
 
 from ss_track.cli import main
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
-from ss_track.corpus import ImportResult, amend_source_terms, build_corpus, stage_corpus
+from ss_track.corpus import ImportResult, amend_source, build_corpus, stage_corpus
 from ss_track.corpus.declarations.declaration import load_corpus_declaration
 from ss_track.corpus.review.decisions import read_review
 from ss_track.corpus.review.export import export_review
@@ -129,9 +129,7 @@ def test_an_export_never_replaces_another_declaration(
 def test_withdrawn_rights_after_the_run_refuse_the_export(
     pool: tuple[ImportResult, ...], data_root: Path, media: Path, write_recording: WriteRecording
 ) -> None:
-    amend_source_terms(
-        write_recording("clip-2.mkv", rights=rights_with(sharing="public")), data_root
-    )
+    amend_source(write_recording("clip-2.mkv", rights=rights_with(sharing="public")), data_root)
 
     with pytest.raises(CorpusRefusal) as caught:
         export_stock(media, data_root)

@@ -7,20 +7,21 @@ import pytest
 
 from ss_track.cli import main
 from ss_track.commands.report import EXIT_OK, EXIT_REFUSED
+from ss_track.corpus.sources.importer import ImportResult
 from tests.corpus._historic import RECORDS, place_record
 from tests.corpus.conftest import last_record, reseal
 
 
 @pytest.mark.parametrize(
-    "name",
+    ("name", "operations"),
     [
-        "source-schema-1-0238d55.json",
-        "source-schema-1-d6b704d.json",
-        "source-schema-2-129a350.json",
+        ("source-schema-1-0238d55.json", ["--amend-capture", "--amend-terms", "--redecode"]),
+        ("source-schema-1-d6b704d.json", ["--amend-capture", "--amend-terms"]),
+        ("source-schema-2-129a350.json", ["--amend-capture"]),
     ],
 )
 def test_kept_records_are_inspected_without_media(
-    name: str, cli_root: Path, caplog: pytest.LogCaptureFixture
+    name: str, operations: list[str], cli_root: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
     original = json.loads((RECORDS / name).read_bytes())
     source = original["source"]["sha256"]
@@ -36,9 +37,20 @@ def test_kept_records_are_inspected_without_media(
         "disposition": "facts",
         "capture": original["capture"],
         "platform": "unknown",
+        "migration_operations": operations,
     }
     assert path.read_bytes() == before
     assert list(path.parent.iterdir()) == [path]
+
+
+def test_a_current_record_needs_no_migration(
+    imported: ImportResult, cli_root: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    assert main(["corpus", "inspect-source", "--source-sha256", imported.source_sha256]) == EXIT_OK
+    inspection = last_record(caplog)["source_inspection"]
+    assert isinstance(inspection, dict)
+    assert inspection["disposition"] == "current"
+    assert inspection["migration_operations"] == []
 
 
 @pytest.mark.parametrize("value", ["operator description", 42.5, None])

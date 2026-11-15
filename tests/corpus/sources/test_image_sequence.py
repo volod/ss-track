@@ -8,7 +8,7 @@ import yaml
 from ss_track.core.evidence.sealing import sha256_file
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
 from ss_track.corpus import (
-    amend_source_terms,
+    amend_source,
     build_corpus,
     import_source,
     redecode_source,
@@ -57,7 +57,7 @@ def test_sequence_import_build_stage_repeats(
     assert staged.bundles[0].bundle_sha256 == repeated.bundles[0].bundle_sha256
     assert verify_corpus_frames("pilot-v1", data_root).status == "verified"
     assert redecode_source(path, data_root).status == "unchanged"
-    assert amend_source_terms(path, data_root).status == "unchanged"
+    assert amend_source(path, data_root).status == "unchanged"
     verified = load_verified_source(first.source_sha256, data_root)
     assert sampled_frames(first.source_sha256, [(0, 4)], data_root)
     timing = StreamTiming("one", first.source_sha256, 0, 4, verified.sequence)
@@ -103,7 +103,7 @@ def test_rate_conflict_and_amendment_without_original_images(media: Path, data_r
     path.write_text(yaml.safe_dump(body), encoding="ascii")
     for original in media.glob("*.png"):
         original.unlink()
-    assert amend_source_terms(path, data_root).source_sha256 == first.source_sha256
+    assert amend_source(path, data_root).source_sha256 == first.source_sha256
     assert redecode_source(path, data_root).status == "unchanged"
 
 

@@ -453,12 +453,14 @@ fields, retains the original record under its seal, and preserves source identit
 capture fields, terms and decoded facts. It reuses the source replacement lock and impact report.
 Ordinary import, terms amendment and redecode never silently restate capture judgments.
 
-Capture amendment may be combined with terms amendment and redecode when an older record also
-lacks their facts. A refusal names every additionally required operation; no partial successor is
-published. Missing media permits a metadata-only amendment by declared source identity, but not a
-redecode. Repeating an accepted amendment writes nothing. Versions pinning the replaced record
-remain unchanged and refuse use; the operator builds a successor version with the original groups
-and splits. A vocabulary migration never bypasses a leakage comparison or changes a source hash.
+Capture amendment may be combined with terms amendment and redecode when an older record also lacks
+their facts. A refusal names every additionally required operation; no partial successor is
+published. Source inspection names the same operations in advance, from the same rule, so an
+operator learns the whole migration before running any of it. Missing media permits a metadata-only
+amendment by declared source identity, but not a redecode. Repeating an accepted amendment writes
+nothing. Versions pinning the replaced record remain unchanged and refuse use; the operator builds a
+successor version with the original groups and splits. A vocabulary migration never bypasses a
+leakage comparison or changes a source hash.
 
 Build reports count distinct encounters separately for each control mode and platform, including
 all vocabulary bins with zero counts. Repeated streams in one encounter count once per bin;

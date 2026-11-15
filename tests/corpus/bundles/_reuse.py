@@ -15,8 +15,9 @@ from ss_track.corpus import (
     stage_corpus,
 )
 from ss_track.corpus.bundles import bundle_writer
-from ss_track.corpus.decoding.decode import FrameConsumer, MediaInspection, inspect_media
+from ss_track.corpus.decoding.decode import FrameConsumer, MediaInspection
 from ss_track.corpus.decoding.decode_policy import DecodePolicy
+from ss_track.corpus.sources.stored_media import inspect_stored
 from ss_track.schema.registry.store import load_contract_set
 from ss_track.schema.validation.strict import violations
 from tests.corpus.conftest import WriteCorpus, stream_of
@@ -44,14 +45,14 @@ class Decodes:
     ) -> MediaInspection:
         self.calls += 1
         if on_frame is None:
-            return inspect_media(path, policy, video_stream_index=video_stream_index)
-        return inspect_media(path, policy, on_frame, video_stream_index=video_stream_index)
+            return inspect_stored(path, policy, video_stream_index=video_stream_index)
+        return inspect_stored(path, policy, on_frame, video_stream_index=video_stream_index)
 
 
 def watch(monkeypatch: pytest.MonkeyPatch) -> Decodes:
     """Count decodes performed by bundle staging."""
     decoder = Decodes()
-    monkeypatch.setattr(bundle_writer, "inspect_media", decoder)
+    monkeypatch.setattr(bundle_writer, "inspect_stored", decoder)
     return decoder
 
 

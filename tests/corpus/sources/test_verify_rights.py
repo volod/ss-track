@@ -15,7 +15,7 @@ from ss_track.corpus import (
     CorpusRefusal,
     ImportResult,
     RefusalCode,
-    amend_source_terms,
+    amend_source,
     build_corpus,
     import_source,
     stage_corpus,
@@ -52,7 +52,7 @@ def test_a_source_amended_to_restricted_refuses_and_exits_one(
     stage_corpus(CORPUS, cli_root)
     assert main(["corpus", "verify", "--corpus", CORPUS]) == EXIT_OK
 
-    closed = amend_source_terms(write_recording(rights=rights_with(sharing="restricted")), cli_root)
+    closed = amend_source(write_recording(rights=rights_with(sharing="restricted")), cli_root)
 
     assert main(["corpus", "verify", "--corpus", CORPUS]) == EXIT_REFUSED
     refusal = last_record(caplog)
@@ -126,7 +126,7 @@ def test_the_refusal_names_every_term_that_changed(
 ) -> None:
     stage_before(imported, write_corpus, data_root)
 
-    amend_source_terms(write_recording(**declared), data_root)
+    amend_source(write_recording(**declared), data_root)
 
     refusal = refused_verify(data_root, RefusalCode.SOURCE_RECORD_CHANGED)
     assert refusal.details["changed_terms"] == changed
@@ -157,7 +157,7 @@ def test_withdrawing_derivation_refuses_the_cases_of_a_staged_corpus(
     stage_corpus(CORPUS, data_root)
     assert verify_corpus_frames(CORPUS, data_root).status == "verified"
 
-    amend_source_terms(write_recording(rights=rights_with(derived_frames=False)), data_root)
+    amend_source(write_recording(rights=rights_with(derived_frames=False)), data_root)
 
     refusal = refused_verify(data_root, RefusalCode.SOURCE_RECORD_CHANGED)
     assert refusal.details["changed_terms"] == ["rights.derived_frames"]
@@ -185,7 +185,7 @@ def test_a_new_corpus_version_carries_the_withdrawn_rights_and_the_old_one_stays
     build_corpus(public, data_root)
     stage_corpus(CORPUS, data_root)
 
-    amend_source_terms(write_recording(rights=rights_with(sharing="restricted")), data_root)
+    amend_source(write_recording(rights=rights_with(sharing="restricted")), data_root)
 
     with pytest.raises(CorpusRefusal) as caught:
         build_corpus(public, data_root)

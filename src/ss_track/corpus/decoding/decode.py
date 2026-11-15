@@ -1,9 +1,10 @@
-"""The one full-decode inspection of a source, under the canonical decode policy.
+"""The one full-decode inspection of a media file, under the canonical decode policy.
 
 Default FFmpeg behavior is unsafe for evidence: it conceals damaged macroblocks, returns a short
 read as a clean end of file, and invents timestamps a file never stored. The policy in
-`corpus.decoding.decode_policy` turns those into visible failures, and `inspect_media` treats every remaining
-signal as one.
+`corpus.decoding.decode_policy` turns those into visible failures, and `inspect_media` treats every
+remaining signal as one. A stored source is decoded through `corpus.sources.stored_media`, which
+reads a video file here and an image sequence image by image.
 """
 
 from collections.abc import Callable, Iterator
@@ -90,14 +91,14 @@ def _ffmpeg_errors() -> Iterator[FfmpegLog]:
         av.logging.set_skip_repeated(skip_repeated)
 
 
-def _ignore_frame(_: int, __: av.VideoFrame) -> None:
+def ignore_frame(_: int, __: av.VideoFrame) -> None:
     """Inspection needs only the account of each frame, not its pixels."""
 
 
 def inspect_media(
     path: Path,
     policy: DecodePolicy,
-    on_frame: FrameConsumer = _ignore_frame,
+    on_frame: FrameConsumer = ignore_frame,
     *,
     video_stream_index: int | None = None,
     clock: deadline.Clock | None = None,
@@ -112,16 +113,6 @@ def inspect_media(
     The decode loop stops once `clock` runs past `decode_limit_seconds`. The default clock is
     monotonic time and the default limit is the declared bound.
     """
-    if path.is_dir():
-        from ss_track.corpus.decoding.image_sequence import inspect_stored_sequence
-
-        return inspect_stored_sequence(
-            path,
-            policy,
-            on_frame,
-            deadline.decode_clock if clock is None else clock,
-            decode_limit_seconds,
-        )
     chosen_clock = deadline.decode_clock if clock is None else clock
     with _ffmpeg_errors() as logs, open_media(path, policy.format_options) as container:
         return _inspect_container(

@@ -6,7 +6,7 @@ from pathlib import Path
 from ss_track.commands import Subcommands
 from ss_track.commands.report import reported_on_data_root
 from ss_track.corpus import (
-    amend_source_terms,
+    amend_source,
     compare_staged_hashes,
     record_staged_hashes,
     redecode_source,
@@ -107,7 +107,7 @@ def _run_import(args: argparse.Namespace) -> int:
         )
     if args.amend_terms or args.amend_capture:
         return reported_on_data_root(
-            lambda data_root: amend_source_terms(
+            lambda data_root: amend_source(
                 args.source,
                 data_root,
                 amend_terms=args.amend_terms,

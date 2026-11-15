@@ -6,7 +6,7 @@ import pytest
 
 from ss_track.core.evidence.sealed import StatedRecord, read_sealed, read_stated
 from ss_track.core.refusal import JsonValue
-from ss_track.corpus import ImportResult, amend_source_terms
+from ss_track.corpus import ImportResult, amend_source
 from ss_track.corpus.records.kinds import SOURCE_MANIFEST
 from ss_track.corpus.sources import replacement
 from ss_track.schema.registry.contract import VIEW
@@ -38,7 +38,7 @@ def test_the_replaced_record_is_the_one_written_and_the_successor_carries_the_vi
     written = imported.manifest_path.read_bytes()
     _read_as_a_view(monkeypatch)
 
-    result = amend_source_terms(write_recording(sensitivity={"level": "high"}), data_root)
+    result = amend_source(write_recording(sensitivity={"level": "high"}), data_root)
 
     assert result.replaced_path is not None
     assert result.replaced_path.read_bytes() == written

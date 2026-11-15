@@ -46,13 +46,13 @@ def test_missing_and_mixed_image_name_the_offender(tmp_path: Path) -> None:
 
 def test_sequence_deadline_covers_all_images(tmp_path: Path) -> None:
     path = image(tmp_path / "one.png", 1)
-    clock = iter([0.0, 0.0, 2.0])
+    readings = iter([0.0])  # the sequence starts at 0; each image then sees 2.0 throughout
     with pytest.raises(CorpusRefusal) as error:
         inspect_image_sequence(
             [path],
             current_decode_policy(),
             lambda *_: None,
-            clock=lambda: next(clock),
+            clock=lambda: next(readings, 2.0),
             decode_limit_seconds=1.0,
         )
     assert error.value.code == RefusalCode.DECODE_TIME_EXCEEDED

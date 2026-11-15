@@ -39,12 +39,18 @@ baseline scope and evidence. The installed set contains these document contracts
 | `record/corpus-pool` | `1.0.0` |
 | `record/source-manifest` | `2.0.0`, `2.1.0`, `2.2.0`, `2.3.0`, `2.4.0`, `3.0.0`, `3.1.0` |
 | `record/image-sequence` | `1.0.0` |
-| `result/command` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0`, `1.4.0`, `1.5.0`, `1.6.0`, `1.7.0`, `1.8.0`, `1.9.0`, `1.9.1`, `1.10.0`, `1.11.0`, `1.12.0`, `1.13.0`, `1.14.0`, `1.15.0`, `1.16.0`, `1.17.0`, `1.18.0`, `1.19.0`, `1.20.0`, `1.21.0`, `1.22.0`, `1.23.0`, `1.24.0`, `1.25.0`, `1.26.0`, `1.27.0`, `1.28.0` |
+| `result/command` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0`, `1.4.0`, `1.5.0`, `1.6.0`, `1.7.0`, `1.8.0`, `1.9.0`, `1.9.1`, `1.10.0`, `1.11.0`, `1.12.0`, `1.13.0`, `1.14.0`, `1.15.0`, `1.16.0`, `1.17.0`, `1.18.0`, `1.19.0`, `1.20.0`, `1.21.0`, `1.22.0`, `1.23.0`, `1.24.0`, `1.25.0`, `1.26.0`, `1.27.0`, `1.28.0`, `1.29.0` |
 
 `declaration/recording` 3.1.0 adds explicit PNG membership and an optional rational frame rate.
 `record/source-manifest` 3.1.0 pins a retained image inventory; `record/image-sequence` 1.0.0
 seals its ordered image hashes and declared rate. All inventory reads use the shared sealed-record
 gate. The [sequence source interface](corpus.md#ordered-image-sequences) states identity and timing.
+
+`result/command` `1.29.0` adds `migration_operations` to `source_inspection`: every
+`ss-track import` operation a `facts` source record needs before it serves again, empty for a
+record that serves as it is. Its `capture` also states `observer_platform`, which a current source
+record holds; `1.27.0` and `1.28.0` predate that field, so an inspection of a current record did
+not conform to them.
 
 `result/command` `1.28.0` adds optional `capture_encounters` on a corpus build. Each camera-control
 mode and each observer platform has its own encounter count, including a count of zero.

@@ -95,5 +95,6 @@ Copy the [template](template.md) using the
 | 0088 | `capture-encounter-counts` | [0088-corpus-provenance-capture-encounter-counts](0088-corpus-provenance-capture-encounter-counts.md) |
 | 0089 | `scale-reduction-case` | [0089-corpus-provenance-scale-reduction-case](0089-corpus-provenance-scale-reduction-case.md) |
 | 0090 | `frame-sequence-source-import` | [0090-corpus-provenance-frame-sequence-source-import](0090-corpus-provenance-frame-sequence-source-import.md) |
+| 0091 | `corpus-provenance-audit` | [0091-corpus-provenance-corpus-provenance-audit](0091-corpus-provenance-corpus-provenance-audit.md) |
 
-Next unused sequence: `0091`.
+Next unused sequence: `0092`.

@@ -5,11 +5,13 @@ from pathlib import Path
 
 import pytest
 
-from ss_track.corpus import RefusalCode, amend_source_terms
+from ss_track.core.refusal import JsonValue
+from ss_track.corpus import RefusalCode, amend_source
 from ss_track.corpus.declarations.declaration import load_recording_declaration
 from ss_track.corpus.sources.inspection import inspect_source
+from ss_track.corpus.sources.replacement import UNSUPPLIED_REMEDY, ExistingRecord, successor_of
 from tests.corpus._amending import read_source, refused
-from tests.corpus._historic import kept_record
+from tests.corpus._historic import kept_record, place_record
 from tests.corpus.conftest import WriteRecording
 
 
@@ -23,12 +25,8 @@ def test_invalid_judgment_names_field(write_recording: WriteRecording, field: st
 def test_old_source_migrates_without_media_and_retains_bytes(
     write_recording: WriteRecording, data_root: Path
 ) -> None:
-    original = kept_record("source-schema-2-129a350.json")
-    old = json.loads(original)
+    original, old, path = _place_historic("source-schema-2-129a350.json", data_root)
     sha256 = old["source"]["sha256"]
-    path = data_root / "import" / sha256 / "manifest.json"
-    path.parent.mkdir(parents=True)
-    path.write_bytes(original)
     declaration = write_recording(
         source="missing.mkv",
         sha256=sha256,
@@ -37,12 +35,12 @@ def test_old_source_migrates_without_media_and_retains_bytes(
     inspected = inspect_source(sha256, None, data_root)
     assert inspected.to_record()["source_inspection"]["disposition"] == "facts"
     refusal = refused(
-        lambda: amend_source_terms(declaration, data_root), RefusalCode.RECORD_SCHEMA_UNSUPPORTED
+        lambda: amend_source(declaration, data_root), RefusalCode.RECORD_SCHEMA_UNSUPPORTED
     )
     assert "--amend-capture" in refusal.details["missing_operations"]
     assert path.read_bytes() == original
 
-    result = amend_source_terms(declaration, data_root, amend_capture=True, amend_terms=False)
+    result = amend_source(declaration, data_root, amend_capture=True, amend_terms=False)
     current = read_source(path)
     assert current["capture"]["camera_control_mode"] == "fixed_camera"
     assert current["capture"]["observer_platform"] == "ground_fixed"
@@ -58,7 +56,7 @@ def test_old_source_migrates_without_media_and_retains_bytes(
     ):
         assert current[key] == old[key]
     assert (
-        amend_source_terms(declaration, data_root, amend_capture=True, amend_terms=False).status
+        amend_source(declaration, data_root, amend_capture=True, amend_terms=False).status
         == "unchanged"
     )
 
@@ -66,16 +64,12 @@ def test_old_source_migrates_without_media_and_retains_bytes(
 def test_incomplete_historical_migration_names_every_missing_operation(
     write_recording: WriteRecording, data_root: Path
 ) -> None:
-    original = kept_record("source-schema-1-0238d55.json")
-    old = json.loads(original)
+    original, old, path = _place_historic("source-schema-1-0238d55.json", data_root)
     sha256 = old["source"]["sha256"]
-    path = data_root / "import" / sha256 / "manifest.json"
-    path.parent.mkdir(parents=True)
-    path.write_bytes(original)
     declaration = write_recording(source="missing.mkv", sha256=sha256)
 
     refusal = refused(
-        lambda: amend_source_terms(declaration, data_root, amend_terms=False),
+        lambda: amend_source(declaration, data_root, amend_terms=False),
         RefusalCode.RECORD_SCHEMA_UNSUPPORTED,
     )
     assert set(refusal.details["missing_operations"]) == {
@@ -120,7 +114,7 @@ def test_capture_change_lists_pinned_version_and_allows_successor(
     corpus_writer: WriteCorpus = write_corpus
     staged(imported, corpus_writer, data_root)
     declaration = write_recording(capture={"observer_platform": "airborne"})
-    result = amend_source_terms(declaration, data_root, amend_capture=True, amend_terms=False)
+    result = amend_source(declaration, data_root, amend_capture=True, amend_terms=False)
     assert result.impact is not None
     assert "pilot-v1" in str(result.impact.to_record())
     refused(lambda: verify_corpus_frames("pilot-v1", data_root), RefusalCode.SOURCE_RECORD_CHANGED)
@@ -139,8 +133,34 @@ def test_capture_amendment_refuses_other_capture_changes(
         capture={"camera": "a different camera", "observer_platform": "airborne"}
     )
     refusal = refused(
-        lambda: amend_source_terms(declaration, data_root, amend_capture=True, amend_terms=False),
+        lambda: amend_source(declaration, data_root, amend_capture=True, amend_terms=False),
         RefusalCode.IMPORT_CONFLICT,
     )
     assert refusal.details["changed_facts"] == ["capture"]
     assert imported.manifest_path.read_bytes() == before
+
+
+def test_a_successor_short_of_facts_no_operation_supplies_names_none(data_root: Path) -> None:
+    original, old, path = _place_historic("source-schema-2-129a350.json", data_root)
+    existing = ExistingRecord(path, old, old, "facts")
+    capture = dict(old["capture"]) | {
+        "camera_control_mode": "unknown",
+        "observer_platform": "unknown",
+    }
+    short = {"capture": capture, "origin": "not a list"}
+
+    refusal = refused(
+        lambda: successor_of(existing, short, old["source"]["sha256"]),
+        RefusalCode.RECORD_SCHEMA_UNSUPPORTED,
+    )
+    assert refusal.details["remedy"] == UNSUPPLIED_REMEDY
+    assert [item["pointer"] for item in refusal.details["violations"]] == ["/origin"]
+    assert path.read_bytes() == original
+
+
+def _place_historic(name: str, data_root: Path) -> tuple[bytes, dict[str, JsonValue], Path]:
+    """Place one kept source record where its import would be, and return its bytes and fields."""
+    original = kept_record(name)
+    old = json.loads(original)
+    path = place_record(name, data_root / "import" / old["source"]["sha256"] / "manifest.json")
+    return original, old, path

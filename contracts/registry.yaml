@@ -1061,6 +1061,15 @@ contracts:
     change:
       class: minor
       summary: Count distinct encounters by camera-control mode and observer platform.
+  - version: 1.29.0
+    file_sha256: 136b9963d6ec41725542426816653a28bac6e295543c1d3114da84ea834329da
+    fingerprints:
+      structure: e54046a2228615f2c2f0872578544137d8c272539ed696a7609ca80bce6512cb
+      meaning: fa1978a356a3f7344265be8d5f235950ff984f06cdbd04c7e1721706398316b4
+    change:
+      class: minor
+      summary: Source inspection states a current record's observer platform and names
+        the import operations a facts record needs.
 - family: shared
   id: types
   owner: data-contracts

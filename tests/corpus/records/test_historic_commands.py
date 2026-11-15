@@ -17,7 +17,7 @@ from ss_track.corpus import (
     CorpusRefusal,
     ImportResult,
     RefusalCode,
-    amend_source_terms,
+    amend_source,
     build_corpus,
     import_source,
     open_frame_bundle,
@@ -156,14 +156,12 @@ def test_a_reimport_over_an_older_source_names_the_amendment_which_then_accepts_
     path.chmod(0o644)
     place_record("source-schema-1-d6b704d.json", path)
     with monkeypatch.context() as patched:
-        patched.setattr("ss_track.corpus.sources.importer.inspect_media", no_decode)
+        patched.setattr("ss_track.corpus.sources.importer.inspect_stored", no_decode)
         refusal = _import_refused(data_root, write_recording())
 
     _older(refusal.details, SOURCE_MANIFEST, 1)
     assert "--amend-terms" in refusal.message
-    amended = amend_source_terms(
-        write_recording(rights=rights_with()), data_root, amend_capture=True
-    )
+    amended = amend_source(write_recording(rights=rights_with()), data_root, amend_capture=True)
     assert amended.status == "amended"
     assert read_sealed(path, SOURCE_MANIFEST)["schema_version"] == SOURCE_MANIFEST.major
 

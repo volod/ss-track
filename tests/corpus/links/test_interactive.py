@@ -14,6 +14,7 @@ from ss_track.core.scratch import exclusive_lock
 from ss_track.corpus.links import interactive
 from ss_track.corpus.links.decisions import read_decisions
 from ss_track.corpus.links.interactive import conduct_review
+from ss_track.corpus.sources.stored_media import describe_stored, player_input
 from ss_track.corpus.storage.layout import discovery_run_directory
 
 A, B, C, D = ("a" * 64, "b" * 64, "c" * 64, "d" * 64)
@@ -200,5 +201,17 @@ def test_player_uses_the_recorded_video_stream(monkeypatch: pytest.MonkeyPatch) 
         return subprocess.CompletedProcess(command, 0)
 
     monkeypatch.setattr(interactive.subprocess, "run", run)
-    assert interactive._play(Path("movie.mp4"), 1)
+    assert interactive._play(player_input(Path("movie.mp4"), {"video_stream_index": 1}))
     assert seen[0][seen[0].index("-vst") + 1] == "v:1"
+
+
+@pytest.mark.parametrize(("time_base", "rate"), [("1/25", ["-framerate", "25"]), (None, [])])
+def test_an_image_sequence_plays_its_retained_images_at_its_declared_rate(
+    tmp_path: Path, time_base: str | None, rate: list[str]
+) -> None:
+    stored = tmp_path / "source.sequence"
+    stored.mkdir()
+    sequence = {"time_base": time_base, "frame_count": 3}
+
+    assert player_input(stored, sequence) == ["-f", "image2", *rate, "-i", f"{stored}/%08d.png"]
+    assert describe_stored(stored, sequence) == f"{stored} (image sequence of 3 images)"

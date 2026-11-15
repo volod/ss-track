@@ -1,11 +1,11 @@
-"""Record explicit terms or capture judgments for an imported source, decoding nothing.
+"""`ss-track import --amend-terms` and `--amend-capture`: restate source facts, decoding nothing.
 
-Only explicitly requested terms or capture judgments change. Other facts are carried from the
-existing record, so restoring a current record's prior values restores its seal. Stored bytes are not read: a
-withdrawal must stay recordable after an operator has already removed them, and `corpus build`
-hashes them again regardless. The installed decoder is not consulted either, because recording
-narrower terms must not need a decode of the material they withdraw. The successor is written as
-`corpus.sources.replacement` states, which `--redecode` shares.
+Only the terms or capture judgments asked for change. Every other fact is carried from the
+existing record, so restoring a current record's prior values restores its seal. Stored bytes are
+not read: a withdrawal must stay recordable after an operator has already removed them, and
+`corpus build` hashes them again regardless. The installed decoder is not consulted either,
+because recording narrower terms must not need a decode of the material they withdraw. The
+successor is written as `corpus.sources.replacement` states, which `--redecode` shares.
 """
 
 from collections.abc import Mapping
@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from ss_track.core.refusal import JsonValue
+from ss_track.corpus.declarations.capture import with_judgments
 from ss_track.corpus.declarations.declaration import (
     RecordingDeclaration,
     load_recording_declaration,
@@ -36,7 +37,7 @@ _NOT_IMPORTED = (
 )
 
 
-def amend_source_terms(
+def amend_source(
     declaration_path: Path,
     data_root: Path,
     *,
@@ -79,7 +80,4 @@ def capture_changes(
     record: Mapping[str, Any], declaration: RecordingDeclaration
 ) -> dict[str, JsonValue]:
     """Replace only the explicit capture judgments, retaining every other capture fact."""
-    capture = dict(record["capture"])
-    for name in ("camera_control_mode", "observer_platform"):
-        capture[name] = declaration.capture[name]
-    return {"capture": capture}
+    return {"capture": with_judgments(record["capture"], declaration.capture)}
