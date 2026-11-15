@@ -11,6 +11,7 @@ from ss_track.corpus.declarations.fields import TEXT_RULE
 from ss_track.corpus.decoding.declared_color import MATRIX_CODES
 from ss_track.corpus.descriptors.descriptor_public import SPLITS
 from ss_track.corpus.records.kinds import (
+    ANNOTATION_REVISION,
     AUDIT_BLINDING,
     CANDIDATE_INVENTORY,
     CORPUS_FREEZE,
@@ -47,6 +48,7 @@ _WRITTEN = (
     FRAME_BUNDLE,
     FRAME_SET,
     HASH_COMPARISON,
+    ANNOTATION_REVISION,
     IMAGE_SEQUENCE,
     LINK_REVIEW_HANDOFF,
     SOURCE_ACQUISITION,

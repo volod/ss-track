@@ -1,0 +1,50 @@
+{
+  "authority": "ada",
+  "coverage": "entire",
+  "disagreements": [
+    {
+      "difficult": true,
+      "event_id": null,
+      "field": "visibility",
+      "frame_index": 0,
+      "instance_id": "target-1",
+      "left": "\"visible\"",
+      "obligation": "required",
+      "outcome": "left",
+      "rationale": "the bird is visible in the stored frame",
+      "right": "\"absent\"",
+      "subject": "frame"
+    }
+  ],
+  "kind": "ss-track.annotation-revision",
+  "label_sha256": "abababababababababababababababababababababababababababababababab",
+  "manifest_sha256": "362c9fb6ecdbbbeaba9aeffcf830e1a03b09dfb1c21f460c9166e5a38a6f90e9",
+  "pack_hash": "abababababababababababababababababababababababababababababababab",
+  "pack_id": "aerial-small-objects",
+  "review_sha256": "efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef",
+  "reviewers": [
+    {
+      "annotator_ids": [
+        "ann-a"
+      ],
+      "label_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "side": "left"
+    },
+    {
+      "annotator_ids": [
+        "ann-b"
+      ],
+      "label_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "side": "right"
+    }
+  ],
+  "revision_id": "g0-labels",
+  "sample": [],
+  "schema_version": 1,
+  "sensitivity_band": {
+    "left_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "right_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+  },
+  "settlement_sha256": "0101010101010101010101010101010101010101010101010101010101010101",
+  "source_sha256": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+}

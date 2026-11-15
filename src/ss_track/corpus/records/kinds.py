@@ -23,6 +23,7 @@ CORPUS_POOL_KIND = "ss-track.corpus-pool"
 AUDIT_BLINDING_KIND = "ss-track.audit-blinding"
 LINK_REVIEW_HANDOFF_KIND = "ss-track.link-review-handoff"
 IMAGE_SEQUENCE_KIND = "ss-track.image-sequence"
+ANNOTATION_REVISION_KIND = "ss-track.annotation-revision"
 
 
 SOURCE_MANIFEST = RecordFormat(SOURCE_MANIFEST_KIND, major=3)
@@ -41,3 +42,4 @@ CORPUS_POOL = RecordFormat(CORPUS_POOL_KIND, major=1)
 AUDIT_BLINDING = RecordFormat(AUDIT_BLINDING_KIND, major=1)
 LINK_REVIEW_HANDOFF = RecordFormat(LINK_REVIEW_HANDOFF_KIND, major=1)
 IMAGE_SEQUENCE = RecordFormat(IMAGE_SEQUENCE_KIND, major=1)
+ANNOTATION_REVISION = RecordFormat(ANNOTATION_REVISION_KIND, major=1)

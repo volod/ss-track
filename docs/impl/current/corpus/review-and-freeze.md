@@ -332,8 +332,9 @@ writes the same record: the test replays a review on a second data root and comp
 ## Limits
 
 - An observation is recorded, not adjudicated. Validated labels are the
-  [annotation contract](../corpus.md#annotation-contract). Review, disagreement and
-  sequence labels remain the
+  [annotation contract](../corpus.md#annotation-contract). Disagreement review is
+  [annotation review](../corpus.md#annotation-review). Image-sequence labels and generated-case
+  labels remain the
   [annotation tasks](../../plan.md#annotation-and-selection----annotation-selection);
   the
   [corpus selection evaluation](../../plan.md#corpus-selection-evaluation) scores observations of

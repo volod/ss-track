@@ -682,10 +682,40 @@ offset. Replay lists the real selection first, then each perturbation in documen
 replay covers the seed id, the quality, the intended instance and those selections. The annotator
 id stays on the seed document. Motion-event selection quality is `reviewed` or `uncertain`.
 
-Two annotators review the entire small G0 material,
-resolving disagreements with a recorded rationale or retaining `unknown`. Larger corpora may use a
-predeclared review sample plus all difficult cases. Ground truth, episode eligibility and exclusion
-masks are frozen and hashed **before** module execution.
+Two annotators compare label documents of one source and one pack. A disagreement is one field
+whose canonical JSON differs. The annotator id and the label id are not disagreements. Equal
+numbers, including `1` and `1.0`, are not a disagreement. Presence means one document lacks the
+instance, the frame or the motion event. The other fields of a missing subject are not listed.
+
+A review covers the entire small corpus, or a predeclared sample plus every difficult
+disagreement. An entire review lists no sample frames. A sample may be empty, which reviews only
+difficult disagreements. A disagreement is difficult when it is presence, or when either label
+marks identity `identity_ambiguous`, a mark or a visibility `unknown`, geometry `unlocalizable`,
+or a motion-event selection `uncertain`. A required disagreement with no decision blocks the
+freeze. A disagreement outside the review stays `unknown` and does not block it.
+
+The frozen label id is the settlement revision id. Every frozen frame's annotator id is the
+review authority. An unknown frame is visibility `unknown` and geometry `unlocalizable`. Camera
+motion stays independent: an agreed camera is kept, and an unknown camera is `unknown`. Any other
+unknown frame field wipes visibility and geometry. An unknown class keeps the left class, sets
+identity to `identity_ambiguous`, and keeps a mark the role allows. An unknown identity is
+`identity_ambiguous`. A class and a mark the pack cannot combine are refused. Adopting one side of
+a one-sided subject keeps that side. Omitting it leaves the subject out. Unknown presence keeps
+an unknown frame or an `identity_ambiguous` instance. An instance with no remaining frame is
+refused, and a revision with no instance is refused.
+
+An unknown motion-event field other than selection quality drops the event, as does a presence
+decision that omits it. Unknown selection quality keeps the event and marks it `uncertain`. Event
+visibility then follows the frozen frame. A visibility change, or re-entry on a frame that is not
+`visible` or `partially_occluded`, clears re-entry and marks the selection `uncertain`. An event
+whose onset frame was not frozen is refused.
+
+The freeze writes that label document and a sealed revision. The sensitivity band is the two
+annotator document hashes. The revision pins those hashes, the review, the settlement, the sample
+and every disagreement with its outcome and rationale. It computes no score. Scores against each
+annotator's labels remain the annotation-sensitivity band in
+[section 6.1](#61-operator-selected-tracking-sot-v2-dev). Ground truth, episode eligibility and
+exclusion masks are frozen and hashed **before** module execution.
 
 Label coordinates use the stored orientation that modules receive. Display rotation is a recorded
 fact, so a tool that shows a rotated view maps coordinates back before a label is validated, and a
@@ -1016,7 +1046,8 @@ IoU success AUC on box frames, center-error distribution, per-size/seed/camera-m
 continuation when the target is not visible, and re-entry/reacquisition in a separate suite. A
 Kaplan-Meier curve may be exploratory only: target exit and clip end in operator-steered video can
 be informative censoring, so it is **not** the primary G0 ranking or a field-survival estimate.
-Scores against each annotator's labels form an annotation-sensitivity band.
+Scores against each annotator's labels form an annotation-sensitivity band. The frozen revision
+retains both annotator document hashes and does not compute this score.
 
 ### 6.2 Motion proposals: `motion-v1-dev`
 

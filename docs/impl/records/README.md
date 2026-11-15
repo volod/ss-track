@@ -98,5 +98,6 @@ Copy the [template](template.md) using the
 | 0091 | `corpus-provenance-audit` | [0091-corpus-provenance-corpus-provenance-audit](0091-corpus-provenance-corpus-provenance-audit.md) |
 | 0092 | `scenario-pack-contract` | [0092-annotation-selection-scenario-pack-contract](0092-annotation-selection-scenario-pack-contract.md) |
 | 0093 | `annotation-contract` | [0093-annotation-selection-annotation-contract](0093-annotation-selection-annotation-contract.md) |
+| 0094 | `annotation-review-tools` | [0094-annotation-selection-annotation-review-tools](0094-annotation-selection-annotation-review-tools.md) |
 
-Next unused sequence: `0094`.
+Next unused sequence: `0095`.

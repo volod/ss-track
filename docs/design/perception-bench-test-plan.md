@@ -40,6 +40,12 @@ makes it fail, and what it does not prove. A case with no task left is listed as
   Value: protects=a stated cross-architecture boundary; fails_when=a difference goes unrecorded, a
   source is regenerated on one host, or a row does not decode as the format it claims; no_claim=macOS,
   timing, a decoder or pixel format outside the fixed corpus, or a host that did not stage it.
+- Hand-built disagreements between two label documents are reported exactly. An unresolved required
+  disagreement blocks the freeze, and a disagreement outside the review stays unknown.
+  `tests/annotate/test_annotation_review.py`, `test_annotation_freeze.py`,
+  `test_annotation_freeze_refusal.py` and `test_annotate_review_command.py` cover them.
+  Value: protects=review before freezing; fails_when=an unresolved case freezes; no_claim=reviewer
+  skill.
 
 ## Fixture-level cases
 
@@ -47,9 +53,6 @@ makes it fail, and what it does not prove. A case with no task left is listed as
 
 - `annotation-contract`: malformed labels, an unverifiable label, and seed replay.
   Value: protects=frozen truth; fails_when=an unverifiable label scores zero; no_claim=label quality.
-- `annotation-review-tools`: hand-built disagreements between two label sets.
-  Value: protects=review before freezing; fails_when=an unresolved case freezes; no_claim=reviewer
-  skill.
 - `source-terms-enforcement`: a source one day either side of its retention date, and a generated case
   of a source that forbids derived frames.
   Value: protects=recorded terms; fails_when=a source outside its terms is staged; no_claim=legal

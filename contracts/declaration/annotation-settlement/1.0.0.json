@@ -1,0 +1,220 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ss-track:contract:declaration:annotation-settlement:1.0.0",
+  "title": "Annotation settlement",
+  "description": "One recorded decision for each disagreement a review must settle. A rationale is required, including when the outcome is unknown.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "settlement_id",
+    "revision_id",
+    "authority",
+    "decisions"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1,
+      "minimum": 0,
+      "x-unit": "1",
+      "description": "Declaration major."
+    },
+    "settlement_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "Stable name of this settlement."
+    },
+    "revision_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "Label id of the frozen revision this settlement produces."
+    },
+    "authority": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "The review authority. It must match the review plan."
+    },
+    "decisions": {
+      "type": "array",
+      "minItems": 0,
+      "description": "One decision per settled disagreement. Empty when the labels agree.",
+      "items": {
+        "$ref": "#/$defs/decision",
+        "description": "One decision."
+      }
+    }
+  },
+  "x-rules": {
+    "decision": "Each decision names one disagreement. A duplicate is refused. The authority matches the review. A rationale is not blank."
+  },
+  "$defs": {
+    "decision": {
+      "description": "A decision for one instance, one frame, or one motion event.",
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "A decision about one instance.",
+          "additionalProperties": false,
+          "required": [
+            "subject",
+            "instance_id",
+            "field",
+            "outcome",
+            "rationale"
+          ],
+          "properties": {
+            "subject": {
+              "type": "string",
+              "const": "instance",
+              "description": "Which subject this decision settles."
+            },
+            "instance_id": {
+              "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+              "description": "Instance this decision settles."
+            },
+            "field": {
+              "type": "string",
+              "description": "The disagreement field this decision settles.",
+              "enum": [
+                "presence",
+                "class_id",
+                "identity",
+                "non_scoring_mark"
+              ]
+            },
+            "outcome": {
+              "type": "string",
+              "description": "left or right adopts that side. unknown retains unknown.",
+              "enum": [
+                "left",
+                "right",
+                "unknown"
+              ]
+            },
+            "rationale": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Why this side was kept, or why the disagreement stays unknown.",
+              "x-rules": {
+                "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "description": "A decision about one frame.",
+          "additionalProperties": false,
+          "required": [
+            "subject",
+            "instance_id",
+            "frame_index",
+            "field",
+            "outcome",
+            "rationale"
+          ],
+          "properties": {
+            "subject": {
+              "type": "string",
+              "const": "frame",
+              "description": "Which subject this decision settles."
+            },
+            "instance_id": {
+              "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+              "description": "Instance this frame belongs to."
+            },
+            "frame_index": {
+              "type": "integer",
+              "minimum": 0,
+              "x-unit": "1",
+              "description": "Frame this decision settles."
+            },
+            "field": {
+              "type": "string",
+              "description": "The disagreement field this decision settles.",
+              "enum": [
+                "presence",
+                "visibility",
+                "camera_motion",
+                "geometry.kind",
+                "geometry.box",
+                "geometry.amodal_box",
+                "geometry.point",
+                "geometry.uncertainty_px",
+                "geometry.plausible_extent_px"
+              ]
+            },
+            "outcome": {
+              "type": "string",
+              "description": "left or right adopts that side. unknown retains unknown.",
+              "enum": [
+                "left",
+                "right",
+                "unknown"
+              ]
+            },
+            "rationale": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Why this side was kept, or why the disagreement stays unknown.",
+              "x-rules": {
+                "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "description": "A decision about one motion event.",
+          "additionalProperties": false,
+          "required": [
+            "subject",
+            "event_id",
+            "field",
+            "outcome",
+            "rationale"
+          ],
+          "properties": {
+            "subject": {
+              "type": "string",
+              "const": "event",
+              "description": "Which subject this decision settles."
+            },
+            "event_id": {
+              "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+              "description": "Motion event this decision settles."
+            },
+            "field": {
+              "type": "string",
+              "description": "The disagreement field this decision settles.",
+              "enum": [
+                "presence",
+                "instance_id",
+                "onset_frame",
+                "onset_uncertainty_frames",
+                "visibility",
+                "selection_quality",
+                "reentry"
+              ]
+            },
+            "outcome": {
+              "type": "string",
+              "description": "left or right adopts that side. unknown retains unknown.",
+              "enum": [
+                "left",
+                "right",
+                "unknown"
+              ]
+            },
+            "rationale": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Why this side was kept, or why the disagreement stays unknown.",
+              "x-rules": {
+                "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

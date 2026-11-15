@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "settlement_id": "g0-settlement",
+  "revision_id": "g0-labels",
+  "authority": "ada",
+  "decisions": [
+    {
+      "subject": "frame",
+      "instance_id": "target-1",
+      "frame_index": 0,
+      "field": "visibility",
+      "outcome": "left",
+      "rationale": "the bird is visible in the stored frame"
+    }
+  ]
+}

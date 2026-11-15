@@ -85,6 +85,11 @@ def validate_mask(path: Path, labels_path: Path, pack_path: Path, source: Path) 
     )
 
 
+def read_validated_labels(path: Path, pack: ScenarioPack, space: FrameSpace) -> LabelSet:
+    """Return labels that match this pack and the stored frame."""
+    return _labels(path, pack, space)
+
+
 def _labels(path: Path, pack: ScenarioPack, space: FrameSpace) -> LabelSet:
     document = read_declaration(path, LABEL_CONTRACT, _MAJOR)
     labels = read_label_set(Fields(document, path.name), declaration_hash(as_document(document)))

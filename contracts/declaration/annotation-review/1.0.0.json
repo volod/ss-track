@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ss-track:contract:declaration:annotation-review:1.0.0",
+  "title": "Annotation review",
+  "description": "Which frames two reviewers must settle before a label revision can freeze. The whole small corpus uses entire. A larger corpus may name a sample. Difficult disagreements are added by the command and are not listed here.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "review_id",
+    "authority",
+    "coverage",
+    "items"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1,
+      "minimum": 0,
+      "x-unit": "1",
+      "description": "Declaration major."
+    },
+    "review_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "Stable name of this review plan."
+    },
+    "authority": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "Who may settle a disagreement. Both reviewers name this authority."
+    },
+    "coverage": {
+      "type": "string",
+      "description": "entire reviews every disagreement. sample reviews the listed frames plus difficult ones.",
+      "enum": [
+        "entire",
+        "sample"
+      ]
+    },
+    "items": {
+      "type": "array",
+      "minItems": 0,
+      "description": "Predeclared instance frames. Empty when coverage is entire.",
+      "items": {
+        "$ref": "#/$defs/sample-item",
+        "description": "One frame."
+      }
+    }
+  },
+  "x-rules": {
+    "sample": "coverage entire has an empty items list. coverage sample may be empty, which reviews only difficult disagreements. A frame is listed once."
+  },
+  "$defs": {
+    "sample-item": {
+      "type": "object",
+      "description": "One predeclared instance frame.",
+      "additionalProperties": false,
+      "required": [
+        "instance_id",
+        "frame_index"
+      ],
+      "properties": {
+        "instance_id": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+          "description": "Instance the sample names."
+        },
+        "frame_index": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Zero-based frame index in the decoded source."
+        }
+      }
+    }
+  }
+}

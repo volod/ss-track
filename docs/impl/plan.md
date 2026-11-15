@@ -35,24 +35,6 @@ hardware or private data.
 
 ### Annotation and selection -- `annotation-selection`
 
-#### annotation-review-tools
-
-Two reviewers must be able to compare labels and settle disagreement.
-
-- Serves: `annotation-selection` -- [Annotation contract](../design/spec.md#42-annotation-contract)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: Reviewers see disagreements and freeze one hashed label revision, with a
-  sensitivity band retained for scoring.
-- Scope boundary: Comparison, a recorded rationale, freezing, and a declared review sample for larger
-  corpora. A labelling interface is out of scope.
-- Data and artifact paths: `src/ss_track/annotate/`, `tests/annotate/`.
-- Execution path: Add agreement reports over two label sets with fixtures.
-- Acceptance gates: Hand-built disagreements are reported exactly. An unresolved disagreement blocks
-  the freeze or stays `unknown`.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
 #### generated-case-labels
 
 A generated case cannot be scored until its labels follow its pixels, and a wrong region must not
@@ -61,7 +43,7 @@ create a false negative.
 - Serves: `annotation-selection` -- [Annotation contract](../design/spec.md#42-annotation-contract)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: annotation-review-tools.
+- Dependencies: none.
 - User-visible outcome: `ss-track annotate derive` gives each generated case a hashed label revision
   from its parent's frozen labels and stored label transform, including a `track_status` case.
 - Scope boundary: Every stored label transform: region status, translation with clipping and
@@ -81,8 +63,9 @@ create a false negative.
   refused. Derived labels are never edited by hand.
 - Data and artifact paths: `src/ss_track/annotate/`, `tests/annotate/`,
   `$DATA_DIR/corpus/<corpus-id>/labels/`.
-- Execution path: Apply each label-transform kind to hand-built parent labels, then check plates and
-  regions against those labels. Apply each `track_status` role to the frame it names.
+- Execution path: Read the parent's sealed annotation revision and the label document whose hash
+  it pins. Apply each label-transform kind to those labels, then check plates and regions against
+  those labels. Apply each `track_status` role to the frame it names.
 - Acceptance gates: Hand-computed labels match for every transform, including `scale`,
   `compression`, `timing` and `track_status`. A scaled box under the pack's minimum extent is
   `point_only`, never a box. A plate showing a target inside its region is refused, and a target
@@ -101,8 +84,9 @@ validated.
 - Agent status: CLEAR
 - Milestone: M1
 - Dependencies: none.
-- User-visible outcome: `ss-track annotate validate` accepts an ordered image sequence and checks
-  a label, a seed and a mask against that sequence's identity and stored pixels.
+- User-visible outcome: `ss-track annotate validate`, `compare` and `freeze` accept an ordered
+  image sequence. Validate checks a label, a seed and a mask. Compare and freeze check two label
+  documents. Each check uses that sequence's identity and stored pixels.
 - Scope boundary: Sequence identity and frame geometry for a declared image sequence. A video file
   keeps the file hash as its source identity. A directory that is not a sequence stays refused.
   Labelling the sequence is human work.
@@ -110,8 +94,9 @@ validated.
 - Execution path: Read one image-sequence directory through the existing sequence identity and reuse
   the label, seed and mask checks.
 - Acceptance gates: A label whose source hash is the sequence identity validates. A label that uses
-  a video-file hash, or any hash other than the sequence identity, is refused with a reason. A video
-  file still validates as it does now. `make ci` passes.
+  a video-file hash, or any hash other than the sequence identity, is refused with a reason. Compare
+  and freeze use that same identity. A video file still validates, compares and freezes as it does
+  now. `make ci` passes.
 - Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
 
 #### annotation-selection-audit (optional)
@@ -1270,7 +1255,7 @@ The G0 scenario excludes G2 boundaries, so component comparisons need an explici
 - Serves: `sensor-adapter-frontends` -- [Specification](../design/spec.md#5-module-contract-execution-and-fault-semantics)
 - Agent status: CLEAR
 - Milestone: M3
-- Dependencies: sensor-observation-contract, run-bundle-store, annotation-review-tools.
+- Dependencies: sensor-observation-contract, run-bundle-store.
 - User-visible outcome: Four boundary-specific scenarios freeze raw/observation inputs, producers,
   clocks, calibration, opportunity labels and epoch schedules into hashed bundles.
 - Scope boundary: Extend the existing scenario and bundle code, including mixed-modality raw attachments,
@@ -3113,7 +3098,7 @@ G0a needs only one positive and one negative encounter, so it should not wait fo
 - Serves: `annotation-selection` -- [Annotation contract](../design/spec.md#42-annotation-contract)
 - Agent status: HUMAN-GATED
 - Milestone: M1
-- Dependencies: annotation-review-tools, approve-mission-scenario-pack.
+- Dependencies: approve-mission-scenario-pack.
 - User-visible outcome: Two encounters have frozen labels, selections and masks.
 - Scope boundary: The pilot encounters, including motion events. The pass also measures labelling
   time per encounter. Review every frame of the selected negative window for target absence, and
@@ -3356,7 +3341,7 @@ Fusion evaluation needs synchronized recordings with independent truth.
 - Serves: `sensor-adapter-frontends` -- [Reference sensor mesh](../design/spec.md#165-reference-sensor-mesh)
 - Agent status: BLOCKED BY HUMAN
 - Milestone: M3
-- Dependencies: synchronized-sensor-capture, run-camera-characterization, annotation-review-tools.
+- Dependencies: synchronized-sensor-capture, run-camera-characterization.
 - User-visible outcome: Authorized bench encounters exist with per-sensor opportunity labels and a
   disjoint calibration split.
 - Scope boundary: Bench recordings. New public-space capture needs its spec section 11 approvals.
@@ -3396,7 +3381,7 @@ A species or drone type can be scored only against labels from someone able to i
 - Serves: `target-recognition` -- [Target recognition](../design/spec.md#193-autonomous-target-recognition)
 - Agent status: HUMAN-GATED
 - Milestone: M7
-- Dependencies: annotation-review-tools, recognition-suite.
+- Dependencies: recognition-suite.
 - User-visible outcome: The mission pack names its target set and unknown-class set, and reviewed
   tracks carry expert class labels in development, calibration and evaluation encounters.
 - Scope boundary: Fine-grained class labels on visually identifiable material, the minimum

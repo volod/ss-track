@@ -35,6 +35,22 @@ contracts:
       class: initial
       summary: Initial contract.
 - family: declaration
+  id: annotation-review
+  owner: annotation-selection
+  status: active
+  description: Which frames two reviewers must settle before a label revision can
+    freeze. The whole small corpus uses entire. A larger corpus may name a sample.
+    Difficult disagreements are added by the command and are not listed here.
+  versions:
+  - version: 1.0.0
+    file_sha256: b4b941e236f925f1937909a6a657cb3525ddbc8fa4ae17c8a50aa2c1871eaa68
+    fingerprints:
+      structure: 23c4b7b2511a43f8f391c3146c44caef2d45bda0fc674858434f42d4b23ae536
+      meaning: c3e156c30fa2c8b03681bd2d27e06f4ed69ced2891cad0570047cc3af95d19f5
+    change:
+      class: initial
+      summary: Initial contract.
+- family: declaration
   id: annotation-seed
   owner: annotation-selection
   status: active
@@ -48,6 +64,21 @@ contracts:
     fingerprints:
       structure: a71d5943041eacedcc0274fb6f9998cfe65f0acbea6c77594b438767667dcc91
       meaning: 962c5abdd3c2b139975da986b74dea4ce21741d12cd5558f84eb0676aa1adc48
+    change:
+      class: initial
+      summary: Initial contract.
+- family: declaration
+  id: annotation-settlement
+  owner: annotation-selection
+  status: active
+  description: One recorded decision for each disagreement a review must settle. A
+    rationale is required, including when the outcome is unknown.
+  versions:
+  - version: 1.0.0
+    file_sha256: 3ef4eda284ee4f6459d619c120bc18cb980cf1ea604c11376d1ae735a9697d17
+    fingerprints:
+      structure: 08e5965798dbe6a85f260d108d176675ad3e85a5e1b64452a85d1dcb45c0dfd0
+      meaning: 0b446a836d633b19d7509305950eb527f4f68d84d4dcac3580528bf489d3537d
     change:
       class: initial
       summary: Initial contract.
@@ -376,6 +407,22 @@ contracts:
     fingerprints:
       structure: a2b59e95561c2265e948f270e11b10a75b9e59093ffb134afcff1a1a5f5b19cd
       meaning: 6f998d210560843d09c8cd85dd528bafcd5a0a78132285c9cf4bd46f77695829
+    change:
+      class: initial
+      summary: Initial contract.
+- family: record
+  id: annotation-revision
+  owner: annotation-selection
+  status: active
+  description: The sealed freeze of one label revision. It pins the frozen label hash,
+    both annotator documents, the review sample and every disagreement. It has no
+    score.
+  versions:
+  - version: 1.0.0
+    file_sha256: fc9f22c5c6763f39f3aaf74e3299c44d145730fa3cb716fb17583b4d4f9ad95f
+    fingerprints:
+      structure: a010cf41602b0b3acba9874b02d9364ac8becacc3ee301f7fbaa668b620f4ee9
+      meaning: 7e4e8578c46f3a93975a671bedb5db2b0a5d9ec2bae24c290a0f63881a76a514
     change:
       class: initial
       summary: Initial contract.
@@ -1147,6 +1194,14 @@ contracts:
     change:
       class: minor
       summary: Add the annotation validation result. It has no numeric score.
+  - version: 1.31.0
+    file_sha256: ff11d9c761e0336f178cce5d6946a8d7c83680a872d80dc7fc30b9b0f90dec4e
+    fingerprints:
+      structure: 6c68b7a2e5d1df74f1b602dad7d529702070455b14d0ba917470b7b8fe814594
+      meaning: 58c83d5412b270ac0149c73d81bf1454062e974b6b3ddb5484cb2d01d1320c8c
+    change:
+      class: minor
+      summary: Report label comparison and freeze.
 - family: shared
   id: types
   owner: data-contracts

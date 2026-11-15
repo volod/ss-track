@@ -535,6 +535,90 @@ Tests are `tests/annotate/test_disposition.py`, `test_annotation_labels.py`,
 [task record](../records/0093-annotation-selection-annotation-contract.md) holds the acceptance
 evidence.
 
+### Annotation review
+
+`ss-track annotate compare` reports every field that differs between two label documents of one
+source and one pack. `ss-track annotate freeze` records a decision for each required disagreement
+and writes one label document plus a sealed revision. Both commands live in
+`src/ss_track/commands/annotate.py`. `compare_labels` and `freeze_labels` in
+`src/ss_track/annotate/review.py` load the documents. `compare_label_sets` in
+`src/ss_track/annotate/compare.py` builds the rows.
+
+A disagreement is one field whose canonical JSON differs. The annotator id and the label id are
+not disagreements. Equal numbers, including `1` and `1.0`, are not a disagreement. Presence means
+one document lacks the instance, the frame or the motion event. The other fields of a missing
+subject are not listed. Rows are ordered by subject, then id, with presence before the other
+fields of that subject.
+
+`declaration/annotation-review` 1.0.0 is the review plan. Coverage `entire` lists no sample
+frames. Coverage `sample` may be empty, which reviews only difficult disagreements. A sample
+names each frame once, and each named instance is in one of the two documents.
+`declaration/annotation-settlement` 1.0.0 records one decision per settled disagreement. The
+outcome is `left`, `right` or `unknown`, and the rationale is not blank. The authority matches
+the review. A decision that names no disagreement, or a duplicate decision, is refused.
+
+A disagreement is difficult when it is presence, or when either label marks identity
+`identity_ambiguous`, a mark or a visibility `unknown`, geometry `unlocalizable`, or a
+motion-event selection `uncertain`. Compare succeeds when the documents can be compared, including
+when they differ. Its status is `valid`. A required disagreement with no decision blocks the
+freeze with `MANIFEST_INVALID`. A disagreement outside the review stays `unknown` and does not
+block it.
+
+The frozen label id is the settlement revision id. Every frozen frame's annotator id is the
+review authority. An unknown frame is visibility `unknown` and geometry `unlocalizable`. Camera
+motion stays independent: an agreed camera is kept, and an unknown camera is `unknown`. Any other
+unknown frame field wipes visibility and geometry. An unknown class keeps the left class, sets
+identity to `identity_ambiguous`, and keeps a mark the role allows. An unknown identity is
+`identity_ambiguous`. A class and a mark the pack cannot combine are refused. Adopting one side
+of a one-sided subject keeps that side. Omitting it leaves the subject out. Unknown presence
+keeps an unknown frame or an `identity_ambiguous` instance. An instance with no remaining frame
+is refused, and a revision with no instance is refused.
+
+An unknown motion-event field other than selection quality drops the event, as does a presence
+decision that omits it. Unknown selection quality keeps the event and marks it `uncertain`. Event
+visibility then follows the frozen frame. A visibility change, or re-entry on a frame that is not
+`visible` or `partially_occluded`, clears re-entry and marks the selection `uncertain`. An event
+whose onset frame was not frozen is refused.
+
+`record/annotation-revision` 1.0.0 seals the revision. The sensitivity band is the two annotator
+document hashes, left then right. The record also pins the review, the settlement, the pack, the
+source, the sample and every disagreement with its outcome and rationale. It computes no score.
+The label hash is the declaration hash of the frozen document. The revision hash is the record
+seal. The two output paths must differ. Writing the same paths again yields the same hashes.
+Instance order in the inputs does not change the label hash.
+
+`result/command` 1.31.0 adds optional `label_review`. Compare has no label hash and no output
+paths. Freeze adds `label_sha256`, `revision_sha256`, `labels_path` and `revision_path`. The
+object has no `score` field.
+
+`--source` is one video file, as validation requires. A directory is refused with
+`SOURCE_NOT_FOUND`. An ordered image sequence is not accepted here.
+
+```bash
+ss-track annotate compare \
+  --left left.yaml \
+  --right right.yaml \
+  --pack scenarios/packs/aerial-small-objects.yaml \
+  --source clip.mp4 \
+  --review review.yaml
+ss-track annotate freeze \
+  --left left.yaml \
+  --right right.yaml \
+  --pack scenarios/packs/aerial-small-objects.yaml \
+  --source clip.mp4 \
+  --review review.yaml \
+  --settlement settlement.yaml \
+  --labels-out labels.json \
+  --revision-out revision.json
+```
+
+Tests are `tests/annotate/test_annotation_review.py`, `test_annotation_freeze.py`,
+`test_annotation_freeze_refusal.py` and `test_annotate_review_command.py`. The examples are
+`tests/schema/examples/declaration-annotation-review.json`,
+`declaration-annotation-settlement.json` and `record-annotation-revision.json`. The
+[task record](../records/0094-annotation-selection-annotation-review-tools.md) holds the
+acceptance evidence.
+
 ### Ordered image sequences
 
 A recording can use lossless PNG images instead of a video file. `source.path` is the image root,
