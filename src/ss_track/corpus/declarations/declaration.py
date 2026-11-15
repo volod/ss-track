@@ -7,6 +7,7 @@ from pathlib import Path
 from ss_track.core.refusal import JsonValue
 from ss_track.corpus.cases.recipes import CaseRecipe, read_recipe
 from ss_track.corpus.declarations.fields import Fields, Selection, invalid
+from ss_track.corpus.declarations.image_sequence import ImageSequence, read_image_sequence
 from ss_track.corpus.declarations.origin import OriginMembership, read_origins
 from ss_track.corpus.decoding.declared_color import matrix_code
 from ss_track.schema.validation.enforce import read_declaration
@@ -65,6 +66,7 @@ class RecordingDeclaration:
     capture_clock_evidence: str | None
     capture: dict[str, JsonValue]
     origin: tuple[OriginMembership, ...]
+    image_sequence: ImageSequence | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -134,6 +136,9 @@ def load_recording_declaration(path: Path) -> RecordingDeclaration:
     source = fields.child("source")
     expected_sha256 = source.text("sha256") if source.has("sha256") else None
     timestamps = fields.optional_child("timestamps")
+    images = read_image_sequence(source, path.resolve().parent / source.text("path"))
+    if images is not None and timestamps.has("capture_clock_evidence"):
+        raise invalid("image sequences cannot claim capture-clock timestamps")
     return RecordingDeclaration(
         source_path=path.resolve().parent / source.text("path"),
         expected_sha256=expected_sha256,
@@ -146,6 +151,7 @@ def load_recording_declaration(path: Path) -> RecordingDeclaration:
         capture_clock_evidence=timestamps.optional_text("capture_clock_evidence"),
         capture=_read_capture(fields.optional_child("capture")),
         origin=read_origins(fields),
+        image_sequence=images,
     )
 
 

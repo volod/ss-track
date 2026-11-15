@@ -263,6 +263,14 @@ contracts:
       summary: Close capture judgments.
       migration: Restate capture judgments explicitly in a major 3 declaration.
       disposition: facts
+  - version: 3.1.0
+    file_sha256: 6d44b560dfd10f2711de9e0fd96daad4d49813a8ff5d6b3c18de52a265ade152
+    fingerprints:
+      structure: 261480ca2ea38a686cda2827710b19665faafb225c42e26192b7979ffe37433c
+      meaning: e80efdb8caa88fc48c0369fb3d1a056ac2d8178a41acf5335eb83d9261d4c28f
+    change:
+      class: minor
+      summary: Add explicit lossless PNG sequence sources and pinned inventory.
   retired_majors:
   - major: 1
     status: retired
@@ -636,6 +644,20 @@ contracts:
       class: initial
       summary: The shipped format at major 1, with no record bytes changed.
 - family: record
+  id: image-sequence
+  owner: corpus-provenance
+  status: active
+  description: Pinned ordered lossless image membership and declared timing.
+  versions:
+  - version: 1.0.0
+    file_sha256: b7a6e9ae05b2b347d92cf091b9f97869eb67bfb8f2e28885dfad2515d8d0c1b6
+    fingerprints:
+      structure: ff8712e20744a18028759df8f879573247231c86574afd435c25ad069d7fddbb
+      meaning: 49ced927a6f4a38c8ac5533dda9b0b1a732371309ab75324d832537c5c9da428
+    change:
+      class: initial
+      summary: Explicit retained image membership and declared rate.
+- family: record
   id: link-review-handoff
   owner: self-supervised-corpus
   status: active
@@ -748,6 +770,14 @@ contracts:
       migration: Inspect the retained record and explicitly amend capture judgments,
         combining terms and redecode when required.
       disposition: facts
+  - version: 3.1.0
+    file_sha256: 0b01d65971e99a91bd8c7c204dbf51581fec38b742034e05a93421460acfe663
+    fingerprints:
+      structure: ce558bc33ffcb86ae713c1818fdb461a934a85155be8d67623e6dd4fbb4168c9
+      meaning: 7d535b12725e8a967ebdd75ae50ab91d9023d40a7c4457a3a4fce228c48437c7
+    change:
+      class: minor
+      summary: Add explicit lossless PNG sequence sources and pinned inventory.
   retired_majors:
   - major: 1
     status: facts

@@ -93,7 +93,7 @@ Copy the [template](template.md) using the
 | 0086 | `source-capture-inspection` | [0086-corpus-provenance-source-capture-inspection](0086-corpus-provenance-source-capture-inspection.md) |
 | 0087 | `recording-capture-vocabulary` | [0087-corpus-provenance-recording-capture-vocabulary](0087-corpus-provenance-recording-capture-vocabulary.md) |
 | 0088 | `capture-encounter-counts` | [0088-corpus-provenance-capture-encounter-counts](0088-corpus-provenance-capture-encounter-counts.md) |
-
 | 0089 | `scale-reduction-case` | [0089-corpus-provenance-scale-reduction-case](0089-corpus-provenance-scale-reduction-case.md) |
+| 0090 | `frame-sequence-source-import` | [0090-corpus-provenance-frame-sequence-source-import](0090-corpus-provenance-frame-sequence-source-import.md) |
 
-Next unused sequence: `0090`.
+Next unused sequence: `0091`.

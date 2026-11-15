@@ -1,0 +1,9 @@
+{
+  "kind": "ss-track.image-sequence",
+  "schema_version": 1,
+  "hashes": [
+    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  ],
+  "frame_rate": null,
+  "manifest_sha256": "6358fff480bcb20f45f917c01706b8b45c4ec7f498a151b467f31abfd004b785"
+}

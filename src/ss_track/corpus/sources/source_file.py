@@ -27,6 +27,13 @@ def copy_declared_source(declaration: RecordingDeclaration, stored: Path) -> tup
 
     The copy comes first, so the hash and a decode describe exactly the bytes that are retained.
     """
+    if declaration.image_sequence is not None:
+        from ss_track.corpus.sources.image_sequence import copy_sequence
+
+        with _readable():
+            sha256, size = copy_sequence(declaration.image_sequence, stored)
+        require_declared_hash(declaration.expected_sha256, sha256)
+        return sha256, size
     with _readable():
         sha256, size = copy_with_sha256(declaration.source_path, stored)
     require_declared_hash(declaration.expected_sha256, sha256)
@@ -39,6 +46,21 @@ def declared_content_hash(declaration: RecordingDeclaration) -> str:
     path = declaration.source_path
     if declared is not None and not path.exists():
         return declared
+    if declaration.image_sequence is not None:
+        from ss_track.corpus.sources.image_sequence import sequence_identity
+
+        hashes = []
+        for member in declaration.image_sequence.frames:
+            digest = member.sha256
+            if member.path.exists():
+                require_regular_file(member.path)
+                with _readable():
+                    digest = sha256_file(member.path)
+                require_declared_hash(member.sha256, digest)
+            hashes.append(digest)
+        found = sequence_identity(hashes)
+        require_declared_hash(declared, found)
+        return found
     require_regular_file(path)
     with _readable():
         found = sha256_file(path)

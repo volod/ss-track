@@ -35,34 +35,10 @@ hardware or private data.
 
 ### Corpus provenance -- `corpus-provenance`
 
-#### frame-sequence-source-import (optional)
-
-Public airborne-observer collections often ship as numbered images, and import accepts one video
-stream of one file, so such a source cannot enter a corpus.
-
-- Serves: `corpus-provenance` -- [Corpus identity](../design/spec.md#41-corpus-identity-and-input-handling)
-- Agent status: CLEAR
-- Dependencies: none.
-- User-visible outcome: A recording declares an ordered image sequence as its source, and import,
-  build, stage and verify treat it as they treat a video stream.
-- Scope boundary: Lossless image files in a declared order, with one source identity over the
-  ordered file hashes. A sequence stores no presentation time, so its timestamp quality is
-  `missing` unless the declaration states a frame rate, which makes it `derived`. No lossy image
-  format, no resampling and no reordering by guesswork.
-- Data and artifact paths: `contracts/declaration/recording/`, `contracts/record/source-manifest/`,
-  `src/ss_track/corpus/sources/`, `src/ss_track/corpus/decoding/`, `tests/corpus/`.
-- Execution path: Evolve both contracts under the spec section 17.3 rules, read each image through
-  the pinned decoder into the canonical pixel format, and add fixtures with a missing index, a
-  changed image and mixed dimensions.
-- Acceptance gates: One sequence imported twice gives one source identity and one bundle hash. A
-  missing index, a changed image and mixed dimensions are each refused by name. Time-based scores
-  of a sequence with no declared rate are unavailable with their cause, and `make ci` passes.
-- Documentation target: [Corpus](current/corpus.md).
-
 #### corpus-provenance-audit (optional)
 
-Shared primitives, closed capture vocabularies and a geometry-changing case each touch records
-that earlier work sealed, and a difference between them would move a hash.
+The corpus area needs a coherent account of source identity, capture facts, generated cases and
+the evidence linking them as implementation evolves.
 
 - Serves: `corpus-provenance` -- [Corpus
   identity](../design/spec.md#41-corpus-identity-and-input-handling)
@@ -70,20 +46,22 @@ that earlier work sealed, and a difference between them would move a hash.
 - Milestone: M1
 - Effort: high
 - Dependencies: every other agent task in this group.
-- User-visible outcome: The corpus area keeps one account of sealing, capture facts and generated
-  cases after its primitives moved.
+- User-visible outcome: Corpus evidence has clear, consistent contracts, lineage and governance,
+  with an implementation that supports effective future work.
 - Scope boundary: What this group built, with its seams to neighboring groups, under the [group
-  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
-  score or refusal code.
+  audit](../guide/planning-workflow.md#group-audits) rules. Improve implementation and contracts when
+  doing so advances clarity, lineage, governance or future effectiveness; historical formats and
+  their bytes need not be preserved. Retain the integrity of current evidence, or regenerate it.
 - Data and artifact paths: `src/ss_track/core/`, `src/ss_track/corpus/`, `tests/core/`,
-  `tests/corpus/`, `contracts/`.
-- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from
-  every caller of the shared primitives, how an older recording reads under the closed
-  vocabularies, and what the scale-reduction case shares with the other frame-map cases.
-- Acceptance gates: Historic records read to the same bytes and hashes, the import boundary holds,
-  and generated cases stay byte-identical on rerun. Every finding is fixed, routed to a task or
-  dropped with its reason, and `make quality` passes. Finding nothing is a valid result when the
-  record states what was reviewed.
+  `tests/corpus/`, `contracts/`, and affected corpus evidence under `$DATA_DIR`.
+- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Trace source
+  identity, sealing, capture facts, generated cases and downstream consumers. Simplify obsolete
+  compatibility paths and update affected contracts, fixtures and documentation; regenerate affected
+  corpus evidence when needed.
+- Acceptance gates: Current contracts and evidence agree, import and verification protect source
+  integrity, lineage and governance are clear, and generated cases reproduce on rerun. Every finding
+  is fixed, routed to a task or dropped with its reason, and `make quality` passes. Finding nothing
+  is a valid result when the record states what was reviewed.
 - Documentation target: [Corpus](current/corpus.md).
 
 ### Annotation and selection -- `annotation-selection`
@@ -466,7 +444,9 @@ Every suite needs one way to score saved evidence.
 - Execution path: Add suite and dataset interfaces, the evaluator loop, and one fixture suite that
   exercises the run and block levels.
 - Acceptance gates: Recomputing a fixture bundle in a second process is byte-identical. A suite that
-  reads outside its bundle fails.
+  reads outside its bundle fails. A PNG sequence with no declared rate supplies missing PTS and
+  time base; time-based metrics report unavailable with `missing_timestamps`, without inventing
+  durations or dropping the cause.
 - Documentation target: [Current implementation](current.md#areas), new page
   `current/evaluation.md`.
 
@@ -3229,7 +3209,7 @@ almost none.
   [Airborne Object Tracking dataset](https://registry.opendata.aws/airborne-object-tracking/) and
   [Det-Fly](https://github.com/Jake-WU/Det-Fly). Each candidate's license, annotation semantics
   and overlap with other sources are checked first. No capture is solicited to fill a stratum, and
-  a source that ships as images waits for `frame-sequence-source-import`.
+  candidates must fit the supported [source formats](current/corpus.md#ordered-image-sequences).
 - Data and artifact paths: `docs/impl/workloads/`, `$DATA_DIR/self-supervised-corpus/<run-id>/`.
 - Execution path: An agent inventories each candidate's terms and upstream identity through the
   source inventory. The owner approves or declines each one and declares its observer platform.

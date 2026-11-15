@@ -64,8 +64,9 @@ class ImportResult:
 def import_source(declaration_path: Path, data_root: Path) -> ImportResult:
     """Import one recording, leaving a complete record or nothing."""
     declaration = load_recording_declaration(declaration_path)
-    require_regular_file(declaration.source_path)
-    if declaration.source_path.stat().st_size == 0:
+    if declaration.image_sequence is None:
+        require_regular_file(declaration.source_path)
+    if declaration.image_sequence is None and declaration.source_path.stat().st_size == 0:
         raise CorpusRefusal(RefusalCode.SOURCE_EMPTY, "source file has zero length")
     policy = current_decode_policy()
     imports = import_root(data_root)
@@ -76,7 +77,8 @@ def import_source(declaration_path: Path, data_root: Path) -> ImportResult:
 def _import_into(
     declaration: RecordingDeclaration, policy: DecodePolicy, staged: Path, data_root: Path
 ) -> ImportResult:
-    stored = staged / f"{_SOURCE_STEM}{declaration.source_path.suffix.lower()}"
+    suffix = ".sequence" if declaration.image_sequence else declaration.source_path.suffix.lower()
+    stored = staged / f"{_SOURCE_STEM}{suffix}"
     sha256, size = copy_declared_source(declaration, stored)
     _read_if_present(data_root, sha256, declaration.video_stream_index)
     inspection = inspect_media(stored, policy, video_stream_index=declaration.video_stream_index)
@@ -86,7 +88,8 @@ def _import_into(
         _LOG.warning("source %s has no container-level completeness evidence", identity)
     sealed = seal(_manifest_body(declaration, policy, inspection, quality, sha256, size, stored))
     write_sealed(staged / MANIFEST_NAME, sealed)
-    stored.chmod(READ_ONLY_FILE_MODE)
+    if stored.is_file():
+        stored.chmod(READ_ONLY_FILE_MODE)
     target = source_directory(data_root, identity)
     status = _commit(staged, target, sealed, declaration)
     return ImportResult(
@@ -125,6 +128,7 @@ def _manifest_body(
             "sha256_declared": declaration.expected_sha256 is not None,
             "size_bytes": size,
             "stored_name": stored.name,
+            **_sequence_pin(stored),
         },
         **declared_terms(declaration),
         **_origin(declaration),
@@ -179,3 +183,12 @@ def _import_conflict(
     if facts:
         details["changed_facts"] = list(facts)
     return CorpusRefusal(RefusalCode.IMPORT_CONFLICT, message, details)
+
+
+def _sequence_pin(stored: Path) -> dict[str, JsonValue]:
+    if not stored.is_dir():
+        return {}
+    from ss_track.core.evidence.sealing import sha256_file
+    from ss_track.corpus.sources.image_sequence import INDEX_NAME
+
+    return {"inventory_sha256": sha256_file(stored / INDEX_NAME)}

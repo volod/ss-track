@@ -404,6 +404,49 @@ groups:
             source_sha256: "<64 hex>"
 ```
 
+### Ordered image sequences
+
+A recording can use lossless PNG images instead of a video file. `source.path` is the image root,
+relative to the recording declaration; `source.frames` explicitly lists every member:
+
+```yaml
+source:
+  path: images
+  frames:
+    - index: 0
+      path: first.png
+      sha256: <sha256-of-first-image>
+    - index: 1
+      path: second.png
+      sha256: <sha256-of-second-image>
+  frame_rate: "30000/1001"  # optional positive rational frames per second
+```
+
+Indices start at zero and must be consecutive in declared order. Paths cannot repeat. Every image
+hash is required; the optional `source.sha256` pins the aggregate sequence identity. Video stream
+selection and capture-clock evidence are invalid for an image sequence. Only the PNG codec is
+accepted, regardless of filename; lossy images and multi-frame files are refused. Dimensions, pixel
+format, precision, rotation and color tags must agree. There is no sorting, interpolation or
+resampling. A sequence without a rate has null PTS and time base and `missing` timestamp quality;
+a declared rate gives frame-index PTS, reciprocal time base and `derived` quality. Time-window
+mapping reports `missing_timestamps` when no rate is declared; it never invents times.
+
+Import retains images under `$DATA_DIR/import/<identity>/source.sequence/`, using normalized
+`00000000.png` names and `index.json` for the ordered hashes and declared rate. The source identity
+is SHA-256 of canonical JSON `{"kind":"image-sequence","sha256":[<ordered hashes>]}`. The source
+manifest pins the inventory hash, so changing timing or membership is detected even though paths
+and rate do not affect source identity. A different declared rate for an existing identity is an
+import conflict. Stored images and inventory are evidence, not a data-clean kind.
+
+`declarations/image_sequence.py` validates membership; `sources/image_sequence.py` copies and
+verifies it; `decoding/image_sequence.py` uses the pinned decoder for every image. The shared decode
+entry point serves import, staging, sampling and redecode. Build verifies retained image bytes;
+corpus verification retains its existing frame and source-record checks. Amendments can still
+address the identity after original images are removed using the declared hashes. Tests under
+`tests/corpus/sources/test_image_sequence.py` cover the complete flow and named failures; decoder
+fixtures live under `tests/corpus/decoding/test_image_sequence.py`. See the
+[implementation record](../records/0090-corpus-provenance-frame-sequence-source-import.md).
+
 ### Video stream selection
 
 `source.video_stream_index` is the zero-based position among video streams, not among every stream
@@ -1642,7 +1685,8 @@ holds the acceptance.
 ### Reproducibility
 
 `src/ss_track/corpus/cases/transforms.py`, `field_transforms.py`, `region_transforms.py` and
-`track_transforms.py` and `scale.py` hold the transforms. `track_labels.py` holds the `track_status` record.
+`track_transforms.py` and `scale.py` hold the transforms. `track_labels.py` holds the
+`track_status` record.
 Each transform is a pure function of frames, parameters and seed, in integer arithmetic only, and
 `seeded.py` derives every random value with SHAKE-256 rather than a library generator whose stream
 may change.
@@ -1667,8 +1711,8 @@ rectangle's perimeter replaced with RGB (255, 0, 0). The outline uses the region
 including a rectangle that touches the frame edge. Pixels inside and outside that perimeter stay
 as the case stored them. The parent panel is not outlined. A case with no operator rectangle on
 that frame, such as blur, compression, variable timing, a `track_status` case, or a frame outside
-the window, is shown unchanged. A track case names per-frame boxes, and preview does not draw them. A reduced frame appears at
-its stored size at the top left of a parent-sized black panel.
+the window, is shown unchanged. A track case names per-frame boxes, and preview does not draw them.
+A reduced frame appears at its stored size at the top left of a parent-sized black panel.
 
 A frame the case does not hold, which is how `dropped_frames` leaves a gap, is a panel of RGB
 (255, 0, 255) in that case's place. The case is not dropped from the sheet. This is not

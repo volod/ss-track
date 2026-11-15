@@ -68,6 +68,8 @@ def changed_facts(
         changed.append("capture")
     if sequence.get("capture_clock_evidence") != declaration.capture_clock_evidence:
         changed.append("sequence.capture_clock_evidence")
+    if _sequence_timing_changed(sequence, declaration):
+        changed.append("sequence.time_base")
     declared_index = declaration.video_stream_index
     if declared_index is not None and sequence.get(VIDEO_STREAM_INDEX, 0) != declared_index:
         changed.append(f"sequence.{VIDEO_STREAM_INDEX}")
@@ -93,3 +95,14 @@ def _capture_changed(
     carried = {key: value for key, value in capture.items() if key not in judgments}
     declared = {key: value for key, value in declaration.capture.items() if key not in judgments}
     return carried != declared
+
+
+def _sequence_timing_changed(
+    sequence: Mapping[str, Any], declaration: RecordingDeclaration
+) -> bool:
+    images = declaration.image_sequence
+    if images is None:
+        return False
+    rate = images.frame_rate
+    time_base = None if rate is None else f"{rate.denominator}/{rate.numerator}"
+    return bool(sequence.get("time_base") != time_base)

@@ -39,3 +39,5 @@ SOURCE_ACQUISITION = RecordFormat(SOURCE_ACQUISITION_KIND, major=1)
 CORPUS_POOL = RecordFormat(CORPUS_POOL_KIND, major=1)
 AUDIT_BLINDING = RecordFormat(AUDIT_BLINDING_KIND, major=1)
 LINK_REVIEW_HANDOFF = RecordFormat(LINK_REVIEW_HANDOFF_KIND, major=1)
+
+IMAGE_SEQUENCE = RecordFormat("ss-track.image-sequence", major=1)

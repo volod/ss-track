@@ -112,6 +112,16 @@ def inspect_media(
     The decode loop stops once `clock` runs past `decode_limit_seconds`. The default clock is
     monotonic time and the default limit is the declared bound.
     """
+    if path.is_dir():
+        from ss_track.corpus.decoding.image_sequence import inspect_stored_sequence
+
+        return inspect_stored_sequence(
+            path,
+            policy,
+            on_frame,
+            deadline.decode_clock if clock is None else clock,
+            decode_limit_seconds,
+        )
     chosen_clock = deadline.decode_clock if clock is None else clock
     with _ffmpeg_errors() as logs, open_media(path, policy.format_options) as container:
         return _inspect_container(

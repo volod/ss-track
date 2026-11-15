@@ -98,6 +98,12 @@ def require_stored_source(
     """
     stored = directory / _stored_name(manifest)
     identity = directory.name
+    pin = manifest.get("source", {}).get("inventory_sha256")
+    if pin is not None:
+        from ss_track.corpus.sources.image_sequence import verify_sequence
+
+        verify_sequence(stored, identity, str(pin), mismatch)
+        return stored
     if not stored.is_file():
         raise CorpusRefusal(mismatch, _BYTE_MISMATCH[mismatch], {"source_sha256": identity})
     file_hash = sha256_file(stored)

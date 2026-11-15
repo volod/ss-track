@@ -241,6 +241,19 @@ packet/frame identity and PTS, and validates a declared sample of decoded pixels
 tolerance. If exact input correspondence cannot be established, `EXTERNAL_EVENTS` reports contract
 conformance only.
 
+A recording can instead declare an ordered sequence of lossless PNG images. Each member declares
+its consecutive zero-based index, path and expected SHA-256. Import never guesses order or fills a
+missing index. Its identity hashes the ordered image hashes with an image-sequence domain tag;
+paths and frame rate do not change source identity. A pinned inventory retains membership and the
+declared rate, while each retained image is verified against its expected hash. Mixed dimensions or
+pixel layouts, changed images, missing members and lossy codecs are refused. Images contain no
+presentation clock: timestamps are missing unless a positive rational frame rate is declared, in
+which case frame-index timestamps are derived. Capture-clock claims are refused. No resampling,
+filename sorting or implicit frame-rate inference is performed. Evaluation requires repeated imports
+and staging to reproduce identities and bundle hashes, named malformed-input refusals, and missing
+timing to remain unavailable with its cause. A refused unsupported image format is a valid negative
+result; it must never silently become a video or a lossy source.
+
 A recording names one video stream of its file. `source.video_stream_index` is that stream's
 zero-based position among video streams, not among every stream in the container. A file with one
 video stream may omit the index, and that stream is decoded. A file with more than one is refused
