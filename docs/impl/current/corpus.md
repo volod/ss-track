@@ -1675,7 +1675,8 @@ presentation order. A `FrameRef` carries stream, source hash, frame index, PTS, 
 quality and capture-clock evidence, dimensions, pixel format, transform, bundle hash, frame name and
 frame hash, plus `content_frame_index`, the parent frame whose pixels it shows. `transform` is
 `identity` for a stream, whose pixels are as stored, with display rotation staying a record fact,
-and the transform name for a generated case. An absent PTS stays `null`. An index the bundle does
+and the transform name for a generated case. The same fields are the `event/frame` message; the
+[runner](runner.md#checking-a-line) checks a line. An absent PTS stays `null`. An index the bundle does
 not hold is `FRAME_NOT_IN_BUNDLE`.
 
 ### Dataset descriptors

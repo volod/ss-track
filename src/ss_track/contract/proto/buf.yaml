@@ -1,0 +1,18 @@
+version: v2
+modules:
+  - path: .
+lint:
+  use:
+    - STANDARD
+  except:
+    # Flat sources keep the generated Python package to one directory. The protobuf
+    # package name, not the directory, is the versioned identity.
+    - DIRECTORY_SAME_PACKAGE
+    - PACKAGE_DIRECTORY_MATCH
+    - PACKAGE_SAME_DIRECTORY
+    # JSON tokens are the vocabulary a module writes. ENUM_VALUE_PREFIX would rename
+    # MEDIA_PTS to CLOCK_DOMAIN_MEDIA_PTS and VALID to VALIDITY_VALID.
+    - ENUM_VALUE_PREFIX
+breaking:
+  use:
+    - WIRE_JSON

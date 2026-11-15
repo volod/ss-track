@@ -8,7 +8,8 @@ in the change that introduces it. The
 ## Add a contract
 
 1. Choose the family: `declaration` for operator-written YAML, `record` for sealed JSON, `result`
-   for command output, `shared` for value types other contracts reference.
+   for command output, `shared` for value types other contracts reference. An event package is not
+   a JSON Schema file. Follow [event packages](#event-packages).
 2. Create `contracts/<family>/<id>/1.0.0.json`, or `<major>.0.0.json` for a format already shipped
    at that `schema_version`. A record the code writes today must conform with no byte changed.
 3. Set `$schema` to JSON Schema 2020-12 and `$id` to
@@ -109,6 +110,25 @@ A relationship the walk does not finish requires a major. The test oracle checks
 transition independently, and a disagreement in either direction fails CI. When it says the
 classifier misses a proven relaxation, strengthen the proof in `schema/compatibility/patterns.py` or
 `schema/compatibility/derivatives.py`; do not weaken a schema to obtain agreement.
+
+## Event packages
+
+An event package is a protobuf file under `src/ss_track/contract/proto/`, not a JSON Schema
+document. `ss-track contracts freeze` refuses `event/<id>`. Publish with `make proto-gen`, which
+writes `contracts/event/<id>/<version>.binpb` only when that file is missing or already identical,
+and refreshes the generated Python bindings. Put the registry pins in the same change. `make
+proto-check` fails when the image, the bindings, buf lint, buf format or `buf breaking` disagree
+with that frozen image.
+
+The file option `contract_urn` is `urn:ss-track:contract:event:<id>:<version>`. The protobuf
+package is `ss_track.event.<id>.v<major>`. Set `json_name` to the proto field name. Do not edit a
+frozen image. A change to a file that other packages import changes their image bytes too, so each
+affected package needs a new version in that change. `buf breaking` with category `WIRE_JSON`
+decides whether the version is major or compatible. A wire-incompatible major needs migration text
+and a disposition of at least `facts`.
+
+G2 records are a new event package. They do not edit the frozen G0 descriptor bytes or the
+`FrameResult` message. The [runner page](../impl/current/runner.md) states the packages that exist.
 
 ## Historic formats
 

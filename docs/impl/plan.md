@@ -127,31 +127,6 @@ frozen mask, and a difference between them would change what a score means.
 
 ### Module contract and runner -- `module-contract-runner`
 
-#### event-schema-contract
-
-Python and later C++ modules need one versioned meaning for every event.
-
-- Serves: `module-contract-runner` -- [Module contract](../design/spec.md#5-module-contract-execution-and-fault-semantics)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: Modules and tools share a validated event schema with golden fixtures, and a
-  breaking change fails CI.
-- Scope boundary: The G0 and G1 record families. G2 fusion records are out of scope.
-- Data and artifact paths: `src/ss_track/contract/`, `tests/contract/`.
-- Execution path: Define `.proto` files and protobuf-JSON JSON Lines validation. Add a Make target
-  that regenerates bindings and a CI drift check, keep generated files out of the size and lint
-  gates, and add the smallest justified dependency to `uv.lock`. Register each package under
-  `contracts/event/`, pin `buf-bin` in the dev extra, and gate on `buf breaking` with the `WIRE_JSON`
-  category against the frozen descriptor set, because G0 events travel as JSON. The registry,
-  `make lint-contracts` and the contract `$id` pattern hold JSON Schema files only, so this task
-  teaches them the `event` family.
-- Acceptance gates: Golden fixtures cover absent and unknown fields, malformed payloads, coordinates,
-  timestamps and power units. A malformed event is rejected with a reason. A renamed field, a reused
-  field number and a changed `json_name` each fail the gate. `FrameRef` round-trips every
-  field the staged bundle reports, including `transform` and `content_frame_index`, with those meanings.
-- Documentation target: [Current implementation](current.md#areas), new page `current/runner.md`.
-
 #### scenario-contract
 
 A comparison must pin everything that can change its result.
@@ -159,7 +134,7 @@ A comparison must pin everything that can change its result.
 - Serves: `module-contract-runner` -- [Run artifacts](../design/spec.md#10-run-artifacts-and-comparison-dashboard)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: event-schema-contract.
+- Dependencies: none.
 - User-visible outcome: A scenario file pins scenario pack, corpus, frame set, labels, selection,
   replay mode, metric suite, seed and deadlines, and yields one cohort key.
 - Scope boundary: The scenario schema, one cohort-key function, and one type that owns windows and
@@ -190,7 +165,9 @@ Every score must be recomputable from immutable evidence.
   visibility field that defaults to restricted. `loc-lm-bench` is a pattern to check, not an import.
 - Data and artifact paths: `src/ss_track/contract/`, `tests/contract/`, `$DATA_DIR/run/<run-id>/`.
 - Execution path: Add bundle reader and writer with crash and retry fixtures. The run manifest and
-  bundle are `record` contracts, and the manifest lists the contract set in force.
+  bundle are `record` contracts, and the manifest lists the contract set in force. The manifest
+  field list is the `RunManifest` message of `event/analytics`. This task seals that protobuf-JSON
+  object and does not define a second field list.
 - Acceptance gates: A crash fixture leaves no complete-looking bundle, a retried ID stays
   idempotent, and each manifest records its re-run command. A bundle with no visibility value reads
   as restricted. Run scratch and any reproducible cache are registered
@@ -969,7 +946,7 @@ A trial must start from what the host really supports.
 - Serves: `hardware-probe-adaptive-launch` -- [Probe and launch](../design/spec.md#71-probe-and-adaptive-launch)
 - Agent status: CLEAR
 - Milestone: M2
-- Dependencies: event-schema-contract.
+- Dependencies: none.
 - User-visible outcome: `ss-track hardware-probe` writes a host profile with explicit support status.
 - Scope boundary: CPU, memory, storage, scheduler, governor, frequency and throttle evidence, and
   whether frequency can be capped. Sensors belong to `joint-mode-probe`; accelerators stay in
@@ -1237,13 +1214,13 @@ Every sensor needs one way to say what it saw, and what it could not see.
 - Serves: `sensor-adapter-frontends` -- [Module contract](../design/spec.md#5-module-contract-execution-and-fault-semantics)
 - Agent status: CLEAR
 - Milestone: M3
-- Dependencies: event-schema-contract, scenario-contract.
+- Dependencies: scenario-contract.
 - User-visible outcome: Typed observations carry modality, evidence role, timing, geometry, coverage
   and provenance.
 - Scope boundary: G2 record families for observations and epochs. Sensor drivers are later tasks.
 - Data and artifact paths: `src/ss_track/contract/`, `tests/contract/`.
-- Execution path: Extend the schema as an additive event contract version, without changing G0
-  `FrameResult` meaning, with golden fixtures.
+- Execution path: Add G2 observations as a new event package. Do not edit the frozen G0 descriptor
+  bytes or the `FrameResult` message. Golden fixtures cover the observation vocabulary.
 - Acceptance gates: `no_detection`, `out_of_view`, `disabled_by_policy`, `missing`, `stale` and
   `invalid` stay distinct. An untyped confidence field is rejected.
 - Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
@@ -2025,7 +2002,7 @@ A run that says it used an accelerator proves nothing unless the run records wha
 - Serves: `tensor-compute-backends` -- [Compute variants](../design/spec.md#194-compute-variants-and-energy-per-decision)
 - Agent status: CLEAR
 - Milestone: M7
-- Dependencies: event-schema-contract, host-capability-probe.
+- Dependencies: host-capability-probe.
 - User-visible outcome: Every run names one compute variant and carries a compute manifest with
   its model, precision, backend, device, partition and fallback policy.
 - Scope boundary: The manifest as a `record` contract with the spec section 7.3 fields, `opaque`
@@ -2657,7 +2634,7 @@ Finished devices need a suite that works without an operator seed.
 - Serves: `device-bench-evaluation` -- [Device bench evaluation](../design/spec.md#166-device-bench-evaluation)
 - Agent status: CLEAR
 - Milestone: M5
-- Dependencies: installed-system-suite, event-schema-contract.
+- Dependencies: installed-system-suite.
 - User-visible outcome: A vendor adapter's events score detection delay, lock coverage and false
   alarms.
 - Scope boundary: The suite, adapter contract and same-stimulus cohort key. A device that exposes

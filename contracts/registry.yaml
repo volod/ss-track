@@ -410,6 +410,83 @@ contracts:
     change:
       class: initial
       summary: Initial contract.
+- family: event
+  id: analytics
+  owner: module-contract-runner
+  status: active
+  description: Run identity, validation, sensor and resource samples, and power.
+    A sensor sample is not a G2 observation. Joules are derived energy, not watts.
+  versions:
+  - version: 1.0.0
+    file_sha256: bb72b3694088d19f94be19ba5655a2fe9d3d2737708c072bc6bbedbcb04dabe7
+    fingerprints:
+      structure: 595c99fbc4ba100eca3c836d298481abac0d3ba2da690d995e93e2c3bedb1c23
+      meaning: f0f80b33ce62c9d9a70122ab9a041fa454c6d368f770f7fcea98371488288fc7
+    change:
+      class: initial
+      summary: Initial contract.
+- family: event
+  id: clock
+  owner: module-contract-runner
+  status: active
+  description: A clock reading and the stable identity of one event. Media PTS is
+    not capture time. A framed event names one source frame. An unframed event
+    names an interval and no frame.
+  versions:
+  - version: 1.0.0
+    file_sha256: 13f5e2fde872f26348bf8430dde8ef6fe1f7bcbe899ca3aa9466737e6591ea56
+    fingerprints:
+      structure: f5415b723ca0f83fd1810e3c1b372b0e152fcccc6036f83b1489ef3acec046e8
+      meaning: 87a2fa28244f17340fc4adb6c9a9d30571324a931b563a12cc202d02a30608cb
+    change:
+      class: initial
+      summary: Initial contract.
+- family: event
+  id: frame
+  owner: module-contract-runner
+  status: active
+  description: One staged frame and how to reach it. content_frame_index is the
+    parent frame whose pixels are shown. transform is identity for a source bundle.
+    Display rotation is not this field.
+  versions:
+  - version: 1.0.0
+    file_sha256: 2bb6915d03dcc29feb52de20caec118d2158b28053ce492beb95a86eecef94fd
+    fingerprints:
+      structure: 178e5ae2204aeecea0a1c30007b9ac634fd6dfd276ea01433709acc70239aec7
+      meaning: 3d8942de0598aecc80a944b673abdfe0f76335a4743bb2fba385b40a72bb1d1e
+    change:
+      class: initial
+      summary: Initial contract.
+- family: event
+  id: trial
+  owner: module-contract-runner
+  status: active
+  description: A G1 instrument, calibration and hardware trial. A trial stores
+    trace hashes, not samples, and it is not a frame event.
+  versions:
+  - version: 1.0.0
+    file_sha256: 8cf3ae65986ea054a8cd663c522db010038acd0f00ecfc1eb6956b265291bc4d
+    fingerprints:
+      structure: 4159f22059945feb54253eea5fc5434656f39845bed072080df7a0c361f98ad3
+      meaning: 7206d7b202af7528bcc04000c8711eded0cf26d6d8b4fb08307ce949dbf80da1
+    change:
+      class: initial
+      summary: Initial contract.
+- family: event
+  id: wire
+  owner: module-contract-runner
+  status: active
+  description: Module outputs for one frame. Empty detections are a valid frame
+    result. G0 and G1 have no actuator endpoint. G2 fusion records are not here.
+  versions:
+  - version: 1.0.0
+    file_sha256: 74d8f0fe8be7a814f627fd14a7f1509b4aafbfb454cefb7cd9e3c75353a0454e
+    fingerprints:
+      structure: cd6f4c356e2aaf23af4731c0e5643b995da60afb53cc163cd5dc7123871f3d35
+      meaning: a3a6c41d621269314b1f18222e6b37589a69976d0b2cdaea80b70faea7b7dd39
+    change:
+      class: initial
+      summary: Initial contract.
 - family: record
   id: annotation-revision
   owner: annotation-selection

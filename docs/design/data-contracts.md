@@ -41,7 +41,11 @@ old evidence can never be migrated in place.
 | Hash comparison | `corpus compare` | `$DATA_DIR/run/<run-id>/` | 1 | `record/hash-comparison` 1.0.0 |
 | Command result and refusal | Every command | One JSON log line | None | `result/command-result` 1.0.0 |
 
-Planned formats enter through their owning tasks: labels, seeds and masks, the scenario, events,
+G0 and G1 events are frozen protobuf descriptor sets: `event/analytics`, `event/clock`,
+`event/frame`, `event/trial` and `event/wire`, each at 1.0.0. A line is protobuf-JSON. The
+[runner](../impl/current/runner.md) checks it; `contracts validate` does not.
+
+Planned formats enter through their owning tasks: labels, seeds and masks, the scenario,
 the run manifest and bundle, metric results, host profiles, hardware protocols,
 instrument and calibration records, power traces, stand requirements and telemetry profiles.
 Configuration is covered too: `.env` carries only local paths, and every behavior-changing setting

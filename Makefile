@@ -19,7 +19,7 @@ export MYPY_CACHE_DIR := $(DATA_ROOT)/cache/mypy
 .PHONY: help bootstrap venv lock run doctor format format-check lint typecheck \
 	test-light test-external test test-architecture coverage \
 	complexity-gate shell-lint-gate lint-md lint-doc-links lint-spec-plan lint-contracts \
-	plan-status \
+	proto-gen proto-check plan-status \
 	ci-checks ci ci-github build quality code-quality quality-report \
 	fixed-corpus-sources fixed-corpus-stage fixed-corpus-compare development-workload-prepare
 
@@ -83,12 +83,13 @@ coverage: ## Run both test groups and enforce the coverage floor
 		"$(PY)" -m pytest $(PYTEST_CACHE) --cov=ss_track --cov-report=term-missing
 
 complexity-gate: ## Fail on Radon D-or-worse or cognitive complexity above 15
-	@output="$$($(VENV)/bin/radon cc src tests -s -n D)"; \
+	@output="$$($(VENV)/bin/radon cc src tests -s -n D -e '*_pb2.py')"; \
 		if [ -n "$$output" ]; then printf '%s\n' "$$output"; exit 1; fi
 	@mkdir -p "$(DATA_ROOT)/cache/complexipy"
 	@cd "$(DATA_ROOT)/cache/complexipy"; \
 		output="$$($(VENV)/bin/complexipy "$(PROJECT_ROOT)/src" "$(PROJECT_ROOT)/tests" \
-		--max-complexity-allowed 15 --failed --ignore-complexity --color no --plain --sort desc)"; \
+		--max-complexity-allowed 15 --failed --ignore-complexity --color no --plain --sort desc \
+		--exclude "$(PROJECT_ROOT)/src/ss_track/contract/gen")"; \
 		if [ -n "$$output" ]; then printf '%s\n' "$$output"; exit 1; fi
 
 shell-lint-gate: ## Check every tracked shell script with bash and ShellCheck
@@ -109,11 +110,17 @@ lint-spec-plan: ## Check capability registry, task structure, status, and orderi
 lint-contracts: ## Check frozen contracts, compatibility and merge-base history
 	@"$(PY)" -m ss_track.schema.compatibility.history --project "$(PROJECT_ROOT)" --base-ref "$(CONTRACT_BASE_REF)"
 
+proto-gen: ## Regenerate event bindings and frozen descriptor sets from proto
+	@$(PY) -m ss_track.contract.build --write
+
+proto-check: ## Fail if event bindings or descriptors drift, or breaking rules fail
+	@$(PY) -m ss_track.contract.build --check
+
 plan-status: ## Count tasks by lane/status and show the next eligible work
 	@"$(VENV)/bin/ss-track-plan" --root "$(PROJECT_ROOT)"
 
 ci-checks: format-check lint typecheck complexity-gate shell-lint-gate lint-doc-links lint-spec-plan \
-	lint-contracts
+	lint-contracts proto-check
 
 ci: ci-checks test-light ## Run the required local and GitHub CI gate
 
@@ -139,5 +146,5 @@ quality: ci-checks coverage lint-md build ## Run the full local quality suite
 code-quality: quality ## Alias for the full local quality suite
 
 quality-report: ## Report Python/shell files over the 250-line soft limit
-	@find src tests scripts -type f \( -name '*.py' -o -name '*.sh' \) -print0 | \
+	@find src tests scripts -type f \( -name '*.py' -o -name '*.sh' \) ! -name '*_pb2.py' -print0 | \
 		xargs -0 -r wc -l | awk '$$2 != "total" && $$1 > 250 {print}' | sort -nr

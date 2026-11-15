@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package ss_track.contract.v1;
+
+import "google/protobuf/descriptor.proto";
+
+extend google.protobuf.FileOptions {
+  // urn:ss-track:contract:<family>:<id>:<version> of the event package in this file.
+  string contract_urn = 50001;
+}

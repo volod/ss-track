@@ -41,7 +41,7 @@ def validate_written_contracts() -> Iterator[Counter[str]]:
     schemas = {
         contract.name: contracts.frozen_schema(contract, contract.versions[-1])
         for contract in contracts.contracts
-        if contract.versions and contract.family != "shared"
+        if contract.versions and contract.family not in {"shared", "event"}
     }
     kinds = {
         schema["properties"]["kind"]["const"]: name

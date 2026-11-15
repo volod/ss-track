@@ -1,0 +1,119 @@
+syntax = "proto3";
+
+package ss_track.event.analytics.v1;
+
+import "clock.proto";
+import "contract_options.proto";
+
+option (ss_track.contract.v1.contract_urn) = "urn:ss-track:contract:event:analytics:1.0.0";
+
+// Identifies one run. Hashes are absent when that input was not used.
+// The sealed bundle file is a later record; this message is the field list it stores.
+message RunManifest {
+  string run_id = 1 [json_name = "run_id"];
+  string corpus_id = 2 [json_name = "corpus_id"];
+  string split = 3 [json_name = "split"];
+  string annotation_sha256 = 4 [json_name = "annotation_sha256"];
+  string mask_sha256 = 5 [json_name = "mask_sha256"];
+  string scenario_pack_id = 6 [json_name = "scenario_pack_id"];
+  string class_map_sha256 = 7 [json_name = "class_map_sha256"];
+  string metric_suite = 8 [json_name = "metric_suite"];
+  string module_id = 9 [json_name = "module_id"];
+  string module_config_sha256 = 10 [json_name = "module_config_sha256"];
+  string schema_revision = 11 [json_name = "schema_revision"];
+  string decoder_revision = 12 [json_name = "decoder_revision"];
+  string host_id = 13 [json_name = "host_id"];
+  string kernel_profile = 14 [json_name = "kernel_profile"];
+  string scheduler_profile = 15 [json_name = "scheduler_profile"];
+  string compute_variant = 16 [json_name = "compute_variant"];
+  string evaluator_revision = 17 [json_name = "evaluator_revision"];
+  // Contract URNs in force. Descriptive; a cohort key does not hash this list.
+  repeated string contract_urns = 18 [json_name = "contract_urns"];
+  ss_track.event.clock.v1.ClockTime interval_start = 19 [json_name = "interval_start"];
+  ss_track.event.clock.v1.ClockTime interval_end = 20 [json_name = "interval_end"];
+}
+
+enum ScoreStatus {
+  SCORE_STATUS_UNSPECIFIED = 0;
+  VALID = 1;
+  NOT_SCOREABLE = 2;
+  UNSUPPORTED = 3;
+  NOT_MEASURABLE = 4;
+  RUNNER_INVALID = 5;
+  MODULE_FAULT = 6;
+}
+
+message ValidationResult {
+  ss_track.event.clock.v1.EventRef ref = 1 [json_name = "ref"];
+  ScoreStatus status = 2 [json_name = "status"];
+  string reason = 3 [json_name = "reason"];
+}
+
+enum SampleValidity {
+  SAMPLE_VALIDITY_UNSPECIFIED = 0;
+  // Prefixed because proto3 enum names share a package and ScoreStatus already uses VALID.
+  SAMPLE_VALID = 1;
+  SAMPLE_MISSING = 2;
+  SAMPLE_STALE = 3;
+  SAMPLE_INVALID = 4;
+  SAMPLE_MULTIPLEXED = 5;
+}
+
+// A measured sensor value. This is not a G2 SensorObservation.
+message SensorSample {
+  ss_track.event.clock.v1.EventRef ref = 1 [json_name = "ref"];
+  string modality = 2 [json_name = "modality"];
+  // SI unit token of value, such as m, rad or K.
+  string unit = 3 [json_name = "unit"];
+  double value = 4 [json_name = "value"];
+  ss_track.event.clock.v1.ClockTime time = 5 [json_name = "time"];
+  SampleValidity validity = 6 [json_name = "validity"];
+}
+
+message ResourceSample {
+  ss_track.event.clock.v1.EventRef ref = 1 [json_name = "ref"];
+  // Counter scope, such as process or host.
+  string scope = 2 [json_name = "scope"];
+  string unit = 3 [json_name = "unit"];
+  string source = 4 [json_name = "source"];
+  ss_track.event.clock.v1.ClockTime time = 5 [json_name = "time"];
+  SampleValidity validity = 6 [json_name = "validity"];
+  double value = 7 [json_name = "value"];
+}
+
+message Electrical {
+  // Synchronized voltage, in volts.
+  double volts = 1 [json_name = "volts"];
+  // Synchronized current, in amperes.
+  double amperes = 2 [json_name = "amperes"];
+}
+
+// Instantaneous power. Watts and the electrical pair are different readings.
+// Derived joules are DerivedEnergy, not a value in watts.
+message PowerSample {
+  ss_track.event.clock.v1.EventRef ref = 1 [json_name = "ref"];
+  string instrument_id = 2 [json_name = "instrument_id"];
+  // Measurement boundary, such as module-input or device-supply.
+  string boundary = 3 [json_name = "boundary"];
+  string calibration_id = 4 [json_name = "calibration_id"];
+  // W for watts, or V*A for the electrical pair. Other tokens are rejected.
+  string unit = 5 [json_name = "unit"];
+  optional double uncertainty = 6 [json_name = "uncertainty"];
+  repeated string quality_flags = 7 [json_name = "quality_flags"];
+  oneof reading {
+    double watts = 8 [json_name = "watts"];
+    Electrical electrical = 9 [json_name = "electrical"];
+  }
+}
+
+// Integrated energy over an exact interval. The unit is joules.
+message DerivedEnergy {
+  ss_track.event.clock.v1.EventRef ref = 1 [json_name = "ref"];
+  string method = 2 [json_name = "method"];
+  ss_track.event.clock.v1.ClockTime start = 3 [json_name = "start"];
+  ss_track.event.clock.v1.ClockTime end = 4 [json_name = "end"];
+  double joules = 5 [json_name = "joules"];
+  optional double uncertainty = 6 [json_name = "uncertainty"];
+  // J. A watts or horsepower token is rejected.
+  string unit = 7 [json_name = "unit"];
+}

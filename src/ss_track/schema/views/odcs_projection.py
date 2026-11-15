@@ -6,6 +6,7 @@ from typing import Any
 
 from ss_track.core.refusal import JsonValue
 from ss_track.schema.compatibility.evolution import pointer_parts
+from ss_track.schema.registry.contract import EVENT_FAMILY
 from ss_track.schema.registry.store import ContractSet, damaged
 
 
@@ -55,6 +56,7 @@ class Projection:
         self.schemas = {
             contract.urn(version): contracts.frozen_schema(contract, version)
             for contract in contracts.contracts
+            if contract.family != EVENT_FAMILY
             for version in contract.versions
         }
         self.properties: dict[str, Property] = {}

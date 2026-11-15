@@ -168,6 +168,8 @@ def freeze_contract(
     root: Path | None = None,
 ) -> EvolutionResult:
     """Validate a staged set in isolation before writing schema bytes and the generated pins."""
+    if name.startswith("event/"):
+        raise damaged("event contracts are published by the proto build, not contracts freeze")
     base = default_root() if root is None else root
     contracts = load_contract_set(base)
     schema, version = _candidate(contracts, name, path)

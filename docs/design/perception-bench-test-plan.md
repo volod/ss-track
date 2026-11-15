@@ -9,6 +9,12 @@ makes it fail, and what it does not prove. A case with no task left is listed as
 ## Existing behavior to protect
 
 - `ss-track info` stays unchanged as subcommands are added. `tests/test_cli.py` already covers it.
+- Golden event lines reject an unknown field, malformed JSON, a non-positive box, a bad time base
+  and a watts unit other than `W`. A staged `FrameRef` round-trips, including `transform` and
+  `content_frame_index`. A renamed field, a reused field number and a changed `json_name` fail
+  `buf breaking`. `tests/contract/` covers them.
+  Value: protects=one meaning for every G0 and G1 event; fails_when=generated bindings drift or a
+  wire-incompatible edit passes; no_claim=C++ round trips or G2 fusion records.
 - Truncated, zero-length, wrong-hash, non-increasing PTS and selection-past-end inputs stay
   structured refusals. `tests/corpus/` covers them.
   Value: protects=structured refusal; fails_when=a bad source yields a score; no_claim=real decoder
@@ -117,10 +123,6 @@ makes it fail, and what it does not prove. A case with no task left is listed as
   `unknown`, `region`, `shift`, `reentry` and `unchanged`, and a plate showing a target.
   Value: protects=labels that follow pixels; fails_when=a covered target stays visible, a wrong
   region yields `absent`, or a frame with no box becomes `absent`; no_claim=parent label quality.
-- `event-schema-contract`: golden fixtures, unknown fields, malformed payloads and regenerated
-  bindings.
-  Value: protects=one meaning for every event; fails_when=generated code drifts from `.proto`;
-  no_claim=C++ round trips.
 - `scenario-contract`: each cohort-key field changed in turn, and a scenario with a missing hash.
   Value: protects=comparison identity; fails_when=a changed input keeps its key; no_claim=none
   beyond protects.

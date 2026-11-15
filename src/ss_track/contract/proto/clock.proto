@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package ss_track.event.clock.v1;
+
+import "contract_options.proto";
+
+option (ss_track.contract.v1.contract_urn) = "urn:ss-track:contract:event:clock:1.0.0";
+
+// A clock reading. Offline media PTS uses MEDIA_PTS and is not capture time.
+// Every value names its domain, source and uncertainty.
+message ClockTime {
+  // MEDIA_PTS is media time. CAMERA, RECEIVE, PROCESSING_START, PROCESSING_END,
+  // PUBLICATION, DISPLAY and INSTRUMENT are the other domains a comparison may name.
+  ClockDomain domain = 1 [json_name = "domain"];
+  // Who produced the reading, such as container or a named instrument.
+  string source = 2 [json_name = "source"];
+  // Ticks of time_base. Omitted time_base means the tick is one second.
+  int64 ticks = 3 [json_name = "ticks"];
+  // Rational seconds per tick, numerator/denominator. Absent when ticks are seconds.
+  optional string time_base = 4 [json_name = "time_base"];
+  // Non-negative uncertainty of this reading, in seconds.
+  optional double uncertainty_seconds = 5 [json_name = "uncertainty_seconds"];
+}
+
+enum ClockDomain {
+  CLOCK_DOMAIN_UNSPECIFIED = 0;
+  MEDIA_PTS = 1;
+  CAMERA = 2;
+  RECEIVE = 3;
+  PROCESSING_START = 4;
+  PROCESSING_END = 5;
+  PUBLICATION = 6;
+  DISPLAY = 7;
+  INSTRUMENT = 8;
+}
+
+// Stable identity of one event: one source frame, or an explicit unframed interval.
+// A framed event does not also carry an interval.
+message EventRef {
+  string event_id = 1 [json_name = "event_id"];
+  string stream_id = 2 [json_name = "stream_id"];
+  // Present on a framed event, including zero. Absent when unframed is true.
+  optional uint32 frame_index = 3 [json_name = "frame_index"];
+  string bundle_sha256 = 4 [json_name = "bundle_sha256"];
+  bool unframed = 5 [json_name = "unframed"];
+  ClockTime interval_start = 6 [json_name = "interval_start"];
+  ClockTime interval_end = 7 [json_name = "interval_end"];
+}

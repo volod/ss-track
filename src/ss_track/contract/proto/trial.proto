@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package ss_track.event.trial.v1;
+
+import "clock.proto";
+import "contract_options.proto";
+
+option (ss_track.contract.v1.contract_urn) = "urn:ss-track:contract:event:trial:1.0.0";
+
+enum TrialValidity {
+  TRIAL_VALIDITY_UNSPECIFIED = 0;
+  VALID = 1;
+  INVALID = 2;
+  INCONCLUSIVE = 3;
+  NOT_MEASURABLE = 4;
+}
+
+// One instrument used by a hardware trial. Identified by instrument_id, not a frame.
+message InstrumentRecord {
+  string instrument_id = 1 [json_name = "instrument_id"];
+  string measurand = 2 [json_name = "measurand"];
+  // SI unit of the measurand.
+  string unit = 3 [json_name = "unit"];
+  string model = 4 [json_name = "model"];
+  string serial = 5 [json_name = "serial"];
+  string range = 6 [json_name = "range"];
+  optional double resolution = 7 [json_name = "resolution"];
+  optional double bandwidth_hz = 8 [json_name = "bandwidth_hz"];
+  string calibration_id = 9 [json_name = "calibration_id"];
+  optional double uncertainty = 10 [json_name = "uncertainty"];
+}
+
+// One calibration or check. Identified by calibration_id, not a frame.
+message CalibrationRecord {
+  string calibration_id = 1 [json_name = "calibration_id"];
+  string instrument_id = 2 [json_name = "instrument_id"];
+  // Calendar date of the check, YYYY-MM-DD.
+  string checked_on = 3 [json_name = "checked_on"];
+  optional double uncertainty = 4 [json_name = "uncertainty"];
+  string method = 5 [json_name = "method"];
+}
+
+// The immutable trial evidence identity. Traces are hashes, not samples.
+message HardwareTrial {
+  string trial_id = 1 [json_name = "trial_id"];
+  string protocol_id = 2 [json_name = "protocol_id"];
+  string host_id = 3 [json_name = "host_id"];
+  repeated string instrument_ids = 4 [json_name = "instrument_ids"];
+  repeated string calibration_ids = 5 [json_name = "calibration_ids"];
+  repeated string trace_sha256 = 6 [json_name = "trace_sha256"];
+  ss_track.event.clock.v1.ClockTime start = 7 [json_name = "start"];
+  ss_track.event.clock.v1.ClockTime end = 8 [json_name = "end"];
+  optional double uncertainty = 9 [json_name = "uncertainty"];
+  TrialValidity validity = 10 [json_name = "validity"];
+  string reason = 11 [json_name = "reason"];
+}

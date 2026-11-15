@@ -12,8 +12,9 @@ extra so a test can build the wheel with no network. `uv.lock` fixes the full re
 The Makefile exposes individual checks and two composed workflows:
 
 - `make ci` runs formatting, linting, typing, Radon and cognitive complexity, shell parsing and
-  ShellCheck, documentation links, spec-plan integrity, [frozen contracts](contracts.md#the-gate), and
-  the lightweight test group.
+  ShellCheck, documentation links, spec-plan integrity, [frozen contracts](contracts.md#the-gate),
+  [event descriptor drift](runner.md#compatibility), and the lightweight test group. Generated
+  `*_pb2.py` bindings stay out of formatting, lint, typing, complexity and the size report.
 - `make quality` adds branch coverage over both test groups, Markdown lint, and source/wheel builds.
 
 Tests are two groups, selected by the `external` marker in `tests/grouping.py`. `make test-light`

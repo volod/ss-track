@@ -82,6 +82,7 @@ def test_every_protected_name_is_a_property_an_installed_contract_states() -> No
     stated = {
         name
         for contract in contracts.contracts
+        if contract.family != "event"
         for frozen in contract.versions
         for node in walk(contracts.frozen_schema(contract, frozen))
         for name in node.get("properties", {})

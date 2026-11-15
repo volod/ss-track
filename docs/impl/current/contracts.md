@@ -53,6 +53,10 @@ baseline scope and evidence. The installed set contains these document contracts
 seals its ordered image hashes and declared rate. All inventory reads use the shared sealed-record
 gate. The [sequence source interface](corpus.md#ordered-image-sequences) states identity and timing.
 
+The `event` family is a frozen descriptor set, not a JSON Schema document. `event/analytics`,
+`event/clock`, `event/frame`, `event/trial` and `event/wire` are each at `1.0.0`. The
+[runner page](runner.md) states the messages, the line checker and the breaking gate.
+
 `result/command` `1.30.0` adds optional `annotation` on `ss-track annotate validate`. The object
 names the document kind and hash, the pack hash for a label, the replay hash for a seed, and one
 row per frame or seed role. A row is `scorable`, `unscorable` or `not_denominator`. It has no
@@ -297,7 +301,7 @@ The input file is never rewritten. Name a `declaration` contract to select the Y
 | `RECORD_INVALID` | A non-declaration file is not strict JSON, or breaks a contract outside the `declaration` family. Details name the URN and up to 20 violations by JSON pointer |
 | `MANIFEST_INVALID` | A file is not supported declaration YAML, or breaks a `declaration` contract |
 | `RECORD_TAMPERED` | A record of valid shape does not match its seal |
-| `CONTRACT_UNKNOWN` | The named contract or version does not exist, no contract states the file's `kind`, the file names no format and no `--contract` was given, a draft has no frozen version, or a `shared` contract was named, because it states no document |
+| `CONTRACT_UNKNOWN` | The named contract or version does not exist, no contract states the file's `kind`, the file names no format and no `--contract` was given, a draft has no frozen version, a `shared` contract was named, because it states no document, or an `event` contract was named, because its instances are protobuf-JSON lines rather than one JSON document |
 | `CONTRACT_SET_INVALID` | The registry breaks its schema, or a frozen file is missing or differs from the hash the registry pinned |
 
 ## The set
@@ -305,7 +309,8 @@ The input file is never rewritten. Name a `declaration` contract to select the Y
 | Path | Holds |
 | --- | --- |
 | `contracts/registry.yaml` | Each contract's family, id, owner, status and frozen versions, with `file_sha256`, both fingerprints, the change-log entry and optional retired-major dispositions |
-| `contracts/<family>/<id>/<version>.json` | One frozen version, whose `$id` is `urn:ss-track:contract:<family>:<id>:<version>` |
+| `contracts/<family>/<id>/<version>.json` | One frozen JSON Schema version, whose `$id` is `urn:ss-track:contract:<family>:<id>:<version>` |
+| `contracts/event/<id>/<version>.binpb` | One frozen descriptor set for an event package. It is not a JSON Schema document |
 | `contracts/shared/types/` | The `sha256` and `identifier` value types |
 | `contracts/meta/dialect.json` | The restricted JSON Schema a contract may use |
 | `contracts/meta/registry.json` | The shape of `registry.yaml` |
@@ -336,6 +341,7 @@ for a checkout and a wheel.
 | `schema/validation/enforce.py` | Runtime validation of declarations and records, change-log remedies and dispositions, and shared types |
 | `schema/validation/_documents.py`, `strict_json.py` | Private document parsing and shared strict JSON decoder hooks |
 
+Event descriptor checks live in `ss_track.contract` and are described on the [runner page](runner.md).
 `ss_track.schema` imports nothing from `ss_track.corpus`, because the corpus writers validate
 through it. `ss_track.core.refusal`, `ss_track.core.canonical` and `ss_track.core.strict_yaml` sit
 below both, and a test holds that import direction.
@@ -374,7 +380,9 @@ version:
 - `schema_version` as the integer const of the major, in `declaration` and `record` contracts, and
   `kind` as a const with the seal required, in `record` contracts;
 - both fingerprints, stating the pinned and computed values; `freeze` generates these pins;
-- every `$ref`, once every file above is intact.
+- every `$ref`, once every file above is intact. The `event` family skips `$id`, the dialect, the
+  stamps and `$ref`. Its file hash still catches any edit. The descriptor check then requires the
+  contract URN, the protobuf package, `json_name` equal to the field name, and both fingerprints.
 
 The fingerprints walk schema positions, because a property may be named `title` or `description`,
 and such a key is a name and not an annotation. Fixed `prefixItems` positions are walked in order;
@@ -437,6 +445,12 @@ ss-track contracts diff record/frame-set --file frame-set-next.json --root contr
 ss-track contracts freeze record/frame-set --file frame-set-next.json --root contracts \
   --summary "Describe the change."
 ```
+
+`ss-track contracts freeze` refuses `event/<id>`. An event package is published by `make proto-gen`,
+which will not overwrite a frozen image whose bytes differ. A later event version is classified by
+`buf breaking` with category `WIRE_JSON`: identical bytes are refused, a breaking change is a major
+whose disposition is at least `facts`, a compatible structure change is a minor, and any other
+change is a patch. The [runner page](runner.md) states the rule.
 
 The candidate's `$id` names its family, id and proposed version. `--root` defaults to the installed
 contract set; publishing needs a writable set. Initial contracts also require `--owner`. `diff`
@@ -561,7 +575,7 @@ record](../records/0019-data-contracts-contract-evolution-gate.md) holds the gat
 ss-track contracts export --format odcs --out "$DATA_DIR/odcs/catalog"
 ```
 
-The exporter writes one ODCS 3.2 JSON document per registered contract, under
+The exporter writes one ODCS 3.2 JSON document per registered JSON Schema contract, under
 `<out>/<family>/<id>.json`, using the newest frozen version. The ODCS `id` is the registry's
 `family/id` and `version` is that frozen version. This is a generated catalog view; the frozen JSON
 Schema remains the authority for instance validation and compatibility. The command validates every
@@ -583,12 +597,13 @@ The [ODCS task record](../records/0025-data-contracts-odcs-contract-export.md) r
 `schema/views/odcs_projection.py` follows local and registered external references with cycle
 protection, merges branch fields and records source positions. `schema/views/odcs.py` checks the
 upstream schema hash, validates and writes the views. `tests/schema/views/test_odcs.py` checks every
-registered contract, source property and keyword, the tagged union, recursive references, CLI
-results, and the pinned schema. The wheel test runs the exporter outside the checkout.
+registered JSON Schema contract, source property and keyword, the tagged union, recursive
+references, CLI results, and the pinned schema. The wheel test runs the exporter outside the
+checkout.
 
 ### Generated reference
 
-`ss-track contracts docs --out <dir>` writes a Markdown dictionary for each frozen contract
+`ss-track contracts docs --out <dir>` writes a Markdown dictionary for each frozen JSON Schema contract
 under `<dir>/<family>/<id>.md` and a lineage table in `<dir>/lineage.md`. Dictionaries list
 schema property pointers, descriptions, enum values and their first frozen version. The lineage
 lists `x-references` targets. `make lint-contracts` checks that annotated targets resolve against

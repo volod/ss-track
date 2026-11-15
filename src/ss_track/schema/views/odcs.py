@@ -9,7 +9,7 @@ from jsonschema import Draft201909Validator
 
 from ss_track.core.canonical import sha256_bytes
 from ss_track.core.refusal import JsonValue
-from ss_track.schema.registry.contract import Contract
+from ss_track.schema.registry.contract import EVENT_FAMILY, Contract
 from ss_track.schema.registry.store import ContractSet, damaged, load_contract_set, read_schema
 from ss_track.schema.views.odcs_projection import Projection, losses
 
@@ -75,6 +75,8 @@ def export_odcs(out: Path, root: Path | None = None) -> ExportResult:
     projection = Projection(contracts)
     generated = []
     for contract in contracts.contracts:
+        if contract.family == EVENT_FAMILY:
+            continue
         document = _document(contracts, contract, projection)
         errors = sorted(
             validator.iter_errors(document), key=lambda error: list(map(str, error.path))
