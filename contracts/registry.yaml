@@ -4,10 +4,10 @@ contracts:
   id: annotation-label
   owner: annotation-selection
   status: active
-  description: 'Operator labels for one video: visibility, geometry, instance identity
-    and motion events, in the stored orientation modules receive. A class id has the
-    shape of an identifier. The pinned scenario pack states which ids exist and what
-    each role means. This document is not a score.'
+  description: 'Operator labels for one video or one ordered image sequence: visibility,
+    geometry, instance identity and motion events, in the stored orientation modules
+    receive. A class id has the shape of an identifier. The pinned scenario pack states
+    which ids exist and what each role means. This document is not a score.'
   versions:
   - version: 1.0.0
     file_sha256: 1edf04bcb6e33098969539c40cb3ed0a8f2d042c7b39f7329cb167b202bbab73
@@ -17,6 +17,15 @@ contracts:
     change:
       class: initial
       summary: Initial contract.
+  - version: 1.0.1
+    file_sha256: 7e01b02d9adef6387c1d3254aca441e3ffd7a039396390f81743826e4e922427
+    fingerprints:
+      structure: 74939d704c73fc60311fa8500d2d00b820bf189b39b84aa0501df6634fcd37c0
+      meaning: b262005fb1e66abe66929abbbc13cd6162c521ffbf817451304f09ed6b392815
+    change:
+      class: patch
+      summary: State that a label source hash is a video file hash or an image-sequence
+        identity.
 - family: declaration
   id: annotation-mask
   owner: annotation-selection
@@ -67,6 +76,15 @@ contracts:
     change:
       class: initial
       summary: Initial contract.
+  - version: 1.0.1
+    file_sha256: b0b6628b65b555894b6e2856dd23e520c171dd232967d6a6372895fd8911efcb
+    fingerprints:
+      structure: a71d5943041eacedcc0274fb6f9998cfe65f0acbea6c77594b438767667dcc91
+      meaning: 5bd7d945221debec9b38ae7d66b0b66f86bb85c582b10fc196e2713cbb8dab56
+    change:
+      class: patch
+      summary: State that a seed source hash is a video file hash or an image-sequence
+        identity.
 - family: declaration
   id: annotation-settlement
   owner: annotation-selection
@@ -503,6 +521,15 @@ contracts:
     change:
       class: initial
       summary: Initial contract.
+  - version: 1.0.1
+    file_sha256: 2b4ca1e2008eab1de52b98b11e915ee5c7b5f3d63afea6616df87c328dfbec3d
+    fingerprints:
+      structure: a010cf41602b0b3acba9874b02d9364ac8becacc3ee301f7fbaa668b620f4ee9
+      meaning: 4395a5ef5604d61592437614a0b8ad0b1920e3d442eeeb3e26191a9738deb11c
+    change:
+      class: patch
+      summary: State that a revision source hash is a video file hash or an image-sequence
+        identity.
 - family: record
   id: audit-blinding
   owner: self-supervised-corpus

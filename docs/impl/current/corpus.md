@@ -477,8 +477,8 @@ the video file modules receive. The command lives in `src/ss_track/commands/anno
 `validate_labels`, `validate_seed` and `validate_mask` in `src/ss_track/annotate/validate.py`
 read the documents and apply the rules the schemas leave in `x-rules`.
 
-`declaration/annotation-label` 1.0.0 is the label document: visibility, geometry, instance
-identity and motion events. `declaration/annotation-seed` 1.0.0 is the operator selection and its
+`declaration/annotation-label` 1.0.1 is the label document: visibility, geometry, instance
+identity and motion events. `declaration/annotation-seed` 1.0.1 is the operator selection and its
 perturbations. `declaration/annotation-mask` 1.0.0 repeats every labeled frame and the episodes
 that cover those frames. Each document hash is the SHA-256 of the canonical JSON, the same rule as
 the pack hash. Key order and comments do not change it. Array order does.
@@ -490,10 +490,10 @@ reason when it has one. The object has no `score` field. An unscorable frame and
 have no numeric score.
 
 Coordinates are stored pixels. Decoded pixels are not rotated, so the stored orientation is 0
-degrees. `display_rotation_degrees` is copied from the file, including its sign, and is not applied
-to the coordinates. A document whose orientation is anything else is refused. Its width, height,
-frame count, source hash and display rotation must match the file. A box is half-open and lies
-inside the frame. An amodal box is a separate field, and a null amodal box stays null.
+degrees. `display_rotation_degrees` is copied from the source, including its sign, and is not
+applied to the coordinates. A document whose orientation is anything else is refused. Its width,
+height, frame count, source hash and display rotation must match the source. A box is half-open
+and lies inside the frame. An amodal box is a separate field, and a null amodal box stays null.
 
 A class id has the shape of an identifier. The pinned pack states the values and the role. The
 label's `pack_id` and `pack_hash` must be that pack. A scoring class has a null mark. A distractor
@@ -515,9 +515,16 @@ A mask repeats each label disposition. An eligible episode contains a scorable f
 no exclusion reason. An excluded episode states a reason. Every labeled frame sits in exactly one
 episode. A mask that calls an unscorable frame scorable is refused.
 
-`--source` is one video file. Its identity is the file hash, which is the identity of its first
-video stream. A directory is refused with `SOURCE_NOT_FOUND`. An ordered image sequence has its
-own identity and is not accepted here. `--labels` is required for a seed or a mask.
+`--source` is one video file or one retained image-sequence directory. A video file's identity
+is its file hash, the identity of its first video stream. A sequence directory is the one import
+retains, with `index.json` and the ordered images. Its identity is the sequence identity: the
+SHA-256 of the canonical JSON of those ordered image hashes. Paths and frame rate do not change
+it. Validation hashes each image, then decodes it, so width, height, display rotation, frame
+count and timing come from the stored pixels. A label, seed or mask whose `source_sha256` is a
+file hash, or any other hash, is `MANIFEST_INVALID`. A directory with no sequence inventory is
+`SOURCE_NOT_FOUND`; order is not inferred from filenames. An image whose bytes differ from the
+inventory is `SOURCE_HASH_MISMATCH`. Contract 1.0.1 states that identity. The document
+`schema_version` stays 1. `--labels` is required for a seed or a mask.
 
 ```bash
 ss-track annotate validate \
@@ -525,15 +532,21 @@ ss-track annotate validate \
   --file labels.yaml \
   --pack scenarios/packs/aerial-small-objects.yaml \
   --source clip.mp4
+ss-track annotate validate \
+  --kind label \
+  --file labels.yaml \
+  --pack scenarios/packs/aerial-small-objects.yaml \
+  --source "$DATA_DIR/import/<identity>/source.sequence"
 ```
 
 Tests are `tests/annotate/test_disposition.py`, `test_annotation_labels.py`,
-`test_annotation_seeds.py`, `test_annotation_masks.py`, `test_annotate_command.py` and
-`test_annotation_vocabulary.py`. The examples are
+`test_annotation_seeds.py`, `test_annotation_masks.py`, `test_annotate_command.py`,
+`test_annotation_vocabulary.py` and `test_annotation_sequence.py`. The examples are
 `tests/schema/examples/declaration-annotation-label.json`,
 `declaration-annotation-seed.json` and `declaration-annotation-mask.json`. The
 [task record](../records/0093-annotation-selection-annotation-contract.md) holds the acceptance
-evidence.
+evidence. Sequence sources are the
+[task record](../records/0097-annotation-selection-annotation-sequence-source.md).
 
 ### Annotation review
 
@@ -580,7 +593,7 @@ visibility then follows the frozen frame. A visibility change, or re-entry on a 
 `visible` or `partially_occluded`, clears re-entry and marks the selection `uncertain`. An event
 whose onset frame was not frozen is refused.
 
-`record/annotation-revision` 1.0.0 seals the revision. The sensitivity band is the two annotator
+`record/annotation-revision` 1.0.1 seals the revision. The sensitivity band is the two annotator
 document hashes, left then right. The record also pins the review, the settlement, the pack, the
 source, the sample and every disagreement with its outcome and rationale. It computes no score.
 The label hash is the declaration hash of the frozen document. The revision hash is the record
@@ -591,8 +604,10 @@ Instance order in the inputs does not change the label hash.
 paths. Freeze adds `label_sha256`, `revision_sha256`, `labels_path` and `revision_path`. The
 object has no `score` field.
 
-`--source` is one video file, as validation requires. A directory is refused with
-`SOURCE_NOT_FOUND`. An ordered image sequence is not accepted here.
+`--source` is the video file or retained image sequence
+[validation](#annotation-contract) uses. Compare and freeze check both label documents against
+that identity and those stored pixels. A file hash on a sequence, or the sequence identity on a
+video file, is refused.
 
 ```bash
 ss-track annotate compare \
@@ -613,11 +628,13 @@ ss-track annotate freeze \
 ```
 
 Tests are `tests/annotate/test_annotation_review.py`, `test_annotation_freeze.py`,
-`test_annotation_freeze_refusal.py` and `test_annotate_review_command.py`. The examples are
+`test_annotation_freeze_refusal.py`, `test_annotate_review_command.py` and
+`test_annotation_sequence.py`. The examples are
 `tests/schema/examples/declaration-annotation-review.json`,
 `declaration-annotation-settlement.json` and `record-annotation-revision.json`. The
 [task record](../records/0094-annotation-selection-annotation-review-tools.md) holds the
-acceptance evidence.
+acceptance evidence. Sequence sources for compare and freeze are the
+[task record](../records/0097-annotation-selection-annotation-sequence-source.md).
 
 ### Derived case labels
 
@@ -636,7 +653,7 @@ hash is not the revision's `label_sha256` is `MANIFEST_INVALID`. A damaged revis
 Derived files are `$DATA_DIR/corpus/<corpus-id>/labels/<case-id>/labels.json` and `revision.json`.
 The label id is the case id. Annotator ids, the source hash, orientation, display rotation and
 frame count stay the parent's. Width and height change only for `scale`. The document is
-`declaration/annotation-label` 1.0.0, and its hash is the declaration hash. The revision is
+`declaration/annotation-label` 1.0.1, and its hash is the declaration hash. The revision is
 `record/derived-label` 1.0.0 (`ss-track.derived-label`). It pins the parent revision seal, the
 parent label hash, the pack, the source and the SHA-256 of the canonical JSON of the stored
 label transform. It has no score. Derived labels are not edited by hand.
@@ -747,7 +764,9 @@ none was declared, and describes it as an image sequence instead of a video stre
 retained image bytes; corpus verification retains its existing frame and source-record checks.
 Amendments can still address the identity after original images are removed using the declared
 hashes. Tests under `tests/corpus/sources/test_image_sequence.py` cover the complete flow and named
-failures; decoder fixtures live under `tests/corpus/decoding/test_image_sequence.py`. See the
+failures; decoder fixtures live under `tests/corpus/decoding/test_image_sequence.py`. Annotation
+validation, comparison and freeze read that retained directory. See
+[Annotation contract](#annotation-contract) and the
 [implementation record](../records/0090-corpus-provenance-frame-sequence-source-import.md).
 
 ### Video stream selection

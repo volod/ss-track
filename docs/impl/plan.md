@@ -35,30 +35,6 @@ hardware or private data.
 
 ### Annotation and selection -- `annotation-selection`
 
-#### annotation-sequence-source
-
-An ordered image sequence is a source modules can receive, and a label drawn on it cannot be
-validated.
-
-- Serves: `annotation-selection` -- [Annotation contract](../design/spec.md#42-annotation-contract)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: `ss-track annotate validate`, `compare` and `freeze` accept an ordered
-  image sequence. Validate checks a label, a seed and a mask. Compare and freeze check two label
-  documents. Each check uses that sequence's identity and stored pixels.
-- Scope boundary: Sequence identity and frame geometry for a declared image sequence. A video file
-  keeps the file hash as its source identity. A directory that is not a sequence stays refused.
-  Labelling the sequence is human work.
-- Data and artifact paths: `src/ss_track/annotate/`, `tests/annotate/`.
-- Execution path: Read one image-sequence directory through the existing sequence identity and reuse
-  the label, seed and mask checks.
-- Acceptance gates: A label whose source hash is the sequence identity validates. A label that uses
-  a video-file hash, or any hash other than the sequence identity, is refused with a reason. Compare
-  and freeze use that same identity. A video file still validates, compares and freezes as it does
-  now. `make ci` passes.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
 #### annotation-selection-audit (optional)
 
 Label validation, review, generated labels and image-sequence sources each touch identity and the

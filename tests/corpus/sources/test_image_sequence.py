@@ -122,6 +122,10 @@ def test_retained_membership_is_pinned(media: Path, data_root: Path, damage: str
     with pytest.raises(CorpusRefusal) as error:
         load_verified_source(imported.source_sha256, data_root)
     assert error.value.code == RefusalCode.SOURCE_HASH_MISMATCH
+    if damage == "missing":
+        assert "image not found: 00000001.png" in str(error.value)
+    elif damage == "extra":
+        assert "sequence membership changed" in str(error.value)
 
 
 def test_lossy_image_is_refused_even_with_png_filename(media: Path, data_root: Path) -> None:

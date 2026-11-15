@@ -89,6 +89,25 @@ def declared_rate(inventory: Mapping[str, Any]) -> Fraction | None:
     return None if rate is None else Fraction(rate)
 
 
+def match_retained_images(stored: Path, hashes: list[str]) -> None:
+    """Raise ValueError when a retained image is missing, differs, or another name is present.
+
+    Callers choose the refusal code. A missing image is named by its retained basename, not by a
+    machine path.
+    """
+    expected = {INDEX_NAME}
+    for index, digest in enumerate(hashes):
+        name = image_name(index)
+        expected.add(name)
+        path = stored / name
+        if not path.is_file():
+            raise ValueError(f"image not found: {name}")
+        if sha256_file(path) != digest:
+            raise ValueError(f"image changed: {name}")
+    if {path.name for path in stored.iterdir()} != expected:
+        raise ValueError("sequence membership changed")
+
+
 def verify_sequence(
     stored: Path, identity: str, inventory_hash: str, mismatch: RefusalCode
 ) -> None:
@@ -100,13 +119,6 @@ def verify_sequence(
         hashes = inventory["hashes"]
         if sequence_identity(hashes) != identity:
             raise ValueError("sequence identity changed")
-        expected = {INDEX_NAME}
-        for index, digest in enumerate(hashes):
-            name = image_name(index)
-            expected.add(name)
-            if sha256_file(stored / name) != digest:
-                raise ValueError(f"image changed: {name}")
-        if {path.name for path in stored.iterdir()} != expected:
-            raise ValueError("sequence membership changed")
+        match_retained_images(stored, hashes)
     except (OSError, ValueError, KeyError, TypeError) as error:
         raise CorpusRefusal(mismatch, str(error), {"source_sha256": identity}) from error

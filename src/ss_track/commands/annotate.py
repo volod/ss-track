@@ -32,14 +32,17 @@ def _add_validate(commands: Subcommands) -> None:
         help="check one label, seed or mask document",
         description=(
             "Validate visibility, geometry, identity, motion events, a seed or a mask. "
-            "Coordinates must use the stored orientation of the video file. "
+            "Coordinates must use the stored orientation of the source. "
+            "The source is a video file or a retained image sequence. "
             "An unverifiable label is reported unscorable and is not a score."
         ),
     )
     validate.add_argument("--kind", required=True, choices=("label", "seed", "mask"))
     validate.add_argument("--file", type=Path, required=True)
     validate.add_argument("--pack", type=Path, required=True, help="scenario pack declaration")
-    validate.add_argument("--source", type=Path, required=True, help="video file modules receive")
+    validate.add_argument(
+        "--source", type=Path, required=True, help="video file or retained image sequence"
+    )
     validate.add_argument("--labels", type=Path, help="label document, required for a seed or mask")
     validate.set_defaults(handler=_run_validate)
 
@@ -97,7 +100,9 @@ def _add_pair(command: argparse.ArgumentParser) -> None:
     command.add_argument("--left", type=Path, required=True, help="first reviewer's labels")
     command.add_argument("--right", type=Path, required=True, help="second reviewer's labels")
     command.add_argument("--pack", type=Path, required=True, help="scenario pack declaration")
-    command.add_argument("--source", type=Path, required=True, help="video file modules receive")
+    command.add_argument(
+        "--source", type=Path, required=True, help="video file or retained image sequence"
+    )
 
 
 def _run_validate(arguments: argparse.Namespace) -> int:

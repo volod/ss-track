@@ -29,7 +29,7 @@ _MAJOR = 1
 
 
 def validate_labels(path: Path, pack_path: Path, source: Path) -> AnnotationResult:
-    """Validate labels against one pack and one video file."""
+    """Validate labels against one pack and one video file or retained image sequence."""
     space = read_frame_space(source)
     pack = load_scenario_pack(pack_path)
     labels = _labels(path, pack, space)
@@ -46,7 +46,7 @@ def validate_labels(path: Path, pack_path: Path, source: Path) -> AnnotationResu
 
 
 def validate_seed(path: Path, labels_path: Path, pack_path: Path, source: Path) -> AnnotationResult:
-    """Validate a seed against the labels, pack and video its selection was drawn on."""
+    """Validate a seed against the labels, pack and source its selection was drawn on."""
     space = read_frame_space(source)
     pack = load_scenario_pack(pack_path)
     labels = _labels(labels_path, pack, space)

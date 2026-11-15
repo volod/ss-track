@@ -719,7 +719,10 @@ exclusion masks are frozen and hashed **before** module execution.
 
 Label coordinates use the stored orientation that modules receive. Display rotation is a recorded
 fact, so a tool that shows a rotated view maps coordinates back before a label is validated, and a
-label that declares any other orientation is refused.
+label that declares any other orientation is refused. A video file's source identity is its file
+hash. An ordered image sequence's source identity is the hash of its ordered image hashes.
+Validation, comparison and freeze accept either source and check labels against that identity and
+the stored frame. A directory that is not a sequence is refused.
 
 Each labeled frame is `scorable`, `unscorable` or `not_denominator`. `unscorable` means the frame
 is unverifiable: identity is ambiguous, the mark or the visibility is `unknown`, or geometry is
