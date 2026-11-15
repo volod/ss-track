@@ -35,32 +35,6 @@ hardware or private data.
 
 ### Corpus provenance -- `corpus-provenance`
 
-#### scale-reduction-case
-
-No generated case makes a target smaller, so the benchmark cannot show where a module stops seeing
-a target as it covers fewer pixels, which is the offline form of long-range detection.
-
-- Serves: `corpus-provenance` -- [Deterministic cases](../design/spec.md#43-deterministic-cases-and-negative-evidence)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: A recipe declares a scale-reduction case, and staging writes frames
-  resampled by its factor with a stored `scale` label transform.
-- Scope boundary: Whole-frame reduction by a declared factor, with an area-average filter that is
-  part of the transform revision, and a label transform that states the factor. No blur, noise,
-  atmosphere or optics model, no enlargement and no range claim. A graded list of factors belongs
-  to `robustness-severity-sweep`, and deriving the labels belongs to `generated-case-labels`.
-- Data and artifact paths: `src/ss_track/corpus/cases/`, `tests/corpus/cases/`, `contracts/`,
-  `$DATA_DIR/corpus/<corpus-id>/`.
-- Execution path: Add the transform in integer arithmetic, so one recipe gives identical bytes on
-  x86-64 and arm64, record the output dimensions in the bundle, and extend `corpus preview` to
-  show the reduced frame beside its parent.
-- Acceptance gates: Hand-computed frames match for even and odd dimensions and for a factor that
-  does not divide them. A rerun is byte-identical, a factor that changes no pixel is refused, and
-  a stored case of another revision is refused. The case inherits its parent's split, encounter
-  and group and adds to no count. `make ci` passes.
-- Documentation target: [Corpus](current/corpus.md).
-
 #### frame-sequence-source-import (optional)
 
 Public airborne-observer collections often ship as numbered images, and import accepts one video
@@ -189,13 +163,14 @@ create a false negative.
 - Serves: `annotation-selection` -- [Annotation contract](../design/spec.md#42-annotation-contract)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: annotation-review-tools, scale-reduction-case.
+- Dependencies: annotation-review-tools.
 - User-visible outcome: `ss-track annotate derive` gives each generated case a hashed label revision
   from its parent's frozen labels and stored label transform, including a `track_status` case.
 - Scope boundary: Every stored label transform: region status, translation with clipping and
-  `out_of_view`, frame maps, `scale`, `compression`, `timing` and `track_status`. `scale` multiplies
-  geometry, uncertainty and plausible extent by its factor, turns a box under the pinned pack's
-  minimum box extent into `point_only`, and a target under its minimum point extent into
+  `out_of_view`, frame maps, `scale`, `compression`, `timing` and `track_status`. `scale` divides
+  geometry, uncertainty and plausible extent by its integer factor and clips to the output frame.
+  It turns a box under the pinned pack's minimum box extent into `point_only`, and a target under
+  its minimum point extent into
   `unlocalizable`. `compression` and `timing` do not move geometry. `timing` records that
   presentation time is `derived`. `track_status` lists one role per case-window frame: `unknown`
   when that frame has no box, `region` for a painted rectangle, `shift` when the frame leaves the

@@ -97,6 +97,7 @@ class Rendering:
     paint: Paint | None
     label_transform: dict[str, JsonValue]
     gap_scale: tuple[tuple[int, int], ...] | None = None
+    output_size: tuple[int, int] | None = None
 
 
 @dataclass(frozen=True, slots=True)

@@ -13,7 +13,7 @@ baseline scope and evidence. The installed set contains these document contracts
 
 | Contract | Frozen version |
 | --- | --- |
-| `declaration/corpus` | `3.0.0`, `3.1.0`, `3.2.0` |
+| `declaration/corpus` | `3.0.0`, `3.1.0`, `3.2.0`, `3.3.0` |
 | `declaration/dataset` | `1.0.0`, `1.1.0` |
 | `declaration/discovery-plan` | `1.0.0`, `1.1.0` |
 | `declaration/audit-review` | `1.0.0` |
@@ -27,10 +27,10 @@ baseline scope and evidence. The installed set contains these document contracts
 | `record/audit-blinding` | `1.0.0` |
 | `record/corpus-freeze` | `1.0.0`, `1.1.0`, `1.2.0` |
 | `record/corpus-links` | `1.0.0`, `1.1.0` |
-| `record/corpus-manifest` | `3.0.0`, `3.1.0`, `3.2.0`, `3.3.0`, `3.4.0` |
+| `record/corpus-manifest` | `3.0.0`, `3.1.0`, `3.2.0`, `3.3.0`, `3.4.0`, `3.5.0` |
 | `record/discovery-run` | `1.0.0`, `1.1.0`, `1.2.0` |
 | `record/feature-rows` | `1.0.0` |
-| `record/frame-bundle` | `3.0.0`, `3.1.0`, `3.2.0`, `3.3.0`, `3.4.0` |
+| `record/frame-bundle` | `3.0.0`, `3.1.0`, `3.2.0`, `3.3.0`, `3.4.0`, `3.5.0` |
 | `record/frame-set` | `1.0.0` |
 | `record/staged-hashes` | `1.0.0` |
 | `record/hash-comparison` | `1.0.0` |
@@ -87,8 +87,9 @@ results of review and freeze, `declaration_path` and `declaration_sha256`, and t
 recipes and the label kinds `compression` and `timing`. `declaration/corpus` 3.2.0 adds
 `crossing_occluder`, `moving_removal`, `similar_distractor` and `out_of_view`.
 `record/corpus-manifest` 3.4.0 and `record/frame-bundle` 3.4.0 add those recipes and the label kind
-`track_status`. Writers still stamp the major. A declaration stamped schema 3 validates under
-`declaration/corpus` 3.2.0, and a dataset descriptor copies that newest minor.
+`track_status`. `declaration/corpus` 3.3.0 adds `scale_reduction`; both record contracts at
+3.5.0 add that recipe and the `scale` label transform. Writers still stamp the major. A
+declaration stamped schema 3 validates under `declaration/corpus` 3.3.0, and a dataset descriptor copies that newest minor.
 
 `declaration/source-inventory` 1.0.0 records upstream candidate videos, pins and unresolved facts;
 `result/command` 1.19.0 adds its status and missing-fact counts, and 1.20.0 adds its path,

@@ -112,6 +112,8 @@ def _case_body(
     }
     identity: dict[str, JsonValue] = {
         **parent_record["identity"],
+        "width": rendering.output_size[0] if rendering.output_size else parent.width,
+        "height": rendering.output_size[1] if rendering.output_size else parent.height,
         "parent_bundle_sha256": parent.bundle_sha256,
         "recipe": recipe,
         "label_transform": rendering.label_transform,

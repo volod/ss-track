@@ -113,3 +113,19 @@ def test_frozen_recipe_publishes_scalar_parameters_only() -> None:
     assert projected["transform"] == "target_absence"
     assert projected["window"] == {"start_frame": 0, "end_frame": 2}
     assert "x" not in str(projected)
+
+
+def test_scale_factor_is_public_in_both_case_records() -> None:
+    contracts = load_contract_set()
+    for name, definition in (("record/frame-bundle", "recipe"), ("record/corpus-manifest", "case")):
+        contract = contracts.named(name)
+        version = contract.newest()
+        assert version is not None
+        schema = contracts.frozen_schema(contract, version)["$defs"][definition]
+        projected = project_public(
+            {"transform": "scale_reduction", "parameters": {"factor": 3}},
+            schema,
+            contracts.schema_registry(),
+            contract.urn(version),
+        )
+        assert projected["parameters"] == {"factor": 3}

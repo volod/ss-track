@@ -94,4 +94,6 @@ Copy the [template](template.md) using the
 | 0087 | `recording-capture-vocabulary` | [0087-corpus-provenance-recording-capture-vocabulary](0087-corpus-provenance-recording-capture-vocabulary.md) |
 | 0088 | `capture-encounter-counts` | [0088-corpus-provenance-capture-encounter-counts](0088-corpus-provenance-capture-encounter-counts.md) |
 
-Next unused sequence: `0089`.
+| 0089 | `scale-reduction-case` | [0089-corpus-provenance-scale-reduction-case](0089-corpus-provenance-scale-reduction-case.md) |
+
+Next unused sequence: `0090`.

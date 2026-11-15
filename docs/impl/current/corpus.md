@@ -325,7 +325,7 @@ traceback. Import and stage remove their scratch before that record is written:
 ## Declarations
 
 Each file is checked in full against its contract on read, `declaration/recording` 3.0.0 and
-`declaration/corpus` 3.2.0, before any reader takes a value from it. A recording may carry optional
+`declaration/corpus` 3.3.0, before any reader takes a value from it. A recording may carry optional
 `origin`. An import omits it when the declaration has none, and an amendment or redecode that drops
 a recorded origin is refused. Both contracts reject unknown fields, repeated keys, non-finite
 numbers and any other schema version, so a misspelled key cannot silently drop a fact. A recording
@@ -1515,6 +1515,7 @@ parent stream and has no other home:
 
 | Transform | Parameters | The seed decides | Label transform |
 | --- | --- | --- | --- |
+| `scale_reduction` | `factor` (integer at least 2) | Nothing | `scale`: integer divisor for coordinates and extents |
 | `target_absence` | `region`, `plate_frame`, `noise` (0 to 255) | Per-frame noise | `region_status`: `absent` inside, `unknown` overlapping |
 | `moving_background` | `region`, `sprite_count` (up to 256), `sprite_size`, `max_speed` | Each sprite's start, direction, speed and color | `region_status`: `unknown`, and `added_objects: distractor` |
 | `camera_shake` | `amplitude` | Each frame's whole-pixel offset | `translate`, with `camera_motion: shake` and every offset |
@@ -1528,6 +1529,13 @@ parent stream and has no other home:
 | `moving_removal` | `label_revision`, `instance_id`, `track`, `plate_frame`, `noise` (0 to 255) | Per-frame noise | `track_status`: `absent` inside each box, `unknown` on its boundary |
 | `similar_distractor` | `label_revision`, `instance_id`, `track` | Which side receives the copy | `track_status`: the copy is a distractor, and the target stays |
 | `out_of_view` | `label_revision`, `instance_id`, `track`, `outside` | Which edge the box leaves through | `track_status`: `out_of_view` on `outside`, then `reentry` |
+
+`scale_reduction` requires the entire parent selection. Each output pixel averages a factor by
+factor block of source pixels, rounding half up; partial blocks at the right and bottom use only
+available pixels. Output dimensions are the ceiling of each parent dimension divided by the factor.
+The `scale` label transform stores that integer divisor; source coordinates and extents divide by it.
+A one-pixel frame cannot be reduced. This is a pixel-size test, not an optics or range model.
+The [task record](../records/0089-corpus-provenance-scale-reduction-case.md) holds its acceptance.
 
 `region` is `{x, y, width, height}` in stored orientation, and each `region_status` also carries
 `frames`, `region` and `overlap_geometry: unlocalizable`. Pixels outside a case's window keep their
@@ -1634,7 +1642,7 @@ holds the acceptance.
 ### Reproducibility
 
 `src/ss_track/corpus/cases/transforms.py`, `field_transforms.py`, `region_transforms.py` and
-`track_transforms.py` hold the transforms. `track_labels.py` holds the `track_status` record.
+`track_transforms.py` and `scale.py` hold the transforms. `track_labels.py` holds the `track_status` record.
 Each transform is a pure function of frames, parameters and seed, in integer arithmetic only, and
 `seeded.py` derives every random value with SHAKE-256 rather than a library generator whose stream
 may change.
@@ -1659,7 +1667,8 @@ rectangle's perimeter replaced with RGB (255, 0, 0). The outline uses the region
 including a rectangle that touches the frame edge. Pixels inside and outside that perimeter stay
 as the case stored them. The parent panel is not outlined. A case with no operator rectangle on
 that frame, such as blur, compression, variable timing, a `track_status` case, or a frame outside
-the window, is shown unchanged. A track case names per-frame boxes, and preview does not draw them.
+the window, is shown unchanged. A track case names per-frame boxes, and preview does not draw them. A reduced frame appears at
+its stored size at the top left of a parent-sized black panel.
 
 A frame the case does not hold, which is how `dropped_frames` leaves a gap, is a panel of RGB
 (255, 0, 255) in that case's place. The case is not dropped from the sheet. This is not

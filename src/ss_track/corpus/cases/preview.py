@@ -123,17 +123,33 @@ def _case_panel(
     root: Path,
 ) -> tuple[PreviewPanel, bytes]:
     bundle = open_corpus_bundle(str(case["case_id"]), corpus, root)
-    _require_same_shape(parent, bundle)
+    _require_rgb24(bundle)
+    if case["transform"] != "scale_reduction":
+        _require_same_shape(parent, bundle)
     pixels = _frame_pixels(bundle, frame_index)
     if pixels is None:
         return (
             PreviewPanel(bundle.stream_id, ROLE_REMOVED),
             removed_panel(parent.width, parent.height),
         )
+    if case["transform"] == "scale_reduction":
+        pixels = _pad_reduced(pixels, bundle, parent)
     region = _region_on_frame(case, frame_index)
     if region is not None:
         pixels = paint_outline(pixels, parent.width, parent.height, region)
     return PreviewPanel(bundle.stream_id, ROLE_CASE, region), pixels
+
+
+def _pad_reduced(pixels: bytes, bundle: FrameBundle, parent: FrameBundle) -> bytes:
+    """Place reduced pixels at the top left of a black parent-sized panel."""
+    if bundle.width > parent.width or bundle.height > parent.height:
+        raise CorpusRefusal(RefusalCode.RECORD_INVALID, "reduced frame exceeds parent", {})
+    rows = []
+    row_bytes = bundle.width * 3
+    for y in range(parent.height):
+        row = pixels[y * row_bytes : (y + 1) * row_bytes] if y < bundle.height else b""
+        rows.append(row + bytes(parent.width * 3 - len(row)))
+    return b"".join(rows)
 
 
 def _require_parent_stream(corpus: Mapping[str, Any], stream_id: str) -> None:

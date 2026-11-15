@@ -752,10 +752,11 @@ degrades, not only whether it does. The curve is one parameter on one encounter 
 diagnostic, it enters no composite score, and it is never field evidence.
 
 A scale-reduction case probes how small a target can become. It resamples every frame by a
-declared factor with an area-average filter that belongs to the transform's revision, and scales
-label geometry, localization uncertainty and the plausible extent of a point-only label by the
-same factor. A box that falls below the scenario pack's minimum box extent becomes `point_only`,
-and a target below the pack's minimum point extent becomes `unlocalizable`, so a module is never
+declared integer divisor of at least two with an area-average filter that belongs to the transform's
+revision. Label geometry, localization uncertainty and the plausible extent of a point-only label
+are divided by the same factor. A box that falls below the scenario pack's minimum box extent
+becomes `point_only`, and a target below the pack's minimum point extent becomes `unlocalizable`,
+so a module is never
 scored against geometry that no reviewer could have drawn at that size. Cases at several factors
 give the generated half of the [small-target extent envelope](#67-small-target-extent-envelope).
 The case removes pixels. It adds no atmosphere, optics blur, sensor noise or motion blur, so it

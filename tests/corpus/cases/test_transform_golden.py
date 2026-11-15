@@ -25,6 +25,7 @@ _TRACK_BOX = {"x": 4, "y": 3, "width": 6, "height": 5}
 _TRACK_FRAMES = [4, 6, 7, 8, 9, 10]
 _COVER = {"start_frame": 6, "end_frame": 9}
 _RECIPES: dict[str, dict[str, object]] = {
+    "scale_reduction": {"factor": 3},
     "target_absence": {"region": _REGION, "plate_frame": 2, "noise": 6},
     "moving_background": {"region": _REGION, "sprite_count": 4, "sprite_size": 3, "max_speed": 3},
     "camera_shake": {"amplitude": 4},
@@ -40,6 +41,7 @@ _RECIPES: dict[str, dict[str, object]] = {
     "out_of_view": track_parameters(_TRACK_FRAMES, _TRACK_BOX, outside=_COVER),
 }
 _GOLDEN: dict[tuple[str, int], str] = {
+    ("scale_reduction", 1): "d1e48d38e75da17540d9f6fd38c0568411b16ff54beab74a871781ffa2697cda",
     ("blur", 1): "fa3aeb6d6b9b6003d39e9b7b1827c3c68e6b058d6371190384189c2667831b53",
     ("camera_shake", 1): "3438c6ebc5f40e31ce8b2ba9459958c94948f4a071037f14d200cc6cca05467e",
     ("dropped_frames", 1): "aa9b845b779dca244eb82bd12472a192216d5a5ef8df3aa27f2f160df1d68870",
@@ -67,7 +69,9 @@ def result_digest(transform: str) -> str:
         "case_id": "golden",
         "transform": transform,
         "seed": 20261101,
-        "window": _WINDOW,
+        "window": {"start_frame": 2, "end_frame": 14}
+        if transform == "scale_reduction"
+        else _WINDOW,
         "parameters": _RECIPES[transform],
     }
     rendering = prepare_case(case, _SELECTION, _WIDTH, _HEIGHT, _frame)
@@ -75,7 +79,9 @@ def result_digest(transform: str) -> str:
     for slot in rendering.slots:
         pixels = _frame(slot.content_frame_index)
         digest.update(f"{slot.frame_index}:{slot.content_frame_index}".encode("ascii"))
-        if rendering.paint is not None and slot.frame_index in range(4, 11):
+        if rendering.paint is not None and slot.frame_index in range(
+            case["window"]["start_frame"], case["window"]["end_frame"]
+        ):
             pixels = rendering.paint(pixels, slot.frame_index)
         digest.update(np.asarray(pixels).tobytes())
     return digest.hexdigest()

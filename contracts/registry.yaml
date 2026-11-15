@@ -47,6 +47,14 @@ contracts:
     change:
       class: minor
       summary: Add track-following generated-case recipes.
+  - version: 3.3.0
+    file_sha256: 3b5d104fa06b86fff903c9a478d82ee25231a672c687fef17007f83437ba463f
+    fingerprints:
+      structure: edd747bc9f5e4006f59acfe6e18a9122c2bb89e7f43ecacd2f25b993f9d0fc62
+      meaning: 81ac96b88e7e8e0f7dabfc4765b52004493ef002de0865cddb0b7bd5e7d18217
+    change:
+      class: minor
+      summary: Add scale reduction case recipes.
   retired_majors:
   - major: 1
     status: retired
@@ -439,6 +447,14 @@ contracts:
     change:
       class: minor
       summary: Add track-following recipes and the track_status label transform.
+  - version: 3.5.0
+    file_sha256: bc52eb08959c0bc9033c68fec1215726754283bef2197a03bf764c2f2219f823
+    fingerprints:
+      structure: cfd5fc89be2a9d6624ec54f2745cd4d78c13bdb836b9a78fe63f9f09cd2c6e8f
+      meaning: f0d36992700de3073027eaad63b29d6f3e7cf02658a7cb2818bade07ee100014
+    change:
+      class: minor
+      summary: Add scale reduction cases and label transforms.
   retired_majors:
   - major: 1
     status: retired
@@ -570,6 +586,14 @@ contracts:
     change:
       class: minor
       summary: Add track-following recipes and the track_status label transform.
+  - version: 3.5.0
+    file_sha256: b708556f4e3f70d87f8628c8eaf04ac4ba664c79c98461f7f6d0a2d027367b14
+    fingerprints:
+      structure: 1963aa34c77ac96797900b30d2bd4d8034fbd3ed54033a5ba4c659800cc30351
+      meaning: 4eddadfcd36984e2d2083130ae617aca023aa8666d222664d4a00d156f5d3268
+    change:
+      class: minor
+      summary: Add scale reduction recipes and label transforms.
   retired_majors:
   - major: 1
     status: retired

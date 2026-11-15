@@ -25,6 +25,7 @@ from ss_track.corpus.cases.region_transforms import (
     short_occlusion,
     target_absence,
 )
+from ss_track.corpus.cases.scale import scale_reduction
 from ss_track.corpus.cases.seeded import SeededDraws
 from ss_track.corpus.cases.track_transforms import (
     crossing_occluder,
@@ -115,6 +116,7 @@ def _duplicated_frames(case: CaseContext) -> Rendering:
 
 
 _TRANSFORMS: dict[str, tuple[int, Callable[[CaseContext], Rendering]]] = {
+    "scale_reduction": (1, scale_reduction),
     "target_absence": (1, target_absence),
     "moving_background": (1, moving_background),
     "camera_shake": (1, _camera_shake),

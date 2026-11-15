@@ -127,6 +127,7 @@ def test_label_transform_kinds_are_tagged() -> None:
         "compression",
         "timing",
         "track_status",
+        "scale",
     }
 
 

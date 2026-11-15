@@ -160,6 +160,7 @@ CASES = (
     ("moving_removal", _TRACK | {"plate_frame": 0, "noise": 4}),
     ("similar_distractor", _TRACK | {}),
     ("out_of_view", _TRACK | {"outside": _TRACK_SPAN}),
+    ("scale_reduction", {"factor": 3}),
 )
 
 
