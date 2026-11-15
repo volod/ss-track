@@ -470,6 +470,71 @@ example `tests/schema/examples/declaration-scenario-pack.json` is the draft and 
 The [task record](../records/0092-annotation-selection-scenario-pack-contract.md) holds the
 acceptance evidence.
 
+### Annotation contract
+
+`ss-track annotate validate` checks one label, one seed or one mask against a scenario pack and
+the video file modules receive. The command lives in `src/ss_track/commands/annotate.py`.
+`validate_labels`, `validate_seed` and `validate_mask` in `src/ss_track/annotate/validate.py`
+read the documents and apply the rules the schemas leave in `x-rules`.
+
+`declaration/annotation-label` 1.0.0 is the label document: visibility, geometry, instance
+identity and motion events. `declaration/annotation-seed` 1.0.0 is the operator selection and its
+perturbations. `declaration/annotation-mask` 1.0.0 repeats every labeled frame and the episodes
+that cover those frames. Each document hash is the SHA-256 of the canonical JSON, the same rule as
+the pack hash. Key order and comments do not change it. Array order does.
+
+`result/command` 1.30.0 adds optional `annotation` to a successful validation. The object carries
+the document hash, `pack_hash` for a label, `replay_sha256` for a seed, and one entry per labeled
+frame, seed role or mask frame. An entry is `scorable`, `unscorable` or `not_denominator`, with a
+reason when it has one. The object has no `score` field. An unscorable frame and a withheld frame
+have no numeric score.
+
+Coordinates are stored pixels. Decoded pixels are not rotated, so the stored orientation is 0
+degrees. `display_rotation_degrees` is copied from the file, including its sign, and is not applied
+to the coordinates. A document whose orientation is anything else is refused. Its width, height,
+frame count, source hash and display rotation must match the file. A box is half-open and lies
+inside the frame. An amodal box is a separate field, and a null amodal box stays null.
+
+A class id has the shape of an identifier. The pinned pack states the values and the role. The
+label's `pack_id` and `pack_hash` must be that pack. A scoring class has a null mark. A distractor
+class uses `distractor` or `unknown`. An ignore class uses `ignore_region` or `unknown`. A
+distractor with a reviewed box is scorable. An ignore region is `not_denominator`.
+
+The reported reason is the first match of spec
+[section 4.2](../../design/spec.md#42-annotation-contract): identity ambiguity, an unknown mark,
+an ignore region, unknown visibility, full occlusion, out of view or absence, unlocalizable
+geometry, then a point with no plausible extent. A visibility other than `visible` or
+`partially_occluded` that carries a box or a point is refused. Seed quality is `as_clicked`,
+`imprecise` or `corrected`. Modules receive the correction when quality is `corrected`, and the
+original selection otherwise. Replay lists that selection and then each perturbation, and it
+excludes the annotator id. The same document, including a reordered file or a comment, has the
+same replay hash. A perturbation that does not move the selection, uses the id `primary`, or
+leaves the stored frame is refused.
+
+A mask repeats each label disposition. An eligible episode contains a scorable frame and states
+no exclusion reason. An excluded episode states a reason. Every labeled frame sits in exactly one
+episode. A mask that calls an unscorable frame scorable is refused.
+
+`--source` is one video file. Its identity is the file hash, which is the identity of its first
+video stream. A directory is refused with `SOURCE_NOT_FOUND`. An ordered image sequence has its
+own identity and is not accepted here. `--labels` is required for a seed or a mask.
+
+```bash
+ss-track annotate validate \
+  --kind label \
+  --file labels.yaml \
+  --pack scenarios/packs/aerial-small-objects.yaml \
+  --source clip.mp4
+```
+
+Tests are `tests/annotate/test_disposition.py`, `test_annotation_labels.py`,
+`test_annotation_seeds.py`, `test_annotation_masks.py`, `test_annotate_command.py` and
+`test_annotation_vocabulary.py`. The examples are
+`tests/schema/examples/declaration-annotation-label.json`,
+`declaration-annotation-seed.json` and `declaration-annotation-mask.json`. The
+[task record](../records/0093-annotation-selection-annotation-contract.md) holds the acceptance
+evidence.
+
 ### Ordered image sequences
 
 A recording can use lossless PNG images instead of a video file. `source.path` is the image root,

@@ -26,7 +26,8 @@ Declarations are YAML. A value such as `2024-01-05` is a date to a YAML 1.1 read
 YAML 1.2 one, so ss-track accepts it unquoted only where the contract states `format: date`; quote it
 anywhere else.
 
-The baseline freezes recording and corpus declarations, scenario packs, source and corpus manifests,
+The baseline freezes recording and corpus declarations, scenario packs, annotation labels, seeds
+and masks, source and corpus manifests,
 frame bundles, frame sets, staged hashes, hash comparisons and command results. Discovery runs and
 candidate inventories record why a window of staged frames became a candidate for review. Every
 frame-set reference annotation resolves at its exact schema pointer. General drafts still have

@@ -1,6 +1,57 @@
 schema_version: 1
 contracts:
 - family: declaration
+  id: annotation-label
+  owner: annotation-selection
+  status: active
+  description: 'Operator labels for one video: visibility, geometry, instance identity
+    and motion events, in the stored orientation modules receive. A class id has the
+    shape of an identifier. The pinned scenario pack states which ids exist and what
+    each role means. This document is not a score.'
+  versions:
+  - version: 1.0.0
+    file_sha256: 1edf04bcb6e33098969539c40cb3ed0a8f2d042c7b39f7329cb167b202bbab73
+    fingerprints:
+      structure: 74939d704c73fc60311fa8500d2d00b820bf189b39b84aa0501df6634fcd37c0
+      meaning: 5a3a5847fa1464ee31132d15e4eda043055641728d598627fc577a94e632c948
+    change:
+      class: initial
+      summary: Initial contract.
+- family: declaration
+  id: annotation-mask
+  owner: annotation-selection
+  status: active
+  description: The frozen eligibility and exclusion mask for one label document. Each
+    labeled frame is repeated with the status validation assigned. An unverifiable
+    frame stays unscorable. This document holds no numeric score, so that frame cannot
+    be stored as zero.
+  versions:
+  - version: 1.0.0
+    file_sha256: 3ef605eaaabdb9adc0f48171d6edf69fca8744c1230fb1ab0e41fc850ad92403
+    fingerprints:
+      structure: c49008bf959655f7e77a3396453f52faa0847ada7206dd5ab424bdd0f4b9fc7e
+      meaning: 9a98b2211395428e6a82cbd636d8234bcd51196ea88797863acd03f83597179f
+    change:
+      class: initial
+      summary: Initial contract.
+- family: declaration
+  id: annotation-seed
+  owner: annotation-selection
+  status: active
+  description: One operator selection and an optional fixed list of perturbed seeds.
+    The real selection stays primary. Replaying one document yields the same selection
+    each time. The annotator id is recorded and is not part of that replay. This document
+    is not a score.
+  versions:
+  - version: 1.0.0
+    file_sha256: a7a9185f4a921421df2d43fa59285635180dfa94f51fc8894c305d16426fcaca
+    fingerprints:
+      structure: a71d5943041eacedcc0274fb6f9998cfe65f0acbea6c77594b438767667dcc91
+      meaning: 962c5abdd3c2b139975da986b74dea4ce21741d12cd5558f84eb0676aa1adc48
+    change:
+      class: initial
+      summary: Initial contract.
+- family: declaration
   id: audit-review
   owner: self-supervised-corpus
   status: active
@@ -1088,6 +1139,14 @@ contracts:
       class: minor
       summary: Source inspection states a current record's observer platform and names
         the import operations a facts record needs.
+  - version: 1.30.0
+    file_sha256: 39baad8174be79e129e82ee050ec7061cdc31e0bfe0cccf795c7b95c24ec3000
+    fingerprints:
+      structure: a6f1efe4a95e40343bff2494dc8f5c087773eb5a0bc911e20d188e13c9b8b3cc
+      meaning: b08e48a06d4a07a766faf7c9a5389de302757d7acf8fd8df6e92bb2863d59b57
+    change:
+      class: minor
+      summary: Add the annotation validation result. It has no numeric score.
 - family: shared
   id: types
   owner: data-contracts

@@ -35,27 +35,6 @@ hardware or private data.
 
 ### Annotation and selection -- `annotation-selection`
 
-#### annotation-contract
-
-Labels need stable identity and a frozen mask before scores can mean anything.
-
-- Serves: `annotation-selection` -- [Annotation contract](../design/spec.md#42-annotation-contract)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: An operator validates visibility status, geometry, instance identity, motion
-  events, operator seeds and masks against a versioned contract.
-- Scope boundary: Label, seed and mask contracts, validation and frozen seed replay, in the stored
-  orientation modules receive. Class names stay data in a scenario pack, so a label contract states
-  the shape of a class ID and the pinned pack states its values. Labelling itself is human work.
-- Data and artifact paths: `src/ss_track/annotate/`, `tests/annotate/`.
-- Execution path: Add `ss-track annotate validate` with positive and malformed fixtures, including a
-  source with display rotation.
-- Acceptance gates: Identical seeds replay identically, and invalid labels are rejected with a reason.
-  An unverifiable label stays unscorable and is never scored as zero. A label in any orientation other
-  than the stored one is refused.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
 #### annotation-review-tools
 
 Two reviewers must be able to compare labels and settle disagreement.
@@ -63,7 +42,7 @@ Two reviewers must be able to compare labels and settle disagreement.
 - Serves: `annotation-selection` -- [Annotation contract](../design/spec.md#42-annotation-contract)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: annotation-contract.
+- Dependencies: none.
 - User-visible outcome: Reviewers see disagreements and freeze one hashed label revision, with a
   sensitivity band retained for scoring.
 - Scope boundary: Comparison, a recorded rationale, freezing, and a declared review sample for larger
@@ -113,10 +92,32 @@ create a false negative.
   with no frozen labels leaves its cases unscorable, never scored as zero.
 - Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
 
+#### annotation-sequence-source
+
+An ordered image sequence is a source modules can receive, and a label drawn on it cannot be
+validated.
+
+- Serves: `annotation-selection` -- [Annotation contract](../design/spec.md#42-annotation-contract)
+- Agent status: CLEAR
+- Milestone: M1
+- Dependencies: none.
+- User-visible outcome: `ss-track annotate validate` accepts an ordered image sequence and checks
+  a label, a seed and a mask against that sequence's identity and stored pixels.
+- Scope boundary: Sequence identity and frame geometry for a declared image sequence. A video file
+  keeps the file hash as its source identity. A directory that is not a sequence stays refused.
+  Labelling the sequence is human work.
+- Data and artifact paths: `src/ss_track/annotate/`, `tests/annotate/`.
+- Execution path: Read one image-sequence directory through the existing sequence identity and reuse
+  the label, seed and mask checks.
+- Acceptance gates: A label whose source hash is the sequence identity validates. A label that uses
+  a video-file hash, or any hash other than the sequence identity, is refused with a reason. A video
+  file still validates as it does now. `make ci` passes.
+- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
+
 #### annotation-selection-audit (optional)
 
-Label validation, review and generated labels each touch identity and the frozen mask, and a
-difference between them would change what a score means.
+Label validation, review, generated labels and image-sequence sources each touch identity and the
+frozen mask, and a difference between them would change what a score means.
 
 - Serves: `annotation-selection` -- [Annotation contract](../design/spec.md#42-annotation-contract)
 - Agent status: CLEAR
@@ -131,8 +132,8 @@ difference between them would change what a score means.
 - Data and artifact paths: `src/ss_track/annotate/`, `tests/annotate/`,
   `$DATA_DIR/corpus/<corpus-id>/labels/`.
 - Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from the
-  rules that validation, review tools and generated labels each apply, and from how a label joins a
-  staged frame and a generated case.
+  rules that validation, review tools, generated labels and image-sequence sources each apply, and
+  from how a label joins a staged frame, a generated case and an image sequence.
 - Acceptance gates: Seed replay stays identical, an unresolved case never freezes, and an
   unverifiable label never scores as zero. Every finding is fixed, routed to a task or dropped with
   its reason, and `make quality` passes. Finding nothing is a valid result when the record states
@@ -173,7 +174,7 @@ A comparison must pin everything that can change its result.
 - Serves: `module-contract-runner` -- [Run artifacts](../design/spec.md#10-run-artifacts-and-comparison-dashboard)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: event-schema-contract, annotation-contract.
+- Dependencies: event-schema-contract.
 - User-visible outcome: A scenario file pins scenario pack, corpus, frame set, labels, selection,
   replay mode, metric suite, seed and deadlines, and yields one cohort key.
 - Scope boundary: The scenario schema, one cohort-key function, and one type that owns windows and
@@ -402,7 +403,7 @@ Operators need tracking scores that cannot be gamed by omission.
 - Serves: `motion-sot-evaluation` -- [Tracking suite](../design/spec.md#61-operator-selected-tracking-sot-v2-dev)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: plugin-evaluator-core, annotation-contract.
+- Dependencies: plugin-evaluator-core.
 - User-visible outcome: Reports show lock coverage, horizon retention and exposure with denominators.
 - Scope boundary: `sot-v2-dev`, and `sot-paced-v1` scoring of late and missing results. Absence and
   re-entry diagnostics are included. Later suites are out of scope.
@@ -421,7 +422,7 @@ Motion proposals need their own event scores.
 - Serves: `motion-sot-evaluation` -- [Motion proposals](../design/spec.md#62-motion-proposals-motion-v1-dev)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: plugin-evaluator-core, annotation-contract.
+- Dependencies: plugin-evaluator-core.
 - User-visible outcome: Reports show event recall, detection delay and operator-burden proposals.
 - Scope boundary: `motion-v1-dev` only. It is no general detection claim.
 - Data and artifact paths: `src/ss_track/suites/`, `tests/suites/`.

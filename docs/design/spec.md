@@ -675,7 +675,14 @@ establish physical state.
 The operator selection stores original click/box coordinates, source frame/time, intended target if
 adjudicated, seed-quality category and any correction. Competing modules receive exactly the same
 selection. A fixed, versioned set of perturbed spatial/temporal seeds may be added as a robustness
-view; the real operator seed remains primary. Two annotators review the entire small G0 material,
+view; the real operator seed remains primary. Seed quality is `as_clicked`, `imprecise` or
+`corrected`. Modules receive the correction when quality is `corrected`, and the original
+selection for the other two categories. Each perturbation is an integer column, row and frame
+offset. Replay lists the real selection first, then each perturbation in document order. The
+replay covers the seed id, the quality, the intended instance and those selections. The annotator
+id stays on the seed document. Motion-event selection quality is `reviewed` or `uncertain`.
+
+Two annotators review the entire small G0 material,
 resolving disagreements with a recorded rationale or retaining `unknown`. Larger corpora may use a
 predeclared review sample plus all difficult cases. Ground truth, episode eligibility and exclusion
 masks are frozen and hashed **before** module execution.
@@ -683,6 +690,16 @@ masks are frozen and hashed **before** module execution.
 Label coordinates use the stored orientation that modules receive. Display rotation is a recorded
 fact, so a tool that shows a rotated view maps coordinates back before a label is validated, and a
 label that declares any other orientation is refused.
+
+Each labeled frame is `scorable`, `unscorable` or `not_denominator`. `unscorable` means the frame
+is unverifiable: identity is ambiguous, the mark or the visibility is `unknown`, or geometry is
+`unlocalizable` on a frame that could otherwise be localized. `not_denominator` means the frame is
+verifiable and stays out of the primary localization denominator: `fully_occluded`, `out_of_view`,
+`absent`, an ignore region, or a point with no reviewed plausible extent. When several of these
+apply, the reported reason is the first match in that order: identity ambiguity, an unknown mark,
+an ignore region, unknown visibility, full occlusion, out of view or absence, unlocalizable
+geometry, then a point with no plausible extent. An unscorable or withheld frame has no numeric
+score.
 
 A generated case takes its labels from its parent's frozen revision through the stored label
 transform, as a hashed revision of its own that nobody edits by hand. Frozen labels also check the

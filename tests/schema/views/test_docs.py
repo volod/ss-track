@@ -1,5 +1,6 @@
 """Contract reference output covers frozen fields and annotated lineage."""
 
+import json
 from pathlib import Path
 
 from ss_track.schema.registry.store import load_contract_set
@@ -19,4 +20,4 @@ def test_reference_output_is_complete_and_deterministic(tmp_path: Path) -> None:
             for path, node in fields(contracts.frozen_schema(contract, version)):
                 assert path in page
                 for value in node.get("enum", []):
-                    assert str(value) in page
+                    assert json.dumps(value, ensure_ascii=True) in page

@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "mask_id": "clip-a-mask",
+  "label_sha256": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+  "frames": [
+    {
+      "instance_id": "target-1",
+      "frame_index": 0,
+      "disposition": "scorable",
+      "reason": null
+    }
+  ],
+  "episodes": [
+    {
+      "episode_id": "ep-1",
+      "instance_id": "target-1",
+      "start_frame": 0,
+      "end_frame": 4,
+      "eligibility": "eligible",
+      "exclusion_reason": null
+    }
+  ]
+}

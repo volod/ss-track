@@ -99,6 +99,12 @@ class Fields:
     def child(self, key: str) -> "Fields":
         return Fields(self._raw[key], f"{self._where}.{key}")
 
+    def nullable_child(self, key: str) -> "Fields | None":
+        """Read a required object or an explicit null."""
+        if self._raw[key] is None:
+            return None
+        return self.child(key)
+
     def optional_child(self, key: str) -> "Fields":
         """Read a nested mapping, treating an absent one as empty."""
         return Fields(self._raw.get(key, {}), f"{self._where}.{key}")

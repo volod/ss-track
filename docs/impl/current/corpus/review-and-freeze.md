@@ -331,8 +331,11 @@ writes the same record: the test replays a review on a second data root and comp
 
 ## Limits
 
-- An observation is recorded, not adjudicated. Labels, label review and disagreement belong to the
-  [annotation tasks](../../plan.md#annotation-contract); the
+- An observation is recorded, not adjudicated. Validated labels are the
+  [annotation contract](../corpus.md#annotation-contract). Review, disagreement and
+  sequence labels remain the
+  [annotation tasks](../../plan.md#annotation-and-selection----annotation-selection);
+  the
   [corpus selection evaluation](../../plan.md#corpus-selection-evaluation) scores observations of
   audit-sampled windows.
 - Each frozen stream is its own encounter, so windows of two cameras showing one event count as two
