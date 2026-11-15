@@ -1,0 +1,16 @@
+{
+  "case_id": "case-1",
+  "kind": "ss-track.derived-label",
+  "label_sha256": "abababababababababababababababababababababababababababababababab",
+  "label_transform_sha256": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+  "manifest_sha256": "012413c2763455058fa5813fe38f7ca96624abff69b4f8f902da3d987957d411",
+  "pack_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+  "pack_id": "aerial-small-objects",
+  "parent_label_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+  "parent_revision_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+  "parent_stream_id": "stream-1",
+  "schema_version": 1,
+  "source_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+  "timestamp_quality": "derived",
+  "transform_kind": "scale"
+}

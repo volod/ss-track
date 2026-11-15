@@ -1,24 +1,29 @@
-"""`ss-track annotate`: validate labels, compare two reviewers and freeze one revision."""
+"""`ss-track annotate`: validate, compare, freeze and derive labels."""
 
 import argparse
 from pathlib import Path
 
+from ss_track.annotate.derive import derive_corpus
+from ss_track.annotate.derive_result import DeriveResult
 from ss_track.annotate.result import AnnotationResult
 from ss_track.annotate.review import compare_labels, freeze_labels
 from ss_track.annotate.review_result import ReviewResult
 from ss_track.annotate.validate import validate_labels, validate_mask, validate_seed
 from ss_track.commands import Subcommands
-from ss_track.commands.report import reported
+from ss_track.commands.report import reported, reported_on_data_root
 from ss_track.corpus.declarations.fields import invalid
 
 
 def add_annotate_commands(subcommands: Subcommands) -> None:
-    """Add `annotate validate`, `compare` and `freeze`."""
-    annotate = subcommands.add_parser("annotate", help="validate, compare and freeze labels")
+    """Add `annotate validate`, `compare`, `freeze` and `derive`."""
+    annotate = subcommands.add_parser(
+        "annotate", help="validate, compare, freeze and derive labels"
+    )
     commands = annotate.add_subparsers(dest="annotate_command", required=True)
     _add_validate(commands)
     _add_compare(commands)
     _add_freeze(commands)
+    _add_derive(commands)
 
 
 def _add_validate(commands: Subcommands) -> None:
@@ -73,6 +78,21 @@ def _add_freeze(commands: Subcommands) -> None:
     freeze.set_defaults(handler=_run_freeze)
 
 
+def _add_derive(commands: Subcommands) -> None:
+    derive = commands.add_parser(
+        "derive",
+        help="derive a label revision for each generated case",
+        description=(
+            "Read each parent's frozen revision and apply the stored label transform. "
+            "A parent with no frozen labels leaves its cases unscorable. "
+            "Derived labels are written under the corpus and are not edited by hand."
+        ),
+    )
+    derive.add_argument("--corpus", required=True, help="corpus version id")
+    derive.add_argument("--pack", type=Path, required=True, help="scenario pack declaration")
+    derive.set_defaults(handler=_run_derive)
+
+
 def _add_pair(command: argparse.ArgumentParser) -> None:
     command.add_argument("--left", type=Path, required=True, help="first reviewer's labels")
     command.add_argument("--right", type=Path, required=True, help="second reviewer's labels")
@@ -106,6 +126,10 @@ def _run_freeze(arguments: argparse.Namespace) -> int:
     return reported(lambda: _freeze(arguments))
 
 
+def _run_derive(arguments: argparse.Namespace) -> int:
+    return reported_on_data_root(lambda root: _derive(arguments, root))
+
+
 def _compare(arguments: argparse.Namespace) -> ReviewResult:
     return compare_labels(
         arguments.left, arguments.right, arguments.pack, arguments.source, arguments.review
@@ -123,3 +147,7 @@ def _freeze(arguments: argparse.Namespace) -> ReviewResult:
         arguments.labels_out,
         arguments.revision_out,
     )
+
+
+def _derive(arguments: argparse.Namespace, root: Path) -> DeriveResult:
+    return derive_corpus(str(arguments.corpus), arguments.pack, root)

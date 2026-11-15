@@ -100,5 +100,6 @@ Copy the [template](template.md) using the
 | 0093 | `annotation-contract` | [0093-annotation-selection-annotation-contract](0093-annotation-selection-annotation-contract.md) |
 | 0094 | `annotation-review-tools` | [0094-annotation-selection-annotation-review-tools](0094-annotation-selection-annotation-review-tools.md) |
 | 0095 | `event-schema-contract` | [0095-module-contract-runner-event-schema-contract](0095-module-contract-runner-event-schema-contract.md) |
+| 0096 | `generated-case-labels` | [0096-annotation-selection-generated-case-labels](0096-annotation-selection-generated-case-labels.md) |
 
-Next unused sequence: `0096`.
+Next unused sequence: `0097`.

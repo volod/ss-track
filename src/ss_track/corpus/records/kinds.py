@@ -24,6 +24,7 @@ AUDIT_BLINDING_KIND = "ss-track.audit-blinding"
 LINK_REVIEW_HANDOFF_KIND = "ss-track.link-review-handoff"
 IMAGE_SEQUENCE_KIND = "ss-track.image-sequence"
 ANNOTATION_REVISION_KIND = "ss-track.annotation-revision"
+DERIVED_LABEL_KIND = "ss-track.derived-label"
 
 
 SOURCE_MANIFEST = RecordFormat(SOURCE_MANIFEST_KIND, major=3)
@@ -43,3 +44,4 @@ AUDIT_BLINDING = RecordFormat(AUDIT_BLINDING_KIND, major=1)
 LINK_REVIEW_HANDOFF = RecordFormat(LINK_REVIEW_HANDOFF_KIND, major=1)
 IMAGE_SEQUENCE = RecordFormat(IMAGE_SEQUENCE_KIND, major=1)
 ANNOTATION_REVISION = RecordFormat(ANNOTATION_REVISION_KIND, major=1)
+DERIVED_LABEL = RecordFormat(DERIVED_LABEL_KIND, major=1)

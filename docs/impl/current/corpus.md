@@ -619,6 +619,91 @@ Tests are `tests/annotate/test_annotation_review.py`, `test_annotation_freeze.py
 [task record](../records/0094-annotation-selection-annotation-review-tools.md) holds the
 acceptance evidence.
 
+### Derived case labels
+
+`ss-track annotate derive` writes one label document and one sealed revision for each generated
+case. The command is in `src/ss_track/commands/annotate.py`. `derive_corpus` in
+`src/ss_track/annotate/derive.py` reads the built corpus and the pack named by `--pack`.
+
+The parent's frozen revision is placed at
+`$DATA_DIR/corpus/<corpus-id>/labels/<stream-id>/labels.json` beside `revision.json`. That
+revision is `record/annotation-revision`. A missing file leaves every case of that parent
+`unscorable`, reason `no_frozen_labels`. The command status is still `derived`. An unscorable case
+has no hashes, no paths and no score, and it is not a zero. A label document whose declaration
+hash is not the revision's `label_sha256` is `MANIFEST_INVALID`. A damaged revision seal is
+`RECORD_TAMPERED`.
+
+Derived files are `$DATA_DIR/corpus/<corpus-id>/labels/<case-id>/labels.json` and `revision.json`.
+The label id is the case id. Annotator ids, the source hash, orientation, display rotation and
+frame count stay the parent's. Width and height change only for `scale`. The document is
+`declaration/annotation-label` 1.0.0, and its hash is the declaration hash. The revision is
+`record/derived-label` 1.0.0 (`ss-track.derived-label`). It pins the parent revision seal, the
+parent label hash, the pack, the source and the SHA-256 of the canonical JSON of the stored
+label transform. It has no score. Derived labels are not edited by hand.
+
+Every case is checked before any case is written, under
+`$DATA_DIR/corpus/<corpus-id>/labels/.derive.lock`. A refusal leaves files already written in
+place. The command does not decode the case. It checks the derived document against a frame
+space taken from the label header.
+
+`identity` and `compression` do not move geometry. `timing` does not move geometry and records
+`timestamp_quality` `derived`. A `frame_map` drops labels on removed indexes. A repeated frame
+takes the labels of `content_frame_index`, and the revision records `derived` because that
+frame's presentation time is no longer measured. An instance with no remaining frame is dropped.
+A derivation that leaves no instance is refused. `translate` shifts by the stored offsets, clips
+to the frame and sets that frame's camera motion to `shake`. A box or point that leaves the frame
+is `out_of_view` and unlocalizable. A partial clip keeps the visibility and the clipped box.
+
+`scale` uses the output size `ceil(n / factor)`, the same size the pixel reduction stores. A
+half-open span `[start, stop)` maps to `[start // factor, (stop - 1) // factor + 1]`, then clips
+to that frame. Uncertainty and plausible extent are divided by the factor. An extent that divides
+to zero is null. A box whose `width * height` is below `min_box_extent_px` squared becomes
+`point_only` at `x = left + (width - 1) // 2`, `y = top + (height - 1) // 2`. Its plausible
+extent is `floor(sqrt(width * height))`. A point whose divided extent is below
+`min_point_extent_px` becomes `unlocalizable` and keeps its visibility. An unset minimum does not
+convert. A null plausible extent stays null.
+
+`region_status` applies inside its half-open frame window. A box wholly inside takes `inside`.
+A box that only overlaps takes `overlap` and loses its geometry, because `overlap_geometry` is
+`unlocalizable`. A point inside takes `inside`. A frame the region does not meet stays as the
+parent labeled it. Unknown visibility stays `unknown` and is never rewritten to `absent`. The
+stored record has no sprite box, so a moving-background case does not gain sprite instances.
+
+`track_status` requires `label_revision` to equal the parent revision seal, which is
+`manifest_sha256` of `record/annotation-revision`, not the label-document hash. Each box in
+`parameters.track` must equal that instance's frozen box. A window frame absent from the track
+must not carry a scorable box. `unknown` forces visibility `unknown` and unlocalizable geometry,
+and adds the frame when the parent did not mark it, with camera motion `unknown`. `unchanged`
+and `reentry` require the stored region to equal the parent box. Re-entry is recorded after the
+other edits, on the event for that frame or as a new event. `shift` translates every instance on
+that frame, then forces the target to `out_of_view` even when a sliver would remain. `region`
+applies the rectangle to every instance on that frame except the tracked instance when
+`added_objects` is `distractor`. The copy is a new instance `copy-<instance-id>`, of the pack's
+one distractor class, mark `distractor`, and the painted rectangle is its box. The target box
+stays as the parent labeled it. A pack that does not name exactly one distractor class is refused.
+
+A case whose parameters include `plate_frame` is refused when a scoring target's box is wholly
+inside a painted region on that frame, or its point lies inside. The regions are the
+`region_status` rectangle and each `track_status` frame whose role is `region`, including each
+box `moving_removal` replaces. The check reads the parent labels. A target the region does not
+fully cover is not a refusal. Overlap then leaves an absence frame `unknown`. A frame with no
+scorable box stays `unknown`.
+
+`result/command` 1.32.0 adds status `derived` and optional `label_derivation`. One row per
+generated case follows the manifest order. A derived row names both hashes, both paths and
+`timestamp_quality`, which is `derived` or null. The object has no `score` field.
+
+```bash
+ss-track annotate derive \
+  --corpus pilot-v1 \
+  --pack scenarios/packs/aerial-small-objects.yaml
+```
+
+Tests are `tests/annotate/test_derive_labels.py`, `test_derive_track.py` and
+`test_derive_command.py`. The example is `tests/schema/examples/record-derived-label.json`. The
+[task record](../records/0096-annotation-selection-generated-case-labels.md) holds the acceptance
+evidence.
+
 ### Ordered image sequences
 
 A recording can use lossless PNG images instead of a video file. `source.path` is the image root,
@@ -1875,9 +1960,10 @@ reading a removed frame is `FRAME_NOT_IN_BUNDLE`, so a removed operator seed fra
 that avoids it. `duplicated_frames` repeats the previous frame's pixels at a frame's own index
 and PTS, with `content_frame_index` naming the frame shown. A run of repeats all show the last
 real frame, and the first frame of a selection is never repeated. Labels follow pixels, so a
-repeated frame takes the labels of the frame it shows. Such a frame's PTS is no longer a capture
-time, so a `measured` parent gives a `derived` case with no capture-clock evidence. A
-`missing` parent stays `missing`.
+repeated frame takes the labels of the frame it shows.
+[Derived case labels](#derived-case-labels) applies that stored transform to the parent's frozen
+revision. Such a frame's PTS is no longer a capture time, so a `measured` parent gives a
+`derived` case with no capture-clock evidence. A `missing` parent stays `missing`.
 `compression` keeps each frame's PTS and the parent's timestamp quality, and it hard-links frames
 outside its window. `variable_timing` keeps every pixel, so every frame hard-links. It multiplies
 the gap ending at each frame inside the window by an integer from 2 to `max_scale`. Frames before
@@ -1976,7 +2062,9 @@ directory, is `STORAGE_FAILED`.
 | `missing` | At least one frame stores no PTS. Stored values are kept and absent ones stay `null` |
 
 A `variable_timing` case is always `derived` and stores no capture-clock evidence. A `compression`
-case does not change presentation time, so it keeps the parent's quality.
+case does not change presentation time, so it keeps the parent's quality. The derived label
+revision records the same claim: `derived` for timing and for a repeated frame, and null for
+compression. [Derived case labels](#derived-case-labels) states the label revision.
 
 Duplicate or decreasing PTS is `PTS_NON_INCREASING`, naming the first offending frame. Capture-clock
 evidence for a stream with missing PTS is `TIMESTAMP_CLAIM_UNSUPPORTED`. Under `nofillin`, AVI and

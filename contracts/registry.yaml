@@ -414,8 +414,8 @@ contracts:
   id: analytics
   owner: module-contract-runner
   status: active
-  description: Run identity, validation, sensor and resource samples, and power.
-    A sensor sample is not a G2 observation. Joules are derived energy, not watts.
+  description: Run identity, validation, sensor and resource samples, and power. A
+    sensor sample is not a G2 observation. Joules are derived energy, not watts.
   versions:
   - version: 1.0.0
     file_sha256: bb72b3694088d19f94be19ba5655a2fe9d3d2737708c072bc6bbedbcb04dabe7
@@ -430,8 +430,8 @@ contracts:
   owner: module-contract-runner
   status: active
   description: A clock reading and the stable identity of one event. Media PTS is
-    not capture time. A framed event names one source frame. An unframed event
-    names an interval and no frame.
+    not capture time. A framed event names one source frame. An unframed event names
+    an interval and no frame.
   versions:
   - version: 1.0.0
     file_sha256: 13f5e2fde872f26348bf8430dde8ef6fe1f7bcbe899ca3aa9466737e6591ea56
@@ -445,9 +445,9 @@ contracts:
   id: frame
   owner: module-contract-runner
   status: active
-  description: One staged frame and how to reach it. content_frame_index is the
-    parent frame whose pixels are shown. transform is identity for a source bundle.
-    Display rotation is not this field.
+  description: One staged frame and how to reach it. content_frame_index is the parent
+    frame whose pixels are shown. transform is identity for a source bundle. Display
+    rotation is not this field.
   versions:
   - version: 1.0.0
     file_sha256: 2bb6915d03dcc29feb52de20caec118d2158b28053ce492beb95a86eecef94fd
@@ -461,8 +461,8 @@ contracts:
   id: trial
   owner: module-contract-runner
   status: active
-  description: A G1 instrument, calibration and hardware trial. A trial stores
-    trace hashes, not samples, and it is not a frame event.
+  description: A G1 instrument, calibration and hardware trial. A trial stores trace
+    hashes, not samples, and it is not a frame event.
   versions:
   - version: 1.0.0
     file_sha256: 8cf3ae65986ea054a8cd663c522db010038acd0f00ecfc1eb6956b265291bc4d
@@ -476,8 +476,8 @@ contracts:
   id: wire
   owner: module-contract-runner
   status: active
-  description: Module outputs for one frame. Empty detections are a valid frame
-    result. G0 and G1 have no actuator endpoint. G2 fusion records are not here.
+  description: Module outputs for one frame. Empty detections are a valid frame result.
+    G0 and G1 have no actuator endpoint. G2 fusion records are not here.
   versions:
   - version: 1.0.0
     file_sha256: 74d8f0fe8be7a814f627fd14a7f1509b4aafbfb454cefb7cd9e3c75353a0454e
@@ -684,6 +684,22 @@ contracts:
     fingerprints:
       structure: 23c5bdcd81392dbe5be618f6cd225132dee2b9f7ea0135950e6700b340aec527
       meaning: ded9a84193416ecfc5323dfbb127c15f2854465c87014774cb863fa7bfc01b00
+    change:
+      class: initial
+      summary: Initial contract.
+- family: record
+  id: derived-label
+  owner: annotation-selection
+  status: active
+  description: The sealed derivation of one generated case's labels from its parent's
+    frozen revision and stored label transform. It has no score, and the labels are
+    not edited by hand.
+  versions:
+  - version: 1.0.0
+    file_sha256: 1a6a74dfe49d85f0c448df683be59dca4054a47acbb49f4e732731469713be8f
+    fingerprints:
+      structure: 0bfec4cad1d1ca1634b844d2daae55ca91e707a21682eef738a24edad8325d34
+      meaning: d7ba8f6ed7b1606a87dff7ea9f20a9c19c6317d7968bc99312870ad516589559
     change:
       class: initial
       summary: Initial contract.
@@ -1279,6 +1295,15 @@ contracts:
     change:
       class: minor
       summary: Report label comparison and freeze.
+  - version: 1.32.0
+    file_sha256: 84e11f4cf1ef53be1bf674369fce09f468f26780690ece69f874eb608d9df3a9
+    fingerprints:
+      structure: 27bd12df22158b9308a6e3db9d68adaa766b6fd4adf71c5b0e2fd02cbc7a442c
+      meaning: 03b67fba73daaa26d6e8150c9ca6343cb7000c1ad31704b3d7b3fa53e24d7fa2
+    change:
+      class: minor
+      summary: Report derived labels for generated cases. An unscorable case is not
+        a zero.
 - family: shared
   id: types
   owner: data-contracts

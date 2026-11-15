@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ss-track:contract:record:derived-label:1.0.0",
+  "title": "Derived label",
+  "description": "The sealed derivation of one generated case's labels from its parent's frozen revision and stored label transform. It has no score, and the labels are not edited by hand.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind",
+    "schema_version",
+    "manifest_sha256",
+    "case_id",
+    "parent_stream_id",
+    "parent_revision_sha256",
+    "parent_label_sha256",
+    "label_sha256",
+    "pack_id",
+    "pack_hash",
+    "source_sha256",
+    "transform_kind",
+    "label_transform_sha256",
+    "timestamp_quality"
+  ],
+  "properties": {
+    "kind": {
+      "type": "string",
+      "const": "ss-track.derived-label",
+      "description": "Record kind."
+    },
+    "schema_version": {
+      "type": "integer",
+      "const": 1,
+      "minimum": 0,
+      "x-unit": "1",
+      "description": "Format major."
+    },
+    "manifest_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Record seal."
+    },
+    "case_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "Generated case whose labels this revision derives. It is also the label id."
+    },
+    "parent_stream_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "Parent stream whose frozen revision supplied the labels."
+    },
+    "parent_revision_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Seal of the parent's annotation revision. A track case's label_revision is this seal."
+    },
+    "parent_label_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "SHA-256 of the canonical JSON of the parent label document."
+    },
+    "label_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "SHA-256 of the canonical JSON of the derived label document."
+    },
+    "pack_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "Scenario pack the labels name."
+    },
+    "pack_hash": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Hash of that pack."
+    },
+    "source_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Source hash the parent labels name."
+    },
+    "transform_kind": {
+      "type": "string",
+      "description": "Stored label-transform kind that produced these labels.",
+      "enum": [
+        "identity",
+        "translate",
+        "frame_map",
+        "region_status",
+        "compression",
+        "timing",
+        "track_status",
+        "scale"
+      ]
+    },
+    "label_transform_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "SHA-256 of the canonical JSON of the stored label transform."
+    },
+    "timestamp_quality": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "derived when the case changes presentation time. Null when the case does not.",
+      "enum": [
+        "derived",
+        null
+      ]
+    }
+  },
+  "x-rules": {
+    "score": "This record has no score. An unscorable parent is not sealed as zero.",
+    "hand": "The derived label document is produced by the command. It is not edited by hand."
+  }
+}

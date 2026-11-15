@@ -37,6 +37,12 @@ makes it fail, and what it does not prove. A case with no task left is listed as
   and adds nothing to any evidence count. `tests/corpus/` covers them.
   Value: protects=reproducible cases that are not encounters; fails_when=a case counts as new
   evidence; no_claim=realism.
+- Derived case labels follow each stored transform, including `track_status` roles `unknown`,
+  `region`, `shift`, `reentry` and `unchanged`, and a plate showing a target.
+  `tests/annotate/test_derive_labels.py`, `test_derive_track.py` and `test_derive_command.py`
+  cover them.
+  Value: protects=labels that follow pixels; fails_when=a covered target stays visible, a wrong
+  region yields `absent`, or a frame with no box becomes `absent`; no_claim=parent label quality.
 - Golden transforms and architecture-sensitive decode tests pass on arm64, and one fixed corpus
   staged from one set of stored sources on x86-64 and arm64 stays `identical`, compared through
   `frame_set_sha256` and then per source. The corpus holds every decoder family the wheel can encode,
@@ -119,10 +125,6 @@ makes it fail, and what it does not prove. A case with no task left is listed as
   Value: protects=each frame counted once in one version; fails_when=a frame counts twice, or a
   cross-group pair is no longer leakage; no_claim=re-encoded copies, or a copy that replaces its
   original in a linked version.
-- `generated-case-labels`: hand-built labels through each transform, including `track_status` roles
-  `unknown`, `region`, `shift`, `reentry` and `unchanged`, and a plate showing a target.
-  Value: protects=labels that follow pixels; fails_when=a covered target stays visible, a wrong
-  region yields `absent`, or a frame with no box becomes `absent`; no_claim=parent label quality.
 - `scenario-contract`: each cohort-key field changed in turn, and a scenario with a missing hash.
   Value: protects=comparison identity; fails_when=a changed input keeps its key; no_claim=none
   beyond protects.

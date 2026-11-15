@@ -35,46 +35,6 @@ hardware or private data.
 
 ### Annotation and selection -- `annotation-selection`
 
-#### generated-case-labels
-
-A generated case cannot be scored until its labels follow its pixels, and a wrong region must not
-create a false negative.
-
-- Serves: `annotation-selection` -- [Annotation contract](../design/spec.md#42-annotation-contract)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: `ss-track annotate derive` gives each generated case a hashed label revision
-  from its parent's frozen labels and stored label transform, including a `track_status` case.
-- Scope boundary: Every stored label transform: region status, translation with clipping and
-  `out_of_view`, frame maps, `scale`, `compression`, `timing` and `track_status`. `scale` divides
-  geometry, uncertainty and plausible extent by its integer factor and clips to the output frame.
-  It turns a box under the pinned pack's minimum box extent into `point_only`, and a target under
-  its minimum point extent into
-  `unlocalizable`. `compression` and `timing` do not move geometry. `timing` records that
-  presentation time is `derived`. `track_status` lists one role per case-window frame: `unknown`
-  when that frame has no box, `region` for a painted rectangle, `shift` when the frame leaves the
-  view, `reentry` when the box is back, and `unchanged` when the box stays. `unknown` stays
-  `unknown` and is never `absent`. A `shift` frame is `out_of_view`. A `reentry` frame records
-  re-entry. A `region` role names the painted rectangle: the occluder, the removed box, or the
-  distractor copy. The target box on a distractor frame is not that rectangle and stays as the
-  parent labeled it. The plate check applies to each box `moving_removal` replaces. A track case
-  whose boxes or `label_revision` do not match that instance in the parent's frozen revision is
-  refused. Derived labels are never edited by hand.
-- Data and artifact paths: `src/ss_track/annotate/`, `tests/annotate/`,
-  `$DATA_DIR/corpus/<corpus-id>/labels/`.
-- Execution path: Read the parent's sealed annotation revision and the label document whose hash
-  it pins. Apply each label-transform kind to those labels, then check plates and regions against
-  those labels. Apply each `track_status` role to the frame it names.
-- Acceptance gates: Hand-computed labels match for every transform, including `scale`,
-  `compression`, `timing` and `track_status`. A scaled box under the pack's minimum extent is
-  `point_only`, never a box. A plate showing a target inside its region is refused, and a target
-  the region does not fully cover stays `unknown`. A frame with no scorable box stays `unknown`.
-  The same plate check applies to each box `moving_removal` replaces. A track case whose boxes or
-  `label_revision` do not match that instance in the parent's frozen revision is refused. A parent
-  with no frozen labels leaves its cases unscorable, never scored as zero.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
 #### annotation-sequence-source
 
 An ordered image sequence is a source modules can receive, and a label drawn on it cannot be
@@ -561,7 +521,7 @@ The whole offline path must work on real labelled video.
 - Agent status: RUN NEEDED
 - Milestone: M1
 - Dependencies: local-comparison-report, reference-sot-tracker, motion-suite,
-  label-pilot-encounters, generated-case-labels.
+  label-pilot-encounters.
 - User-visible outcome: Two reference versions produce an inspectable G0a report on one positive and
   one negative encounter.
 - Scope boundary: G0a pipeline validity. No improvement, real-time or energy claim.
@@ -612,7 +572,7 @@ A pass or fail on one generated case does not show where a module starts to degr
   cases](../design/spec.md#43-deterministic-cases-and-negative-evidence)
 - Agent status: CLEAR
 - Milestone: M2
-- Dependencies: local-comparison-report, generated-case-labels.
+- Dependencies: local-comparison-report.
 - User-visible outcome: A recipe declares graded levels of one parameter, including the factor of a
   scale-reduction case, and the local report shows each module's quality against that severity.
 - Scope boundary: One parameter, one encounter set and one saved metric per curve. No composite
