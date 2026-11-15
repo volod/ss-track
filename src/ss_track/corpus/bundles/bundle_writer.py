@@ -7,6 +7,7 @@ from typing import Any
 
 import av
 
+from ss_track.core.evidence.sealing import seal, write_sealed
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.bundles.bundle_reader import open_frame_bundle
 from ss_track.corpus.bundles.bundle_record import stream_bundle_body
@@ -14,7 +15,7 @@ from ss_track.corpus.bundles.frame_store import require_space, store_frame
 from ss_track.corpus.bundles.frames import FrameBundle
 from ss_track.corpus.bundles.publish import publish_bundles
 from ss_track.corpus.decoding.declared_color import recorded_matrix
-from ss_track.corpus.decoding.decode import FrameConsumer, inspect_media
+from ss_track.corpus.decoding.decode import FrameConsumer
 from ss_track.corpus.decoding.decode_policy import DecodePolicy
 from ss_track.corpus.decoding.pixels import (
     OUTPUT_BITS_PER_COMPONENT,
@@ -23,9 +24,9 @@ from ss_track.corpus.decoding.pixels import (
     uses_color_matrix,
 )
 from ss_track.corpus.decoding.streams import VIDEO_STREAM_INDEX, recorded_video_stream_index
-from ss_track.corpus.records.sealing import seal, write_sealed
 from ss_track.corpus.sources.source_record import decoded_facts
 from ss_track.corpus.sources.stored import VerifiedSource, load_verified_source
+from ss_track.corpus.sources.stored_media import inspect_stored
 from ss_track.corpus.storage.layout import MANIFEST_NAME
 
 _LOG = logging.getLogger(__name__)
@@ -60,7 +61,7 @@ def write_source_bundles(
             _FrameWriter(staged, stream["selection"], policy.converter(matrix))
             for staged, stream in zip(staged_dirs, streams, strict=True)
         )
-        inspection = inspect_media(
+        inspection = inspect_stored(
             source.stored,
             policy,
             _fan_out(writers),

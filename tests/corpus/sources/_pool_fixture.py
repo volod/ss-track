@@ -6,8 +6,8 @@ from pathlib import Path
 import yaml
 
 from ss_track.core.canonical import canonical_json, sha256_bytes
+from ss_track.core.evidence.sealing import seal, write_sealed
 from ss_track.corpus.records.kinds import SOURCE_ACQUISITION
-from ss_track.corpus.records.sealing import seal, write_sealed
 from tests.corpus._media import expected_rgb, write_clip
 
 RIGHTS = {

@@ -61,7 +61,13 @@ def _stream(name: str, source_sha256: str) -> dict[str, object]:
     stream: dict[str, object] = {"stream_id": name, "source_sha256": source_sha256}
     if name == CASE_PARENT:
         stream["generated_cases"] = [
-            case_of(f"{name}-{transform}", transform, seed, parameters, window=_WINDOW)
+            case_of(
+                f"{name}-{transform}",
+                transform,
+                seed,
+                parameters,
+                **({} if transform == "scale_reduction" else {"window": _WINDOW}),
+            )
             for seed, (transform, parameters) in enumerate(CASES)
         ]
     return stream

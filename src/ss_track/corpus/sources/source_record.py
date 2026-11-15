@@ -10,6 +10,7 @@ from dataclasses import asdict
 from typing import Any
 
 from ss_track.core.refusal import JsonValue
+from ss_track.corpus.declarations.capture import descriptive_facts
 from ss_track.corpus.declarations.declaration import RecordingDeclaration
 from ss_track.corpus.decoding.declared_color import (
     DECLARED_COLOR_FACT,
@@ -17,6 +18,7 @@ from ss_track.corpus.decoding.declared_color import (
     declaration_changed,
 )
 from ss_track.corpus.decoding.decode import MediaInspection
+from ss_track.corpus.decoding.image_sequence import time_base
 from ss_track.corpus.decoding.streams import VIDEO_STREAM_INDEX
 from ss_track.corpus.sources.timestamps import TimestampQuality
 
@@ -58,14 +60,18 @@ def declared_terms(declaration: RecordingDeclaration) -> dict[str, JsonValue]:
     }
 
 
-def changed_facts(record: Mapping[str, Any], declaration: RecordingDeclaration) -> list[str]:
+def changed_facts(
+    record: Mapping[str, Any], declaration: RecordingDeclaration, *, amend_capture: bool = False
+) -> list[str]:
     """Name each declared fact, other than the terms, that differs from a source record."""
     sequence = record.get("sequence", {})
     changed: list[str] = []
-    if record.get("capture") != declaration.capture:
+    if _capture_changed(record, declaration, amend_capture):
         changed.append("capture")
     if sequence.get("capture_clock_evidence") != declaration.capture_clock_evidence:
         changed.append("sequence.capture_clock_evidence")
+    if _sequence_timing_changed(sequence, declaration):
+        changed.append("sequence.time_base")
     declared_index = declaration.video_stream_index
     if declared_index is not None and sequence.get(VIDEO_STREAM_INDEX, 0) != declared_index:
         changed.append(f"sequence.{VIDEO_STREAM_INDEX}")
@@ -79,3 +85,21 @@ def changed_facts(record: Mapping[str, Any], declaration: RecordingDeclaration) 
     elif stored_origin is not None:
         changed.append("origin")
     return changed
+
+
+def _capture_changed(
+    record: Mapping[str, Any], declaration: RecordingDeclaration, amend_capture: bool
+) -> bool:
+    capture = record.get("capture", {})
+    if not amend_capture:
+        return bool(capture != declaration.capture)
+    return descriptive_facts(capture) != descriptive_facts(declaration.capture)
+
+
+def _sequence_timing_changed(
+    sequence: Mapping[str, Any], declaration: RecordingDeclaration
+) -> bool:
+    images = declaration.image_sequence
+    if images is None:
+        return False
+    return bool(sequence.get("time_base") != time_base(images.frame_rate))

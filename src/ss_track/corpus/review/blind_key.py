@@ -10,12 +10,13 @@ from pathlib import Path
 from typing import Any
 
 from ss_track.core.canonical import SEAL_FIELD
+from ss_track.core.evidence.sealed import read_sealed
+from ss_track.core.evidence.sealing import seal, write_sealed
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
+from ss_track.core.scratch import exclusive_lock, scratch_directory
 from ss_track.corpus.discovery.reader import verify_discovery
 from ss_track.corpus.discovery.records import DiscoveryRecords
 from ss_track.corpus.records.kinds import AUDIT_BLINDING
-from ss_track.corpus.records.sealed import read_sealed
-from ss_track.corpus.records.sealing import seal, write_sealed
 from ss_track.corpus.review.blind_packet import frame_sha256, render_frames
 from ss_track.corpus.review.blind_sample import AuditSample, common_sample
 from ss_track.corpus.storage.layout import (
@@ -24,7 +25,6 @@ from ss_track.corpus.storage.layout import (
     blinding_path,
     discovery_root,
 )
-from ss_track.corpus.storage.scratch import exclusive_lock, scratch_directory
 from ss_track.corpus.versions.manifests import load_corpus_manifest
 from ss_track.schema.validation.enforce import is_shared_type, require_record
 

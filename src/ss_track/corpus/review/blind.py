@@ -12,6 +12,7 @@ from typing import cast
 
 from ss_track.core.canonical import SEAL_FIELD, sha256_bytes
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
+from ss_track.core.scratch import exclusive_lock
 from ss_track.corpus.declarations.fields import invalid
 from ss_track.corpus.discovery.reader import verify_discovery
 from ss_track.corpus.discovery.records import DiscoveryRecords
@@ -30,7 +31,6 @@ from ss_track.corpus.review.blind_review import (
 from ss_track.corpus.review.blind_sample import AuditSample, common_sample
 from ss_track.corpus.review.export import declaration_bytes
 from ss_track.corpus.storage.layout import blinding_path, discovery_root, discovery_run_directory
-from ss_track.corpus.storage.scratch import exclusive_lock
 from ss_track.corpus.versions.manifests import load_corpus_manifest
 from ss_track.schema.validation.enforce import is_shared_type
 

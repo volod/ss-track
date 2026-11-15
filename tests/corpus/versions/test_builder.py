@@ -3,10 +3,10 @@ from pathlib import Path
 
 import pytest
 
+from ss_track.core.evidence.sealed import read_sealed
 from ss_track.corpus import CorpusRefusal, ImportResult, RefusalCode, build_corpus
 from ss_track.corpus.decoding.decode_policy import current_decode_policy
 from ss_track.corpus.records.kinds import CORPUS_MANIFEST
-from ss_track.corpus.records.sealed import read_sealed
 from ss_track.corpus.versions.manifests import load_corpus_manifest
 from ss_track.schema.validation.enforce import older_remedy
 from tests.corpus._media import FRAME_COUNT, HEIGHT, WIDTH

@@ -23,7 +23,8 @@ _BUNDLE = "ss-track.frame-bundle"
 @pytest.mark.parametrize(
     ("kind", "found", "current", "disposition"),
     [
-        (_SOURCE, 1, 2, FACTS),
+        (_SOURCE, 1, 3, FACTS),
+        (_SOURCE, 2, 3, FACTS),
         (_CORPUS, 1, 3, RETIRED),
         (_CORPUS, 2, 3, RETIRED),
         (_BUNDLE, 1, 3, RETIRED),
@@ -41,7 +42,7 @@ def test_each_installed_older_major_has_its_stated_disposition(
 
 def test_no_installed_major_is_a_view_yet() -> None:
     assert readable_majors(_CORPUS, 3) == [3]
-    assert readable_majors(_SOURCE, 2) == [2]
+    assert readable_majors(_SOURCE, 3) == [3]
 
 
 def test_a_transition_states_the_disposition_of_the_major_it_replaces() -> None:
@@ -147,3 +148,10 @@ def test_freeze_refuses_a_view_of_a_major_that_adds_an_operator_judgment(
 
     contract = load_contract_set(contract_root).named("record/corpus-manifest")
     assert contract.disposition_of(3) == FACTS
+
+
+@pytest.mark.parametrize("field", ["camera_control_mode", "observer_platform"])
+def test_capture_judgments_cannot_be_derived_by_a_view(field: str) -> None:
+    old = {"type": "object", "properties": {field: {"type": "number"}}}
+    new = {"type": "object", "properties": {field: {"type": "string"}}}
+    assert disposition_floor(diff_schemas(old, new), new) == FACTS

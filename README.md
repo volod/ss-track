@@ -467,9 +467,11 @@ thin adapters that point to it. Keeping substantive rules in one file prevents t
 
 ```text
 src/ss_track/              production package; cli.py is its entry point
-  core/                    shared primitives: canonical bytes, refusals, strict parsing, paths
+  core/                    shared primitives: canonical bytes, refusals, strict parsing, paths,
+                           sealed evidence, locks and scratch, and the data-clean registry
   commands/                command groups and the one JSON record each command reports
-  corpus/                  import, decode, versions, staged bundles, cases and descriptors
+  corpus/                  import, decode, versions, staged bundles, cases, descriptors,
+                           discovery, link review and corpus review
   schema/                  the contract registry, validation, compatibility gate and views
   quality/                 documentation and plan checks
 tests/                     unit and governance tests

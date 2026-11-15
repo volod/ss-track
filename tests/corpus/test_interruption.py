@@ -33,7 +33,7 @@ _SIGINT = """
     import sys
 
     from ss_track.cli import main
-    from ss_track.corpus.decoding.decode import inspect_media
+    from ss_track.corpus.sources.stored_media import inspect_stored
 
     def _stop(on_frame):
         def inner(index, frame):
@@ -42,10 +42,10 @@ _SIGINT = """
         return inner
 
     def _interrupt(path, policy, on_frame=lambda *_args: None, **kwargs):
-        return inspect_media(path, policy, _stop(on_frame), **kwargs)
+        return inspect_stored(path, policy, _stop(on_frame), **kwargs)
 
-    target = __import__(sys.argv[1], fromlist=["inspect_media"])
-    target.inspect_media = _interrupt
+    target = __import__(sys.argv[1], fromlist=["inspect_stored"])
+    target.inspect_stored = _interrupt
     sys.exit(main(sys.argv[2:]))
 """
 

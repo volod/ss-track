@@ -10,9 +10,9 @@ from typing import Any
 import pytest
 import yaml
 
+from ss_track.core.evidence.sealed import read_sealed
 from ss_track.core.refusal import CorpusRefusal
 from ss_track.corpus.records.kinds import SOURCE_ACQUISITION
-from ss_track.corpus.records.sealed import read_sealed
 from ss_track.corpus.sources import provider_http
 from ss_track.corpus.sources.acquisition import AcquisitionRequest, acquire
 

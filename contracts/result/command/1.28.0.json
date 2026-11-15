@@ -1,0 +1,4571 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ss-track:contract:result:command:1.28.0",
+  "title": "Command",
+  "type": "object",
+  "description": "The shipped command format.",
+  "properties": {
+    "status": {
+      "type": "string",
+      "description": "Command outcome.",
+      "enum": [
+        "imported",
+        "unchanged",
+        "amended",
+        "built",
+        "staged",
+        "verified",
+        "recorded",
+        "identical",
+        "different",
+        "listed",
+        "valid",
+        "refused",
+        "diffed",
+        "frozen",
+        "written",
+        "exported",
+        "redecoded",
+        "presented",
+        "unblinded",
+        "estimated",
+        "inconclusive",
+        "planned",
+        "cleaned",
+        "inspected"
+      ]
+    },
+    "code": {
+      "type": "string",
+      "description": "Stable refusal reason.",
+      "enum": [
+        "MANIFEST_INVALID",
+        "SOURCE_NOT_FOUND",
+        "SOURCE_UNREADABLE",
+        "SOURCE_EMPTY",
+        "SOURCE_HASH_MISMATCH",
+        "SOURCE_DAMAGED",
+        "SOURCE_NO_FRAMES",
+        "SOURCE_FORMAT_CHANGED",
+        "PTS_NON_INCREASING",
+        "TIMESTAMP_CLAIM_UNSUPPORTED",
+        "SELECTION_OUT_OF_RANGE",
+        "SOURCE_NOT_IMPORTED",
+        "SOURCE_RECORD_CHANGED",
+        "RECORD_TAMPERED",
+        "DECODE_POLICY_MISMATCH",
+        "IMPORT_CONFLICT",
+        "CORPUS_CONFLICT",
+        "CORPUS_NOT_BUILT",
+        "SPLIT_LEAKAGE",
+        "STREAM_OVERLAP",
+        "RETENTION_EXPIRED",
+        "RIGHTS_CONFLICT",
+        "CASE_INVALID",
+        "TRANSFORM_REVISION_MISMATCH",
+        "RECORD_SCHEMA_UNSUPPORTED",
+        "DECODE_DRIFT",
+        "BUNDLE_CONFLICT",
+        "BUNDLE_NOT_STAGED",
+        "FRAME_SET_NOT_STAGED",
+        "FRAME_SET_MISMATCH",
+        "HASHES_NOT_COMPARABLE",
+        "STAGED_HASHES_DIFFER",
+        "STAGING_IN_PROGRESS",
+        "FRAME_CORRUPTED",
+        "FRAME_NOT_IN_BUNDLE",
+        "RECORD_INVALID",
+        "CONTRACT_UNKNOWN",
+        "CONTRACT_SET_INVALID",
+        "STORAGE_FAILED",
+        "VIDEO_STREAM_UNSPECIFIED",
+        "COLOR_TAG_CONFLICT",
+        "DECODE_TIME_EXCEEDED",
+        "INTERRUPTED",
+        "EXTRACTOR_UNPINNED",
+        "EXTRACTOR_INCOMPATIBLE",
+        "WORKER_FAILED",
+        "DISCOVERY_IN_PROGRESS",
+        "LINKS_UNRESOLVED",
+        "DATA_ROOT_BUSY"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation of a refusal."
+    },
+    "details": {
+      "type": "object",
+      "description": "Command-specific JSON refusal context, deliberately open.",
+      "properties": {},
+      "additionalProperties": true
+    },
+    "source_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Source identity. The file hash when the recording names its first video stream."
+    },
+    "manifest_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Manifest seal."
+    },
+    "manifest_path": {
+      "type": "string",
+      "description": "Local manifest path."
+    },
+    "timestamp_quality": {
+      "type": "string",
+      "description": "Timestamp evidence quality.",
+      "enum": [
+        "measured",
+        "derived",
+        "missing"
+      ]
+    },
+    "frame_count": {
+      "type": "integer",
+      "description": "Decoded frame count.",
+      "x-unit": "1",
+      "minimum": 1
+    },
+    "completeness_checks": {
+      "type": "array",
+      "description": "Container completeness checks.",
+      "items": {
+        "type": "string",
+        "description": "Check name."
+      },
+      "minItems": 0
+    },
+    "replaced_manifest_sha256": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Previous source seal, or null when unchanged.",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "replaced_path": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Path of the replaced source record, or null."
+    },
+    "changed_terms": {
+      "type": "array",
+      "description": "Amended term paths.",
+      "items": {
+        "type": "string",
+        "description": "Field path."
+      },
+      "minItems": 0
+    },
+    "decode_policy_current": {
+      "type": "boolean",
+      "description": "Whether decoded facts use the installed policy."
+    },
+    "corpus_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "Corpus version."
+    },
+    "stream_count": {
+      "type": "integer",
+      "description": "Number of streams.",
+      "x-unit": "1",
+      "minimum": 1
+    },
+    "generated_case_count": {
+      "type": "integer",
+      "description": "Number of generated cases.",
+      "x-unit": "1",
+      "minimum": 0
+    },
+    "splits": {
+      "type": "object",
+      "description": "Counts by evaluation split.",
+      "properties": {
+        "development": {
+          "type": "object",
+          "description": "Counts in one split.",
+          "properties": {
+            "group_count": {
+              "type": "integer",
+              "description": "Independent groups.",
+              "x-unit": "1",
+              "minimum": 0
+            },
+            "encounter_count": {
+              "type": "integer",
+              "description": "Encounters.",
+              "x-unit": "1",
+              "minimum": 0
+            },
+            "stream_count": {
+              "type": "integer",
+              "description": "Streams.",
+              "x-unit": "1",
+              "minimum": 0
+            },
+            "generated_case_count": {
+              "type": "integer",
+              "description": "Generated cases.",
+              "x-unit": "1",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "group_count",
+            "encounter_count",
+            "stream_count",
+            "generated_case_count"
+          ],
+          "additionalProperties": false
+        },
+        "calibration": {
+          "type": "object",
+          "description": "Counts in one split.",
+          "properties": {
+            "group_count": {
+              "type": "integer",
+              "description": "Independent groups.",
+              "x-unit": "1",
+              "minimum": 0
+            },
+            "encounter_count": {
+              "type": "integer",
+              "description": "Encounters.",
+              "x-unit": "1",
+              "minimum": 0
+            },
+            "stream_count": {
+              "type": "integer",
+              "description": "Streams.",
+              "x-unit": "1",
+              "minimum": 0
+            },
+            "generated_case_count": {
+              "type": "integer",
+              "description": "Generated cases.",
+              "x-unit": "1",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "group_count",
+            "encounter_count",
+            "stream_count",
+            "generated_case_count"
+          ],
+          "additionalProperties": false
+        },
+        "locked": {
+          "type": "object",
+          "description": "Counts in one split.",
+          "properties": {
+            "group_count": {
+              "type": "integer",
+              "description": "Independent groups.",
+              "x-unit": "1",
+              "minimum": 0
+            },
+            "encounter_count": {
+              "type": "integer",
+              "description": "Encounters.",
+              "x-unit": "1",
+              "minimum": 0
+            },
+            "stream_count": {
+              "type": "integer",
+              "description": "Streams.",
+              "x-unit": "1",
+              "minimum": 0
+            },
+            "generated_case_count": {
+              "type": "integer",
+              "description": "Generated cases.",
+              "x-unit": "1",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "group_count",
+            "encounter_count",
+            "stream_count",
+            "generated_case_count"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "capture_encounters": {
+      "type": "object",
+      "description": "Distinct encounters in each camera-control mode and observer platform. An encounter with streams in several bins is counted in each of those bins. A bin no encounter uses is zero. Generated cases add no encounters.",
+      "properties": {
+        "camera_control_mode": {
+          "type": "object",
+          "description": "Distinct encounters that use each camera-control mode.",
+          "properties": {
+            "operator_steered": {
+              "type": "integer",
+              "description": "Encounters with an operator-steered stream.",
+              "x-unit": "1",
+              "minimum": 0
+            },
+            "fixed_camera": {
+              "type": "integer",
+              "description": "Encounters with a fixed-camera stream.",
+              "x-unit": "1",
+              "minimum": 0
+            },
+            "autonomous_camera": {
+              "type": "integer",
+              "description": "Encounters with an autonomous-camera stream.",
+              "x-unit": "1",
+              "minimum": 0
+            },
+            "unknown": {
+              "type": "integer",
+              "description": "Encounters with a stream whose camera-control mode is unknown.",
+              "x-unit": "1",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "operator_steered",
+            "fixed_camera",
+            "autonomous_camera",
+            "unknown"
+          ],
+          "additionalProperties": false
+        },
+        "observer_platform": {
+          "type": "object",
+          "description": "Distinct encounters that use each observer platform.",
+          "properties": {
+            "ground_fixed": {
+              "type": "integer",
+              "description": "Encounters with a ground-fixed stream.",
+              "x-unit": "1",
+              "minimum": 0
+            },
+            "ground_handheld": {
+              "type": "integer",
+              "description": "Encounters with a ground-handheld stream.",
+              "x-unit": "1",
+              "minimum": 0
+            },
+            "airborne": {
+              "type": "integer",
+              "description": "Encounters with an airborne stream.",
+              "x-unit": "1",
+              "minimum": 0
+            },
+            "unknown": {
+              "type": "integer",
+              "description": "Encounters with a stream whose observer platform is unknown.",
+              "x-unit": "1",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "ground_fixed",
+            "ground_handheld",
+            "airborne",
+            "unknown"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "camera_control_mode",
+        "observer_platform"
+      ],
+      "additionalProperties": false,
+      "x-rules": {
+        "counting": "Count an encounter once in each bin that any of its streams uses. The bins are separate totals. A generated case adds no encounter."
+      }
+    },
+    "lineage": {
+      "description": "Whether and how the version is linked.",
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "No declared predecessor.",
+          "properties": {
+            "status": {
+              "type": "string",
+              "description": "Lineage status.",
+              "const": "no_lineage"
+            }
+          },
+          "required": [
+            "status"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "Comparison with the predecessor chain.",
+          "properties": {
+            "status": {
+              "type": "string",
+              "description": "Lineage status.",
+              "const": "linked"
+            },
+            "supersedes": {
+              "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+              "description": "Immediate predecessor."
+            },
+            "supersedes_manifest_sha256": {
+              "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+              "description": "Immediate predecessor seal."
+            },
+            "compared_versions": {
+              "type": "array",
+              "description": "Compared corpus versions.",
+              "items": {
+                "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                "description": "Corpus version."
+              },
+              "minItems": 0
+            },
+            "added": {
+              "type": "array",
+              "description": "Sources added.",
+              "items": {
+                "type": "object",
+                "description": "One source placement.",
+                "properties": {
+                  "source_sha256": {
+                    "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+                    "description": "Source identity. The file hash when the recording names its first video stream."
+                  },
+                  "group_id": {
+                    "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                    "description": "Group."
+                  },
+                  "split": {
+                    "type": "string",
+                    "description": "Evaluation partition.",
+                    "enum": [
+                      "development",
+                      "calibration",
+                      "locked"
+                    ]
+                  }
+                },
+                "required": [
+                  "source_sha256",
+                  "group_id",
+                  "split"
+                ],
+                "additionalProperties": false
+              },
+              "minItems": 0
+            },
+            "removed": {
+              "type": "array",
+              "description": "Sources removed.",
+              "items": {
+                "type": "object",
+                "description": "One source placement.",
+                "properties": {
+                  "source_sha256": {
+                    "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+                    "description": "Source identity. The file hash when the recording names its first video stream."
+                  },
+                  "group_id": {
+                    "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                    "description": "Group."
+                  },
+                  "split": {
+                    "type": "string",
+                    "description": "Evaluation partition.",
+                    "enum": [
+                      "development",
+                      "calibration",
+                      "locked"
+                    ]
+                  }
+                },
+                "required": [
+                  "source_sha256",
+                  "group_id",
+                  "split"
+                ],
+                "additionalProperties": false
+              },
+              "minItems": 0
+            },
+            "kept": {
+              "type": "array",
+              "description": "Sources kept.",
+              "items": {
+                "type": "object",
+                "description": "One source placement.",
+                "properties": {
+                  "source_sha256": {
+                    "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+                    "description": "Source identity. The file hash when the recording names its first video stream."
+                  },
+                  "group_id": {
+                    "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                    "description": "Group."
+                  },
+                  "split": {
+                    "type": "string",
+                    "description": "Evaluation partition.",
+                    "enum": [
+                      "development",
+                      "calibration",
+                      "locked"
+                    ]
+                  }
+                },
+                "required": [
+                  "source_sha256",
+                  "group_id",
+                  "split"
+                ],
+                "additionalProperties": false
+              },
+              "minItems": 0
+            },
+            "not_compared": {
+              "type": "array",
+              "description": "Predecessors whose major keeps no comparison projection, present only when one exists.",
+              "items": {
+                "type": "object",
+                "description": "One missing comparison.",
+                "properties": {
+                  "corpus_id": {
+                    "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                    "description": "Corpus version."
+                  },
+                  "reason": {
+                    "type": "string",
+                    "description": "Why it could not be compared.",
+                    "enum": [
+                      "manifest_removed",
+                      "no_frame_set",
+                      "bundles_removed",
+                      "other_decode_policy",
+                      "other_schema"
+                    ]
+                  },
+                  "stream_ids": {
+                    "type": "array",
+                    "description": "Affected streams.",
+                    "items": {
+                      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                      "description": "Stream."
+                    },
+                    "minItems": 0
+                  }
+                },
+                "required": [
+                  "corpus_id",
+                  "reason",
+                  "stream_ids"
+                ],
+                "additionalProperties": false
+              },
+              "minItems": 1
+            }
+          },
+          "required": [
+            "status",
+            "supersedes",
+            "supersedes_manifest_sha256",
+            "compared_versions",
+            "added",
+            "removed",
+            "kept"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "unlinked": {
+      "type": "object",
+      "description": "Other corpus versions on this data root that place a source of this version in another group or split. Absent when there is nothing to report. The build still succeeds.",
+      "properties": {
+        "placements": {
+          "type": "array",
+          "description": "Sources placed elsewhere, ordered by source hash, then by the other version's name.",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "description": "One source held by this version and by another version.",
+            "properties": {
+              "source_sha256": {
+                "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+                "description": "Source identity. The file hash when the recording names its first video stream."
+              },
+              "from": {
+                "type": "object",
+                "description": "Where another version on this data root places the source.",
+                "properties": {
+                  "corpus_id": {
+                    "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                    "description": "The other corpus version."
+                  },
+                  "group_id": {
+                    "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                    "description": "Group."
+                  },
+                  "split": {
+                    "type": "string",
+                    "description": "Evaluation partition.",
+                    "enum": [
+                      "development",
+                      "calibration",
+                      "locked"
+                    ]
+                  }
+                },
+                "required": [
+                  "corpus_id",
+                  "group_id",
+                  "split"
+                ],
+                "additionalProperties": false
+              },
+              "to": {
+                "type": "object",
+                "description": "Where this version places the source.",
+                "properties": {
+                  "corpus_id": {
+                    "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                    "description": "This corpus version."
+                  },
+                  "group_id": {
+                    "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                    "description": "Group."
+                  },
+                  "split": {
+                    "type": "string",
+                    "description": "Evaluation partition.",
+                    "enum": [
+                      "development",
+                      "calibration",
+                      "locked"
+                    ]
+                  }
+                },
+                "required": [
+                  "corpus_id",
+                  "group_id",
+                  "split"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "source_sha256",
+              "from",
+              "to"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "scan": {
+          "type": "string",
+          "description": "Present when the corpus directory could not be listed, so no version was compared. Absent when the scan visited each version directory. The build still succeeds.",
+          "enum": [
+            "unreadable"
+          ]
+        },
+        "not_compared": {
+          "type": "array",
+          "description": "Manifests on this data root that could not be read, or whose major keeps no projection. Present only when one exists, ordered by corpus version name.",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "description": "One manifest the listing could not compare.",
+            "properties": {
+              "corpus_id": {
+                "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                "description": "Corpus directory name."
+              },
+              "reason": {
+                "type": "string",
+                "description": "Why the manifest was not compared.",
+                "enum": [
+                  "other_schema",
+                  "unreadable"
+                ]
+              }
+            },
+            "required": [
+              "corpus_id",
+              "reason"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "near_duplicates": {
+      "type": "object",
+      "description": "Likely re-encoded copies in different groups, at the measured perceptual threshold. The comparison reads the version being built, the chain its declaration links, and every other built version on the same data root. Absent when no pair meets the threshold, every window and version could be read, and the corpus directory could be listed. The build still succeeds, and this report is not sealed.",
+      "properties": {
+        "method": {
+          "type": "string",
+          "description": "Fingerprint that was compared.",
+          "enum": [
+            "luma-grid-16"
+          ]
+        },
+        "samples": {
+          "type": "integer",
+          "description": "How many frames of each window were sampled.",
+          "minimum": 1,
+          "x-unit": "1"
+        },
+        "grid": {
+          "type": "integer",
+          "description": "Width and height of each frame's box-averaged luma grid.",
+          "minimum": 1,
+          "x-unit": "1"
+        },
+        "threshold": {
+          "type": "number",
+          "description": "Minimum normalized correlation reported as a likely copy.",
+          "minimum": 0,
+          "maximum": 1,
+          "x-unit": "1"
+        },
+        "pairs": {
+          "type": "array",
+          "description": "Pairs at or above the threshold, ordered by corpus version and stream. Present only when one exists.",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "description": "One likely re-encoded copy.",
+            "properties": {
+              "similarity": {
+                "type": "number",
+                "description": "Normalized correlation of the two fingerprints, rounded to four decimal places.",
+                "minimum": 0,
+                "maximum": 1,
+                "x-unit": "1"
+              },
+              "streams": {
+                "type": "array",
+                "description": "The two streams, ordered by corpus version then stream.",
+                "minItems": 2,
+                "maxItems": 2,
+                "items": {
+                  "type": "object",
+                  "description": "One stream of the pair.",
+                  "properties": {
+                    "corpus_id": {
+                      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                      "description": "Corpus version that holds the stream."
+                    },
+                    "stream_id": {
+                      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                      "description": "Stream."
+                    },
+                    "group_id": {
+                      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                      "description": "Encounter group."
+                    },
+                    "split": {
+                      "type": "string",
+                      "description": "Evaluation partition.",
+                      "enum": [
+                        "development",
+                        "calibration",
+                        "locked"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "corpus_id",
+                    "stream_id",
+                    "group_id",
+                    "split"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "similarity",
+              "streams"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "scan": {
+          "type": "string",
+          "description": "Present when the corpus directory could not be listed, so versions outside the declared chain were not compared. The declared chain is still compared. Absent when the scan visited each version directory. The build still succeeds.",
+          "enum": [
+            "unreadable"
+          ]
+        },
+        "not_compared": {
+          "type": "array",
+          "description": "Windows or versions that could not be fingerprinted. Present only when one exists. A missing manifest and a version that cannot be read are unreadable.",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "description": "One gap in the comparison.",
+            "properties": {
+              "corpus_id": {
+                "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                "description": "Corpus version."
+              },
+              "reason": {
+                "type": "string",
+                "description": "Why the window or version was not compared.",
+                "enum": [
+                  "source_unreadable",
+                  "window_unknown",
+                  "other_schema",
+                  "unreadable"
+                ]
+              },
+              "stream_ids": {
+                "type": "array",
+                "description": "Streams that were not compared. Empty when the version has no readable stream list.",
+                "items": {
+                  "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                  "description": "Stream."
+                },
+                "minItems": 0
+              }
+            },
+            "required": [
+              "corpus_id",
+              "reason",
+              "stream_ids"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "method",
+        "samples",
+        "grid",
+        "threshold"
+      ],
+      "additionalProperties": false
+    },
+    "impact": {
+      "type": "object",
+      "description": "Corpus versions on this data root that pin the source record this command replaced, each with its frames directory. Absent when nothing needs reporting, including a repeat that replaced nothing. The replacement is still recorded.",
+      "properties": {
+        "versions": {
+          "type": "array",
+          "description": "Versions that pin the replaced record, ordered by corpus version name. A version is listed once however many of its streams pin it.",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "description": "One corpus version that pins the replaced source record.",
+            "properties": {
+              "corpus_id": {
+                "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                "description": "Corpus version."
+              },
+              "frames_directory": {
+                "type": "string",
+                "description": "Directory that holds this version's staged frames, whether or not it currently contains files."
+              }
+            },
+            "required": [
+              "corpus_id",
+              "frames_directory"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "not_compared": {
+          "type": "array",
+          "description": "Manifests on this data root that could not be read, or whose major keeps no projection. Present only when one exists, ordered by corpus version name. Such a version is not treated as absent.",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "description": "One manifest the listing could not compare.",
+            "properties": {
+              "corpus_id": {
+                "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                "description": "Corpus directory name."
+              },
+              "reason": {
+                "type": "string",
+                "description": "Why the manifest was not compared.",
+                "enum": [
+                  "other_schema",
+                  "unreadable"
+                ]
+              }
+            },
+            "required": [
+              "corpus_id",
+              "reason"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "scan": {
+          "type": "string",
+          "description": "Present when the corpus directory could not be listed. Absent when the scan visited each version directory. The replacement is still recorded.",
+          "enum": [
+            "unreadable"
+          ]
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "frame_set_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Frame-set seal."
+    },
+    "bundles": {
+      "type": "array",
+      "description": "Staged bundle summaries.",
+      "items": {
+        "type": "object",
+        "description": "One staged or verified bundle.",
+        "properties": {
+          "stream_id": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+            "description": "Stream or case id."
+          },
+          "status": {
+            "type": "string",
+            "description": "Bundle status.",
+            "enum": [
+              "staged",
+              "reused",
+              "unchanged",
+              "verified"
+            ]
+          },
+          "reused_from": {
+            "type": "object",
+            "description": "Present when this bundle's frames were hard-linked from a linked corpus version. Absent when this run decoded the stream, left it unchanged, or verified it.",
+            "properties": {
+              "corpus_id": {
+                "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                "description": "Linked version that held the frames."
+              },
+              "stream_id": {
+                "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                "description": "Stream whose bundle supplied the frames."
+              }
+            },
+            "required": [
+              "corpus_id",
+              "stream_id"
+            ],
+            "additionalProperties": false
+          },
+          "transform": {
+            "type": "string",
+            "description": "Transform name, or identity for an original stream."
+          },
+          "bundle_sha256": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+            "description": "Bundle identity hash."
+          },
+          "frame_count": {
+            "type": "integer",
+            "description": "Bundle frame count.",
+            "x-unit": "1",
+            "minimum": 1
+          },
+          "pixel_format": {
+            "type": "string",
+            "description": "Raw frame layout.",
+            "const": "rgb24"
+          },
+          "width": {
+            "type": "integer",
+            "description": "Width.",
+            "x-unit": "{pixel}",
+            "minimum": 1
+          },
+          "height": {
+            "type": "integer",
+            "description": "Height.",
+            "x-unit": "{pixel}",
+            "minimum": 1
+          },
+          "manifest_path": {
+            "type": "string",
+            "description": "Local bundle manifest path."
+          }
+        },
+        "required": [
+          "stream_id",
+          "status",
+          "transform",
+          "bundle_sha256",
+          "frame_count",
+          "pixel_format",
+          "width",
+          "height",
+          "manifest_path"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1
+    },
+    "shared_frames": {
+      "type": "object",
+      "description": "Coverage of the shared-frame check.",
+      "properties": {
+        "min_shared_frames": {
+          "type": "integer",
+          "description": "Minimum shared consecutive frames.",
+          "x-unit": "1",
+          "minimum": 1
+        },
+        "compared_versions": {
+          "type": "array",
+          "description": "Compared versions.",
+          "items": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+            "description": "Corpus version."
+          },
+          "minItems": 0
+        },
+        "not_compared": {
+          "type": "array",
+          "description": "Uncompared predecessors.",
+          "items": {
+            "type": "object",
+            "description": "One missing comparison.",
+            "properties": {
+              "corpus_id": {
+                "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                "description": "Corpus version."
+              },
+              "reason": {
+                "type": "string",
+                "description": "Why it could not be compared.",
+                "enum": [
+                  "manifest_removed",
+                  "no_frame_set",
+                  "bundles_removed",
+                  "other_decode_policy",
+                  "other_schema"
+                ]
+              },
+              "stream_ids": {
+                "type": "array",
+                "description": "Affected streams.",
+                "items": {
+                  "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                  "description": "Stream."
+                },
+                "minItems": 0
+              }
+            },
+            "required": [
+              "corpus_id",
+              "reason",
+              "stream_ids"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0
+        }
+      },
+      "required": [
+        "min_shared_frames",
+        "compared_versions",
+        "not_compared"
+      ],
+      "additionalProperties": false
+    },
+    "bundle_count": {
+      "type": "integer",
+      "description": "Number of bundles.",
+      "x-unit": "1",
+      "minimum": 1
+    },
+    "host": {
+      "type": "object",
+      "description": "Host facts, outside the frame-set identity.",
+      "properties": {
+        "machine": {
+          "type": "string",
+          "description": "Processor architecture."
+        },
+        "system": {
+          "type": "string",
+          "description": "Operating system."
+        },
+        "python": {
+          "type": "string",
+          "description": "Python interpreter version."
+        }
+      },
+      "required": [
+        "machine",
+        "system",
+        "python"
+      ],
+      "additionalProperties": false
+    },
+    "record_path": {
+      "type": "string",
+      "description": "Local output record path."
+    },
+    "kind": {
+      "type": "string",
+      "description": "Comparison record kind, when embedded in a result.",
+      "const": "ss-track.hash-comparison"
+    },
+    "schema_version": {
+      "type": "integer",
+      "description": "Embedded comparison record major.",
+      "x-unit": "1",
+      "const": 1,
+      "minimum": 0
+    },
+    "source_count": {
+      "type": "integer",
+      "description": "Compared source count.",
+      "x-unit": "1",
+      "minimum": 1
+    },
+    "left": {
+      "type": "object",
+      "description": "One comparison side.",
+      "properties": {
+        "host": {
+          "type": "object",
+          "description": "Host facts, outside the frame-set identity.",
+          "properties": {
+            "machine": {
+              "type": "string",
+              "description": "Processor architecture."
+            },
+            "system": {
+              "type": "string",
+              "description": "Operating system."
+            },
+            "python": {
+              "type": "string",
+              "description": "Python interpreter version."
+            }
+          },
+          "required": [
+            "machine",
+            "system",
+            "python"
+          ],
+          "additionalProperties": false
+        },
+        "frame_set_sha256": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+          "description": "Frame-set seal."
+        },
+        "corpus_manifest_sha256": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+          "description": "Corpus seal."
+        }
+      },
+      "required": [
+        "host",
+        "frame_set_sha256",
+        "corpus_manifest_sha256"
+      ],
+      "additionalProperties": false
+    },
+    "right": {
+      "type": "object",
+      "description": "One comparison side.",
+      "properties": {
+        "host": {
+          "type": "object",
+          "description": "Host facts, outside the frame-set identity.",
+          "properties": {
+            "machine": {
+              "type": "string",
+              "description": "Processor architecture."
+            },
+            "system": {
+              "type": "string",
+              "description": "Operating system."
+            },
+            "python": {
+              "type": "string",
+              "description": "Python interpreter version."
+            }
+          },
+          "required": [
+            "machine",
+            "system",
+            "python"
+          ],
+          "additionalProperties": false
+        },
+        "frame_set_sha256": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+          "description": "Frame-set seal."
+        },
+        "corpus_manifest_sha256": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+          "description": "Corpus seal."
+        }
+      },
+      "required": [
+        "host",
+        "frame_set_sha256",
+        "corpus_manifest_sha256"
+      ],
+      "additionalProperties": false
+    },
+    "sources": {
+      "type": "array",
+      "description": "Differing source reports.",
+      "items": {
+        "type": "object",
+        "description": "One differing source.",
+        "properties": {
+          "source_sha256": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+            "description": "Source identity. The file hash when the recording names its first video stream."
+          },
+          "codec": {
+            "type": "string",
+            "description": "Left codec name."
+          },
+          "source_pixel_format": {
+            "type": "string",
+            "description": "Left pixel format name."
+          },
+          "source_record_differs": {
+            "type": "boolean",
+            "description": "Whether imported source seals differ."
+          },
+          "bundles": {
+            "type": "array",
+            "description": "Differing bundles of this source.",
+            "items": {
+              "type": "object",
+              "description": "One differing bundle.",
+              "properties": {
+                "stream_id": {
+                  "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                  "description": "Stream or case identifier."
+                },
+                "parent_stream_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Parent stream, or null for original stream.",
+                  "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+                },
+                "left_bundle_sha256": {
+                  "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+                  "description": "Left identity hash."
+                },
+                "right_bundle_sha256": {
+                  "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+                  "description": "Right identity hash."
+                },
+                "frame_count": {
+                  "type": "integer",
+                  "description": "Number of frames on the left.",
+                  "x-unit": "1",
+                  "minimum": 0
+                },
+                "differing_frames": {
+                  "type": "integer",
+                  "description": "Number of indexes with missing or differing hash or PTS.",
+                  "x-unit": "1",
+                  "minimum": 0
+                },
+                "first_differing_frame": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "description": "Smallest differing source frame index, or null.",
+                  "x-unit": "1",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "stream_id",
+                "parent_stream_id",
+                "left_bundle_sha256",
+                "right_bundle_sha256",
+                "frame_count",
+                "differing_frames",
+                "first_differing_frame"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 0
+          }
+        },
+        "required": [
+          "source_sha256",
+          "codec",
+          "source_pixel_format",
+          "source_record_differs",
+          "bundles"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 0
+    },
+    "root": {
+      "type": "string",
+      "description": "Installed contracts directory."
+    },
+    "contracts": {
+      "type": "array",
+      "description": "Contract listing.",
+      "items": {
+        "type": "object",
+        "description": "One listed contract.",
+        "properties": {
+          "contract": {
+            "type": "string",
+            "description": "Family/id."
+          },
+          "family": {
+            "type": "string",
+            "description": "Contract family.",
+            "enum": [
+              "declaration",
+              "record",
+              "event",
+              "result",
+              "external",
+              "shared"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "description": "Format id."
+          },
+          "owner": {
+            "type": "string",
+            "description": "Owning capability."
+          },
+          "status": {
+            "type": "string",
+            "description": "Contract lifecycle.",
+            "enum": [
+              "draft",
+              "active",
+              "deprecated",
+              "retired"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "description": "Format summary."
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Reason a draft has no frozen version."
+          },
+          "versions": {
+            "type": "array",
+            "description": "Frozen versions.",
+            "items": {
+              "type": "object",
+              "description": "One frozen contract version.",
+              "properties": {
+                "version": {
+                  "type": "string",
+                  "description": "Semantic version."
+                },
+                "urn": {
+                  "type": "string",
+                  "description": "Frozen contract URN."
+                },
+                "file_sha256": {
+                  "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+                  "description": "Exact file hash."
+                },
+                "structure": {
+                  "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+                  "description": "Structural fingerprint."
+                },
+                "meaning": {
+                  "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+                  "description": "Semantic fingerprint."
+                },
+                "change": {
+                  "type": "object",
+                  "description": "Frozen version change log.",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Compatibility class.",
+                      "enum": [
+                        "initial",
+                        "patch",
+                        "minor",
+                        "major"
+                      ]
+                    },
+                    "summary": {
+                      "type": "string",
+                      "description": "Description of the change."
+                    },
+                    "migration": {
+                      "type": "string",
+                      "description": "Required operator migration."
+                    },
+                    "disposition": {
+                      "type": "string",
+                      "description": "Disposition of the predecessor major.",
+                      "enum": [
+                        "view",
+                        "facts",
+                        "retired"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "class",
+                    "summary"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "version",
+                "urn",
+                "file_sha256",
+                "structure",
+                "meaning",
+                "change"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 0
+          },
+          "retired_majors": {
+            "type": "array",
+            "description": "Historic majors without frozen contracts.",
+            "items": {
+              "type": "object",
+              "description": "Historic major with no frozen contract.",
+              "properties": {
+                "major": {
+                  "type": "integer",
+                  "description": "Historic format major.",
+                  "x-unit": "1",
+                  "minimum": 1
+                },
+                "status": {
+                  "type": "string",
+                  "description": "Disposition: facts while a retained record has a route, retired once none needs one.",
+                  "enum": [
+                    "facts",
+                    "retired"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "description": "Why no retained runtime evidence needs a contract."
+                },
+                "migration": {
+                  "type": "string",
+                  "description": "What a holder of a record of this major must do."
+                }
+              },
+              "required": [
+                "major",
+                "status",
+                "reason"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 0
+          }
+        },
+        "required": [
+          "contract",
+          "family",
+          "id",
+          "owner",
+          "status",
+          "description",
+          "reason",
+          "versions"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 0
+    },
+    "path": {
+      "type": "string",
+      "description": "Validated input path."
+    },
+    "contract": {
+      "type": "string",
+      "description": "Validated family/id."
+    },
+    "version": {
+      "type": "string",
+      "description": "Validated semantic version."
+    },
+    "urn": {
+      "type": "string",
+      "description": "Validated contract URN."
+    },
+    "seal_checked": {
+      "type": "boolean",
+      "description": "Whether the input record seal was checked."
+    },
+    "required_bump": {
+      "type": "string",
+      "description": "Minimum compatible schema bump; none for an unchanged or initial candidate.",
+      "enum": [
+        "none",
+        "patch",
+        "minor",
+        "major"
+      ]
+    },
+    "changes": {
+      "type": "array",
+      "description": "Explained schema changes.",
+      "items": {
+        "type": "object",
+        "description": "One schema change.",
+        "properties": {
+          "pointer": {
+            "type": "string",
+            "description": "JSON pointer into the candidate schema, or the previous schema for removal."
+          },
+          "class": {
+            "type": "string",
+            "description": "Minimum bump.",
+            "enum": [
+              "patch",
+              "minor",
+              "major"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "description": "Compatibility explanation."
+          }
+        },
+        "required": [
+          "pointer",
+          "class",
+          "reason"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "files": {
+      "type": "array",
+      "description": "Paths written by a command.",
+      "items": {
+        "type": "string",
+        "description": "Path of one generated file."
+      },
+      "minItems": 0
+    },
+    "preview": {
+      "type": "object",
+      "description": "Contact sheet of one parent frame beside its generated cases.",
+      "properties": {
+        "stream_id": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+          "description": "Parent stream."
+        },
+        "frame_index": {
+          "type": "integer",
+          "description": "Source frame index shown.",
+          "x-unit": "1",
+          "minimum": 0
+        },
+        "width": {
+          "type": "integer",
+          "description": "Sheet width.",
+          "x-unit": "{pixel}",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "description": "Sheet height.",
+          "x-unit": "{pixel}",
+          "minimum": 1
+        },
+        "frame_width": {
+          "type": "integer",
+          "description": "Width of one panel.",
+          "x-unit": "{pixel}",
+          "minimum": 1
+        },
+        "frame_height": {
+          "type": "integer",
+          "description": "Height of one panel.",
+          "x-unit": "{pixel}",
+          "minimum": 1
+        },
+        "png_sha256": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+          "description": "SHA-256 of the written PNG."
+        },
+        "encoder": {
+          "type": "string",
+          "description": "Pinned PNG encoder. Stored deflate, so bytes do not depend on a zlib build.",
+          "enum": [
+            "stored-deflate-rgb24-v1"
+          ]
+        },
+        "panels": {
+          "type": "array",
+          "description": "Panels from left to right.",
+          "items": {
+            "description": "One panel.",
+            "oneOf": [
+              {
+                "type": "object",
+                "description": "The parent frame, with no outline.",
+                "properties": {
+                  "stream_id": {
+                    "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                    "description": "Parent stream."
+                  },
+                  "role": {
+                    "type": "string",
+                    "description": "Panel role.",
+                    "const": "parent"
+                  }
+                },
+                "required": [
+                  "stream_id",
+                  "role"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "description": "A generated case whose frame is present.",
+                "properties": {
+                  "stream_id": {
+                    "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                    "description": "Case id."
+                  },
+                  "role": {
+                    "type": "string",
+                    "description": "Panel role.",
+                    "const": "case"
+                  },
+                  "region": {
+                    "type": "object",
+                    "description": "Outlined rectangle. Absent when this frame is outside the case window.",
+                    "properties": {
+                      "x": {
+                        "type": "integer",
+                        "description": "Left column.",
+                        "x-unit": "{pixel}",
+                        "minimum": 0
+                      },
+                      "y": {
+                        "type": "integer",
+                        "description": "Top row.",
+                        "x-unit": "{pixel}",
+                        "minimum": 0
+                      },
+                      "width": {
+                        "type": "integer",
+                        "description": "Rectangle width.",
+                        "x-unit": "{pixel}",
+                        "minimum": 1
+                      },
+                      "height": {
+                        "type": "integer",
+                        "description": "Rectangle height.",
+                        "x-unit": "{pixel}",
+                        "minimum": 1
+                      }
+                    },
+                    "required": [
+                      "x",
+                      "y",
+                      "width",
+                      "height"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "stream_id",
+                  "role"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "description": "A generated case that removed this frame.",
+                "properties": {
+                  "stream_id": {
+                    "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                    "description": "Case id."
+                  },
+                  "role": {
+                    "type": "string",
+                    "description": "Panel role.",
+                    "const": "removed"
+                  }
+                },
+                "required": [
+                  "stream_id",
+                  "role"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "stream_id",
+        "frame_index",
+        "width",
+        "height",
+        "frame_width",
+        "frame_height",
+        "png_sha256",
+        "encoder",
+        "panels"
+      ],
+      "additionalProperties": false
+    },
+    "run_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "Discovery run."
+    },
+    "inventory_count": {
+      "type": "integer",
+      "description": "Candidate inventories of a discovery run, one per stream.",
+      "x-unit": "1",
+      "minimum": 1
+    },
+    "candidate_count": {
+      "type": "integer",
+      "description": "Candidate windows across a discovery run.",
+      "x-unit": "1",
+      "minimum": 1
+    },
+    "feature_row_count": {
+      "type": "integer",
+      "description": "Feature rows across a discovery run's extractors and streams.",
+      "x-unit": "1",
+      "minimum": 0
+    },
+    "hint_sources": {
+      "type": "array",
+      "description": "What became of each hint source's matches, in ascending hint_source_id order.",
+      "items": {
+        "type": "object",
+        "description": "One hint source.",
+        "properties": {
+          "hint_source_id": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+            "description": "Hint source of the run."
+          },
+          "read": {
+            "type": "integer",
+            "description": "Matches read.",
+            "x-unit": "1",
+            "minimum": 0
+          },
+          "mapped": {
+            "type": "integer",
+            "description": "Matches that named a window.",
+            "x-unit": "1",
+            "minimum": 0
+          },
+          "unmapped": {
+            "type": "array",
+            "description": "Matches that named no window, by reason.",
+            "items": {
+              "type": "object",
+              "description": "Matches of one reason.",
+              "properties": {
+                "reason": {
+                  "type": "string",
+                  "description": "Why no window was named.",
+                  "enum": [
+                    "empty_slot",
+                    "missing_timestamps",
+                    "multi_stream_source",
+                    "no_hash_join",
+                    "not_on_slot",
+                    "outside_bundle",
+                    "slot_out_of_range"
+                  ]
+                },
+                "count": {
+                  "type": "integer",
+                  "description": "Matches of this reason.",
+                  "x-unit": "1",
+                  "minimum": 1
+                }
+              },
+              "required": [
+                "reason",
+                "count"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 0
+          }
+        },
+        "required": [
+          "hint_source_id",
+          "read",
+          "mapped",
+          "unmapped"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 0
+    },
+    "selection": {
+      "type": "object",
+      "description": "What a discovery run's selection decided across its candidates.",
+      "properties": {
+        "method": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+          "description": "Selection method of the run."
+        },
+        "budget": {
+          "type": "integer",
+          "x-unit": "1",
+          "minimum": 0,
+          "description": "Most candidates the method may select."
+        },
+        "selected": {
+          "type": "integer",
+          "x-unit": "1",
+          "minimum": 0,
+          "description": "Candidates selected for review."
+        },
+        "excluded": {
+          "type": "array",
+          "description": "Candidates excluded from ranking, by reason in ascending order.",
+          "items": {
+            "type": "object",
+            "description": "Candidates of one reason.",
+            "properties": {
+              "reason": {
+                "type": "string",
+                "description": "Why the candidates were not ranked.",
+                "enum": [
+                  "features_unavailable",
+                  "operator_excluded",
+                  "repeated_content"
+                ]
+              },
+              "count": {
+                "type": "integer",
+                "x-unit": "1",
+                "minimum": 1,
+                "description": "Candidates of this reason."
+              }
+            },
+            "required": [
+              "reason",
+              "count"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0
+        }
+      },
+      "required": [
+        "method",
+        "budget",
+        "selected",
+        "excluded"
+      ],
+      "additionalProperties": false
+    },
+    "unavailable_scores": {
+      "type": "array",
+      "description": "Scores a discovery run could not compute, by score_id and then reason in ascending order.",
+      "items": {
+        "type": "object",
+        "description": "Candidates missing one score for one reason.",
+        "properties": {
+          "score_id": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+            "description": "Score of the run."
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why the score is unavailable.",
+            "enum": [
+              "extractor_failed",
+              "frame_unreadable",
+              "window_too_short"
+            ]
+          },
+          "count": {
+            "type": "integer",
+            "x-unit": "1",
+            "minimum": 1,
+            "description": "Candidates without the score for this reason."
+          }
+        },
+        "required": [
+          "score_id",
+          "reason",
+          "count"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 0
+    },
+    "coverage": {
+      "type": "array",
+      "description": "What each extractor of a discovery run saw of the staged frames, in ascending extractor_id order: the least over the run's streams.",
+      "items": {
+        "type": "object",
+        "description": "One extractor.",
+        "properties": {
+          "extractor_id": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+            "description": "Extractor of the run."
+          },
+          "covered_fraction": {
+            "type": "number",
+            "x-unit": "1",
+            "exclusiveMinimum": 0,
+            "maximum": 1,
+            "description": "Share of a frame's area the model input shows. The tiles of one grid together cover the whole frame."
+          },
+          "scale": {
+            "type": "number",
+            "x-unit": "1",
+            "exclusiveMinimum": 0,
+            "description": "Model input pixels per frame pixel along one side: a target this many frame pixels wide is this times as wide in the model input."
+          }
+        },
+        "required": [
+          "extractor_id",
+          "covered_fraction",
+          "scale"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 0
+    },
+    "links": {
+      "type": "object",
+      "description": "What a link review holds, counted.",
+      "properties": {
+        "status": {
+          "type": "string",
+          "description": "clear: every link is decided. unresolved: at least one is not.",
+          "enum": [
+            "clear",
+            "unresolved"
+          ]
+        },
+        "count": {
+          "type": "integer",
+          "description": "Links written.",
+          "x-unit": "1",
+          "minimum": 0
+        },
+        "states": {
+          "type": "array",
+          "description": "Links per status, ascending by status.",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "description": "One status.",
+            "properties": {
+              "status": {
+                "type": "string",
+                "description": "Link status.",
+                "enum": [
+                  "unresolved",
+                  "unrelated"
+                ]
+              },
+              "count": {
+                "type": "integer",
+                "description": "Links in it.",
+                "x-unit": "1",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "status",
+              "count"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "unresolved_cross_split": {
+          "type": "integer",
+          "description": "Undecided links whose groups sit in different splits.",
+          "x-unit": "1",
+          "minimum": 0
+        },
+        "flagged": {
+          "type": "array",
+          "description": "Links each method and extractor flagged, ascending.",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "description": "One method or extractor.",
+            "properties": {
+              "method": {
+                "type": "string",
+                "description": "Method.",
+                "enum": [
+                  "luma-grid-16",
+                  "background-cosine"
+                ]
+              },
+              "extractor_id": {
+                "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                "description": "Plan extractor, for background-cosine."
+              },
+              "count": {
+                "type": "integer",
+                "description": "Links it flagged.",
+                "x-unit": "1",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "method",
+              "count"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "not_compared": {
+          "type": "integer",
+          "description": "Entries of streams a method could not compare.",
+          "x-unit": "1",
+          "minimum": 0
+        },
+        "decisions_outside_links": {
+          "type": "integer",
+          "description": "Decisions that name no link of the version; present when a decisions file was given.",
+          "x-unit": "1",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "status",
+        "count",
+        "states",
+        "unresolved_cross_split",
+        "flagged",
+        "not_compared"
+      ],
+      "additionalProperties": false
+    },
+    "queue": {
+      "type": "object",
+      "description": "What a discovery run offers for review, counted.",
+      "properties": {
+        "offered": {
+          "type": "integer",
+          "description": "Windows review offers.",
+          "x-unit": "1",
+          "minimum": 0
+        },
+        "offers": {
+          "type": "array",
+          "description": "Offered windows per reason, ascending; a window may have several reasons.",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "description": "One reason.",
+            "properties": {
+              "offer": {
+                "type": "string",
+                "description": "Why review offers a window.",
+                "enum": [
+                  "audit_sample",
+                  "selected",
+                  "sibling"
+                ]
+              },
+              "count": {
+                "type": "integer",
+                "description": "Windows offered for it.",
+                "x-unit": "1",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "offer",
+              "count"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "withheld": {
+          "type": "array",
+          "description": "Pool streams whose offered windows review withheld, ascending by stream.",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "description": "One withheld stream.",
+            "properties": {
+              "stream_id": {
+                "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                "description": "Pool stream."
+              },
+              "reason": {
+                "type": "string",
+                "description": "locked_without_policy: the stream is in the locked split and no custodian policy allows its review.",
+                "enum": [
+                  "locked_without_policy"
+                ]
+              },
+              "count": {
+                "type": "integer",
+                "description": "Offered windows withheld.",
+                "x-unit": "1",
+                "minimum": 1
+              }
+            },
+            "required": [
+              "stream_id",
+              "reason",
+              "count"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "not_offered": {
+          "type": "integer",
+          "description": "Pool windows neither selected nor drawn by the audit sample.",
+          "x-unit": "1",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "offered",
+        "offers",
+        "withheld",
+        "not_offered"
+      ],
+      "additionalProperties": false
+    },
+    "declaration_path": {
+      "type": "string",
+      "description": "Local path of the declaration written: a review template or an exported corpus declaration."
+    },
+    "declaration_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "SHA-256 of the exported declaration's bytes."
+    },
+    "review": {
+      "type": "object",
+      "description": "What a review made of its run, counted.",
+      "properties": {
+        "offered": {
+          "type": "integer",
+          "description": "Windows the run offered for review.",
+          "x-unit": "1",
+          "minimum": 0
+        },
+        "included": {
+          "type": "integer",
+          "description": "Windows included.",
+          "x-unit": "1",
+          "minimum": 0
+        },
+        "excluded": {
+          "type": "integer",
+          "description": "Windows excluded.",
+          "x-unit": "1",
+          "minimum": 0
+        },
+        "unreviewed": {
+          "type": "integer",
+          "description": "Offered windows left undecided.",
+          "x-unit": "1",
+          "minimum": 0
+        },
+        "withheld": {
+          "type": "integer",
+          "description": "Windows of locked streams review withheld.",
+          "x-unit": "1",
+          "minimum": 0
+        },
+        "stream_count": {
+          "type": "integer",
+          "description": "Streams of the frozen version.",
+          "x-unit": "1",
+          "minimum": 0
+        },
+        "frame_count": {
+          "type": "integer",
+          "description": "Source frames the frozen version selects.",
+          "x-unit": "1",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "offered",
+        "included",
+        "excluded",
+        "unreviewed",
+        "withheld",
+        "stream_count",
+        "frame_count"
+      ],
+      "additionalProperties": false
+    },
+    "superseded": {
+      "type": "object",
+      "description": "The versions the frozen one supersedes, against which the reviewer's related decisions were applied.",
+      "properties": {
+        "compared_versions": {
+          "type": "array",
+          "description": "Versions compared, nearest first.",
+          "minItems": 0,
+          "items": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+            "description": "A superseded version."
+          }
+        },
+        "not_compared": {
+          "type": "array",
+          "description": "Versions whose format holds no placement, nearest first.",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "description": "One version not compared.",
+            "properties": {
+              "corpus_id": {
+                "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                "description": "Version."
+              },
+              "reason": {
+                "type": "string",
+                "description": "other_schema: its major keeps no comparison projection.",
+                "enum": [
+                  "other_schema"
+                ]
+              }
+            },
+            "required": [
+              "corpus_id",
+              "reason"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "compared_versions",
+        "not_compared"
+      ],
+      "additionalProperties": false
+    },
+    "source_inventory": {
+      "type": "object",
+      "description": "Counts of upstream video inventory statuses and unresolved facts.",
+      "additionalProperties": false,
+      "required": [
+        "candidate",
+        "excluded",
+        "unknown",
+        "unresolved_zenodo_archive",
+        "source_reference",
+        "annotation_reference",
+        "upstream_split",
+        "attribution",
+        "terms",
+        "terms_reference"
+      ],
+      "properties": {
+        "candidate": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Count of candidate."
+        },
+        "excluded": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Count of excluded."
+        },
+        "unknown": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Count of unknown."
+        },
+        "unresolved_zenodo_archive": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Count of unresolved zenodo archive."
+        },
+        "source_reference": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Count of source reference."
+        },
+        "annotation_reference": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Count of annotation reference."
+        },
+        "upstream_split": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Count of upstream split."
+        },
+        "attribution": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Count of attribution."
+        },
+        "terms": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Count of terms."
+        },
+        "terms_reference": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Count of terms reference."
+        },
+        "collection_count": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Number of source collections in this inventory."
+        },
+        "video_count": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Number of videos in this inventory, including excluded and unknown entries."
+        },
+        "path": {
+          "type": "string",
+          "description": "Local path of the normalized source inventory declaration."
+        },
+        "sha256": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+          "description": "SHA-256 of the normalized source inventory declaration."
+        }
+      }
+    },
+    "blind": {
+      "type": "object",
+      "description": "Counts for a blinded audit presentation or its unblinding. It names no recording, score or offer reason. Independence and blinding, when present, are declarations, not a check that the procedure was followed.",
+      "additionalProperties": false,
+      "required": [
+        "audit_id",
+        "presented",
+        "withheld",
+        "outside_sample",
+        "run_count",
+        "unselected"
+      ],
+      "properties": {
+        "audit_id": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+          "description": "The blinded audit."
+        },
+        "presented": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Audit-sample windows in the blinded packet."
+        },
+        "withheld": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Locked audit-sample windows withheld from the packet."
+        },
+        "outside_sample": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Pool windows the audit sample did not draw."
+        },
+        "run_count": {
+          "type": "integer",
+          "minimum": 1,
+          "x-unit": "1",
+          "description": "Discovery runs that share this audit sample."
+        },
+        "unselected": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Presented windows at least one named run did not select."
+        },
+        "independence": {
+          "type": "string",
+          "description": "Whether independence was declared. Absent on the presentation command. Not a verification.",
+          "enum": [
+            "declared",
+            "not_declared"
+          ]
+        },
+        "blinding": {
+          "type": "string",
+          "description": "Whether blinding was declared. Absent on the presentation command. Not a verification.",
+          "enum": [
+            "declared",
+            "not_declared"
+          ]
+        },
+        "reviewer_minutes": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "min",
+          "description": "Minutes the reviewer recorded. Absent on the presentation command."
+        }
+      }
+    },
+    "budget": {
+      "type": "integer",
+      "minimum": 0,
+      "x-unit": "1",
+      "description": "Selection budget the two runs share."
+    },
+    "runs": {
+      "type": "object",
+      "description": "The ssl-diverse run and the uniform baseline. These counts are selection metrics, not the blinded presentation.",
+      "additionalProperties": false,
+      "required": [
+        "diverse",
+        "uniform"
+      ],
+      "properties": {
+        "diverse": {
+          "$ref": "#/$defs/compared-run",
+          "description": "The ssl-diverse run."
+        },
+        "uniform": {
+          "$ref": "#/$defs/compared-run",
+          "description": "The uniform baseline."
+        }
+      }
+    },
+    "unique_reviewed_pool_windows": {
+      "type": "integer",
+      "minimum": 0,
+      "x-unit": "1",
+      "description": "Pool windows that have an observation after the two reviews are matched."
+    },
+    "unique_offered_windows": {
+      "type": "integer",
+      "minimum": 0,
+      "x-unit": "1",
+      "description": "Windows offered by either run, counted once."
+    },
+    "review_blinding": {
+      "type": "string",
+      "description": "The blinding value both reviews stated, unrecorded when both omit it, or mixed when they differ. A stated value is a declaration, not a verification that the procedure was followed, and pictures may still show the source. This is not the blind count object.",
+      "enum": [
+        "declared",
+        "not_declared",
+        "unrecorded",
+        "mixed"
+      ]
+    },
+    "review_independence": {
+      "type": "string",
+      "description": "The independence value both reviews stated, unrecorded when both omit it, or mixed when they differ. A stated value is a declaration, not a verification that the procedure was followed.",
+      "enum": [
+        "declared",
+        "not_declared",
+        "unrecorded",
+        "mixed"
+      ]
+    },
+    "review_effort_minutes": {
+      "type": "array",
+      "description": "Minutes the two reviews recorded, the diverse review then the uniform review. Null when that review did not state effort.",
+      "prefixItems": [
+        {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "x-unit": "min",
+          "description": "Minutes the diverse review recorded, or null."
+        },
+        {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "x-unit": "min",
+          "description": "Minutes the uniform review recorded, or null."
+        }
+      ],
+      "items": false,
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "review_budget": {
+      "type": "object",
+      "description": "Review workload under the protocol the two reviews declare. matched is the only claim of equal review cost. Equal selected counts are not that cost. A withheld window is not an offered window. Unrecorded minutes are unmeasured, not zero, and do not by themselves decide this status. Independence and blinding stay declarations on the comparison.",
+      "additionalProperties": false,
+      "required": [
+        "protocol",
+        "status",
+        "shared_audit_windows",
+        "per_method_windows",
+        "additions",
+        "comparable_windows",
+        "recorded_effort",
+        "reasons"
+      ],
+      "properties": {
+        "protocol": {
+          "type": "string",
+          "description": "per_run when neither review names an audit id, so each queue is a separate review. shared_audit when both name the same audit id, so the common offered audit windows are one review. unrecorded when the reviews disagree, which leaves the budget unmeasured. selection_pass when both reviews name the same audit id and each records a selection pass, so each run's comparable work is its pass. A pass in only one review, or passes without one shared audit, is unrecorded.",
+          "enum": [
+            "per_run",
+            "shared_audit",
+            "unrecorded",
+            "selection_pass"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "description": "matched when the protocol's comparable counts and the selected counts are equal. unmatched when a declared protocol's counts differ. unmeasured when the protocol is unrecorded or a withheld window is missing from the run. A selection pass that leaves a selected window out is also unmeasured.",
+          "enum": [
+            "matched",
+            "unmatched",
+            "unmeasured"
+          ]
+        },
+        "shared_audit_windows": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Audit-sampled windows both runs offered. A shared blinded audit reviews these once."
+        },
+        "per_method_windows": {
+          "type": "object",
+          "description": "Distinct windows each run offered. A window named by selection and the audit counts once.",
+          "additionalProperties": false,
+          "required": [
+            "diverse",
+            "uniform"
+          ],
+          "properties": {
+            "diverse": {
+              "type": "integer",
+              "minimum": 0,
+              "x-unit": "1",
+              "description": "Windows the diverse run offered."
+            },
+            "uniform": {
+              "type": "integer",
+              "minimum": 0,
+              "x-unit": "1",
+              "description": "Windows the uniform run offered."
+            }
+          }
+        },
+        "additions": {
+          "type": "object",
+          "description": "Offered windows that are not in the shared audit count. Selections outside the audit and sibling offers land here.",
+          "additionalProperties": false,
+          "required": [
+            "diverse",
+            "uniform"
+          ],
+          "properties": {
+            "diverse": {
+              "type": "integer",
+              "minimum": 0,
+              "x-unit": "1",
+              "description": "Diverse windows beyond the shared audit."
+            },
+            "uniform": {
+              "type": "integer",
+              "minimum": 0,
+              "x-unit": "1",
+              "description": "Uniform windows beyond the shared audit."
+            }
+          }
+        },
+        "comparable_windows": {
+          "type": "object",
+          "description": "The counts the protocol compares. per_run uses per_method_windows. shared_audit uses additions. unrecorded shows the per-run queues and is not a match. selection_pass uses each pass's reviewed windows.",
+          "additionalProperties": false,
+          "required": [
+            "diverse",
+            "uniform"
+          ],
+          "properties": {
+            "diverse": {
+              "type": "integer",
+              "minimum": 0,
+              "x-unit": "1",
+              "description": "Comparable diverse workload."
+            },
+            "uniform": {
+              "type": "integer",
+              "minimum": 0,
+              "x-unit": "1",
+              "description": "Comparable uniform workload."
+            }
+          }
+        },
+        "recorded_effort": {
+          "type": "string",
+          "description": "equal or unequal when both reviews recorded minutes. unmeasured when either omitted them. An unmeasured value is not zero.",
+          "enum": [
+            "equal",
+            "unequal",
+            "unmeasured"
+          ]
+        },
+        "reasons": {
+          "type": "array",
+          "description": "Why the budget is unmatched or unmeasured. Empty when status is matched.",
+          "minItems": 0,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "description": "One reason."
+          }
+        },
+        "selection_pass": {
+          "type": "object",
+          "description": "Selection-pass work and yield. Absent when neither review recorded a pass. Pass observations never enter the audit estimate.",
+          "additionalProperties": false,
+          "required": [
+            "diverse",
+            "uniform",
+            "review_exposures",
+            "disagreements"
+          ],
+          "properties": {
+            "diverse": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "description": "One run's selection pass. Null when that run's review recorded none.",
+              "additionalProperties": false,
+              "required": [
+                "reviewer",
+                "expected_windows",
+                "reviewed_windows",
+                "missing_windows",
+                "audit_repeats",
+                "observations",
+                "targets_outside_audit"
+              ],
+              "properties": {
+                "reviewer": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Who reviewed the pass, as the review states."
+                },
+                "reviewer_minutes": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "x-unit": "min",
+                  "description": "Minutes the pass reviewer recorded. Absent when unrecorded, which is not zero."
+                },
+                "expected_windows": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "x-unit": "1",
+                  "description": "Selected windows the run offers: what a complete pass reviews. A withheld window is not expected."
+                },
+                "reviewed_windows": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "x-unit": "1",
+                  "description": "Windows the pass reviewed."
+                },
+                "missing_windows": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "x-unit": "1",
+                  "description": "Expected windows the pass left out. Above zero, the work is unmeasured."
+                },
+                "audit_repeats": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "x-unit": "1",
+                  "description": "Reviewed windows the audit sample also showed: work the pass repeats."
+                },
+                "observations": {
+                  "type": "object",
+                  "description": "Pass windows by observation. Review yield, not a population estimate.",
+                  "additionalProperties": false,
+                  "required": [
+                    "confuser",
+                    "target_absent",
+                    "target_present",
+                    "unknown"
+                  ],
+                  "properties": {
+                    "confuser": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "x-unit": "1",
+                      "description": "Pass windows observed as confuser."
+                    },
+                    "target_absent": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "x-unit": "1",
+                      "description": "Pass windows observed as target_absent."
+                    },
+                    "target_present": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "x-unit": "1",
+                      "description": "Pass windows observed as target_present."
+                    },
+                    "unknown": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "x-unit": "1",
+                      "description": "Pass windows observed as unknown."
+                    }
+                  }
+                },
+                "targets_outside_audit": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "x-unit": "1",
+                  "description": "Target-present pass windows the audit did not sample. The estimate never sees them; they are findings, not recall."
+                }
+              }
+            },
+            "uniform": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "description": "One run's selection pass. Null when that run's review recorded none.",
+              "additionalProperties": false,
+              "required": [
+                "reviewer",
+                "expected_windows",
+                "reviewed_windows",
+                "missing_windows",
+                "audit_repeats",
+                "observations",
+                "targets_outside_audit"
+              ],
+              "properties": {
+                "reviewer": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Who reviewed the pass, as the review states."
+                },
+                "reviewer_minutes": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "x-unit": "min",
+                  "description": "Minutes the pass reviewer recorded. Absent when unrecorded, which is not zero."
+                },
+                "expected_windows": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "x-unit": "1",
+                  "description": "Selected windows the run offers: what a complete pass reviews. A withheld window is not expected."
+                },
+                "reviewed_windows": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "x-unit": "1",
+                  "description": "Windows the pass reviewed."
+                },
+                "missing_windows": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "x-unit": "1",
+                  "description": "Expected windows the pass left out. Above zero, the work is unmeasured."
+                },
+                "audit_repeats": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "x-unit": "1",
+                  "description": "Reviewed windows the audit sample also showed: work the pass repeats."
+                },
+                "observations": {
+                  "type": "object",
+                  "description": "Pass windows by observation. Review yield, not a population estimate.",
+                  "additionalProperties": false,
+                  "required": [
+                    "confuser",
+                    "target_absent",
+                    "target_present",
+                    "unknown"
+                  ],
+                  "properties": {
+                    "confuser": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "x-unit": "1",
+                      "description": "Pass windows observed as confuser."
+                    },
+                    "target_absent": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "x-unit": "1",
+                      "description": "Pass windows observed as target_absent."
+                    },
+                    "target_present": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "x-unit": "1",
+                      "description": "Pass windows observed as target_present."
+                    },
+                    "unknown": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "x-unit": "1",
+                      "description": "Pass windows observed as unknown."
+                    }
+                  }
+                },
+                "targets_outside_audit": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "x-unit": "1",
+                  "description": "Target-present pass windows the audit did not sample. The estimate never sees them; they are findings, not recall."
+                }
+              }
+            },
+            "review_exposures": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0,
+              "x-unit": "1",
+              "description": "The shared audit windows plus both passes' reviewed windows. Null unless the protocol is selection_pass."
+            },
+            "disagreements": {
+              "type": "array",
+              "minItems": 0,
+              "description": "Pass windows whose observation differs from the run's review of the same window. An unknown on either side is not a disagreement. The review observation stays the one an estimate uses.",
+              "items": {
+                "type": "object",
+                "description": "One disagreement.",
+                "additionalProperties": false,
+                "required": [
+                  "run",
+                  "stream_id",
+                  "candidate_id",
+                  "audit_sampled",
+                  "review_observation",
+                  "pass_observation"
+                ],
+                "properties": {
+                  "run": {
+                    "type": "string",
+                    "enum": [
+                      "diverse",
+                      "uniform"
+                    ],
+                    "description": "The run whose pass disagrees."
+                  },
+                  "stream_id": {
+                    "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                    "description": "The window's stream."
+                  },
+                  "candidate_id": {
+                    "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                    "description": "The window's candidate."
+                  },
+                  "audit_sampled": {
+                    "type": "boolean",
+                    "description": "Whether the audit sample drew the window."
+                  },
+                  "review_observation": {
+                    "type": "string",
+                    "enum": [
+                      "target_present",
+                      "target_absent",
+                      "confuser",
+                      "unknown"
+                    ],
+                    "description": "What the run's review observed."
+                  },
+                  "pass_observation": {
+                    "type": "string",
+                    "enum": [
+                      "target_present",
+                      "target_absent",
+                      "confuser",
+                      "unknown"
+                    ],
+                    "description": "What the pass observed."
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "x-rules": {
+        "cost": "Equal selected counts are not equal review cost. A window offered for more than one reason counts once. A withheld window is not offered."
+      }
+    },
+    "whole_stream_target_observed": {
+      "type": "array",
+      "description": "Streams whose every pool window has a target-present observation. A stream with a missing observation is not listed.",
+      "minItems": 0,
+      "items": {
+        "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+        "description": "One such stream."
+      }
+    },
+    "audit": {
+      "type": "object",
+      "description": "Stratified finite-population estimate of target recall for the paired selections. estimated carries recall and gain. inconclusive withholds recall when evidence is missing, and withholds an interval when variance is unavailable. An unmatched or unmeasured review budget also makes this status inconclusive and leaves a computed gain as a descriptive count, not a matched-budget result. A negative gain is valid.",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "strata",
+        "weighted_observations",
+        "weighted_observations_complete",
+        "weighted_selected_targets",
+        "reasons",
+        "recall",
+        "gain"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "description": "Whether the paired recall was estimated.",
+          "enum": [
+            "estimated",
+            "inconclusive"
+          ]
+        },
+        "strata": {
+          "type": "array",
+          "description": "One entry per audit stratum, in the run's order.",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/comparison-stratum",
+            "description": "One stratum."
+          }
+        },
+        "weighted_observations": {
+          "type": "object",
+          "description": "Population-weighted observation counts. Unknown includes sampled windows with a missing observation and is not target absence.",
+          "additionalProperties": false,
+          "required": [
+            "target_present",
+            "target_absent",
+            "confuser",
+            "unknown"
+          ],
+          "properties": {
+            "target_present": {
+              "type": "number",
+              "x-unit": "1",
+              "description": "Weighted target-present samples.",
+              "minimum": 0
+            },
+            "target_absent": {
+              "type": "number",
+              "x-unit": "1",
+              "description": "Weighted target-absent samples.",
+              "minimum": 0
+            },
+            "confuser": {
+              "type": "number",
+              "x-unit": "1",
+              "description": "Weighted confuser samples.",
+              "minimum": 0
+            },
+            "unknown": {
+              "type": "number",
+              "x-unit": "1",
+              "description": "Weighted unknown or missing samples.",
+              "minimum": 0
+            }
+          }
+        },
+        "weighted_observations_complete": {
+          "type": "boolean",
+          "description": "False when the population is empty or any stratum has no sample or an unknown observation."
+        },
+        "weighted_selected_targets": {
+          "type": "object",
+          "description": "Population-weighted target-present windows each method selected.",
+          "additionalProperties": false,
+          "required": [
+            "diverse",
+            "uniform"
+          ],
+          "properties": {
+            "diverse": {
+              "type": "number",
+              "x-unit": "1",
+              "description": "Weighted targets the diverse run selected.",
+              "minimum": 0
+            },
+            "uniform": {
+              "type": "number",
+              "x-unit": "1",
+              "description": "Weighted targets the uniform run selected.",
+              "minimum": 0
+            }
+          }
+        },
+        "reasons": {
+          "type": "array",
+          "description": "Why recall or an interval was withheld. Empty when status is estimated.",
+          "minItems": 0,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "description": "One reason."
+          }
+        },
+        "recall": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "Recall of weighted target-present windows for each method, or null when the estimate is withheld.",
+          "additionalProperties": false,
+          "required": [
+            "diverse",
+            "uniform"
+          ],
+          "properties": {
+            "diverse": {
+              "type": "object",
+              "description": "Diverse recall.",
+              "additionalProperties": false,
+              "required": [
+                "estimate",
+                "interval_95"
+              ],
+              "properties": {
+                "estimate": {
+                  "type": "number",
+                  "x-unit": "1",
+                  "description": "Point estimate.",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "interval_95": {
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "description": "Approximate 95 percent interval, clamped to [0, 1], or null when variance is unavailable.",
+                  "prefixItems": [
+                    {
+                      "type": "number",
+                      "x-unit": "1",
+                      "description": "Lower endpoint.",
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    {
+                      "type": "number",
+                      "x-unit": "1",
+                      "description": "Upper endpoint.",
+                      "minimum": 0,
+                      "maximum": 1
+                    }
+                  ],
+                  "items": false,
+                  "minItems": 2,
+                  "maxItems": 2
+                }
+              }
+            },
+            "uniform": {
+              "type": "object",
+              "description": "Uniform recall.",
+              "additionalProperties": false,
+              "required": [
+                "estimate",
+                "interval_95"
+              ],
+              "properties": {
+                "estimate": {
+                  "type": "number",
+                  "x-unit": "1",
+                  "description": "Point estimate.",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "interval_95": {
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "description": "Approximate 95 percent interval, clamped to [0, 1], or null when variance is unavailable.",
+                  "prefixItems": [
+                    {
+                      "type": "number",
+                      "x-unit": "1",
+                      "description": "Lower endpoint.",
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    {
+                      "type": "number",
+                      "x-unit": "1",
+                      "description": "Upper endpoint.",
+                      "minimum": 0,
+                      "maximum": 1
+                    }
+                  ],
+                  "items": false,
+                  "minItems": 2,
+                  "maxItems": 2
+                }
+              }
+            }
+          }
+        },
+        "gain": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "Diverse recall minus uniform recall, or null when the estimate is withheld. A negative value remains valid.",
+          "additionalProperties": false,
+          "required": [
+            "estimate",
+            "interval_95"
+          ],
+          "properties": {
+            "estimate": {
+              "type": "number",
+              "x-unit": "1",
+              "description": "Point estimate of the paired difference.",
+              "minimum": -1,
+              "maximum": 1
+            },
+            "interval_95": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "description": "Approximate 95 percent interval, clamped to [-1, 1], or null when variance is unavailable.",
+              "prefixItems": [
+                {
+                  "type": "number",
+                  "x-unit": "1",
+                  "description": "Lower endpoint.",
+                  "minimum": -1,
+                  "maximum": 1
+                },
+                {
+                  "type": "number",
+                  "x-unit": "1",
+                  "description": "Upper endpoint.",
+                  "minimum": -1,
+                  "maximum": 1
+                }
+              ],
+              "items": false,
+              "minItems": 2,
+              "maxItems": 2
+            }
+          }
+        }
+      },
+      "x-rules": {
+        "unknown": "An unknown or missing audit observation is not target absence. No sample, no observed target, or unavailable variance leaves recall or its interval null rather than zero."
+      }
+    },
+    "by_source": {
+      "$ref": "#/$defs/by-source",
+      "description": "Per-collection selection estimates for discover evaluate. Absent for every other command."
+    },
+    "observations": {
+      "type": "array",
+      "description": "Reviewed pool windows in stream and candidate order, with both selection decisions. An observation is not a label.",
+      "minItems": 0,
+      "items": {
+        "type": "object",
+        "description": "One reviewed window.",
+        "additionalProperties": false,
+        "required": [
+          "stream_id",
+          "candidate_id",
+          "observation",
+          "audit_sampled",
+          "diverse_selected",
+          "uniform_selected",
+          "motion",
+          "motion_rank"
+        ],
+        "properties": {
+          "stream_id": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+            "description": "Stream of the window."
+          },
+          "candidate_id": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+            "description": "Candidate of the window."
+          },
+          "observation": {
+            "type": "string",
+            "description": "What the reviewer saw. target_present: a target in at least one frame. target_absent: no target seen, which is not a verified absence. confuser: no target, but a moving object that could be mistaken for one. unknown: the reviewer could not tell, or the window was not observed. An observation is not a label.",
+            "enum": [
+              "target_present",
+              "target_absent",
+              "confuser",
+              "unknown"
+            ]
+          },
+          "audit_sampled": {
+            "type": "boolean",
+            "description": "Whether the audit sample drew this window."
+          },
+          "diverse_selected": {
+            "type": "boolean",
+            "description": "Whether the diverse run selected this window."
+          },
+          "uniform_selected": {
+            "type": "boolean",
+            "description": "Whether the uniform run selected this window."
+          },
+          "motion": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "x-unit": "1",
+            "description": "The window's motion score in the diverse run, or null when it was not computed."
+          },
+          "motion_rank": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1,
+            "x-unit": "1",
+            "description": "Rank of that score among the distinct computed motion scores of the diverse run, from 1 for the greatest, ties sharing a rank, or null when motion is null."
+          }
+        }
+      }
+    },
+    "audit_misses_by_observation": {
+      "type": "object",
+      "description": "Audit-sampled windows the diverse run did not select, by observation. An observation is absent when its count is zero. An observation is not a label.",
+      "additionalProperties": false,
+      "properties": {
+        "target_present": {
+          "type": "integer",
+          "minimum": 1,
+          "x-unit": "1",
+          "description": "Missed audit windows observed target-present."
+        },
+        "target_absent": {
+          "type": "integer",
+          "minimum": 1,
+          "x-unit": "1",
+          "description": "Missed audit windows observed target-absent."
+        },
+        "confuser": {
+          "type": "integer",
+          "minimum": 1,
+          "x-unit": "1",
+          "description": "Missed audit windows observed as confusers."
+        },
+        "unknown": {
+          "type": "integer",
+          "minimum": 1,
+          "x-unit": "1",
+          "description": "Missed audit windows observed as unknown."
+        }
+      }
+    },
+    "limits": {
+      "type": "array",
+      "description": "What this comparison does not establish: observations are not labels, discovery did not record compute cost, recorded blinding is a declaration while pictures may show the source, unrecorded review minutes are unmeasured rather than zero, and a source without a reviewed sample is not zero and a per-source estimate is not field prevalence.",
+      "minItems": 3,
+      "maxItems": 5,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "description": "One limit of the comparison."
+      }
+    },
+    "clean": {
+      "type": "object",
+      "description": "What data clean planned or removed. A kind removes only reproducible bytes and states how they are made again.",
+      "additionalProperties": false,
+      "required": [
+        "applied",
+        "total_bytes",
+        "kinds"
+      ],
+      "properties": {
+        "applied": {
+          "type": "boolean",
+          "description": "Whether the planned entries were removed."
+        },
+        "total_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "B",
+          "description": "Bytes of every planned entry."
+        },
+        "kinds": {
+          "type": "array",
+          "description": "One plan per kind and target.",
+          "items": {
+            "type": "object",
+            "description": "One kind's entries for one target.",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "target",
+              "restore",
+              "bytes",
+              "entries"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "description": "Registered kind name.",
+                "enum": [
+                  "acquisition-cache",
+                  "scratch",
+                  "staged-frames",
+                  "tool-caches"
+                ]
+              },
+              "target": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Corpus version or run the kind cleaned; null for a kind without a target."
+              },
+              "restore": {
+                "type": "string",
+                "description": "How the removed bytes are made again."
+              },
+              "bytes": {
+                "type": "integer",
+                "minimum": 0,
+                "x-unit": "B",
+                "description": "Bytes of this kind's entries."
+              },
+              "entries": {
+                "type": "array",
+                "description": "Files and directories, relative to the data root.",
+                "items": {
+                  "type": "object",
+                  "description": "One removed or planned entry.",
+                  "additionalProperties": false,
+                  "required": [
+                    "path",
+                    "bytes"
+                  ],
+                  "properties": {
+                    "path": {
+                      "type": "string",
+                      "description": "POSIX path relative to the data root."
+                    },
+                    "bytes": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "x-unit": "B",
+                      "description": "Bytes the entry holds."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "source_inspection": {
+      "type": "object",
+      "description": "Stated capture facts and their evidence disposition.",
+      "properties": {
+        "major": {
+          "type": "integer",
+          "description": "Original source record major.",
+          "x-unit": "1"
+        },
+        "disposition": {
+          "type": "string",
+          "description": "Evidence disposition; current means the installed evidence shape.",
+          "enum": [
+            "current",
+            "view",
+            "facts"
+          ]
+        },
+        "capture": {
+          "type": "object",
+          "description": "Capture fields exactly as stated by the source record.",
+          "properties": {
+            "camera": {
+              "type": [
+                "string",
+                "number",
+                "null"
+              ],
+              "description": "Operator descriptive camera. Numeric metadata has no declared physical unit; null means unreported.",
+              "x-unit": "1"
+            },
+            "lens": {
+              "type": [
+                "string",
+                "number",
+                "null"
+              ],
+              "description": "Operator descriptive lens. Numeric metadata has no declared physical unit; null means unreported.",
+              "x-unit": "1"
+            },
+            "exposure": {
+              "type": [
+                "string",
+                "number",
+                "null"
+              ],
+              "description": "Operator descriptive exposure. Numeric metadata has no declared physical unit; null means unreported.",
+              "x-unit": "1"
+            },
+            "focus": {
+              "type": [
+                "string",
+                "number",
+                "null"
+              ],
+              "description": "Operator descriptive focus. Numeric metadata has no declared physical unit; null means unreported.",
+              "x-unit": "1"
+            },
+            "fov": {
+              "type": [
+                "string",
+                "number",
+                "null"
+              ],
+              "description": "Operator descriptive fov. Numeric metadata has no declared physical unit; null means unreported.",
+              "x-unit": "1"
+            },
+            "camera_control_mode": {
+              "type": [
+                "string",
+                "number",
+                "null"
+              ],
+              "description": "Operator descriptive camera control mode. Numeric metadata has no declared physical unit; null means unreported.",
+              "x-unit": "1"
+            },
+            "lighting": {
+              "type": [
+                "string",
+                "number",
+                "null"
+              ],
+              "description": "Operator descriptive lighting. Numeric metadata has no declared physical unit; null means unreported.",
+              "x-unit": "1"
+            },
+            "background": {
+              "type": [
+                "string",
+                "number",
+                "null"
+              ],
+              "description": "Operator descriptive background. Numeric metadata has no declared physical unit; null means unreported.",
+              "x-unit": "1"
+            },
+            "motion": {
+              "type": [
+                "string",
+                "number",
+                "null"
+              ],
+              "description": "Operator descriptive motion. Numeric metadata has no declared physical unit; null means unreported.",
+              "x-unit": "1"
+            },
+            "object_pixel_extent": {
+              "type": [
+                "string",
+                "number",
+                "null"
+              ],
+              "description": "Operator descriptive object pixel extent. Numeric metadata has no declared physical unit; null means unreported.",
+              "x-unit": "1"
+            },
+            "range": {
+              "type": "object",
+              "description": "Range claim; descriptive capture fields alone establish no measured range.",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "description": "Evidence supporting range; absent declaration status defaults to unknown.",
+                  "enum": [
+                    "measured",
+                    "estimated",
+                    "unknown"
+                  ]
+                },
+                "value_m": {
+                  "type": [
+                    "string",
+                    "number",
+                    "null"
+                  ],
+                  "description": "Declared range in metres; text can preserve an operator description.",
+                  "x-unit": "m"
+                },
+                "method": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Range measurement or estimation method, or null when unknown."
+                }
+              },
+              "required": [
+                "status",
+                "value_m",
+                "method"
+              ],
+              "additionalProperties": false,
+              "x-rules": {
+                "evidence": "Measured and estimated range require value_m and method. Unknown range has neither value nor method (both null in records). Missing declaration status means unknown."
+              }
+            }
+          },
+          "required": [
+            "camera",
+            "lens",
+            "exposure",
+            "focus",
+            "fov",
+            "camera_control_mode",
+            "lighting",
+            "background",
+            "motion",
+            "object_pixel_extent",
+            "range"
+          ],
+          "additionalProperties": false,
+          "x-sensitivity": "sensitive"
+        },
+        "platform": {
+          "type": "string",
+          "description": "Stated platform, or unknown when absent."
+        }
+      },
+      "required": [
+        "major",
+        "disposition",
+        "capture",
+        "platform"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "status"
+  ],
+  "additionalProperties": false,
+  "x-rules": {
+    "outcome": "Refused requires code, message and details. Success fields are those of the invoked command. Unchanged retains the fields of import, amendment, build or staging, so status alone does not identify the shape.",
+    "comparison": "A successful comparison embeds the sealed comparison and adds record_path; record_path is not covered by its embedded seal.",
+    "versions": "This result format stamps no version of its own; schema_version, when present, belongs to the embedded comparison."
+  },
+  "$defs": {
+    "compared-run": {
+      "type": "object",
+      "description": "One reviewed selection run in the paired comparison.",
+      "additionalProperties": false,
+      "required": [
+        "run_id",
+        "run_sha256",
+        "reviewer",
+        "evidence_sha256",
+        "selected",
+        "streams",
+        "groups",
+        "exclusions",
+        "reviewed_pool_windows",
+        "offered_windows",
+        "withheld_windows",
+        "audit_selected_overlap",
+        "compute_cost"
+      ],
+      "properties": {
+        "run_id": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+          "description": "Discovery run."
+        },
+        "run_sha256": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+          "description": "Seal of the discovery run."
+        },
+        "reviewer": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Who reviewed this run, as the review or freeze states."
+        },
+        "evidence_sha256": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+          "description": "SHA-256 of the review declaration, or the seal of the freeze record."
+        },
+        "selected": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Windows the method selected."
+        },
+        "streams": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Distinct streams of the selected windows."
+        },
+        "groups": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Distinct groups of the selected windows."
+        },
+        "exclusions": {
+          "type": "object",
+          "description": "Windows excluded from ranking, by reason. A reason is absent when its count is zero.",
+          "additionalProperties": false,
+          "properties": {
+            "features_unavailable": {
+              "type": "integer",
+              "minimum": 1,
+              "x-unit": "1",
+              "description": "Windows excluded because a score the method reads was not computed."
+            },
+            "operator_excluded": {
+              "type": "integer",
+              "minimum": 1,
+              "x-unit": "1",
+              "description": "Windows of a locked stream, which selection does not rank."
+            },
+            "repeated_content": {
+              "type": "integer",
+              "minimum": 1,
+              "x-unit": "1",
+              "description": "Windows excluded as repeated content. A candidate inventory can record this reason."
+            }
+          }
+        },
+        "reviewed_pool_windows": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Pool windows this review or freeze observed."
+        },
+        "offered_windows": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Windows the run offered for review."
+        },
+        "withheld_windows": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Windows of locked streams the queue withheld."
+        },
+        "audit_selected_overlap": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Selected windows that the audit sample also drew."
+        },
+        "sibling_offers": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Sibling windows this run offered. A withheld sibling is counted in withheld_windows instead."
+        },
+        "compute_cost": {
+          "type": "null",
+          "description": "Discovery does not record compute cost, so this is null."
+        }
+      }
+    },
+    "comparison-stratum": {
+      "type": "object",
+      "description": "The sample and observation counts of one audit stratum.",
+      "additionalProperties": false,
+      "required": [
+        "stratum_id",
+        "population",
+        "sample_size",
+        "weight",
+        "observations"
+      ],
+      "properties": {
+        "stratum_id": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+          "description": "Stratum, which is the encounter group."
+        },
+        "population": {
+          "type": "integer",
+          "minimum": 1,
+          "x-unit": "1",
+          "description": "Pool windows in the stratum."
+        },
+        "sample_size": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Sampled windows whose observations were read."
+        },
+        "weight": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "x-unit": "1",
+          "description": "Population divided by the sample size, or null when the stratum has no sample.",
+          "minimum": 1
+        },
+        "observations": {
+          "type": "object",
+          "description": "Sampled windows by observation. Unknown is not target absence.",
+          "additionalProperties": false,
+          "required": [
+            "target_present",
+            "target_absent",
+            "confuser",
+            "unknown"
+          ],
+          "properties": {
+            "target_present": {
+              "type": "integer",
+              "minimum": 0,
+              "x-unit": "1",
+              "description": "Sampled windows observed target-present."
+            },
+            "target_absent": {
+              "type": "integer",
+              "minimum": 0,
+              "x-unit": "1",
+              "description": "Sampled windows observed target-absent."
+            },
+            "confuser": {
+              "type": "integer",
+              "minimum": 0,
+              "x-unit": "1",
+              "description": "Sampled windows observed as confusers."
+            },
+            "unknown": {
+              "type": "integer",
+              "minimum": 0,
+              "x-unit": "1",
+              "description": "Sampled windows with a missing or unknown observation."
+            }
+          }
+        }
+      }
+    },
+    "method-counts": {
+      "type": "object",
+      "description": "A count for each paired selection.",
+      "additionalProperties": false,
+      "required": [
+        "diverse",
+        "uniform"
+      ],
+      "properties": {
+        "diverse": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Diverse-run count."
+        },
+        "uniform": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Uniform-run count."
+        }
+      }
+    },
+    "exclusion-counts": {
+      "type": "object",
+      "description": "Windows excluded from ranking, by reason. A reason is absent when its count is zero.",
+      "additionalProperties": false,
+      "properties": {
+        "features_unavailable": {
+          "type": "integer",
+          "minimum": 1,
+          "x-unit": "1",
+          "description": "Windows excluded because a score the method reads was not computed."
+        },
+        "operator_excluded": {
+          "type": "integer",
+          "minimum": 1,
+          "x-unit": "1",
+          "description": "Windows of a locked stream, which selection does not rank."
+        },
+        "repeated_content": {
+          "type": "integer",
+          "minimum": 1,
+          "x-unit": "1",
+          "description": "Windows excluded as repeated content. A candidate inventory can record this reason."
+        }
+      }
+    },
+    "collection-name": {
+      "type": "object",
+      "description": "One collection named by a sealed source origin.",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "collection_id"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "Upstream provider.",
+          "enum": [
+            "huggingface",
+            "zenodo"
+          ]
+        },
+        "collection_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Collection within that provider. A slash is part of the name."
+        }
+      }
+    },
+    "sample-observations": {
+      "type": "object",
+      "description": "Sampled windows of this collection in the stratum. These are counts, not weights.",
+      "additionalProperties": false,
+      "required": [
+        "target_present",
+        "target_absent",
+        "confuser",
+        "unknown"
+      ],
+      "properties": {
+        "target_present": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Target-present count."
+        },
+        "target_absent": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Target-absent count."
+        },
+        "confuser": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Confuser count."
+        },
+        "unknown": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Unknown or missing count. Unknown is not target absence."
+        }
+      }
+    },
+    "source-stratum": {
+      "type": "object",
+      "description": "One collection inside one audit stratum. The weight is the stratum weight.",
+      "additionalProperties": false,
+      "required": [
+        "stratum_id",
+        "population",
+        "sample_size",
+        "design_weight",
+        "stratum_population",
+        "stratum_sample_size",
+        "spans_sources",
+        "observations"
+      ],
+      "properties": {
+        "stratum_id": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+          "description": "Audit stratum, the encounter group."
+        },
+        "population": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Windows of this collection in the stratum."
+        },
+        "sample_size": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Sampled windows of this collection."
+        },
+        "design_weight": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "x-unit": "1",
+          "description": "Stratum weight, population divided by sample size, or null when that stratum was not sampled.",
+          "minimum": 1
+        },
+        "stratum_population": {
+          "type": "integer",
+          "minimum": 1,
+          "x-unit": "1",
+          "description": "Sealed windows in the stratum, of every collection."
+        },
+        "stratum_sample_size": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Sampled windows in the stratum, of every collection."
+        },
+        "spans_sources": {
+          "type": "boolean",
+          "description": "Whether the stratum contains more than one collection or an unbound window."
+        },
+        "observations": {
+          "$ref": "#/$defs/sample-observations",
+          "description": "Sample counts for this collection."
+        }
+      }
+    },
+    "unit-endpoint": {
+      "type": "object",
+      "description": "Recall of one method.",
+      "additionalProperties": false,
+      "required": [
+        "estimate",
+        "interval_95"
+      ],
+      "properties": {
+        "estimate": {
+          "type": "number",
+          "x-unit": "1",
+          "description": "Point estimate.",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "interval_95": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "description": "Approximate 95 percent interval, clamped to [0, 1], or null when variance is unavailable.",
+          "prefixItems": [
+            {
+              "type": "number",
+              "x-unit": "1",
+              "description": "Lower endpoint.",
+              "minimum": 0,
+              "maximum": 1
+            },
+            {
+              "type": "number",
+              "x-unit": "1",
+              "description": "Upper endpoint.",
+              "minimum": 0,
+              "maximum": 1
+            }
+          ],
+          "items": false,
+          "minItems": 2,
+          "maxItems": 2
+        }
+      }
+    },
+    "source-collection": {
+      "type": "object",
+      "description": "Reviewed exposure, cost and design-weighted recall of one collection.",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "collection_id",
+        "status",
+        "pool_windows",
+        "sampled_windows",
+        "reviewed_windows",
+        "unknown_sampled",
+        "strata",
+        "weighted_observations",
+        "weighted_observations_complete",
+        "weighted_selected_targets",
+        "target_total",
+        "reasons",
+        "recall",
+        "gain",
+        "withheld_windows",
+        "offered_windows",
+        "selected",
+        "sibling_offers",
+        "exclusions"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "Upstream provider.",
+          "enum": [
+            "huggingface",
+            "zenodo"
+          ]
+        },
+        "collection_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Collection within that provider."
+        },
+        "status": {
+          "type": "string",
+          "description": "estimated only when the gain has a variance and the paired review budget matches.",
+          "enum": [
+            "estimated",
+            "inconclusive"
+          ]
+        },
+        "pool_windows": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Windows of this collection in the sealed pool."
+        },
+        "sampled_windows": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Sampled windows of this collection."
+        },
+        "reviewed_windows": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Sampled windows of this collection with an observation."
+        },
+        "unknown_sampled": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Sampled windows of this collection whose observation is unknown or missing."
+        },
+        "strata": {
+          "type": "array",
+          "description": "Strata that contain this collection.",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/source-stratum",
+            "description": "One stratum."
+          }
+        },
+        "weighted_observations": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "Weighted observation counts, or null when the collection has no reviewed sample or a containing stratum has no sample.",
+          "additionalProperties": false,
+          "required": [
+            "target_present",
+            "target_absent",
+            "confuser",
+            "unknown"
+          ],
+          "properties": {
+            "target_present": {
+              "type": "number",
+              "x-unit": "1",
+              "description": "Target-present count.",
+              "minimum": 0
+            },
+            "target_absent": {
+              "type": "number",
+              "x-unit": "1",
+              "description": "Target-absent count.",
+              "minimum": 0
+            },
+            "confuser": {
+              "type": "number",
+              "x-unit": "1",
+              "description": "Confuser count.",
+              "minimum": 0
+            },
+            "unknown": {
+              "type": "number",
+              "x-unit": "1",
+              "description": "Unknown or missing count. Unknown is not target absence.",
+              "minimum": 0
+            }
+          }
+        },
+        "weighted_observations_complete": {
+          "type": "boolean",
+          "description": "False when a containing stratum has an unknown observation, no sample, or the weighted counts were withheld."
+        },
+        "weighted_selected_targets": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "Weighted target-present windows each method selected, or null when the weighted counts were withheld.",
+          "additionalProperties": false,
+          "required": [
+            "diverse",
+            "uniform"
+          ],
+          "properties": {
+            "diverse": {
+              "type": "number",
+              "x-unit": "1",
+              "description": "Weighted targets the diverse run selected.",
+              "minimum": 0
+            },
+            "uniform": {
+              "type": "number",
+              "x-unit": "1",
+              "description": "Weighted targets the uniform run selected.",
+              "minimum": 0
+            }
+          }
+        },
+        "target_total": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "Estimated target-present windows in the collection, or null when the collection was not reviewed or a containing stratum has no sample.",
+          "additionalProperties": false,
+          "required": [
+            "estimate",
+            "variance",
+            "interval_95"
+          ],
+          "properties": {
+            "estimate": {
+              "type": "number",
+              "x-unit": "1",
+              "description": "Point estimate of the target-present total.",
+              "minimum": 0
+            },
+            "variance": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "x-unit": "1",
+              "description": "Variance of that total, or null when it is unavailable. A collection with no observed target withholds it rather than reporting a zero-width interval.",
+              "minimum": 0
+            },
+            "interval_95": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "description": "Approximate 95 percent interval, clamped to the collection's pool size, or null when variance is unavailable.",
+              "prefixItems": [
+                {
+                  "type": "number",
+                  "x-unit": "1",
+                  "description": "Lower endpoint.",
+                  "minimum": 0
+                },
+                {
+                  "type": "number",
+                  "x-unit": "1",
+                  "description": "Upper endpoint.",
+                  "minimum": 0
+                }
+              ],
+              "items": false,
+              "minItems": 2,
+              "maxItems": 2
+            }
+          }
+        },
+        "reasons": {
+          "type": "array",
+          "description": "Why this collection is inconclusive. Empty when its status is estimated.",
+          "minItems": 0,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "description": "One reason."
+          }
+        },
+        "recall": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "Recall of the collection's weighted targets, or null when it is withheld.",
+          "additionalProperties": false,
+          "required": [
+            "diverse",
+            "uniform"
+          ],
+          "properties": {
+            "diverse": {
+              "$ref": "#/$defs/unit-endpoint",
+              "description": "Diverse recall."
+            },
+            "uniform": {
+              "$ref": "#/$defs/unit-endpoint",
+              "description": "Uniform recall."
+            }
+          }
+        },
+        "gain": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "Diverse recall minus uniform recall, or null when it is withheld. A negative value remains valid.",
+          "additionalProperties": false,
+          "required": [
+            "estimate",
+            "interval_95"
+          ],
+          "properties": {
+            "estimate": {
+              "type": "number",
+              "x-unit": "1",
+              "description": "Point estimate.",
+              "minimum": -1,
+              "maximum": 1
+            },
+            "interval_95": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "description": "Approximate 95 percent interval, clamped to [-1, 1], or null when variance is unavailable.",
+              "prefixItems": [
+                {
+                  "type": "number",
+                  "x-unit": "1",
+                  "description": "Lower endpoint.",
+                  "minimum": -1,
+                  "maximum": 1
+                },
+                {
+                  "type": "number",
+                  "x-unit": "1",
+                  "description": "Upper endpoint.",
+                  "minimum": -1,
+                  "maximum": 1
+                }
+              ],
+              "items": false,
+              "minItems": 2,
+              "maxItems": 2
+            }
+          }
+        },
+        "withheld_windows": {
+          "$ref": "#/$defs/method-counts",
+          "description": "Withheld windows. A withheld window is not an offer."
+        },
+        "offered_windows": {
+          "$ref": "#/$defs/method-counts",
+          "description": "Offered windows, excluding withheld windows."
+        },
+        "selected": {
+          "$ref": "#/$defs/method-counts",
+          "description": "Selected pool windows, including one that was withheld."
+        },
+        "sibling_offers": {
+          "$ref": "#/$defs/method-counts",
+          "description": "Sibling offers. A sibling has no inclusion probability and is cost, not population."
+        },
+        "exclusions": {
+          "type": "object",
+          "description": "Selection exclusions of each run. A reason is absent when its count is zero.",
+          "additionalProperties": false,
+          "required": [
+            "diverse",
+            "uniform"
+          ],
+          "properties": {
+            "diverse": {
+              "$ref": "#/$defs/exclusion-counts",
+              "description": "Diverse-run exclusions."
+            },
+            "uniform": {
+              "$ref": "#/$defs/exclusion-counts",
+              "description": "Uniform-run exclusions."
+            }
+          }
+        }
+      }
+    },
+    "source-incomplete": {
+      "type": "object",
+      "description": "Windows whose sealed collection could not be named. Their totals are not zeros and they are not a collection called unknown.",
+      "additionalProperties": false,
+      "required": [
+        "pool_windows",
+        "sampled_windows",
+        "reviewed_windows",
+        "unknown_sampled",
+        "reasons",
+        "withheld_windows",
+        "offered_windows",
+        "selected",
+        "sibling_offers",
+        "exclusions"
+      ],
+      "properties": {
+        "pool_windows": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Pool windows with no named collection."
+        },
+        "sampled_windows": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Sampled windows with no named collection."
+        },
+        "reviewed_windows": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Those sampled windows that have an observation."
+        },
+        "unknown_sampled": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Those sampled windows whose observation is unknown or missing."
+        },
+        "reasons": {
+          "type": "array",
+          "description": "Why membership could not be read. Empty when every window names a collection.",
+          "minItems": 0,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "description": "One reason."
+          }
+        },
+        "withheld_windows": {
+          "$ref": "#/$defs/method-counts",
+          "description": "Withheld windows with no named collection."
+        },
+        "offered_windows": {
+          "$ref": "#/$defs/method-counts",
+          "description": "Offered windows with no named collection."
+        },
+        "selected": {
+          "$ref": "#/$defs/method-counts",
+          "description": "Selected windows with no named collection."
+        },
+        "sibling_offers": {
+          "$ref": "#/$defs/method-counts",
+          "description": "Sibling offers with no named collection."
+        },
+        "exclusions": {
+          "type": "object",
+          "description": "Exclusions of windows with no named collection.",
+          "additionalProperties": false,
+          "required": [
+            "diverse",
+            "uniform"
+          ],
+          "properties": {
+            "diverse": {
+              "$ref": "#/$defs/exclusion-counts",
+              "description": "Diverse-run exclusions."
+            },
+            "uniform": {
+              "$ref": "#/$defs/exclusion-counts",
+              "description": "Uniform-run exclusions."
+            }
+          }
+        }
+      }
+    },
+    "source-covariance": {
+      "type": "object",
+      "description": "Covariance of two collection target totals that share a stratum.",
+      "additionalProperties": false,
+      "required": [
+        "left",
+        "right",
+        "status",
+        "target_totals",
+        "reasons"
+      ],
+      "properties": {
+        "left": {
+          "$ref": "#/$defs/collection-name",
+          "description": "First collection, in provider then collection order."
+        },
+        "right": {
+          "$ref": "#/$defs/collection-name",
+          "description": "Second collection."
+        },
+        "status": {
+          "type": "string",
+          "description": "estimated when the covariance was computed, otherwise unavailable.",
+          "enum": [
+            "estimated",
+            "unavailable"
+          ]
+        },
+        "target_totals": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "x-unit": "1",
+          "description": "Covariance of the two target totals. Null when unavailable, including a collection with no reviewed sample. Zero is a real census value."
+        },
+        "reasons": {
+          "type": "array",
+          "description": "Why the covariance is unavailable. Empty when it was estimated.",
+          "minItems": 0,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "description": "One reason."
+          }
+        }
+      }
+    },
+    "by-source": {
+      "type": "object",
+      "description": "Each collection named by the sealed source, beside the combined audit population.",
+      "additionalProperties": false,
+      "required": [
+        "weighting",
+        "provenance",
+        "partitions_population",
+        "incomplete",
+        "shared_strata",
+        "covariance",
+        "collections",
+        "reasons"
+      ],
+      "properties": {
+        "weighting": {
+          "type": "string",
+          "const": "stratum_design",
+          "description": "Every window keeps its stratum weight. A collection is not reweighted as its own sample."
+        },
+        "provenance": {
+          "type": "string",
+          "description": "complete when every pool window names a collection.",
+          "enum": [
+            "complete",
+            "incomplete"
+          ]
+        },
+        "partitions_population": {
+          "type": "boolean",
+          "description": "True when each window belongs to exactly one collection and those collections cover the frame."
+        },
+        "incomplete": {
+          "$ref": "#/$defs/source-incomplete",
+          "description": "Windows with no named collection."
+        },
+        "shared_strata": {
+          "type": "array",
+          "description": "Strata whose frame spans more than one collection or includes an unbound window.",
+          "minItems": 0,
+          "items": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+            "description": "One shared stratum."
+          }
+        },
+        "covariance": {
+          "type": "array",
+          "description": "Pairs that share a stratum. A pair that does not share a stratum is omitted.",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/source-covariance",
+            "description": "One pair."
+          }
+        },
+        "collections": {
+          "type": "array",
+          "description": "Collections in provider then collection order.",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/source-collection",
+            "description": "One collection."
+          }
+        },
+        "reasons": {
+          "type": "array",
+          "description": "Why no collection estimate was attempted. Empty when the sealed frame matches the pool.",
+          "minItems": 0,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "description": "One reason."
+          }
+        }
+      },
+      "x-rules": {
+        "design": "A sampled window keeps the weight of its whole stratum, including windows of other collections. A shared stratum reports the covariance of the collection target totals. Unavailable evidence is null, not zero.",
+        "provenance": "A stream whose sealed origin is missing, unreadable, unnamed or disagreed between the paired runs stays unbound. It is not assigned to a guessed collection, and a missing origin is not a collection named unknown.",
+        "budget": "A collection is estimated only when its gain has a variance and the paired review budget is matched. An unmatched or unmeasured budget leaves a computed gain in place and makes that collection inconclusive."
+      }
+    }
+  }
+}

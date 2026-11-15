@@ -14,20 +14,16 @@ import copy
 import logging
 from collections.abc import Callable, Iterator, Mapping
 from dataclasses import dataclass
-from functools import cache
 from typing import Any
 
 from ss_track.core.canonical import SEAL_FIELD
 from ss_track.core.refusal import JsonValue
-from ss_track.corpus.records.kinds import CORPUS_MANIFEST_KIND
-from ss_track.corpus.sources.terms import AMEND_COMMAND
 from ss_track.schema.compatibility.dispositions import PROTECTED_PROPERTIES
 from ss_track.schema.compatibility.evolution import pointer_parts
-from ss_track.schema.registry.contract import FACTS, VERSION_FIELD
+from ss_track.schema.registry.contract import VERSION_FIELD
 from ss_track.schema.registry.store import damaged
 
 ANY_POSITION = "*"
-TERMS_KEYS = ("retain_until", "derived_frames")
 _FIXED = frozenset({SEAL_FIELD, "kind", VERSION_FIELD})
 _LOG = logging.getLogger(__name__)
 
@@ -114,40 +110,10 @@ def installed_views() -> Mapping[tuple[str, int], View]:
 
 def stated_shape(kind: str, major: int, record: Record) -> tuple[StatedShape, list[str]] | None:
     """Return the stated shape a record of the current major has, with what it lacks, if any."""
-    for shape in _shapes():
+    for shape in STATED_SHAPES:
         if shape.kind == kind and shape.major == major and (lacking := shape.lacking(record)):
             return shape, lacking
     return None
-
-
-def _streams_without_terms(record: Record) -> list[str]:
-    """Name each stream whose rights lack the source terms, reading no frame and no other field."""
-    streams = record.get("streams")
-    if not isinstance(streams, list):
-        return []
-    return [
-        str(stream.get("stream_id"))
-        for stream in streams
-        if isinstance(stream, dict) and not _holds_terms(stream.get("rights"))
-    ]
-
-
-def _holds_terms(rights: JsonValue) -> bool:
-    return isinstance(rights, dict) and all(key in rights for key in TERMS_KEYS)
-
-
-@cache
-def _shapes() -> tuple[StatedShape, ...]:
-    return (
-        StatedShape(
-            kind=CORPUS_MANIFEST_KIND,
-            major=3,
-            name="corpus-3-without-source-terms",
-            disposition=FACTS,
-            remedy=f"record source terms with {AMEND_COMMAND} and build a new corpus version",
-            lacking=_streams_without_terms,
-        ),
-    )
 
 
 def _leaves(value: Any, location: tuple[str, ...] = ()) -> Iterator[tuple[tuple[str, ...], Any]]:
@@ -185,3 +151,5 @@ def _declared(location: tuple[str, ...], derived: tuple[str, ...]) -> bool:
 
 _MISSING = object()
 INSTALLED_VIEWS: dict[tuple[str, int], View] = {}
+
+STATED_SHAPES: list[StatedShape] = []

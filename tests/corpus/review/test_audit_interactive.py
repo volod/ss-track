@@ -12,9 +12,9 @@ import pytest
 import yaml
 
 from ss_track.cli import main
+from ss_track.core.evidence.sealed import read_sealed
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
 from ss_track.corpus.records.kinds import AUDIT_BLINDING
-from ss_track.corpus.records.sealed import read_sealed
 from ss_track.corpus.review import audit_interactive, audit_viewer
 from ss_track.corpus.review.audit_interactive import conduct_audit, open_session
 from ss_track.corpus.review.audit_session import load_draft, read_packet

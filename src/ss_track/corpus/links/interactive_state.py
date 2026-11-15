@@ -8,8 +8,8 @@ from typing import Any
 import yaml
 
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
+from ss_track.core.scratch import write_atomically
 from ss_track.corpus.links.decisions import Decision, SourcePair, read_decisions, source_pair
-from ss_track.corpus.storage.scratch import write_atomically
 
 CHECKPOINT_NAME = "decisions.yaml"
 

@@ -5,10 +5,10 @@ from pathlib import Path
 
 import pytest
 
+from ss_track.core.evidence.read_refusals import NEWER, OLDER, UNSTATED
+from ss_track.core.evidence.sealed import read_comparable, read_sealed, read_stated
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
 from ss_track.corpus.records.kinds import RecordFormat
-from ss_track.corpus.records.read_refusals import NEWER, OLDER, UNSTATED
-from ss_track.corpus.records.sealed import read_comparable, read_sealed, read_stated
 from tests._sealing import self_sealed
 
 BODY = {"kind": "test-record", "schema_version": 3, "b": [1, None], "a": "value"}

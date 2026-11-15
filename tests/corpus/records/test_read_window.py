@@ -9,6 +9,9 @@ from pathlib import Path
 
 import pytest
 
+from ss_track.core.evidence import read_window
+from ss_track.core.evidence.read_window import View, check_view, view_findings
+from ss_track.core.evidence.sealed import read_stated
 from ss_track.core.refusal import JsonValue
 from ss_track.corpus import (
     CorpusRefusal,
@@ -18,10 +21,7 @@ from ss_track.corpus import (
     stage_corpus,
     verify_corpus_frames,
 )
-from ss_track.corpus.records import read_window
 from ss_track.corpus.records.kinds import CORPUS_MANIFEST, RecordFormat
-from ss_track.corpus.records.read_window import View, check_view, view_findings
-from ss_track.corpus.records.sealed import read_stated
 from ss_track.corpus.versions.manifests import load_corpus_manifest
 from tests.corpus._historic import kept_record
 from tests.corpus.conftest import (

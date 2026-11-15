@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
+from ss_track.core.scratch import exclusive_lock
 from ss_track.corpus.bundles.bundle_reader import open_corpus_bundle
 from ss_track.corpus.bundles.bundle_writer import write_source_bundles
 from ss_track.corpus.bundles.duplicate_frames import SharedFramesCheck, require_unshared_frames
@@ -39,7 +40,6 @@ from ss_track.corpus.decoding.decode_policy import (
 )
 from ss_track.corpus.sources.terms import evaluation_date
 from ss_track.corpus.storage.layout import frame_set_path, frames_root
-from ss_track.corpus.storage.scratch import exclusive_lock
 from ss_track.corpus.versions.manifests import load_corpus_manifest
 
 STAGED = "staged"

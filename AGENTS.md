@@ -35,8 +35,9 @@ specific files must link here and keep only integration-specific routing.
 - Runtime output belongs under `$DATA_DIR/<method>/<run-id>/`, never inside `src/`.
 - Reproducible bytes a command leaves in the data root, such as staged frames, downloads, caches,
   scratch or host-specific environments, are removable only through a registered `ss-track data
-  clean` kind with its restore path. A task that first writes a new kind registers it in
-  `src/ss_track/corpus/storage/clean_kinds.py`, with a test, in the same change, and a plan task
+  clean` kind with its restore path. A task that first writes a new kind registers it with the
+  shared registry in `src/ss_track/core/clean_kinds.py` from its owning area, with a test, in the
+  same change, and a plan task
   that will create one says so in its acceptance gates.
 - Shared shell behavior belongs in `scripts/shared/common.sh`. Every tracked shell function must
   use the `sst_` prefix because sourced functions share one namespace.

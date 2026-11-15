@@ -6,10 +6,10 @@ import pytest
 import yaml
 
 from ss_track.cli import main
+from ss_track.core.evidence.sealed import read_sealed
 from ss_track.corpus import build_corpus, import_source, stage_corpus, verify_corpus_frames
 from ss_track.corpus.links.run import LinkRequest, write_links
 from ss_track.corpus.records.kinds import CORPUS_POOL
-from ss_track.corpus.records.sealed import read_sealed
 from ss_track.corpus.sources.pool import prepare_pool
 from ss_track.corpus.sources.pool_account import account_corpus
 from ss_track.corpus.sources.stored import load_source_record

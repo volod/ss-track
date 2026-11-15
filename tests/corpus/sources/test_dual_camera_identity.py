@@ -3,16 +3,16 @@
 import json
 from pathlib import Path
 
+from ss_track.core.evidence.sealing import sha256_file
 from ss_track.corpus import (
     ImportResult,
     RefusalCode,
-    amend_source_terms,
+    amend_source,
     build_corpus,
     import_source,
     redecode_source,
     stage_corpus,
 )
-from ss_track.corpus.records.sealing import sha256_file
 from ss_track.corpus.sources.identity import source_identity
 from ss_track.schema import validate_file
 from tests.corpus._media import HEIGHT, WIDTH, write_dual_video
@@ -61,7 +61,7 @@ def test_both_indexes_import_and_the_first_keeps_a_one_stream_manifest(
     assert first.manifest_path.parent.name == file_hash
     assert sha256_file(first.manifest_path.parent / "source.mkv") == file_hash
     assert sha256_file(second.manifest_path.parent / "source.mkv") == file_hash
-    assert validate_file(first.manifest_path, version="2.1.0").version == "2.1.0"
+    assert validate_file(first.manifest_path, version="3.0.0").version == "3.0.0"
     assert first_body["source"]["sha256"] == file_hash
     assert second_body["source"]["sha256"] == file_hash
     assert "video_stream_index" not in first_body["sequence"]
@@ -242,7 +242,7 @@ def test_amending_one_camera_leaves_the_other_record(
     first, second, file_hash = _import_both(media, write_recording, data_root)
     before = first.manifest_path.read_bytes()
 
-    amended = amend_source_terms(
+    amended = amend_source(
         write_recording("dual.mkv", video_stream_index=1, sensitivity={"level": "high"}),
         data_root,
     )
@@ -254,7 +254,7 @@ def test_amending_one_camera_leaves_the_other_record(
         "unchanged"
     )
     (media / "dual.mkv").unlink()
-    after_removal = amend_source_terms(
+    after_removal = amend_source(
         write_recording(
             "dual.mkv", sha256=file_hash, video_stream_index=1, sensitivity={"level": "moderate"}
         ),

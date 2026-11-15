@@ -241,6 +241,19 @@ packet/frame identity and PTS, and validates a declared sample of decoded pixels
 tolerance. If exact input correspondence cannot be established, `EXTERNAL_EVENTS` reports contract
 conformance only.
 
+A recording can instead declare an ordered sequence of lossless PNG images. Each member declares
+its consecutive zero-based index, path and expected SHA-256. Import never guesses order or fills a
+missing index. Its identity hashes the ordered image hashes with an image-sequence domain tag;
+paths and frame rate do not change source identity. A pinned inventory retains membership and the
+declared rate, while each retained image is verified against its expected hash. Mixed dimensions or
+pixel layouts, changed images, missing members and lossy codecs are refused. Images contain no
+presentation clock: timestamps are missing unless a positive rational frame rate is declared, in
+which case frame-index timestamps are derived. Capture-clock claims are refused. No resampling,
+filename sorting or implicit frame-rate inference is performed. Evaluation requires repeated imports
+and staging to reproduce identities and bundle hashes, named malformed-input refusals, and missing
+timing to remain unavailable with its cause. A refused unsupported image format is a valid negative
+result; it must never silently become a video or a lossy source.
+
 A recording names one video stream of its file. `source.video_stream_index` is that stream's
 zero-based position among video streams, not among every stream in the container. A file with one
 video stream may omit the index, and that stream is decoded. A file with more than one is refused
@@ -418,6 +431,52 @@ decision or a declaration, so every hash and comparison stays readable, and a ve
 were released stages again to the same frame set. It does not choose what is obsolete, delete a
 whole data root or touch another host. A task that introduces a new kind of disposable artifact
 registers that kind, with its restore path and a test, in the same change.
+
+#### Capture vocabulary and historical source records
+
+New recording declarations and source records use the two closed capture vocabularies above.
+An omitted declaration value becomes `unknown` in a newly written source record. That is a
+statement of unavailable knowledge, not a classification inferred from footage or descriptive text.
+Other capture metadata remains descriptive.
+
+Historical capture values remain readable as stated, including text, numbers and null. Source
+inspection uses the shared stated-record reader and returns the original major, seal, disposition
+and capture fields without reading media or writing a record. It never presents historical free
+text as a member of the new vocabulary. Missing historical platform data is reported as unknown
+in the inspection result without inserting a field into the stored record.
+
+The vocabulary restriction takes a new major for both contracts. Earlier source majors use the
+`facts` disposition: inspection remains possible, but they cannot serve as current evidence.
+This transition ships together with `ss-track import --amend-capture`. That explicit operation
+uses the operator's current recording declaration to replace only the two capture vocabulary
+fields, retains the original record under its seal, and preserves source identity, media, other
+capture fields, terms and decoded facts. It reuses the source replacement lock and impact report.
+Ordinary import, terms amendment and redecode never silently restate capture judgments.
+
+Capture amendment may be combined with terms amendment and redecode when an older record also lacks
+their facts. A refusal names every additionally required operation; no partial successor is
+published. Source inspection names the same operations in advance, from the same rule, so an
+operator learns the whole migration before running any of it. Missing media permits a metadata-only
+amendment by declared source identity, but not a redecode. Repeating an accepted amendment writes
+nothing. Versions pinning the replaced record remain unchanged and refuse use; the operator builds a
+successor version with the original groups and splits. A vocabulary migration never bypasses a
+leakage comparison or changes a source hash.
+
+Build reports count distinct encounters separately for each control mode and platform, including
+all vocabulary bins with zero counts. Repeated streams in one encounter count once per bin;
+an encounter with streams in different bins counts once in each applicable bin. Consequently the
+bin totals need not equal the encounter total. Generated cases add no encounters. Historical
+free text never enters these categorical counts, because historical source records first require
+an explicit amendment.
+
+Evaluation uses deterministic fixtures covering both vocabularies, absent and invalid values,
+historical text/numeric/null values, replacement interrupted before publication, repeated
+amendments, mixed-stream encounters and generated cases. Acceptance requires unchanged original
+bytes and seals, precise refusals, a usable migration followed by a successor build, and exact
+encounter counts. An unsupported historical record is a valid refusal with its remedy, never a
+successful vocabulary classification; refusing all historical records without a usable migration
+is not acceptance. No image-based classification, new camera acquisition or physical claim is
+part of this capability.
 
 ### 4.1a Self-supervised video corpus formation
 
@@ -708,10 +767,11 @@ degrades, not only whether it does. The curve is one parameter on one encounter 
 diagnostic, it enters no composite score, and it is never field evidence.
 
 A scale-reduction case probes how small a target can become. It resamples every frame by a
-declared factor with an area-average filter that belongs to the transform's revision, and scales
-label geometry, localization uncertainty and the plausible extent of a point-only label by the
-same factor. A box that falls below the scenario pack's minimum box extent becomes `point_only`,
-and a target below the pack's minimum point extent becomes `unlocalizable`, so a module is never
+declared integer divisor of at least two with an area-average filter that belongs to the transform's
+revision. Label geometry, localization uncertainty and the plausible extent of a point-only label
+are divided by the same factor. A box that falls below the scenario pack's minimum box extent
+becomes `point_only`, and a target below the pack's minimum point extent becomes `unlocalizable`,
+so a module is never
 scored against geometry that no reviewer could have drawn at that size. Cases at several factors
 give the generated half of the [small-target extent envelope](#67-small-target-extent-envelope).
 The case removes pixels. It adds no atmosphere, optics blur, sensor noise or motion blur, so it

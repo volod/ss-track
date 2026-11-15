@@ -8,7 +8,7 @@ from typing import Any
 import pytest
 
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
-from ss_track.corpus import ImportResult, amend_source_terms, build_corpus, stage_corpus
+from ss_track.corpus import ImportResult, amend_source, build_corpus, stage_corpus
 from ss_track.corpus.review.export import export_review
 from ss_track.corpus.review.freeze import freeze_corpus
 from ss_track.corpus.storage.layout import freeze_path
@@ -124,9 +124,7 @@ def test_terms_that_no_longer_hold_refuse_the_freeze(
 ) -> None:
     review = staged(media, data_root)
     links = review_links(data_root)
-    amend_source_terms(
-        write_recording("clip-2.mkv", rights=rights_with(sharing="public")), data_root
-    )
+    amend_source(write_recording("clip-2.mkv", rights=rights_with(sharing="public")), data_root)
 
     with pytest.raises(CorpusRefusal) as caught:
         freeze_corpus(FROZEN, review, links, data_root)

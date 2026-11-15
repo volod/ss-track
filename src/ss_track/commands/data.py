@@ -4,8 +4,8 @@ import argparse
 
 from ss_track.commands import Subcommands
 from ss_track.commands.report import reported_on_data_root
-from ss_track.corpus.storage.clean import clean_data_root
-from ss_track.corpus.storage.clean_kinds import KINDS
+from ss_track.core.clean import clean_data_root
+from ss_track.core.clean_kinds import KINDS
 
 
 def add_data_commands(subcommands: Subcommands) -> None:

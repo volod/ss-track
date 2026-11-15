@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import TextIO
 
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
+from ss_track.core.scratch import exclusive_lock
 from ss_track.core.terminal import controlling_terminal
 from ss_track.corpus.review.audit_viewer import Reveal, Viewer, play_flipbook, reveal_folder
 from ss_track.corpus.review.pass_session import (
@@ -34,7 +35,6 @@ from ss_track.corpus.review.review_terminal import (
     first_open,
     move,
 )
-from ss_track.corpus.storage.scratch import exclusive_lock
 
 INSTRUCTIONS = (
     """Selection pass

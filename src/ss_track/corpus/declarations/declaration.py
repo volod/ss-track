@@ -6,31 +6,20 @@ from pathlib import Path
 
 from ss_track.core.refusal import JsonValue
 from ss_track.corpus.cases.recipes import CaseRecipe, read_recipe
+from ss_track.corpus.declarations.capture import read_capture
 from ss_track.corpus.declarations.fields import Fields, Selection, invalid
+from ss_track.corpus.declarations.image_sequence import ImageSequence, read_image_sequence
 from ss_track.corpus.declarations.origin import OriginMembership, read_origins
 from ss_track.corpus.decoding.declared_color import matrix_code
 from ss_track.schema.validation.enforce import read_declaration
 
 RECORDING_CONTRACT = "declaration/recording"
 CORPUS_CONTRACT = "declaration/corpus"
-RECORDING_SCHEMA_VERSION = 2
+RECORDING_SCHEMA_VERSION = 3
 CORPUS_SCHEMA_VERSION = 3
 # Orders the contracts do not state, which the rights checks compare by.
 SHARING_SCOPES = ("restricted", "public")  # narrowest first
 SENSITIVITY_LEVELS = ("low", "moderate", "high")  # least sensitive first
-UNKNOWN_RANGE = "unknown"
-CAPTURE_FIELDS = (
-    "camera",
-    "lens",
-    "exposure",
-    "focus",
-    "fov",
-    "camera_control_mode",
-    "lighting",
-    "background",
-    "motion",
-    "object_pixel_extent",
-)
 
 
 @dataclass(frozen=True, slots=True)
@@ -66,6 +55,7 @@ class RecordingDeclaration:
     capture_clock_evidence: str | None
     capture: dict[str, JsonValue]
     origin: tuple[OriginMembership, ...]
+    image_sequence: ImageSequence | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -135,6 +125,9 @@ def load_recording_declaration(path: Path) -> RecordingDeclaration:
     source = fields.child("source")
     expected_sha256 = source.text("sha256") if source.has("sha256") else None
     timestamps = fields.optional_child("timestamps")
+    images = read_image_sequence(source, path.resolve().parent / source.text("path"))
+    if images is not None and timestamps.has("capture_clock_evidence"):
+        raise invalid("image sequences cannot claim capture-clock timestamps")
     return RecordingDeclaration(
         source_path=path.resolve().parent / source.text("path"),
         expected_sha256=expected_sha256,
@@ -145,8 +138,9 @@ def load_recording_declaration(path: Path) -> RecordingDeclaration:
         rights=_read_rights(fields.child("rights")),
         sensitivity=_read_sensitivity(fields.child("sensitivity")),
         capture_clock_evidence=timestamps.optional_text("capture_clock_evidence"),
-        capture=_read_capture(fields.optional_child("capture")),
+        capture=read_capture(fields.optional_child("capture")),
         origin=read_origins(fields),
+        image_sequence=images,
     )
 
 
@@ -189,24 +183,6 @@ def _read_rights(fields: Fields) -> Rights:
 
 def _read_sensitivity(fields: Fields) -> Sensitivity:
     return Sensitivity(level=fields.text("level"), notes=fields.optional_text("notes"))
-
-
-def _read_capture(fields: Fields) -> dict[str, JsonValue]:
-    capture: dict[str, JsonValue] = {name: fields.scalar(name) for name in CAPTURE_FIELDS}
-    capture["range"] = _read_range(fields.optional_child("range"))
-    return capture
-
-
-def _read_range(fields: Fields) -> dict[str, JsonValue]:
-    """Apply the contract's range rule, which states that an absent status is unknown."""
-    status = fields.text("status") if fields.has("status") else UNKNOWN_RANGE
-    value_m = fields.scalar("value_m")
-    method = fields.optional_text("method")
-    if status != UNKNOWN_RANGE and (value_m is None or method is None):
-        raise invalid(f"capture.range.status {status} requires value_m and method")
-    if status == UNKNOWN_RANGE and (value_m is not None or method is not None):
-        raise invalid("capture.range.status unknown cannot carry value_m or method")
-    return {"status": status, "value_m": value_m, "method": method}
 
 
 def _read_scenario_rights(fields: Fields) -> ScenarioRights:

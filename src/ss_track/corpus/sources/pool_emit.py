@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 from typing import cast
 
+from ss_track.core.evidence.sealing import seal
 from ss_track.core.refusal import JsonValue, RefusalCode
 from ss_track.corpus.declarations.declaration import (
     CORPUS_CONTRACT,
@@ -11,7 +12,6 @@ from ss_track.corpus.declarations.declaration import (
     RECORDING_SCHEMA_VERSION,
 )
 from ss_track.corpus.records.kinds import CORPUS_POOL
-from ss_track.corpus.records.sealing import seal
 from ss_track.corpus.review.export import declaration_bytes
 from ss_track.corpus.sources.metadata_claims import Unresolved
 from ss_track.corpus.sources.pool_group import GroupPlan, Outcome, StreamPlan

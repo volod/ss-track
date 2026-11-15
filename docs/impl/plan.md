@@ -33,142 +33,6 @@ hardware or private data.
 
 ## Agent Implementation Tasks
 
-### Corpus provenance -- `corpus-provenance`
-
-#### shared-evidence-primitives
-
-Sealed records, atomic writes, locks and the clean-kind registry live inside the corpus package,
-and its record reader imports a source module. Labels, run bundles, host profiles and trials need
-the same primitives, and each would otherwise copy them or import corpus internals.
-
-- Serves: `corpus-provenance` -- [Corpus
-  identity](../design/spec.md#41-corpus-identity-and-input-handling)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: Every area seals, reads, locks and cleans evidence through one shared
-  package, and no area imports a corpus module to do so.
-- Scope boundary: A move of the sealing and sealed-read path, the read window, atomic scratch
-  writes, locks and the clean-kind registry. Corpus-specific kinds, layout and projections stay in
-  the corpus area and register themselves. The one term the read path takes from a source module
-  becomes a value its caller supplies. No sealed byte, hash, refusal code or contract moves.
-- Data and artifact paths: `src/ss_track/core/`, `src/ss_track/corpus/records/`,
-  `src/ss_track/corpus/storage/`, `tests/core/`, `tests/corpus/`, `AGENTS.md`,
-  `docs/guide/planning-workflow.md`.
-- Execution path: Move the primitives under unchanged function names where possible, let each area
-  register its record kinds and clean kinds, and add an import-boundary test. Update the clean-kind
-  path that `AGENTS.md` and the planning workflow name.
-- Acceptance gates: Every sealed fixture and historic record reads to the same bytes and hashes. An
-  import-boundary test fails when the shared package imports an area, or when a module outside the
-  corpus area imports it for sealing, locking or cleaning. `make ci` passes.
-- Documentation target: [Corpus](current/corpus.md).
-
-#### recording-capture-vocabulary
-
-The specification gives camera control a closed vocabulary, but a recording stores it as free text,
-and no recording says whether its camera stood on the ground or flew. Reports cannot stratify by
-either, so ground footage could stand in for an airborne observer unnoticed.
-
-- Serves: `corpus-provenance` -- [Evidence lanes](../design/spec.md#2-evidence-lanes-and-claims)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: A recording declares camera control and observer platform from closed
-  vocabularies, a corpus build counts its encounters by both, and any other value is refused.
-- Scope boundary: `capture.camera_control_mode` as `operator_steered`, `fixed_camera`,
-  `autonomous_camera` or `unknown`, and `capture.observer_platform` as `ground_fixed`,
-  `ground_handheld`, `airborne` or `unknown`, in the recording declaration and the source record.
-  An absent value reads as `unknown`. A record written before this change keeps its bytes, and its
-  free text is shown as stated and never mapped by guesswork. Other capture facts stay descriptive.
-- Data and artifact paths: `contracts/declaration/recording/`, `contracts/record/source-manifest/`,
-  `src/ss_track/corpus/declarations/`, `src/ss_track/corpus/versions/`, `tests/corpus/`,
-  `docs/impl/workloads/`.
-- Execution path: Evolve both contracts under the spec section 17.3 rules, with the version bump
-  the change requires and a read disposition for older records. Add counts by control mode and
-  platform to the build result, and restate the checked-in workload declarations.
-- Acceptance gates: A value outside either vocabulary is refused with its field named. An older
-  record reads with no byte or hash moved and reports its control mode as stated text. A build
-  result counts encounters by control mode and observer platform, with `unknown` shown. Frozen
-  contracts and `make ci` pass.
-- Documentation target: [Corpus](current/corpus.md).
-
-#### scale-reduction-case
-
-No generated case makes a target smaller, so the benchmark cannot show where a module stops seeing
-a target as it covers fewer pixels, which is the offline form of long-range detection.
-
-- Serves: `corpus-provenance` -- [Deterministic cases](../design/spec.md#43-deterministic-cases-and-negative-evidence)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: A recipe declares a scale-reduction case, and staging writes frames
-  resampled by its factor with a stored `scale` label transform.
-- Scope boundary: Whole-frame reduction by a declared factor, with an area-average filter that is
-  part of the transform revision, and a label transform that states the factor. No blur, noise,
-  atmosphere or optics model, no enlargement and no range claim. A graded list of factors belongs
-  to `robustness-severity-sweep`, and deriving the labels belongs to `generated-case-labels`.
-- Data and artifact paths: `src/ss_track/corpus/cases/`, `tests/corpus/cases/`, `contracts/`,
-  `$DATA_DIR/corpus/<corpus-id>/`.
-- Execution path: Add the transform in integer arithmetic, so one recipe gives identical bytes on
-  x86-64 and arm64, record the output dimensions in the bundle, and extend `corpus preview` to
-  show the reduced frame beside its parent.
-- Acceptance gates: Hand-computed frames match for even and odd dimensions and for a factor that
-  does not divide them. A rerun is byte-identical, a factor that changes no pixel is refused, and
-  a stored case of another revision is refused. The case inherits its parent's split, encounter
-  and group and adds to no count. `make ci` passes.
-- Documentation target: [Corpus](current/corpus.md).
-
-#### frame-sequence-source-import (optional)
-
-Public airborne-observer collections often ship as numbered images, and import accepts one video
-stream of one file, so such a source cannot enter a corpus.
-
-- Serves: `corpus-provenance` -- [Corpus identity](../design/spec.md#41-corpus-identity-and-input-handling)
-- Agent status: CLEAR
-- Dependencies: recording-capture-vocabulary.
-- User-visible outcome: A recording declares an ordered image sequence as its source, and import,
-  build, stage and verify treat it as they treat a video stream.
-- Scope boundary: Lossless image files in a declared order, with one source identity over the
-  ordered file hashes. A sequence stores no presentation time, so its timestamp quality is
-  `missing` unless the declaration states a frame rate, which makes it `derived`. No lossy image
-  format, no resampling and no reordering by guesswork.
-- Data and artifact paths: `contracts/declaration/recording/`, `contracts/record/source-manifest/`,
-  `src/ss_track/corpus/sources/`, `src/ss_track/corpus/decoding/`, `tests/corpus/`.
-- Execution path: Evolve both contracts under the spec section 17.3 rules, read each image through
-  the pinned decoder into the canonical pixel format, and add fixtures with a missing index, a
-  changed image and mixed dimensions.
-- Acceptance gates: One sequence imported twice gives one source identity and one bundle hash. A
-  missing index, a changed image and mixed dimensions are each refused by name. Time-based scores
-  of a sequence with no declared rate are unavailable with their cause, and `make ci` passes.
-- Documentation target: [Corpus](current/corpus.md).
-
-#### corpus-provenance-audit (optional)
-
-Shared primitives, closed capture vocabularies and a geometry-changing case each touch records
-that earlier work sealed, and a difference between them would move a hash.
-
-- Serves: `corpus-provenance` -- [Corpus
-  identity](../design/spec.md#41-corpus-identity-and-input-handling)
-- Agent status: CLEAR
-- Milestone: M1
-- Effort: high
-- Dependencies: every other agent task in this group.
-- User-visible outcome: The corpus area keeps one account of sealing, capture facts and generated
-  cases after its primitives moved.
-- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
-  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
-  score or refusal code.
-- Data and artifact paths: `src/ss_track/core/`, `src/ss_track/corpus/`, `tests/core/`,
-  `tests/corpus/`, `contracts/`.
-- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from
-  every caller of the shared primitives, how an older recording reads under the closed
-  vocabularies, and what the scale-reduction case shares with the other frame-map cases.
-- Acceptance gates: Historic records read to the same bytes and hashes, the import boundary holds,
-  and generated cases stay byte-identical on rerun. Every finding is fixed, routed to a task or
-  dropped with its reason, and `make quality` passes. Finding nothing is a valid result when the
-  record states what was reviewed.
-- Documentation target: [Corpus](current/corpus.md).
-
 ### Annotation and selection -- `annotation-selection`
 
 #### scenario-pack-contract
@@ -206,7 +70,7 @@ Labels need stable identity and a frozen mask before scores can mean anything.
 - Serves: `annotation-selection` -- [Annotation contract](../design/spec.md#42-annotation-contract)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: scenario-pack-contract, shared-evidence-primitives.
+- Dependencies: scenario-pack-contract.
 - User-visible outcome: An operator validates visibility status, geometry, instance identity, motion
   events, operator seeds and masks against a versioned contract.
 - Scope boundary: Label, seed and mask contracts, validation and frozen seed replay, in the stored
@@ -246,13 +110,14 @@ create a false negative.
 - Serves: `annotation-selection` -- [Annotation contract](../design/spec.md#42-annotation-contract)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: annotation-review-tools, scale-reduction-case.
+- Dependencies: annotation-review-tools.
 - User-visible outcome: `ss-track annotate derive` gives each generated case a hashed label revision
   from its parent's frozen labels and stored label transform, including a `track_status` case.
 - Scope boundary: Every stored label transform: region status, translation with clipping and
-  `out_of_view`, frame maps, `scale`, `compression`, `timing` and `track_status`. `scale` multiplies
-  geometry, uncertainty and plausible extent by its factor, turns a box under the pinned pack's
-  minimum box extent into `point_only`, and a target under its minimum point extent into
+  `out_of_view`, frame maps, `scale`, `compression`, `timing` and `track_status`. `scale` divides
+  geometry, uncertainty and plausible extent by its integer factor and clips to the output frame.
+  It turns a box under the pinned pack's minimum box extent into `point_only`, and a target under
+  its minimum point extent into
   `unlocalizable`. `compression` and `timing` do not move geometry. `timing` records that
   presentation time is `derived`. `track_status` lists one role per case-window frame: `unknown`
   when that frame has no box, `region` for a painted rectangle, `shift` when the frame leaves the
@@ -357,7 +222,7 @@ Every score must be recomputable from immutable evidence.
 - Serves: `module-contract-runner` -- [Run artifacts](../design/spec.md#10-run-artifacts-and-comparison-dashboard)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: scenario-contract, shared-evidence-primitives.
+- Dependencies: scenario-contract.
 - User-visible outcome: A run leaves a complete read-only bundle, or one marked incomplete.
 - Scope boundary: The spec section 10 artifact set, write-then-rename finalize, idempotent IDs, and a
   visibility field that defaults to restricted. `loc-lm-bench` is a pattern to check, not an import.
@@ -548,7 +413,9 @@ Every suite needs one way to score saved evidence.
 - Execution path: Add suite and dataset interfaces, the evaluator loop, and one fixture suite that
   exercises the run and block levels.
 - Acceptance gates: Recomputing a fixture bundle in a second process is byte-identical. A suite that
-  reads outside its bundle fails.
+  reads outside its bundle fails. A PNG sequence with no declared rate supplies missing PTS and
+  time base; time-based metrics report unavailable with `missing_timestamps`, without inventing
+  durations or dropping the cause.
 - Documentation target: [Current implementation](current.md#areas), new page
   `current/evaluation.md`.
 
@@ -1092,7 +959,7 @@ argument parsing.
 
 - Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: CLEAR
-- Dependencies: shared-evidence-primitives.
+- Dependencies: none.
 - User-visible outcome: Corpus provenance and corpus discovery are separate area packages, with
   imports in one direction, from discovery to provenance.
 - Scope boundary: A move of the inventory, acquisition, pool, sibling, selection, discovery,
@@ -3303,7 +3170,7 @@ almost none.
 
 - Serves: `self-supervised-corpus` -- [Video corpus formation](../design/spec.md#41a-self-supervised-video-corpus-formation)
 - Agent status: HUMAN-GATED
-- Dependencies: recording-capture-vocabulary.
+- Dependencies: none.
 - User-visible outcome: An approval record names each airborne-observer source the owner permits,
   with its terms, transfer budget and intended split, or states that none is available.
 - Scope boundary: Sources whose camera flew, including the owner's own recordings and public
@@ -3311,7 +3178,7 @@ almost none.
   [Airborne Object Tracking dataset](https://registry.opendata.aws/airborne-object-tracking/) and
   [Det-Fly](https://github.com/Jake-WU/Det-Fly). Each candidate's license, annotation semantics
   and overlap with other sources are checked first. No capture is solicited to fill a stratum, and
-  a source that ships as images waits for `frame-sequence-source-import`.
+  candidates must fit the supported [source formats](current/corpus.md#ordered-image-sequences).
 - Data and artifact paths: `docs/impl/workloads/`, `$DATA_DIR/self-supervised-corpus/<run-id>/`.
 - Execution path: An agent inventories each candidate's terms and upstream identity through the
   source inventory. The owner approves or declines each one and declares its observer platform.

@@ -11,10 +11,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from ss_track.core.evidence.sealed import Comparable, read_comparable
 from ss_track.core.refusal import CorpusRefusal, JsonValue
 from ss_track.corpus.records.kinds import RecordFormat
 from ss_track.corpus.records.projections import OTHER_SCHEMA
-from ss_track.corpus.records.sealed import Comparable, read_comparable
 from ss_track.corpus.storage.layout import MANIFEST_NAME, corpus_root
 
 UNREADABLE = "unreadable"

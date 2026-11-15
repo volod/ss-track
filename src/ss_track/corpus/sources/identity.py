@@ -11,9 +11,10 @@ from pathlib import Path
 from typing import Any
 
 from ss_track.core.canonical import canonical_json, sha256_bytes
+from ss_track.core.evidence.sealing import sha256_file
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.decoding.streams import recorded_video_stream_index
-from ss_track.corpus.records.sealing import sha256_file
+from ss_track.corpus.sources.image_sequence import verify_sequence
 
 CONTENT_SHA256 = "content_sha256"
 _IDENTITY_KIND = "video-stream"
@@ -98,6 +99,10 @@ def require_stored_source(
     """
     stored = directory / _stored_name(manifest)
     identity = directory.name
+    pin = manifest.get("source", {}).get("inventory_sha256")
+    if pin is not None:
+        verify_sequence(stored, identity, str(pin), mismatch)
+        return stored
     if not stored.is_file():
         raise CorpusRefusal(mismatch, _BYTE_MISMATCH[mismatch], {"source_sha256": identity})
     file_hash = sha256_file(stored)

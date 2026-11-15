@@ -10,10 +10,10 @@ from collections.abc import Iterator, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
+from ss_track.core.evidence.sealed import read_sealed
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.links.review import CLEAR, UNRESOLVED
 from ss_track.corpus.records.kinds import CORPUS_LINKS
-from ss_track.corpus.records.sealed import read_sealed
 from ss_track.corpus.storage.layout import LINKS_NAME, links_path
 from ss_track.schema.validation.enforce import is_shared_type, require_record
 

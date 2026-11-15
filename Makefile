@@ -17,7 +17,7 @@ export MYPY_CACHE_DIR := $(DATA_ROOT)/cache/mypy
 .DEFAULT_GOAL := help
 
 .PHONY: help bootstrap venv lock run doctor format format-check lint typecheck \
-	test-light test-external test coverage \
+	test-light test-external test test-architecture coverage \
 	complexity-gate shell-lint-gate lint-md lint-doc-links lint-spec-plan lint-contracts \
 	plan-status \
 	ci-checks ci ci-github build quality code-quality quality-report \
@@ -72,6 +72,11 @@ test-external: ## Run tests that depend on contract artifacts or an external run
 test: ## Run both test groups
 	@source "$(PROJECT_ROOT)/scripts/shared/common.sh"; sst_load_test_env; \
 		"$(PY)" -m pytest $(PYTEST_CACHE)
+
+test-architecture: ## Run the architecture-sensitive decode and transform tests
+	@source "$(PROJECT_ROOT)/scripts/shared/common.sh"; sst_load_test_env; \
+		"$(PY)" -m pytest $(PYTEST_CACHE) tests/corpus/decoding/test_pixels.py \
+		tests/corpus/decoding/test_decode_policy.py tests/corpus/cases/test_transform_golden.py
 
 coverage: ## Run both test groups and enforce the coverage floor
 	@source "$(PROJECT_ROOT)/scripts/shared/common.sh"; sst_load_test_env; \

@@ -9,9 +9,9 @@ from typing import Any, TextIO
 
 from ss_track.core.canonical import SEAL_FIELD
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
+from ss_track.core.scratch import exclusive_lock
 from ss_track.core.terminal import controlling_terminal
 from ss_track.corpus.bundles.version_bundles import require_sources_hold
-from ss_track.corpus.decoding.streams import recorded_video_stream_index
 from ss_track.corpus.links.decisions import Decision, SourcePair, source_pair
 from ss_track.corpus.links.interactive_state import (
     CHECKPOINT_NAME,
@@ -22,9 +22,9 @@ from ss_track.corpus.links.interactive_state import (
 )
 from ss_track.corpus.links.records import read_links
 from ss_track.corpus.sources.stored import load_verified_source
+from ss_track.corpus.sources.stored_media import describe_stored, player_input
 from ss_track.corpus.sources.terms import evaluation_date
 from ss_track.corpus.storage.layout import discovery_run_directory
-from ss_track.corpus.storage.scratch import exclusive_lock
 from ss_track.corpus.versions.manifests import load_corpus_manifest
 
 INSTRUCTIONS = """Recording relationship review
@@ -228,23 +228,13 @@ def _step(
     return index
 
 
-def _play(path: Path, stream_index: int) -> bool:
+def _play(source: list[str]) -> bool:
+    """Play one recording, given the player arguments that open it."""
     executable = shutil.which("ffplay")
     if executable is None:
         return False
     result = subprocess.run(
-        [
-            executable,
-            "-autoexit",
-            "-hide_banner",
-            "-loglevel",
-            "error",
-            "-an",
-            "-vst",
-            f"v:{stream_index}",
-            "-i",
-            str(path),
-        ],
+        [executable, "-autoexit", "-hide_banner", "-loglevel", "error", "-an", *source],
         stdin=subprocess.DEVNULL,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
@@ -265,8 +255,7 @@ def _describe_source(identity: str, data_root: Path) -> str:
                     f" / {item.get('video_path', 'unknown')}"
                 )
     suffix = f"\n   Origin: {'; '.join(names)}" if names else ""
-    stream_index = recorded_video_stream_index(source.sequence)
-    return f"{source.stored} (video stream {stream_index}){suffix}"
+    return f"{describe_stored(source.stored, source.sequence)}{suffix}"
 
 
 def _validate_record(
@@ -334,7 +323,7 @@ def review_interactively(run_id: str, reviewer: str, data_root: Path) -> Interac
 
         def play(identity: str) -> bool:
             source = load_verified_source(identity, data_root)
-            return _play(source.stored, recorded_video_stream_index(source.sequence))
+            return _play(player_input(source.stored, source.sequence))
 
         checkpoint = review_dir / CHECKPOINT_NAME
         _initialize_checkpoint(checkpoint, reviewer, prior)

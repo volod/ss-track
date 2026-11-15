@@ -11,8 +11,8 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from ss_track.core.canonical import canonical_json, sha256_bytes
+from ss_track.core.evidence.sealing import sha256_file
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
-from ss_track.corpus.records.sealing import sha256_file
 from ss_track.corpus.storage.layout import MANIFEST_NAME
 
 IDENTITY_TRANSFORM = "identity"

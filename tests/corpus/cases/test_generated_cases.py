@@ -8,6 +8,7 @@ from typing import Any
 
 import pytest
 
+from ss_track.core.evidence.sealed import read_sealed
 from ss_track.corpus import (
     CorpusRefusal,
     ImportResult,
@@ -19,7 +20,6 @@ from ss_track.corpus import (
 )
 from ss_track.corpus.cases.transforms import TRANSFORM_REVISIONS
 from ss_track.corpus.records.kinds import CORPUS_MANIFEST, FRAME_BUNDLE
-from ss_track.corpus.records.sealed import read_sealed
 from tests.corpus._media import FRAME_COUNT, HEIGHT, WIDTH
 from tests.corpus.conftest import WriteCorpus, WriteRecording, case_of, stream_of
 

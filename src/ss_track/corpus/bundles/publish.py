@@ -5,7 +5,7 @@ from collections.abc import Iterator, Sequence
 from contextlib import ExitStack, contextmanager
 from pathlib import Path
 
-from ss_track.corpus.storage.scratch import READ_ONLY_DIRECTORY_MODE, scratch_directory
+from ss_track.core.scratch import READ_ONLY_DIRECTORY_MODE, scratch_directory
 
 
 @contextmanager

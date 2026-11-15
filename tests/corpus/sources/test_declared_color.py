@@ -9,10 +9,11 @@ import pytest
 
 from ss_track.cli import main
 from ss_track.commands.report import EXIT_REFUSED
+from ss_track.core.evidence.sealed import read_sealed
 from ss_track.corpus import (
     CorpusRefusal,
     RefusalCode,
-    amend_source_terms,
+    amend_source,
     build_corpus,
     import_source,
     open_frame_bundle,
@@ -20,7 +21,6 @@ from ss_track.corpus import (
     stage_corpus,
 )
 from ss_track.corpus.records.kinds import FRAME_BUNDLE, SOURCE_MANIFEST
-from ss_track.corpus.records.sealed import read_sealed
 from tests.corpus._media import write_clip
 from tests.corpus.bundles._bundle_writing import CORPUS, bundle_dir
 from tests.corpus.conftest import (
@@ -202,10 +202,10 @@ def test_an_amendment_cannot_drop_a_color_declaration(
     before = imported.manifest_path.read_bytes()
 
     with pytest.raises(CorpusRefusal) as dropped:
-        amend_source_terms(write_recording(sensitivity={"level": "high"}), data_root)
+        amend_source(write_recording(sensitivity={"level": "high"}), data_root)
 
     assert imported.manifest_path.read_bytes() == before
-    amended = amend_source_terms(
+    amended = amend_source(
         write_recording(color={"matrix": "bt709"}, sensitivity={"level": "moderate"}), data_root
     )
 

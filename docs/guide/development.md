@@ -22,7 +22,9 @@ and plan integrity, frozen contracts, and the lightweight test group.
 Tests are two groups. `make test-light` runs tests that do not copy or recheck the shipped contract
 set, rebuild a Git history of that set, or need the optional sibling interpreter or Croissant
 package. `make test-external` runs that other group. `make test` runs both. GitHub Actions calls
-`make ci`, which uses the lightweight group.
+`make ci`, which uses the lightweight group. On an ARM host, run `make test` locally for the full
+architecture check. `make test-architecture` selects the decode, pixel and golden-transform tests
+used on every ARM CI run. The full hosted ARM suite is available through manual workflow dispatch.
 
 `make quality` adds branch coverage over both groups, Markdown style, and source/wheel builds. Run
 it before release or after changing project infrastructure. `make quality-report` reports files over

@@ -1,19 +1,20 @@
-"""The registered kinds of reproducible artifact `ss-track data clean` may remove.
+"""The corpus area's kinds of reproducible artifact, which `ss-track data clean` may remove.
 
 A kind names the bytes it removes, the target an operator names (a corpus version, a run, or none),
 how the bytes are made again, and the lock its writer holds, so a live command is never cleaned
-under. Register a new kind here, with a test of its plan, removal and restore, in the change that
-first writes such an artifact.
+under. Register a new corpus kind here, with a test of its plan, removal and restore, in the change
+that first writes such an artifact. `ss_track.corpus` registers these with `core.clean_kinds`.
 """
 
 import fcntl
 import os
-from collections.abc import Callable, Iterator
-from contextlib import AbstractContextManager, ExitStack, contextmanager
-from dataclasses import dataclass
+from collections.abc import Iterator
+from contextlib import ExitStack, contextmanager
 from pathlib import Path
 
+from ss_track.core.clean_kinds import SCRATCH_KIND, CleanKind
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
+from ss_track.core.scratch import SCRATCH_PREFIX, exclusive_lock
 from ss_track.corpus.storage.layout import (
     DISCOVERY_DIRECTORY,
     corpus_manifest_path,
@@ -21,7 +22,6 @@ from ss_track.corpus.storage.layout import (
     frame_set_path,
     frames_root,
 )
-from ss_track.corpus.storage.scratch import SCRATCH_PREFIX, exclusive_lock
 
 ACQUISITION_RECORD = "acquisition.json"
 ACQUISITION_LOCK = ".acquisition.lock"
@@ -29,26 +29,6 @@ ACQUISITION_CACHE = "cache"
 ACQUISITION_SCRATCH = "scratch"
 STAGING_LOCK = ".staging.lock"
 LOCK_SUFFIX = ".lock"
-TOOL_CACHES = ("complexipy", "mypy", "pytest", "ruff")
-CACHE_DIRECTORY = "cache"
-SCRATCH_KIND = "scratch"
-
-Collect = Callable[[Path, str | None], list[Path]]
-Locked = Callable[[Path, str | None], AbstractContextManager[None]]
-
-
-@dataclass(frozen=True, slots=True)
-class CleanKind:
-    """One registered kind: what it removes, for which target, and how it is restored."""
-
-    name: str
-    target: str | None
-    restore: str
-    collect: Collect
-    locked: Locked
-
-    def restore_for(self, target: str | None) -> str:
-        return self.restore.format(target=target)
 
 
 def _staged_frames(data_root: Path, corpus_id: str | None) -> list[Path]:
@@ -148,19 +128,6 @@ def _walk(data_root: Path) -> Iterator[tuple[Path, list[str], list[str]]]:
         yield Path(folder), directories, files
 
 
-def _tool_caches(data_root: Path, _target: str | None) -> list[Path]:
-    return [
-        path
-        for name in TOOL_CACHES
-        if (path := data_root / CACHE_DIRECTORY / name).is_dir() and not path.is_symlink()
-    ]
-
-
-@contextmanager
-def _unlocked(_data_root: Path, _target: str | None) -> Iterator[None]:
-    yield
-
-
 KINDS: dict[str, CleanKind] = {
     kind.name: kind
     for kind in (
@@ -184,13 +151,6 @@ KINDS: dict[str, CleanKind] = {
             "nothing: scratch is what a killed command left behind",
             _scratch,
             _every_lock_free,
-        ),
-        CleanKind(
-            "tool-caches",
-            None,
-            "the next make target recreates the ruff, mypy, pytest and complexipy caches",
-            _tool_caches,
-            _unlocked,
         ),
     )
 }

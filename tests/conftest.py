@@ -15,7 +15,7 @@ import pytest
 
 from ss_track.commands import report
 from ss_track.core.canonical import SEAL_FIELD, seal_of
-from ss_track.corpus.records import sealing
+from ss_track.core.evidence import sealing
 from ss_track.schema.registry.contract import Contract
 from ss_track.schema.registry.store import load_contract_set
 from ss_track.schema.validation.strict import violations

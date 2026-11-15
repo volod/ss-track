@@ -97,10 +97,10 @@ def test_an_index_must_be_a_true_integer(declare: Callable[[str], Path], index: 
 def test_a_declaration_of_another_major_names_its_stamp_first(
     declare: Callable[[str], Path],
 ) -> None:
-    text = RECORDING.replace("schema_version: 2", "schema_version: 1").replace(
+    text = RECORDING.replace("schema_version: 3", "schema_version: 1").replace(
         "derived_frames: true", "derived_frames: true, extra: 1"
     )
 
     message = refused_recording(declare(text))
 
-    assert message.endswith("/schema_version 2 was expected")
+    assert message.endswith("/schema_version 3 was expected")

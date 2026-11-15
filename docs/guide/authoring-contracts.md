@@ -84,9 +84,9 @@ function; freeze refuses `view` when the major adds or changes an operator judgm
 revision, listed as `PROTECTED_PROPERTIES` in `src/ss_track/schema/compatibility/dispositions.py`. A
 property that holds a new operator judgment or algorithm revision joins that list in the change that
 adds it, because the floor and the read path match it by name. A `view` also needs its function: add
-a `View` to `src/ss_track/corpus/records/read_window.py` in the same change, naming every value it
-derives; `tests/corpus/records/test_historic_records.py` then runs `check_view` on each kept
-real record of the older major. Without it, reading such a record is `CONTRACT_SET_INVALID`.
+a `View` to the owning area and register it with `src/ss_track/core/evidence/read_window.py` in the
+same change, naming every value it derives; `tests/corpus/records/test_historic_records.py` then
+runs `check_view` on each kept real record of the older major. Without it, reading such a record is `CONTRACT_SET_INVALID`.
 Freezing never rewrites a record. A format whose facts a leak guard reads also adds the new major's
 entry to `src/ss_track/corpus/records/projections.py`, and keeps the older one.
 

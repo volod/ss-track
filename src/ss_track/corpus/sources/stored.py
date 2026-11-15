@@ -10,9 +10,9 @@ from pathlib import Path
 from typing import Any
 
 from ss_track.core.canonical import SEAL_FIELD
+from ss_track.core.evidence.sealed import read_sealed
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.records.kinds import SOURCE_MANIFEST
-from ss_track.corpus.records.sealed import read_sealed
 from ss_track.corpus.sources.identity import require_stored_source
 from ss_track.corpus.sources.terms import changed_terms
 from ss_track.corpus.storage.layout import MANIFEST_NAME, replaced_record_path, source_directory

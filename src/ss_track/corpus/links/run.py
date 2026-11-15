@@ -15,7 +15,9 @@ from pathlib import Path
 from typing import Any
 
 from ss_track.core.canonical import SEAL_FIELD
+from ss_track.core.evidence.sealing import seal, write_sealed
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
+from ss_track.core.scratch import exclusive_lock, scratch_directory
 from ss_track.corpus.bundles.duplicate_frames import SharedFramesCheck, require_unshared_frames
 from ss_track.corpus.bundles.frame_set import read_frame_set
 from ss_track.corpus.declarations.fields import invalid
@@ -26,7 +28,6 @@ from ss_track.corpus.links.records import read_links
 from ss_track.corpus.links.result import LinksResult
 from ss_track.corpus.links.review import Review, require_no_related_links, review_links
 from ss_track.corpus.records.kinds import CORPUS_LINKS
-from ss_track.corpus.records.sealing import seal, write_sealed
 from ss_track.corpus.storage.layout import (
     DISCOVERY_PUBLISH_LOCK,
     LINKS_NAME,
@@ -34,7 +35,6 @@ from ss_track.corpus.storage.layout import (
     frame_set_path,
     links_path,
 )
-from ss_track.corpus.storage.scratch import exclusive_lock, scratch_directory
 from ss_track.corpus.versions.grouping import require_separate_sources
 from ss_track.corpus.versions.manifests import load_corpus_manifest
 from ss_track.schema.validation.enforce import is_shared_type

@@ -6,10 +6,10 @@ here once, and a name that cannot be a version or has no manifest is `CORPUS_NOT
 
 from pathlib import Path
 
+from ss_track.core.evidence.sealed import read_comparable, read_sealed
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.records.kinds import CORPUS_MANIFEST
 from ss_track.corpus.records.projections import Unprojected
-from ss_track.corpus.records.sealed import read_comparable, read_sealed
 from ss_track.corpus.storage.layout import corpus_manifest_path
 from ss_track.corpus.versions.predecessors import Predecessor
 from ss_track.schema.validation.enforce import is_shared_type

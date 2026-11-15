@@ -47,6 +47,14 @@ contracts:
     change:
       class: minor
       summary: Add track-following generated-case recipes.
+  - version: 3.3.0
+    file_sha256: 3b5d104fa06b86fff903c9a478d82ee25231a672c687fef17007f83437ba463f
+    fingerprints:
+      structure: edd747bc9f5e4006f59acfe6e18a9122c2bb89e7f43ecacd2f25b993f9d0fc62
+      meaning: 81ac96b88e7e8e0f7dabfc4765b52004493ef002de0865cddb0b7bd5e7d18217
+    change:
+      class: minor
+      summary: Add scale reduction case recipes.
   retired_majors:
   - major: 1
     status: retired
@@ -245,6 +253,24 @@ contracts:
     change:
       class: minor
       summary: Record optional upstream collection membership on a recording.
+  - version: 3.0.0
+    file_sha256: 5e325c399111264171d0aad96be01a3dbafbe264d6bbc8b45c4d0d53998c8145
+    fingerprints:
+      structure: 09164a5cca8f16034ba8271728ba5957fae385a4a967b12568c96bb1b81ab460
+      meaning: 2f9e64701e39c3628346edaf818a348a48082bd3fe49652e393dd3db2560d3cc
+    change:
+      class: major
+      summary: Close capture judgments.
+      migration: Restate capture judgments explicitly in a major 3 declaration.
+      disposition: facts
+  - version: 3.1.0
+    file_sha256: 6d44b560dfd10f2711de9e0fd96daad4d49813a8ff5d6b3c18de52a265ade152
+    fingerprints:
+      structure: 261480ca2ea38a686cda2827710b19665faafb225c42e26192b7979ffe37433c
+      meaning: e80efdb8caa88fc48c0369fb3d1a056ac2d8178a41acf5335eb83d9261d4c28f
+    change:
+      class: minor
+      summary: Add explicit lossless PNG sequence sources and pinned inventory.
   retired_majors:
   - major: 1
     status: retired
@@ -429,6 +455,14 @@ contracts:
     change:
       class: minor
       summary: Add track-following recipes and the track_status label transform.
+  - version: 3.5.0
+    file_sha256: bc52eb08959c0bc9033c68fec1215726754283bef2197a03bf764c2f2219f823
+    fingerprints:
+      structure: cfd5fc89be2a9d6624ec54f2745cd4d78c13bdb836b9a78fe63f9f09cd2c6e8f
+      meaning: f0d36992700de3073027eaad63b29d6f3e7cf02658a7cb2818bade07ee100014
+    change:
+      class: minor
+      summary: Add scale reduction cases and label transforms.
   retired_majors:
   - major: 1
     status: retired
@@ -560,6 +594,14 @@ contracts:
     change:
       class: minor
       summary: Add track-following recipes and the track_status label transform.
+  - version: 3.5.0
+    file_sha256: b708556f4e3f70d87f8628c8eaf04ac4ba664c79c98461f7f6d0a2d027367b14
+    fingerprints:
+      structure: 1963aa34c77ac96797900b30d2bd4d8034fbd3ed54033a5ba4c659800cc30351
+      meaning: 4eddadfcd36984e2d2083130ae617aca023aa8666d222664d4a00d156f5d3268
+    change:
+      class: minor
+      summary: Add scale reduction recipes and label transforms.
   retired_majors:
   - major: 1
     status: retired
@@ -601,6 +643,20 @@ contracts:
     change:
       class: initial
       summary: The shipped format at major 1, with no record bytes changed.
+- family: record
+  id: image-sequence
+  owner: corpus-provenance
+  status: active
+  description: Pinned ordered lossless image membership and declared timing.
+  versions:
+  - version: 1.0.0
+    file_sha256: b7a6e9ae05b2b347d92cf091b9f97869eb67bfb8f2e28885dfad2515d8d0c1b6
+    fingerprints:
+      structure: ff8712e20744a18028759df8f879573247231c86574afd435c25ad069d7fddbb
+      meaning: 49ced927a6f4a38c8ac5533dda9b0b1a732371309ab75324d832537c5c9da428
+    change:
+      class: initial
+      summary: Explicit retained image membership and declared rate.
 - family: record
   id: link-review-handoff
   owner: self-supervised-corpus
@@ -703,6 +759,25 @@ contracts:
     change:
       class: minor
       summary: Record optional upstream collection membership on a source.
+  - version: 3.0.0
+    file_sha256: 24c4e04ca282dbb7c24c3051aa2bc752698ed36c1fa32b1c989b0abb0c84eab4
+    fingerprints:
+      structure: d180d69aff1f556f1912b08702cf105fc1ff47fa3d2092d287deddf02282eaa3
+      meaning: 6fb8eeb77a9238db218d5c309c0c9f6489ac54a8ea579f631f91f26dc0707a9f
+    change:
+      class: major
+      summary: Close capture judgments.
+      migration: Inspect the retained record and explicitly amend capture judgments,
+        combining terms and redecode when required.
+      disposition: facts
+  - version: 3.1.0
+    file_sha256: 0b01d65971e99a91bd8c7c204dbf51581fec38b742034e05a93421460acfe663
+    fingerprints:
+      structure: ce558bc33ffcb86ae713c1818fdb461a934a85155be8d67623e6dd4fbb4168c9
+      meaning: 7d535b12725e8a967ebdd75ae50ab91d9023d40a7c4457a3a4fce228c48437c7
+    change:
+      class: minor
+      summary: Add explicit lossless PNG sequence sources and pinned inventory.
   retired_majors:
   - major: 1
     status: facts
@@ -970,6 +1045,31 @@ contracts:
       class: minor
       summary: 'Add data clean: statuses planned and cleaned, the clean object and
         DATA_ROOT_BUSY.'
+  - version: 1.27.0
+    file_sha256: 25d627ee73abc08ae22fe02535c7767b72808b4829223517adf18dae19d3d089
+    fingerprints:
+      structure: a325bad04050339d6f37ef98bfc9c941d3669c8c055cf53fce1dce3dda195367
+      meaning: cdf9805ba2e7e33bdc44615a3a4ca7eec68c86f9f759edf9e6433b121c464e56
+    change:
+      class: minor
+      summary: Add source capture inspection results.
+  - version: 1.28.0
+    file_sha256: 129e78a6301df69d4bea974859cc8ab92e6d63011f166d20168946f04160f772
+    fingerprints:
+      structure: 508a5548ca3c3a415c0d9d2bae5607303c2ba5d3e1c290248017bfca802f09df
+      meaning: bdfd6e1b2b61bfddf79c6e0b7c2d396d9392fd6ba5173cd20163650edd65e3a7
+    change:
+      class: minor
+      summary: Count distinct encounters by camera-control mode and observer platform.
+  - version: 1.29.0
+    file_sha256: 136b9963d6ec41725542426816653a28bac6e295543c1d3114da84ea834329da
+    fingerprints:
+      structure: e54046a2228615f2c2f0872578544137d8c272539ed696a7609ca80bce6512cb
+      meaning: fa1978a356a3f7344265be8d5f235950ff984f06cdbd04c7e1721706398316b4
+    change:
+      class: minor
+      summary: Source inspection states a current record's observer platform and names
+        the import operations a facts record needs.
 - family: shared
   id: types
   owner: data-contracts

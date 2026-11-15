@@ -10,7 +10,7 @@ from ss_track.corpus.declarations.declaration import load_recording_declaration
 
 SHA256 = "a" * 64
 RECORDING = """\
-schema_version: 2
+schema_version: 3
 source: {path: clip.mkv}
 rights: {holder: Owner, basis: owned, retention: one year, sharing: restricted, retain_until: null, derived_frames: true}
 sensitivity: {level: low}

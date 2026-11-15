@@ -8,11 +8,11 @@ from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import cast
 
+from ss_track.core.evidence.sealed import read_sealed
+from ss_track.core.evidence.sealing import sha256_file
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.declarations.fields import invalid
 from ss_track.corpus.records.kinds import SOURCE_ACQUISITION
-from ss_track.corpus.records.sealed import read_sealed
-from ss_track.corpus.records.sealing import sha256_file
 from ss_track.corpus.sources.inventory import read_inventory
 from ss_track.corpus.sources.metadata_claims import MAX_METADATA_BYTES
 from ss_track.corpus.storage.layout import discovery_run_directory

@@ -1,4 +1,4 @@
-schema_version: 2
+schema_version: 3
 source:
   path: hawk-attacks-drone.webm
   sha256: 85534498c6a3422f13e17a02042e47ac3df414cbc8df58050a92bc62f3394e6c
@@ -14,3 +14,4 @@ sensitivity:
   notes: Public aerial footage; corpus sharing restricted
 capture:
   camera: DJI Phantom 4 per source description
+  observer_platform: airborne

@@ -11,9 +11,10 @@ import ss_track
 from ss_track.schema import ValidationResult
 
 _PACKAGE = Path(ss_track.__file__).parent
-_GATE = Path("corpus/records/sealed.py")
+_GATE = Path("core/evidence/sealed.py")
 _FACTS_READERS = {
     Path("corpus/sources/replacement.py"),  # reads a `facts` record to write its successor
+    Path("corpus/sources/inspection.py"),  # reports stated facts without serving evidence
 }
 _DECLARATION_LOADER = Path(
     "schema/validation/enforce.py"
@@ -76,7 +77,7 @@ def _call_findings(call: ast.Call, relative: Path) -> Iterator[str]:
     if is_yaml_load and relative not in _YAML_READERS:
         yield f"calls {called}"
     if called == "read_stated" and relative not in _FACTS_READERS:
-        yield "reads stated facts outside the successor writer"
+        yield "reads stated facts outside an authorized reader"
     if called in _READS and (len(call.args) != 2 or call.keywords):
         yield f"calls {called} without exactly a path and a format"
 
@@ -168,7 +169,7 @@ def test_every_read_of_a_record_file_goes_through_the_gate() -> None:
     readers = [
         module
         for module in _modules()
-        if module.parts[0] == "corpus"
+        if (module.parts[0] == "corpus" or module == _GATE)
         and ".read_text(" in (_PACKAGE / module).read_text(encoding="utf-8")
     ]
 
@@ -200,7 +201,7 @@ def test_the_deep_check_returns_a_verdict_and_never_the_record() -> None:
         ),
         pytest.param(
             "read_stated(path, FORMAT)",
-            "reads stated facts outside the successor writer",
+            "reads stated facts outside an authorized reader",
             id="stated",
         ),
         pytest.param(

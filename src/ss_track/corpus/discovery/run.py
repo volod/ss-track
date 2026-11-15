@@ -16,6 +16,7 @@ from typing import Any
 from ss_track.core.canonical import SEAL_FIELD
 from ss_track.core.metadata import project_info
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
+from ss_track.core.scratch import exclusive_lock
 from ss_track.corpus.bundles.bundle_reader import open_corpus_bundle
 from ss_track.corpus.bundles.frame_set import read_frame_set
 from ss_track.corpus.bundles.frames import FrameBundle
@@ -45,7 +46,6 @@ from ss_track.corpus.siblings.video_hints import (
 from ss_track.corpus.siblings.worker_env import worker_python
 from ss_track.corpus.siblings.worker_process import DEFAULT_TIMEOUT_SEC
 from ss_track.corpus.storage.layout import discovery_root, discovery_run_path, frames_root
-from ss_track.corpus.storage.scratch import exclusive_lock
 from ss_track.corpus.versions.manifests import load_corpus_manifest
 
 WRITTEN = "written"

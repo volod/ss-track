@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from ss_track.core.evidence.sealing import seal, write_sealed
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.bundles.bundle_reader import open_frame_bundle
 from ss_track.corpus.bundles.bundle_record import stream_bundle_body, stream_identity, stream_layout
@@ -18,7 +19,6 @@ from ss_track.corpus.bundles.frame_store import linked_name
 from ss_track.corpus.bundles.frames import FrameBundle, bundle_hash, damage_details, frame_name
 from ss_track.corpus.bundles.publish import publish_bundle
 from ss_track.corpus.bundles.reuse_offers import BundleOffer, sealed_frames
-from ss_track.corpus.records.sealing import seal, write_sealed
 from ss_track.corpus.sources.stored import (
     VerifiedSource,
     load_source_record,

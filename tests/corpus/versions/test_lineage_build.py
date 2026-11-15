@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from ss_track.core.evidence.sealed import read_sealed
 from ss_track.corpus import (
     CorpusRefusal,
     ImportResult,
@@ -16,7 +17,6 @@ from ss_track.corpus import (
     verify_corpus_frames,
 )
 from ss_track.corpus.records.kinds import CORPUS_MANIFEST
-from ss_track.corpus.records.sealed import read_sealed
 from tests.corpus.conftest import (
     HEAD,
     TAIL,

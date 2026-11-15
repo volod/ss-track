@@ -14,27 +14,27 @@ from pathlib import Path
 from typing import Any
 
 from ss_track.core.canonical import SEAL_FIELD
+from ss_track.core.evidence.sealed import read_sealed
+from ss_track.core.evidence.sealing import seal, write_sealed
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
+from ss_track.core.scratch import (
+    READ_ONLY_FILE_MODE,
+    exclusive_lock,
+    scratch_directory,
+    write_atomically,
+)
 from ss_track.corpus.discovery.binding import require_bound
 from ss_track.corpus.discovery.features import FeatureFile, feature_findings, lines_findings
 from ss_track.corpus.discovery.findings import Finding, inventory_label, require_no_findings
 from ss_track.corpus.discovery.inventory_rules import inventory_findings
 from ss_track.corpus.discovery.run_rules import run_findings, totals_findings
 from ss_track.corpus.records.kinds import CANDIDATE_INVENTORY, DISCOVERY_RUN
-from ss_track.corpus.records.sealed import read_sealed
-from ss_track.corpus.records.sealing import seal, write_sealed
 from ss_track.corpus.storage.layout import (
     DISCOVERY_PUBLISH_LOCK,
     DISCOVERY_RUN_NAME,
     INVENTORIES_DIRECTORY,
     discovery_root,
     discovery_run_path,
-)
-from ss_track.corpus.storage.scratch import (
-    READ_ONLY_FILE_MODE,
-    exclusive_lock,
-    scratch_directory,
-    write_atomically,
 )
 
 

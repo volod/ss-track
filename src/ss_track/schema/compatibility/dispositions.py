@@ -26,6 +26,8 @@ from ss_track.schema.validation.strict import Schema
 # What an operator states for a record: rights, sensitivity, retention, placement and encounter.
 JUDGMENT_PROPERTIES = frozenset(
     {
+        "camera_control_mode",
+        "observer_platform",
         "rights",
         "sensitivity",
         "scenario_rights",

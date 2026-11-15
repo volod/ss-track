@@ -12,6 +12,7 @@ from typing import Any
 
 from ss_track.core.canonical import sha256_bytes
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
+from ss_track.core.scratch import write_atomically
 from ss_track.corpus.bundles.bundle_reader import open_corpus_bundle
 from ss_track.corpus.bundles.frames import FrameBundle
 from ss_track.corpus.cases.case_model import Region
@@ -22,9 +23,9 @@ from ss_track.corpus.cases.preview_png import (
     paint_outline,
     removed_panel,
 )
+from ss_track.corpus.cases.scale import SCALE_REDUCTION, reduced_size
 from ss_track.corpus.decoding.pixels import OUTPUT_PIXEL_FORMAT
 from ss_track.corpus.storage.layout import corpus_root, frames_root
-from ss_track.corpus.storage.scratch import write_atomically
 from ss_track.corpus.versions.manifests import load_corpus_manifest
 
 ROLE_PARENT = "parent"
@@ -123,17 +124,37 @@ def _case_panel(
     root: Path,
 ) -> tuple[PreviewPanel, bytes]:
     bundle = open_corpus_bundle(str(case["case_id"]), corpus, root)
-    _require_same_shape(parent, bundle)
+    _require_rgb24(bundle)
+    _require_case_shape(parent, bundle, _case_size(case, parent))
     pixels = _frame_pixels(bundle, frame_index)
     if pixels is None:
         return (
             PreviewPanel(bundle.stream_id, ROLE_REMOVED),
             removed_panel(parent.width, parent.height),
         )
+    if (bundle.width, bundle.height) != (parent.width, parent.height):
+        pixels = _pad_reduced(pixels, bundle, parent)
     region = _region_on_frame(case, frame_index)
     if region is not None:
         pixels = paint_outline(pixels, parent.width, parent.height, region)
     return PreviewPanel(bundle.stream_id, ROLE_CASE, region), pixels
+
+
+def _case_size(case: Mapping[str, Any], parent: FrameBundle) -> tuple[int, int]:
+    """Return the frame size a case's transform gives: its parent's, unless it reduces scale."""
+    if case["transform"] == SCALE_REDUCTION:
+        return reduced_size(parent.width, parent.height, int(case["parameters"]["factor"]))
+    return parent.width, parent.height
+
+
+def _pad_reduced(pixels: bytes, bundle: FrameBundle, parent: FrameBundle) -> bytes:
+    """Place reduced pixels at the top left of a black parent-sized panel."""
+    rows = []
+    row_bytes = bundle.width * 3
+    for y in range(parent.height):
+        row = pixels[y * row_bytes : (y + 1) * row_bytes] if y < bundle.height else b""
+        rows.append(row + bytes(parent.width * 3 - len(row)))
+    return b"".join(rows)
 
 
 def _require_parent_stream(corpus: Mapping[str, Any], stream_id: str) -> None:
@@ -177,9 +198,8 @@ def _require_rgb24(bundle: FrameBundle) -> None:
         )
 
 
-def _require_same_shape(parent: FrameBundle, case: FrameBundle) -> None:
-    same = case.width == parent.width and case.height == parent.height
-    same = same and case.pixel_format == parent.pixel_format
+def _require_case_shape(parent: FrameBundle, case: FrameBundle, size: tuple[int, int]) -> None:
+    same = (case.width, case.height) == size and case.pixel_format == parent.pixel_format
     if not same:
         raise CorpusRefusal(
             RefusalCode.CASE_INVALID,

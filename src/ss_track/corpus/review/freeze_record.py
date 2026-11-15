@@ -11,9 +11,9 @@ from pathlib import Path
 from typing import Any
 
 from ss_track.core.canonical import SEAL_FIELD
+from ss_track.core.evidence.sealed import read_sealed
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.records.kinds import CORPUS_FREEZE
-from ss_track.corpus.records.sealed import read_sealed
 from ss_track.corpus.review.export import Reviewed
 from ss_track.corpus.review.membership import Decided, Member
 from ss_track.corpus.storage.layout import FREEZE_NAME, freeze_path

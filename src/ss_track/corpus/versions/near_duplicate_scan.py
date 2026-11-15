@@ -9,10 +9,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from ss_track.core.evidence.sealed import read_comparable
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.records.kinds import RecordFormat
 from ss_track.corpus.records.projections import NotCompared
-from ss_track.corpus.records.sealed import read_comparable
 from ss_track.corpus.versions.predecessors import Predecessor, predecessor_name
 from ss_track.corpus.versions.scan import scan_versions
 

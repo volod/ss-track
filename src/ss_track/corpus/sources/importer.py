@@ -12,27 +12,29 @@ from pathlib import Path
 from typing import Any
 
 from ss_track.core.canonical import SEAL_FIELD
+from ss_track.core.evidence.sealed import read_sealed
+from ss_track.core.evidence.sealing import seal, write_sealed
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
+from ss_track.core.scratch import READ_ONLY_FILE_MODE, scratch_directory, shared_lock
 from ss_track.corpus.declarations.declaration import (
     RecordingDeclaration,
     load_recording_declaration,
 )
-from ss_track.corpus.decoding.decode import MediaInspection, inspect_media
+from ss_track.corpus.decoding.decode import MediaInspection
 from ss_track.corpus.decoding.decode_policy import DecodePolicy, current_decode_policy
 from ss_track.corpus.records.kinds import SOURCE_MANIFEST
-from ss_track.corpus.records.sealed import read_sealed
-from ss_track.corpus.records.sealing import seal, write_sealed
 from ss_track.corpus.sources.identity import (
     addressed_identity,
     require_stored_source,
     source_identity,
 )
+from ss_track.corpus.sources.image_sequence import inventory_pin
 from ss_track.corpus.sources.source_file import copy_declared_source, require_regular_file
 from ss_track.corpus.sources.source_record import changed_facts, declared_terms, decoded_sequence
+from ss_track.corpus.sources.stored_media import inspect_stored
 from ss_track.corpus.sources.terms import AMEND_COMMAND, changed_terms
 from ss_track.corpus.sources.timestamps import TimestampQuality, assess_timestamps
 from ss_track.corpus.storage.layout import MANIFEST_NAME, import_root, source_directory
-from ss_track.corpus.storage.scratch import READ_ONLY_FILE_MODE, scratch_directory, shared_lock
 
 IMPORTED = "imported"
 UNCHANGED = "unchanged"
@@ -64,8 +66,9 @@ class ImportResult:
 def import_source(declaration_path: Path, data_root: Path) -> ImportResult:
     """Import one recording, leaving a complete record or nothing."""
     declaration = load_recording_declaration(declaration_path)
-    require_regular_file(declaration.source_path)
-    if declaration.source_path.stat().st_size == 0:
+    if declaration.image_sequence is None:
+        require_regular_file(declaration.source_path)
+    if declaration.image_sequence is None and declaration.source_path.stat().st_size == 0:
         raise CorpusRefusal(RefusalCode.SOURCE_EMPTY, "source file has zero length")
     policy = current_decode_policy()
     imports = import_root(data_root)
@@ -76,17 +79,19 @@ def import_source(declaration_path: Path, data_root: Path) -> ImportResult:
 def _import_into(
     declaration: RecordingDeclaration, policy: DecodePolicy, staged: Path, data_root: Path
 ) -> ImportResult:
-    stored = staged / f"{_SOURCE_STEM}{declaration.source_path.suffix.lower()}"
+    suffix = ".sequence" if declaration.image_sequence else declaration.source_path.suffix.lower()
+    stored = staged / f"{_SOURCE_STEM}{suffix}"
     sha256, size = copy_declared_source(declaration, stored)
     _read_if_present(data_root, sha256, declaration.video_stream_index)
-    inspection = inspect_media(stored, policy, video_stream_index=declaration.video_stream_index)
+    inspection = inspect_stored(stored, policy, video_stream_index=declaration.video_stream_index)
     quality = assess_timestamps(inspection.pts, declaration.capture_clock_evidence)
     identity = source_identity(sha256, inspection.video_stream_index)
     if not inspection.completeness_checks:
         _LOG.warning("source %s has no container-level completeness evidence", identity)
     sealed = seal(_manifest_body(declaration, policy, inspection, quality, sha256, size, stored))
     write_sealed(staged / MANIFEST_NAME, sealed)
-    stored.chmod(READ_ONLY_FILE_MODE)
+    if stored.is_file():
+        stored.chmod(READ_ONLY_FILE_MODE)
     target = source_directory(data_root, identity)
     status = _commit(staged, target, sealed, declaration)
     return ImportResult(
@@ -125,6 +130,7 @@ def _manifest_body(
             "sha256_declared": declaration.expected_sha256 is not None,
             "size_bytes": size,
             "stored_name": stored.name,
+            **(inventory_pin(stored) if stored.is_dir() else {}),
         },
         **declared_terms(declaration),
         **_origin(declaration),

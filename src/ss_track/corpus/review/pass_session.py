@@ -13,6 +13,7 @@ from typing import Any
 import yaml
 
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
+from ss_track.core.scratch import write_atomically
 from ss_track.corpus.discovery.reader import verify_discovery
 from ss_track.corpus.review.blind_packet import picture_name, render_frames
 from ss_track.corpus.review.blind_sample import AuditItem
@@ -20,7 +21,6 @@ from ss_track.corpus.review.decisions import REVIEW_CONTRACT, REVIEW_SCHEMA_VERS
 from ss_track.corpus.review.queue import CandidateKey, Offered, review_queue
 from ss_track.corpus.review.review_terminal import SECONDS_PER_MINUTE, whole_minutes
 from ss_track.corpus.review.selection_pass import PASS_FIELD, expected_windows
-from ss_track.corpus.storage.scratch import write_atomically
 from ss_track.corpus.versions.manifests import load_corpus_manifest
 from ss_track.schema.validation.enforce import read_declaration
 

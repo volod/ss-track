@@ -11,12 +11,12 @@ from pathlib import Path
 import yaml
 
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
+from ss_track.core.scratch import write_atomically
 from ss_track.core.strict_yaml import parse_unique_document
 from ss_track.corpus.declarations.fields import Fields
 from ss_track.corpus.review.blind_review import AuditObservation, read_audit_review
 from ss_track.corpus.review.decisions import UNREVIEWED
 from ss_track.corpus.review.review_terminal import SECONDS_PER_MINUTE, whole_minutes
-from ss_track.corpus.storage.scratch import write_atomically
 
 TEMPLATE_NAME = "review.yaml"
 REVIEW_NAME = "review-completed.yaml"

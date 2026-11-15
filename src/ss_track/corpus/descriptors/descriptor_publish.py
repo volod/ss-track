@@ -11,8 +11,8 @@ import shutil
 from collections.abc import Mapping
 from pathlib import Path
 
+from ss_track.core.scratch import exclusive_lock, scratch_directory
 from ss_track.corpus.storage.layout import descriptions_directory
-from ss_track.corpus.storage.scratch import exclusive_lock, scratch_directory
 
 _LOG = logging.getLogger(__name__)
 _LOCK_NAME = ".describe.lock"

@@ -6,11 +6,12 @@ from pathlib import Path
 from typing import Any, cast
 
 from ss_track.core.canonical import canonical_json, sha256_bytes
+from ss_track.core.evidence.sealed import read_sealed
+from ss_track.core.evidence.sealing import seal
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
+from ss_track.core.scratch import exclusive_lock
 from ss_track.corpus.declarations.fields import invalid
 from ss_track.corpus.records.kinds import SOURCE_ACQUISITION
-from ss_track.corpus.records.sealed import read_sealed
-from ss_track.corpus.records.sealing import seal
 from ss_track.corpus.review.export import write_once
 from ss_track.corpus.sources.acquisition_inventory import populate, select
 from ss_track.corpus.sources.archive import _target, extract_selected, list_files
@@ -24,7 +25,6 @@ from ss_track.corpus.sources.provider_listing import (
 )
 from ss_track.corpus.sources.provider_metadata import ProviderFile, is_video
 from ss_track.corpus.sources.zenodo_splits import apply_splits, fetch_splits, split_file
-from ss_track.corpus.storage.scratch import exclusive_lock
 from ss_track.schema.validation.enforce import is_shared_type
 
 

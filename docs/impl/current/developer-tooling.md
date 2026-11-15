@@ -30,16 +30,20 @@ the pull-request base SHA or the push before SHA as `CONTRACT_BASE_REF`. Local `
 defaults to `origin/main`; set `CONTRACT_BASE_REF=<ref>` for another review base. A missing ref or
 shallow checkout fails instead of silently skipping immutability checks.
 
-`.github/workflows/arm64-reproducibility.yml` runs on the same events. Its `x86-64` job writes the
-fixed corpus sources once with `make fixed-corpus-sources`, stages them with
-`make fixed-corpus-stage` and uploads both the sources and its hashes. Its `arm64` job, on
-`ubuntu-24.04-arm`, refuses any other machine, runs `make test` (both groups), stages the same
-sources, and runs `make fixed-corpus-compare`, which fails the job on any difference.
-`hash-comparison.json` is uploaded
-whatever the result. That job installs the locked environment without `shellcheck-py`, which has no
-arm64 Linux wheel, because it runs no shell gate. `DATA_DIR` is `ci-data` there because an artifact
-upload skips hidden paths such as `.data`. `tests/quality/test_workflows.py` pins the workflow's shape.
-The [corpus page](corpus.md#across-hosts) states what the comparison means.
+`.github/workflows/arm64-reproducibility.yml` runs on pull requests and pushes to `main`. Its
+`x86-64` job writes fixed sources once, stages them and uploads the sources and hashes. Its `arm64`
+job on `ubuntu-24.04-arm` verifies the machine, runs `make test-architecture` for the pixel conversion,
+decode policy and golden transform tests, stages those same sources, and compares the hashes. It
+uploads `hash-comparison.json` even on failure. A manual `workflow_dispatch` also runs the full
+`make test` suite on ARM. Developers can run `make test` locally on their own ARM host; this full
+suite is no longer an automatic ARM check for each pull request. Cross-architecture regressions
+outside the focused tests and fixed corpus require that full run to detect. The ARM job excludes
+`shellcheck-py`, which has no ARM Linux wheel. `DATA_DIR` is `ci-data` because artifact uploads skip
+hidden paths. `tests/quality/test_workflows.py` checks these workflow boundaries. The
+[corpus page](corpus.md#across-hosts) states what the comparison means. The
+[task record](../records/0082-adhoc-arm-ci-workload.md) records the workload change. The
+[follow-up record](../records/0083-reproducible-environment-resolve-closed-record-markdown.md)
+records the formatting exception and full quality check.
 
 Tests under `tests/quality/` exercise failure cases for the documentation checks rather than only
 asserting the repository passes. `make quality-report` reports source and shell files over the

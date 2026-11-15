@@ -9,11 +9,11 @@ from tempfile import TemporaryDirectory
 from typing import cast
 
 from ss_track.core.canonical import canonical_json, sha256_bytes
+from ss_track.core.evidence.sealed import read_sealed
+from ss_track.core.evidence.sealing import seal
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
+from ss_track.core.scratch import write_atomically
 from ss_track.corpus.records.kinds import LINK_REVIEW_HANDOFF
-from ss_track.corpus.records.sealed import read_sealed
-from ss_track.corpus.records.sealing import seal
-from ss_track.corpus.storage.scratch import write_atomically
 
 MANIFEST_MEMBER = "manifest.json"
 LINKS_MEMBER = "records/links.json"

@@ -1,6 +1,6 @@
 """How the read path refuses a sealed record, so each refusal says what an operator must act on.
 
-`corpus.records.sealed` decides; this states the decision. A schema refusal names the contract, the found
+`core.evidence.sealed` decides; this states the decision. A schema refusal names the contract, the found
 and accepted majors, whether the record is older, newer or unstated, its disposition and the change
 log's remedy. A tampered or incomplete record names the file and what failed.
 """
@@ -9,9 +9,9 @@ from collections.abc import Collection, Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
+from ss_track.core.evidence.format import RecordFormat
+from ss_track.core.evidence.read_window import StatedShape
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
-from ss_track.corpus.records.kinds import RecordFormat
-from ss_track.corpus.records.read_window import StatedShape
 from ss_track.schema.validation.enforce import older_remedy, readable_majors
 
 OLDER = "older"

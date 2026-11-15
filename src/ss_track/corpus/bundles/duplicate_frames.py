@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from ss_track.core.evidence.sealed import read_comparable
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.bundles.bundle_reader import open_corpus_bundle, require_bundle_place
 from ss_track.corpus.bundles.frames import FrameBundle
@@ -28,7 +29,6 @@ from ss_track.corpus.records.projections import (
     Unprojected,
     bundle_frames,
 )
-from ss_track.corpus.records.sealed import read_comparable
 from ss_track.corpus.storage.layout import MANIFEST_NAME, frame_set_path, frames_root
 from ss_track.corpus.versions.manifests import load_predecessor
 from ss_track.corpus.versions.predecessors import follow_links
