@@ -9,6 +9,7 @@ import sys
 import tempfile
 from pathlib import Path
 
+import yaml
 from google.protobuf import descriptor_pb2
 
 from ss_track.contract.breaking import (
@@ -21,7 +22,17 @@ from ss_track.contract.breaking import (
     lint_findings,
 )
 from ss_track.contract.image import fingerprints, package_urn
-from ss_track.schema.registry.store import default_root
+from ss_track.core.canonical import sha256_bytes
+from ss_track.schema.compatibility.publishing import publish
+from ss_track.schema.registry.check import check_contract_set
+from ss_track.schema.registry.contract import BASELINE_VERSION, DEVELOPMENT
+from ss_track.schema.registry.stage import stage_findings
+from ss_track.schema.registry.store import (
+    REGISTRY_NAME,
+    default_root,
+    load_contract_set,
+    registry_document,
+)
 
 _LOG = logging.getLogger(__name__)
 _GEN_ROOT = Path(__file__).resolve().parent / "gen"
@@ -72,11 +83,12 @@ def generate_python(proto_root: Path, destination: Path) -> None:
 
 
 def write_artifacts(contracts_root: Path | None = None) -> list[str]:
-    """Write each package image and refresh the Python bindings.
-
-    An existing image with different bytes is left in place: that file is frozen.
-    """
+    """Regenerate development images and pins; never replace a released image."""
     root = default_root() if contracts_root is None else contracts_root
+    contracts = load_contract_set(root)
+    problems = stage_findings(contracts)
+    if problems:
+        raise ValueError("; ".join(problems))
     notes = []
     for package in PACKAGES:
         with tempfile.TemporaryDirectory(prefix="ss-track-event-") as temporary:
@@ -86,21 +98,62 @@ def write_artifacts(contracts_root: Path | None = None) -> list[str]:
         urn = package_urn(payload, package)
         version = urn.rsplit(":", 1)[-1]
         target = root / "event" / package / f"{version}.binpb"
-        if target.is_file() and target.read_bytes() != payload:
-            notes.append(f"{target}: frozen descriptor differs; bump the contract URN")
-            continue
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(payload)
+        if contracts.stage == DEVELOPMENT:
+            if version != BASELINE_VERSION:
+                raise ValueError(f"event/{package}: development requires {BASELINE_VERSION}")
+            _repin(root, package, version, payload, urn)
+        elif target.is_file() and target.read_bytes() != payload:
+            raise ValueError(f"{target}: frozen descriptor differs; bump the contract URN")
+        elif not target.is_file():
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(payload)
         structure, meaning = fingerprints(payload, urn)
         notes.append(f"{package} {version} structure {structure} meaning {meaning}")
     generate_python(PROTO_ROOT, _GEN_ROOT)
     return notes
 
 
+def _repin(root: Path, package: str, version: str, payload: bytes, urn: str) -> None:
+    original = (root / REGISTRY_NAME).read_bytes()
+    registry = registry_document(original)
+    entries = [
+        item
+        for item in registry["contracts"]
+        if item["family"] == "event" and item["id"] == package
+    ]
+    if len(entries) != 1 or len(entries[0]["versions"]) != 1:
+        raise ValueError(f"event/{package}: expected one registered development version")
+    entry = entries[0]["versions"][0]
+    if entry["version"] != version:
+        raise ValueError(f"event/{package}: registry version does not match {version}")
+    structure, meaning = fingerprints(payload, urn)
+    relative = Path("event") / package / f"{version}.binpb"
+    if (
+        entry["file_sha256"] == sha256_bytes(payload)
+        and entry["fingerprints"] == {"structure": structure, "meaning": meaning}
+        and (root / relative).is_file()
+        and (root / relative).read_bytes() == payload
+    ):
+        return
+    entry["file_sha256"] = sha256_bytes(payload)
+    entry["fingerprints"] = {"structure": structure, "meaning": meaning}
+    written = yaml.safe_dump(registry, sort_keys=False, allow_unicode=False).encode("ascii")
+    with tempfile.TemporaryDirectory(prefix="ss-track-event-set-") as temporary:
+        staged = Path(temporary) / "contracts"
+        shutil.copytree(root, staged)
+        (staged / relative).write_bytes(payload)
+        (staged / REGISTRY_NAME).write_bytes(written)
+        findings = check_contract_set(staged)
+        if findings:
+            raise ValueError("event generation refused: " + "; ".join(findings))
+    publish(root, relative, payload, written, original, replace=True)
+
+
 def drift_findings(contracts_root: Path | None = None) -> list[str]:
     """Return descriptor, binding, lint and breaking drift against the frozen set."""
     root = default_root() if contracts_root is None else contracts_root
-    findings = [*lint_findings(), *format_findings()]
+    contracts = load_contract_set(root)
+    findings = [*check_contract_set(root), *lint_findings(), *format_findings()]
     with tempfile.TemporaryDirectory(prefix="ss-track-event-") as temporary:
         base = Path(temporary)
         generated = base / "gen"
@@ -110,11 +163,13 @@ def drift_findings(contracts_root: Path | None = None) -> list[str]:
             return [*findings, str(error)]
         findings += _python_drift(generated)
         for package in PACKAGES:
-            findings += _package_drift(base, root, package)
+            findings += _package_drift(base, root, package, contracts.stage != DEVELOPMENT)
     return findings
 
 
-def _package_drift(base: Path, contracts_root: Path, package: str) -> list[str]:
+def _package_drift(
+    base: Path, contracts_root: Path, package: str, check_breaking: bool
+) -> list[str]:
     image = base / f"{package}.binpb"
     try:
         build_image(PROTO_ROOT, f"{package}.proto", image)
@@ -129,6 +184,8 @@ def _package_drift(base: Path, contracts_root: Path, package: str) -> list[str]:
         return [f"event/{package} {version}: frozen descriptor is missing"]
     if frozen.read_bytes() != payload:
         findings.append(f"event/{package} {version}: descriptor drifted from proto")
+    if not check_breaking:
+        return findings
     candidate = base / package
     for name in PACKAGE_IMPORTS[package]:
         destination = candidate / name

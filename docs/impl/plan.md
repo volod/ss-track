@@ -35,31 +35,26 @@ hardware or private data.
 
 ### Data contracts -- `data-contracts`
 
-#### event-package-development-edit
+#### event-package-batch-recovery
 
-An event package cannot follow the development-stage rule: `make proto-gen` writes an image only
-when it is missing or identical, and `make proto-check` holds the image and `buf breaking` to the
-committed `1.0.0`, so an architecture fix to an event message can only be made as a new version.
+The development generator validates the whole set after staging one package. If two event images
+are missing, the first staged update is refused because the other image is still missing, although
+both can be regenerated from their protos. This prevents recovery of an incomplete development set.
 
 - Serves: `data-contracts` -- [Development stage and
   release](../design/spec.md#177-development-stage-and-release)
 - Agent status: CLEAR
 - Milestone: M1
 - Dependencies: none.
-- User-visible outcome: In the development stage, an edit of an event proto under
-  `src/ss_track/contract/proto/` regenerates its `1.0.0` image and bindings in place and re-pins its
-  registry entry with one command, and `make proto-check` passes. In the released stage the image
-  stays frozen and `buf breaking` classifies a new version, as today.
-- Scope boundary: The proto build and its gate only. JSON Schema contracts already edit in place.
-  No event message changes in this task, and a released image is never rewritten.
-- Data and artifact paths: `src/ss_track/contract/build.py`, `src/ss_track/contract/image.py`,
-  `contracts/event/`, `contracts/registry.yaml`, `tests/contract/`.
-- Execution path: Read the registry stage in the proto build. In development, rewrite the `1.0.0`
-  image and the generated bindings, update the registry pins and skip `buf breaking` against the
-  previous image. In released, keep the current behavior.
-- Acceptance gates: A fixture proto edit in a development private set regenerates `1.0.0` and passes
-  `make proto-check`; the same edit in a released set is refused as a frozen image change; a second
-  event version in development fails the stage check. `make ci` passes.
+- User-visible outcome: One generation command restores all missing development event images and
+  updates their pins together while preserving released images.
+- Scope boundary: Event artifact staging and publication; no event message changes.
+- Data and artifact paths: `src/ss_track/contract/build.py`, `contracts/event/`, `tests/contract/`.
+- Execution path: Stage and validate the complete set of event candidates before publication.
+  Preserve concurrent-update protections and avoid exposing a partially pinned set on failure.
+- Acceptance gates: A private development set with two missing images regenerates and passes the
+  contract and proto checks; a failed batch leaves prior images and pins intact; released images stay
+  frozen. `make ci` passes.
 - Documentation target: [Runner](current/runner.md).
 
 #### data-contracts-audit (optional)

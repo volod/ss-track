@@ -62,13 +62,21 @@ Other meanings the type system does not state:
 ## Compatibility
 
 `buf.yaml` selects the `WIRE_JSON` breaking category. A renamed field, a reused field number and a
-changed `json_name` fail. An added field does not, and a comment change does not. `make proto-check`
-rebuilds each image and the Python bindings in a temporary directory, diffs them against the
-committed files, and runs lint, format and `buf breaking` against the frozen image. It is part of
-`make ci`. `make proto-gen` writes a missing image and refreshes the bindings. It refuses to
-overwrite an image whose bytes differ: publish a new URN instead.
+changed `json_name` fail against a released image. An added field or a comment change does not.
+`make proto-check` rebuilds each image and the Python bindings in a temporary directory, checks
+registry pins and stage rules, compares committed artifacts, and runs lint and format checks. In the
+released stage it also runs `buf breaking` against each frozen image. It is part of `make ci`.
 
-A new event version is classified without a JSON Schema diff. Identical descriptor bytes are
+In development, edit the proto and run `make proto-gen` to regenerate the `1.0.0` images, re-pin
+registered event packages and refresh the bindings. The generator validates each updated contract
+set before publishing it. If multiple event images are missing, restore the tracked images before
+running the generator; it validates the set one package at a time. After a contract edit, regenerate
+affected development datasets as required
+by the [development-stage rules](../../design/spec.md#177-development-stage-and-release). In the
+released stage the generator refuses to overwrite a different frozen image; a new URN is required.
+See the [task record](../records/0100-data-contracts-event-package-development-edit.md).
+
+A new released event version is classified without a JSON Schema diff. Identical descriptor bytes are
 refused. A breaking change requires a major, migration text, and a disposition of at least `facts`,
 because old JSON lines are not a view of the new message. A structure change that is not breaking is
 a minor. Anything else, including a comment, is a patch. `ss-track contracts freeze` refuses
@@ -76,10 +84,9 @@ a minor. Anything else, including a comment, is a patch. `ss-track contracts fre
 the set. ODCS export and the reference dictionary skip event contracts.
 
 An image embeds the files it imports. A change to `clock.proto` changes the bytes of `event/wire`,
-`event/analytics` and `event/trial` as well. Those frozen files cannot be edited. The same change
-publishes a new version of each affected package, and `buf breaking` decides whether that version
-is major or compatible. Dependency source locations are dropped from the image. Comments on the
-event file itself remain and feed the meaning fingerprint.
+`event/analytics` and `event/trial` as well. In development each affected image is re-pinned; after
+release each affected package needs a new version. Dependency source locations are dropped from the
+image. Comments on the event file itself remain and feed the meaning fingerprint.
 
 ## Modules and tests
 

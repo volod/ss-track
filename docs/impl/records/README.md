@@ -105,4 +105,6 @@ Copy the [template](template.md) using the
 | 0098 | `annotation-selection-audit` | [0098-annotation-selection-annotation-selection-audit](0098-annotation-selection-annotation-selection-audit.md) |
 | 0099 | `contract-development-baseline` | [0099-data-contracts-contract-development-baseline](0099-data-contracts-contract-development-baseline.md) |
 
-Next unused sequence: `0100`.
+| 0100 | `event-package-development-edit` | [0100-data-contracts-event-package-development-edit](0100-data-contracts-event-package-development-edit.md) |
+
+Next unused sequence: `0101`.
