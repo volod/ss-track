@@ -109,3 +109,138 @@ def test_a_damaged_stamp_is_refused(tmp_path: Path, text: str) -> None:
         require_current_data_root(tmp_path)
 
     assert caught.value.code is RefusalCode.RECORD_TAMPERED
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        b"\xff",
+        b'{"kind":"ss-track.development-contract-set","contracts":{},"contracts":{}}',
+        b'{"kind":"ss-track.development-contract-set","contracts":{"record/frame-set":42}}',
+    ],
+)
+def test_malformed_stamp_is_tampered(tmp_path: Path, payload: bytes) -> None:
+    (tmp_path / STAMP_NAME).write_bytes(payload)
+    with pytest.raises(CorpusRefusal) as caught:
+        require_current_data_root(tmp_path)
+    assert caught.value.code is RefusalCode.RECORD_TAMPERED
+
+
+def test_stamp_precedes_sealed_write(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from ss_track.core.evidence import sealing
+    from tests.schema.conftest import KEPT_FRAME_SET
+
+    require_current_data_root(tmp_path)
+    target = tmp_path / "records" / "record.json"
+
+    def fail_record_write(path: Path, payload: bytes, *, mode: int) -> None:
+        assert (tmp_path / STAMP_NAME).is_file()
+        raise OSError("interrupted record write")
+
+    monkeypatch.setattr(sealing, "write_atomically", fail_record_write)
+    with pytest.raises(OSError, match="interrupted record write"):
+        sealing.write_sealed(target, json.loads(KEPT_FRAME_SET.read_bytes()))
+    assert not target.exists()
+
+
+def test_first_write_rechecks_stamp_created_by_another_command(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    require_current_data_root(tmp_path)
+    current = installed_fingerprints()
+    assert current is not None
+    old = current | {"record/frame-set": "0" * 64}
+    (tmp_path / STAMP_NAME).write_text(
+        json.dumps({"kind": contract_stamp.STAMP_KIND, "contracts": old})
+    )
+    with pytest.raises(CorpusRefusal) as caught:
+        contract_stamp.stamp_before_write(tmp_path / "record.json")
+    assert caught.value.code is RefusalCode.RECORD_SCHEMA_UNSUPPORTED
+    assert json.loads((tmp_path / STAMP_NAME).read_text())["contracts"] == old
+
+
+def test_meaning_only_edit_refuses_the_old_root(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    require_current_data_root(tmp_path)
+    contract_stamp.stamp_before_write(tmp_path / "record.json")
+    original = contract_stamp.installed_meanings()
+    assert original is not None
+    monkeypatch.setattr(
+        contract_stamp, "installed_meanings", lambda: original | {"record/frame-set": "0" * 64}
+    )
+    with pytest.raises(CorpusRefusal) as caught:
+        require_current_data_root(tmp_path)
+    assert caught.value.code is RefusalCode.RECORD_SCHEMA_UNSUPPORTED
+    assert caught.value.details["changed_contracts"] == ["record/frame-set"]
+
+
+def test_shared_contract_edit_refuses_the_old_root(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    require_current_data_root(tmp_path)
+    contract_stamp.stamp_before_write(tmp_path / "record.json")
+    original = installed_fingerprints()
+    assert original is not None and "shared/types" in original
+    monkeypatch.setattr(
+        contract_stamp, "installed_fingerprints", lambda: original | {"shared/types": "0" * 64}
+    )
+    with pytest.raises(CorpusRefusal) as caught:
+        require_current_data_root(tmp_path)
+    assert caught.value.details["changed_contracts"] == ["shared/types"]
+
+
+def test_legacy_structure_only_stamp_refuses_without_deleting_data(tmp_path: Path) -> None:
+    original = installed_fingerprints()
+    assert original is not None
+    (tmp_path / STAMP_NAME).write_text(
+        json.dumps(
+            {
+                "kind": contract_stamp.STAMP_KIND,
+                "contracts": {
+                    name: value for name, value in original.items() if name.startswith("record/")
+                },
+            }
+        )
+    )
+    evidence = tmp_path / "record.json"
+    evidence.write_text("retained evidence")
+    with pytest.raises(CorpusRefusal) as caught:
+        require_current_data_root(tmp_path)
+    assert caught.value.code is RefusalCode.RECORD_SCHEMA_UNSUPPORTED
+    assert caught.value.details["changed_contracts"] == []
+    assert "record/frame-set" in caught.value.details["unverified_contracts"]
+    assert evidence.read_text() == "retained evidence"
+
+
+def test_real_meaning_only_freeze_stales_a_stamped_root(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from ss_track.schema.compatibility.freeze import freeze_contract
+    from ss_track.schema.registry.fingerprints import structure_fingerprint
+    from ss_track.schema.registry.store import load_contract_set
+    from ss_track.schema.validation import enforce
+    from tests.schema.conftest import development_copy, frame_set_path
+
+    project = tmp_path / "project"
+    project.mkdir()
+    root = development_copy(project)
+    monkeypatch.setattr(enforce, "load_contract_set", lambda: load_contract_set(root))
+    enforce.installed_contracts.cache_clear()
+    try:
+        data = tmp_path / "data"
+        require_current_data_root(data)
+        contract_stamp.stamp_before_write(data / "record.json")
+        schema = json.loads(frame_set_path(root).read_bytes())
+        original = structure_fingerprint(schema)
+        schema["properties"]["corpus_id"]["description"] = "Changed interpretation."
+        candidate = tmp_path / "candidate.json"
+        candidate.write_text(json.dumps(schema))
+        freeze_contract("record/frame-set", candidate, root=root, summary="Change meaning.")
+        assert structure_fingerprint(schema) == original
+        enforce.installed_contracts.cache_clear()
+        with pytest.raises(CorpusRefusal) as caught:
+            require_current_data_root(data)
+        assert caught.value.details["changed_contracts"] == ["record/frame-set"]
+    finally:
+        enforce.installed_contracts.cache_clear()

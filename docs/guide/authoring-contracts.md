@@ -79,13 +79,15 @@ make ci
 the writer, its fixtures and tests in the same change. Add no version, `retired_majors` entry,
 disposition, view or historic fixture to keep outdated development data or tests readable.
 
-A data root's `contract-set.json` names the record contracts its records were written under, so a
-command on a root written before a structural edit refuses with `RECORD_SCHEMA_UNSUPPORTED` and
-`changed_contracts`. Regenerate it: delete the root's sealed datasets and `contract-set.json`, keep
-the operator-written declarations, labels and review decisions, and run the commands that built the
-datasets again. A change that alters the shape of an operator-written input also edits every
-retained one in the same change and states the edit in its task record. A description-only edit asks
-for no regeneration.
+A data root's `contract-set.json` pins structure and meaning for record and shared contracts. A
+command on a root written before either changes refuses with `RECORD_SCHEMA_UNSUPPORTED` and
+`changed_contracts`. A structure-only stamp cannot prove the earlier meaning and is also refused.
+Regenerate it: delete the root's sealed datasets and `contract-set.json`, keep operator-written
+declarations, labels and review decisions, and run the commands that built the datasets again. An
+edit of descriptions or examples also asks for regeneration, because the meaning fingerprint
+cannot distinguish editorial prose from a changed interpretation. A change that alters the shape of
+an operator-written input also edits every retained one in the same change and states the edit in its
+task record.
 
 ## Freeze with care
 

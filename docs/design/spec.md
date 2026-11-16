@@ -2920,15 +2920,18 @@ states one stage for the whole set, and the gate enforces that stage's rules.
 | `released`, from the first release | Frozen; sections 17.2 to 17.4 apply in full | A new version, classified by section 17.3; a major declares the disposition of its predecessor | Retained and read under its disposition, with a real record of every released major in the tests |
 
 In the development stage, a sealed record written under an earlier edit of its contract still
-stamps `schema_version: 1`, so the major alone cannot tell it apart. The data root therefore records
-the structure fingerprint of every record contract its records were written under, when a command
-first seals a record there, and every command that takes the data root compares it with the
-installed set first. A difference refuses the command with `RECORD_SCHEMA_UNSUPPORTED`, names the
-changed contracts and gives the remedy to regenerate; housekeeping that reads no record, such as
-`data clean`, still runs. A description-only edit moves no structure fingerprint and asks for no
-regeneration. A record of another major gets the same remedy, because no release wrote one. The
-section 17.3 classifier, the independent oracle, dispositions and views stay installed in both
-stages, tested on synthetic version pairs, so that they are proven when release starts using them.
+stamps `schema_version: 1`, so the major alone cannot tell it apart. Before the first sealed write,
+the data root records structure and meaning fingerprints of every record and shared contract, and
+a root containing sealed evidence without a stamp is refused. Every command that takes the root
+compares them with the installed set first. A difference refuses
+the command with `RECORD_SCHEMA_UNSUPPORTED`, names the changed contracts and gives the remedy to
+regenerate; housekeeping that reads no record, such as `data clean`, still runs. A stamp that lacks
+meaning fingerprints cannot prove its records' meanings and is refused with the same remedy. The
+fingerprint includes descriptions, so even an editorial description change conservatively asks for
+regeneration: a machine cannot decide whether prose changes a value's interpretation. A record of
+another major gets the same remedy, because no release wrote one. The section 17.3 classifier, the
+independent oracle, dispositions and views stay installed in both stages, tested on synthetic version
+pairs, so that they are proven when release starts using them.
 
 Operator-written inputs are not regenerable: declarations, reviewed labels and review decisions stay
 on the data root and in the repository. A development change that alters the shape of such an input
@@ -2941,8 +2944,9 @@ changes. This section does not migrate development data, keep a history of devel
 Git, or version data or algorithms.
 
 Evaluation: in the development stage, an edited `1.0.0` passes the gate only with its re-pin, a
-second version is refused, a record written under the previous contract set is refused with the
-regenerate remedy, and the regenerated data root validates under the current set; in the released
+second version is refused, a record written under the previous structure, meaning or referenced
+shared contract is refused with the regenerate remedy, and the regenerated data root validates
+under the current set; in the released
 stage, an in-place edit of a frozen file is refused and every new version classifies as section 17.3
 declares. The valid negative result is a format whose operator-written inputs cannot be edited to a
 new shape by a stated rule: the change keeps that input's contract unchanged and adds the new shape

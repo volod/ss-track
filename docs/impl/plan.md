@@ -35,6 +35,34 @@ hardware or private data.
 
 ### Data contracts -- `data-contracts`
 
+#### development-unstamped-evidence
+
+A development root without `contract-set.json` is treated as fresh even when it contains sealed
+records. If a stamp is lost, or a first write made by older code was interrupted before stamping,
+a command can read those records or stamp the root under a later contract set, silently accepting
+unproven evidence. The shared sealed-read path and first-write ordering do not establish whether an
+unstamped root already contains records.
+
+- Serves: `data-contracts` -- [Development stage and
+  release](../design/spec.md#177-development-stage-and-release)
+- Agent status: CLEAR
+- Milestone: M1
+- Dependencies: none.
+- User-visible outcome: A root with unstamped sealed evidence refuses with a regenerate remedy;
+  genuinely new roots and roots holding only operator inputs remain usable without a read-side write.
+- Scope boundary: Development data-root provenance checks; do not delete evidence or operator inputs,
+  alter released reads, seals or frozen contract bytes.
+- Data and artifact paths: `src/ss_track/core/evidence/`, data-root layout owners under
+  `src/ss_track/`, `tests/corpus/records/`, private fixture data roots.
+- Execution path: Identify all sealed-record locations and direct write entry points; implement a
+  fail-closed check before an unstamped root can read evidence or receive its first stamp, with a
+  bounded-cost path for large roots. Preserve declarations and clean-only access.
+- Acceptance gates: Fixtures with an unstamped sealed record refuse both a read and a first write,
+  even when a command writes before reading it; an empty root and one containing only declarations
+  remain usable and read-only commands create no stamp. Released behavior stays unchanged; test a
+  large representative root and report cost. `make ci` passes.
+- Documentation target: [Contracts](current/contracts.md).
+
 #### data-contracts-audit (optional)
 
 A development-stage gate that lets a contract change without a version must still refuse every
@@ -52,11 +80,9 @@ change it did not pin, or formats drift silently before release.
   audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
   score or refusal code.
 - Data and artifact paths: `contracts/`, `src/ss_track/schema/`, `tests/schema/`.
-- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from
-  section 17.7 and `AGENTS.md` against the history gate, the registry meta-schema, the shared read
-  path and the data-root stamp. Decide whether a meaning-only contract edit, such as a changed enum
-  meaning, must also ask a data root for regeneration, since the stamp holds structure fingerprints
-  only.
+- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits) over the
+  remaining work, including unstamped evidence and its seams to the root stamp, read path, history
+  gate and section 17.7. Verify that structural, shared and meaning changes refuse stale evidence.
 - Acceptance gates: Every section 17.7 rule has a failing fixture or is named as human judgment.
   Every finding is fixed, routed to a task or dropped with its reason, and `make quality` passes.
   Finding nothing is a valid result when the record states what was reviewed.

@@ -7,7 +7,8 @@ event-package-development-edit
 - Id / capability: `event-package-development-edit` / `data-contracts`
 - State: accepted
 - Source: plan task; starting commit `bd4e481`, no unrelated dirty files.
-- Plan counts at start: 127 agent, 30 human; next agent `event-package-development-edit`, next human `define-locked-test-policy` (optional).
+- Plan counts at start: 127 agent, 30 human; next agent `event-package-development-edit`, next
+  human `define-locked-test-policy` (optional).
 - Accepted task:
 
 ```markdown
@@ -70,6 +71,6 @@ bindings and imported descriptor effects.
 
 ## Close or resume
 
-All acceptance gates passed. The current Runner page and records index are updated. The original task is
-removed; the recovery finding is scheduled. Plan counts after: 127 agent, 30 human. No capability
+All acceptance gates passed. The current Runner page and records index are updated. The original
+task is removed; the recovery finding is scheduled. Plan counts after: 127 agent, 30 human. No capability
 changed status; `data-contracts` remains planned.

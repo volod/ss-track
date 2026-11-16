@@ -43,7 +43,10 @@ class _Installed:
 
 @cache
 def installed_contracts() -> _Installed:
+    from ss_track.schema.registry.check import require_runtime_pins
+
     contracts = load_contract_set()
+    require_runtime_pins(contracts)
     return _Installed(contracts, contracts.schema_registry(), contracts.records_by_kind())
 
 

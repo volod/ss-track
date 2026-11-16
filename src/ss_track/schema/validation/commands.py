@@ -6,6 +6,7 @@ from pathlib import Path
 
 from ss_track.core.canonical import SEAL_FIELD, seal_of
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
+from ss_track.schema.registry.check import load_checked_contract_set
 from ss_track.schema.registry.contract import (
     DECLARATION_FAMILY,
     EVENT_FAMILY,
@@ -16,7 +17,7 @@ from ss_track.schema.registry.contract import (
     Contract,
     FrozenVersion,
 )
-from ss_track.schema.registry.store import ContractSet, load_contract_set
+from ss_track.schema.registry.store import ContractSet
 from ss_track.schema.validation._documents import _read_document
 from ss_track.schema.validation.enforce import require_conforming
 
@@ -89,7 +90,7 @@ class ValidationResult:
 
 def list_contracts(root: Path | None = None) -> ContractList:
     """Return the registry as it stands."""
-    contracts = load_contract_set(root)
+    contracts = load_checked_contract_set(root)
     return ContractList(contracts.root, contracts.contracts)
 
 
@@ -168,7 +169,7 @@ def validate_file(
     root: Path | None = None,
 ) -> ValidationResult:
     """Check every field of one file under one frozen version, and a record's seal."""
-    contracts = load_contract_set(root)
+    contracts = load_checked_contract_set(root)
     named = contracts.named(contract_name) if contract_name else None
     if named is not None and named.family == EVENT_FAMILY:
         raise CorpusRefusal(

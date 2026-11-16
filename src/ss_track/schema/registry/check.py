@@ -32,6 +32,7 @@ from ss_track.schema.registry.store import (
     DIALECT_NAME,
     META_DIRECTORY,
     ContractSet,
+    damaged,
     default_root,
     load_contract_set,
     read_schema,
@@ -206,6 +207,53 @@ def _annotation_findings(contracts: ContractSet) -> list[str]:
                         f"{contract.urn(frozen)}: x-references {reference} resolves to nothing"
                     )
     return findings
+
+
+def runtime_findings(contracts: ContractSet) -> list[str]:
+    """Check installed pins and stage without the build gate's expensive dialect audit."""
+    findings = (
+        _registry_findings(contracts) + _stray_findings(contracts) + stage_findings(contracts)
+    )
+    known_urns = {
+        contract.urn(frozen)
+        for contract in contracts.contracts
+        if contract.family == EVENT_FAMILY
+        for frozen in contract.versions
+    }
+    for contract in contracts.contracts:
+        for frozen in contract.versions:
+            label = f"{contract.name} {frozen.version}"
+            findings.extend(
+                f"{label}: {item}"
+                for item in _runtime_version_findings(contracts, contract, frozen, known_urns)
+            )
+    return findings
+
+
+def _runtime_version_findings(
+    contracts: ContractSet, contract: Contract, frozen: FrozenVersion, known_urns: set[str]
+) -> list[str]:
+    try:
+        if contract.family == EVENT_FAMILY:
+            return _version_findings(contracts, contract, frozen, {}, known_urns)
+        schema = contracts.frozen_schema(contract, frozen)
+        return _identity_findings(contract, frozen, schema) + _fingerprint_findings(frozen, schema)
+    except CorpusRefusal as error:
+        return [error.message]
+
+
+def require_runtime_pins(contracts: ContractSet) -> None:
+    """Refuse an installed set with stale files, fingerprints or stage rules."""
+    findings = runtime_findings(contracts)
+    if findings:
+        raise damaged("installed contract set is invalid: " + "; ".join(findings))
+
+
+def load_checked_contract_set(root: Path | None = None) -> ContractSet:
+    """Load a contract set for runtime consumers after verifying its pins."""
+    contracts = load_contract_set(root)
+    require_runtime_pins(contracts)
+    return contracts
 
 
 def check_contract_set(root: Path) -> list[str]:

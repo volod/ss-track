@@ -20,13 +20,13 @@ from ss_track.corpus.records.kinds import CORPUS_MANIFEST, FRAME_BUNDLE, FRAME_S
 from ss_track.corpus.sources.stored import load_source_record
 from ss_track.corpus.storage.layout import frames_root
 from ss_track.corpus.versions.manifests import load_corpus_manifest
+from ss_track.schema.registry.check import load_checked_contract_set
 from ss_track.schema.registry.contract import Contract
 from ss_track.schema.registry.store import (
     META_DIRECTORY,
     README_NAME,
     REGISTRY_NAME,
     ContractSet,
-    load_contract_set,
 )
 from ss_track.schema.validation.enforce import read_declaration
 
@@ -155,7 +155,7 @@ def _contract_files(contracts: ContractSet) -> dict[str, bytes]:
 def _artifacts(
     corpus: dict[str, Any], declaration: dict[str, str], root: Path, public: bool
 ) -> dict[str, bytes]:
-    contracts = load_contract_set()
+    contracts = load_checked_contract_set()
     collected = _records(corpus, root)
     records = public_tables(corpus, collected, contracts) if public else collected
     tables = {name: _csv(records[name]) for name in TABLES}

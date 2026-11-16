@@ -163,3 +163,44 @@ def test_a_registry_written_before_stages_reads_as_development(development_root:
     registry["stage"] = RELEASED
     write_registry(development_root, registry)
     assert stage_of(development_root) == RELEASED
+
+
+def test_history_cannot_hide_a_release_in_an_intermediate_commit(repository: Path) -> None:
+    root = repository / "contracts"
+    release(root)
+    _commit(repository, "Release")
+    registry = read_registry(root)
+    registry["stage"] = DEVELOPMENT
+    write_registry(root, registry)
+    _commit(repository, "Return to development")
+    assert any(
+        "cannot return to development" in item for item in history_findings(repository, "main")
+    )
+
+
+def test_history_refuses_a_return_even_if_a_later_commit_releases_again(repository: Path) -> None:
+    root = repository / "contracts"
+    release(root)
+    _commit(repository, "Release")
+    registry = read_registry(root)
+    registry["stage"] = DEVELOPMENT
+    write_registry(root, registry)
+    _commit(repository, "Return to development")
+    release(root)
+    _commit(repository, "Release again")
+    assert any(
+        "cannot return to development" in item for item in history_findings(repository, "main")
+    )
+
+
+def test_history_catches_release_in_merged_ancestry(repository: Path) -> None:
+    root = repository / "contracts"
+    release(root)
+    _commit(repository, "Release on branch")
+    git(repository, "switch", "-q", "main")
+    git(repository, "merge", "--no-ff", "--no-commit", "candidate")
+    git(repository, "checkout", "main", "--", "contracts/registry.yaml")
+    git(repository, "commit", "-q", "-m", "Merge without release stage")
+    assert any(
+        "cannot return to development" in item for item in history_findings(repository, "main")
+    )

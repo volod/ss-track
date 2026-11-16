@@ -13,9 +13,15 @@ from pathlib import Path
 from ss_track.core.refusal import CorpusRefusal
 from ss_track.schema.compatibility.versioning import transition_findings
 from ss_track.schema.registry.check import check_contract_set
-from ss_track.schema.registry.contract import INITIAL, RELEASED, Contract, FrozenVersion
+from ss_track.schema.registry.contract import (
+    DEVELOPMENT,
+    INITIAL,
+    RELEASED,
+    Contract,
+    FrozenVersion,
+)
 from ss_track.schema.registry.stage import regression_finding, stage_of
-from ss_track.schema.registry.store import ContractSet, load_contract_set
+from ss_track.schema.registry.store import ContractSet, load_contract_set, registry_document
 
 _LOG = logging.getLogger(__name__)
 
@@ -99,8 +105,42 @@ def _revision_findings(snapshot: Path, revision: str, current: ContractSet) -> l
     return findings
 
 
+def _released_history(project: Path) -> tuple[set[str], list[str]]:
+    """Inspect registry revisions and refuse a later return after any ancestral release."""
+    revisions = _git(
+        project, "log", "--full-history", "--format=%H", "HEAD", "--", "contracts/registry.yaml"
+    )
+    stages = {}
+    for revision in revisions.decode().splitlines():
+        payload = _git(project, "show", f"{revision}:contracts/registry.yaml")
+        stages[revision] = registry_document(payload).get("stage", DEVELOPMENT)
+    released = {revision for revision, stage in stages.items() if stage == RELEASED}
+    findings = []
+    for revision in released:
+        later = (
+            _git(
+                project,
+                "rev-list",
+                "--full-history",
+                "--ancestry-path",
+                f"{revision}..HEAD",
+                "--",
+                "contracts/registry.yaml",
+            )
+            .decode()
+            .splitlines()
+        )
+        for descendant in later:
+            if stages.get(descendant) == DEVELOPMENT:
+                findings.append(
+                    f"the contract set was released at {revision} and cannot return to "
+                    f"development at {descendant}"
+                )
+    return released, findings
+
+
 def history_findings(project: Path, base_ref: str) -> list[str]:
-    """Fail closed on absent history; compare the merge base and the committed working baseline."""
+    """Compare merge base, HEAD and every released registry in their ancestry."""
     root = project / "contracts"
     findings = check_contract_set(root)
     if findings:
@@ -112,7 +152,9 @@ def history_findings(project: Path, base_ref: str) -> list[str]:
             return [*findings, "contract history requires a full checkout (fetch-depth: 0)"]
         base = _git(project, "merge-base", "HEAD", base_ref).decode().strip()
         head = _git(project, "rev-parse", "HEAD").decode().strip()
-        for revision in sorted({base, head}):
+        released, stage_history = _released_history(project)
+        findings += stage_history
+        for revision in sorted({base, head} | released):
             with tempfile.TemporaryDirectory(prefix="ss-track-contract-history-") as temporary:
                 snapshot = Path(temporary)
                 if _snapshot(project, revision, snapshot):

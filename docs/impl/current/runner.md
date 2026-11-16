@@ -70,10 +70,9 @@ released stage it also runs `buf breaking` against each frozen image. It is part
 In development, edit the proto and run `make proto-gen` to regenerate the `1.0.0` images, re-pin
 registered event packages and refresh the bindings. The generator validates each updated contract
 set as a batch before publishing it. It restores missing images together and refuses stale registry
-or image snapshots; a failed publication rolls back written images and bindings. Readers may temporarily refuse
-the set while image and pin writes are in progress; retry after generation finishes. After a contract
-edit, regenerate
-affected development datasets as required
+or image snapshots; a failed publication rolls back written images and bindings. Readers may
+temporarily refuse the set while image and pin writes are in progress; retry after generation
+finishes. After a contract edit, regenerate affected development datasets as required
 by the [development-stage rules](../../design/spec.md#177-development-stage-and-release). In the
 released stage the generator refuses to overwrite a different frozen image; a new URN is required.
 See the [development edit record](../records/0100-data-contracts-event-package-development-edit.md)

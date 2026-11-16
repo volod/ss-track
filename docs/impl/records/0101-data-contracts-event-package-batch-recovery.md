@@ -7,7 +7,8 @@ event-package-batch-recovery
 - Id / capability: `event-package-batch-recovery` / `data-contracts`
 - State: accepted
 - Source: plan task; starting commit `fa8bcac`, no unrelated dirty files.
-- Plan counts at start: 127 agent, 30 human; next agent `event-package-batch-recovery`, next human `define-locked-test-policy` (optional).
+- Plan counts at start: 127 agent, 30 human; next agent `event-package-batch-recovery`, next human
+  `define-locked-test-policy` (optional).
 - Accepted task:
 
 ```markdown
@@ -66,6 +67,6 @@ after generation is documented. An interrupted process can be recovered by rerun
 
 ## Close or resume
 
-All acceptance gates passed. The Runner page and records index are updated and the completed task is removed.
-Plan counts after: 126 agent, 30 human; next agent is `data-contracts-audit` (optional). No
-capability changed status; `data-contracts` remains planned.
+All acceptance gates passed. The Runner page and records index are updated and the completed task
+is removed. Plan counts after: 126 agent, 30 human; next agent is `data-contracts-audit`
+(optional). No capability changed status; `data-contracts` remains planned.

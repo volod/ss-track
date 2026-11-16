@@ -60,7 +60,8 @@ def test_a_draft_in_the_set_does_not_stop_a_kind_being_found(contract_root: Path
         "reason": "The dialect cannot state it.",
         "versions": [],
     }
-    registry["contracts"].insert(0, draft)
+    registry["contracts"].append(draft)
+    registry["contracts"].sort(key=lambda item: (item["family"], item["id"]))
     write_registry(contract_root, registry)
 
     assert validate_file(KEPT_FRAME_SET, root=contract_root).contract == FRAME_SET_CONTRACT
@@ -77,7 +78,8 @@ def test_a_draft_has_nothing_to_validate_against(contract_root: Path, tmp_path: 
         "reason": "The dialect cannot state it.",
         "versions": [],
     }
-    registry["contracts"].insert(1, draft)
+    registry["contracts"].append(draft)
+    registry["contracts"].sort(key=lambda item: (item["family"], item["id"]))
     write_registry(contract_root, registry)
 
     refusal = refused_validation(

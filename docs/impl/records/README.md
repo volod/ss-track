@@ -104,9 +104,9 @@ Copy the [template](template.md) using the
 | 0097 | `annotation-sequence-source` | [0097-annotation-selection-annotation-sequence-source](0097-annotation-selection-annotation-sequence-source.md) |
 | 0098 | `annotation-selection-audit` | [0098-annotation-selection-annotation-selection-audit](0098-annotation-selection-annotation-selection-audit.md) |
 | 0099 | `contract-development-baseline` | [0099-data-contracts-contract-development-baseline](0099-data-contracts-contract-development-baseline.md) |
-
 | 0100 | `event-package-development-edit` | [0100-data-contracts-event-package-development-edit](0100-data-contracts-event-package-development-edit.md) |
-
 | 0101 | `event-package-batch-recovery` | [0101-data-contracts-event-package-batch-recovery](0101-data-contracts-event-package-batch-recovery.md) |
+| 0102 | `data-contracts-audit` | [0102-data-contracts-data-contracts-audit](0102-data-contracts-data-contracts-audit.md) |
+| 0103 | `resolve-data-contract-record-markdown` | [0103-data-contracts-resolve-data-contract-record-markdown](0103-data-contracts-resolve-data-contract-record-markdown.md) |
 
-Next unused sequence: `0102`.
+Next unused sequence: `0104`.

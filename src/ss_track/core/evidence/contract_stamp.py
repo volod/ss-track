@@ -1,43 +1,55 @@
 """The development contract set a data root's records were written under (spec section 17.7).
 
-In the development stage a contract is edited in place, so a record written before the edit still
-stamps `schema_version: 1` and its major cannot tell it apart. The data root therefore keeps the
-structure fingerprint of every record contract its records were written under, in one stamp file
-beside them. A command on a root stamped under another set is refused with the remedy to
-regenerate the root. A command on a root with no stamp stamps it with the installed set when it
-first writes a sealed record there, so a read-only command writes nothing. A description-only
-edit moves no structure fingerprint, so it never asks for regeneration. In the released stage a
-record's major says what it is, so no stamp is written or read.
+In development, a record written before an in-place edit has the same major as a new record.
+The stamp pins structure and meaning of record and shared contracts before the first sealed write.
+A stale or incomplete stamp refuses reads until the data is regenerated. In the released stage a
+record's major identifies its contract, so the stamp is not used.
 """
 
+import fcntl
 import json
+import os
+import re
 from collections.abc import Mapping
 from contextvars import ContextVar
 from pathlib import Path
 
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.core.scratch import write_atomically
-from ss_track.schema.registry.contract import DEVELOPMENT, RECORD_FAMILY
+from ss_track.core.strict_json import reject_constant, unique_object
+from ss_track.schema.registry.contract import DEVELOPMENT, RECORD_FAMILY, SHARED_FAMILY
 from ss_track.schema.validation.enforce import installed_contracts
 
 STAMP_NAME = "contract-set.json"
 STAMP_KIND = "ss-track.development-contract-set"
 REGENERATE_REMEDY = (
-    "this data root was written under an earlier development contract set: delete its sealed "
+    "this data root may have been written under an earlier development contract set: delete its sealed "
     "datasets and the stamp, keep operator-written declarations, labels and review decisions, and "
     "regenerate the datasets from them with this ss-track (spec section 17.7)"
 )
 
 
 def installed_fingerprints() -> dict[str, str] | None:
-    """Return each record contract's structure fingerprint, or None once the set is released."""
+    """Return record and shared structure fingerprints, or None after release."""
     contracts = installed_contracts().contracts
     if contracts.stage != DEVELOPMENT:
         return None
     return {
         contract.name: contract.versions[-1].structure
         for contract in contracts.contracts
-        if contract.family == RECORD_FAMILY and contract.versions
+        if contract.family in (RECORD_FAMILY, SHARED_FAMILY) and contract.versions
+    }
+
+
+def installed_meanings() -> dict[str, str] | None:
+    """Return record and shared meaning fingerprints, or None after release."""
+    contracts = installed_contracts().contracts
+    if contracts.stage != DEVELOPMENT:
+        return None
+    return {
+        contract.name: contract.versions[-1].meaning
+        for contract in contracts.contracts
+        if contract.family in (RECORD_FAMILY, SHARED_FAMILY) and contract.versions
     }
 
 
@@ -47,61 +59,112 @@ _CHECKED_ROOT: ContextVar[Path | None] = ContextVar("checked_data_root", default
 def require_current_data_root(data_root: Path) -> None:
     """Refuse a data root stamped under another development contract set.
 
-    A root that passes becomes the one this command's sealed writes stamp, by `record_written`.
+    A root that passes becomes the one this command's sealed writes stamp, by `stamp_before_write`.
     """
     installed = installed_fingerprints()
     if installed is None:
         return
     path = data_root / STAMP_NAME
     stamped = _read_stamp(path)
-    _CHECKED_ROOT.set(data_root.resolve())
     if stamped is None:
+        _CHECKED_ROOT.set(data_root.resolve())
         return
+    stamped_structure, stamped_meaning = stamped
+    meanings = installed_meanings()
+    assert meanings is not None
     changed = sorted(
         name
-        for name in stamped.keys() | installed.keys()
-        if stamped.get(name) != installed.get(name)
+        for name in stamped_structure.keys()
+        | installed.keys()
+        | meanings.keys()
+        | (stamped_meaning.keys() if stamped_meaning is not None else set())
+        if (
+            (stamped_meaning is not None or name.startswith("record/"))
+            and stamped_structure.get(name) != installed.get(name)
+        )
+        or (stamped_meaning is not None and stamped_meaning.get(name) != meanings.get(name))
     )
-    if changed:
+    if changed or stamped_meaning is None:
         listed: list[JsonValue] = list(changed)
+        details: dict[str, JsonValue] = {
+            "stamp": str(path),
+            "changed_contracts": listed,
+            "remedy": REGENERATE_REMEDY,
+        }
+        if stamped_meaning is None:
+            details["unverified_contracts"] = list(sorted(meanings))
         raise CorpusRefusal(
             RefusalCode.RECORD_SCHEMA_UNSUPPORTED,
-            "the data root was written under another development contract set",
-            {"stamp": str(path), "changed_contracts": listed, "remedy": REGENERATE_REMEDY},
+            "the data root cannot be verified against the development contract set",
+            details,
         )
+    _CHECKED_ROOT.set(data_root.resolve())
 
 
-def record_written(path: Path) -> None:
-    """Stamp the checked data root when a sealed record is first written below it."""
+def stamp_before_write(path: Path) -> None:
+    """Check and stamp the root under a lock before publishing a sealed record."""
     root = _CHECKED_ROOT.get()
     installed = installed_fingerprints()
     if root is None or installed is None or not path.resolve().is_relative_to(root):
         return
-    stamp = root / STAMP_NAME
-    if not stamp.exists():
-        _write_stamp(stamp, installed)
+    root.mkdir(parents=True, exist_ok=True)
+    descriptor = os.open(root, os.O_RDONLY)
+    try:
+        fcntl.flock(descriptor, fcntl.LOCK_EX)
+        require_current_data_root(root)
+        stamp = root / STAMP_NAME
+        if not stamp.exists():
+            meanings = installed_meanings()
+            assert meanings is not None
+            _write_stamp(stamp, installed, meanings)
+    finally:
+        os.close(descriptor)
 
 
-def _read_stamp(path: Path) -> Mapping[str, object] | None:
+def _read_stamp(
+    path: Path,
+) -> tuple[Mapping[str, str], Mapping[str, str] | None] | None:
     """Parse the stamp, the one file of a data root that is not a sealed record."""
     try:
         text = path.read_text(encoding="ascii")
     except FileNotFoundError:
         return None
+    except UnicodeError as error:
+        raise _damaged(path, f"not ASCII: {error}") from error
     try:
-        document = json.loads(text)
-    except ValueError as error:
+        document = json.loads(text, object_pairs_hook=unique_object, parse_constant=reject_constant)
+    except (ValueError, RecursionError) as error:
         raise _damaged(path, f"not JSON: {error}") from error
     if not isinstance(document, dict) or document.get("kind") != STAMP_KIND:
         raise _damaged(path, "not a development contract-set stamp")
-    contracts = document.get("contracts")
-    if not isinstance(contracts, dict):
-        raise _damaged(path, "not a development contract-set stamp")
-    return contracts
+    contracts = _fingerprint_map(path, document.get("contracts"))
+    raw_meanings = document.get("meanings")
+    meanings = (
+        None
+        if raw_meanings is None and "meanings" not in document
+        else _fingerprint_map(path, raw_meanings)
+    )
+    return contracts, meanings
 
 
-def _write_stamp(path: Path, installed: Mapping[str, str]) -> None:
-    document = {"kind": STAMP_KIND, "contracts": dict(sorted(installed.items()))}
+def _fingerprint_map(path: Path, value: object) -> dict[str, str]:
+    if not isinstance(value, dict) or any(
+        not isinstance(name, str)
+        or not name.startswith(("record/", "shared/"))
+        or not isinstance(digest, str)
+        or re.fullmatch(r"[0-9a-f]{64}", digest) is None
+        for name, digest in value.items()
+    ):
+        raise _damaged(path, "invalid contract fingerprints")
+    return value
+
+
+def _write_stamp(path: Path, installed: Mapping[str, str], meanings: Mapping[str, str]) -> None:
+    document = {
+        "kind": STAMP_KIND,
+        "contracts": dict(sorted(installed.items())),
+        "meanings": dict(sorted(meanings.items())),
+    }
     path.parent.mkdir(parents=True, exist_ok=True)
     write_atomically(path, (json.dumps(document, indent=2) + "\n").encode("ascii"))
 

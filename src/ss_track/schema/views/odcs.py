@@ -9,8 +9,9 @@ from jsonschema import Draft201909Validator
 
 from ss_track.core.canonical import sha256_bytes
 from ss_track.core.refusal import JsonValue
+from ss_track.schema.registry.check import load_checked_contract_set
 from ss_track.schema.registry.contract import EVENT_FAMILY, Contract
-from ss_track.schema.registry.store import ContractSet, damaged, load_contract_set, read_schema
+from ss_track.schema.registry.store import ContractSet, damaged, read_schema
 from ss_track.schema.views.odcs_projection import Projection, losses
 
 ODCS_SCHEMA = "meta/standards/odcs-3.2.0.json"
@@ -70,7 +71,7 @@ def _document(contracts: ContractSet, contract: Contract, projection: Projection
 
 def export_odcs(out: Path, root: Path | None = None) -> ExportResult:
     """Validate all latest contract projections, then write one JSON document per contract."""
-    contracts = load_contract_set(root)
+    contracts = load_checked_contract_set(root)
     validator = _validator(contracts)
     projection = Projection(contracts)
     generated = []

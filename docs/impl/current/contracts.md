@@ -24,16 +24,22 @@ edited file only with its new pins, and refuses a second version, a change class
 `initial` or a retired major. `schema/registry/stage.py` states those rules.
 
 Records written before an edit still stamp `schema_version: 1`, so a data root keeps
-`contract-set.json`: the structure fingerprint of every `record` contract its records were written
-under. `core/evidence/contract_stamp.py` writes it when a command first seals a record below a data
-root that has none, so a read-only command writes nothing. Every command that takes the data root,
-through `commands/report.py` `reported_on_data_root` or `checked_data_root`, compares it with the
-installed set first. A difference is `RECORD_SCHEMA_UNSUPPORTED` with `changed_contracts` and the
-remedy to delete the root's sealed datasets and the stamp and regenerate them from the retained
-declarations, labels and review decisions. A damaged stamp is `RECORD_TAMPERED`. `data clean` reads
-no record and serves a stale root. A description-only edit moves no structure fingerprint and asks
-for no regeneration. A record of another major on the read path gets the same regenerate remedy,
-because no release wrote one.
+`contract-set.json`: structure and meaning fingerprints of the record and shared contracts. Before
+the first sealed write, `core/evidence/contract_stamp.py` checks and writes the stamp under a
+root lock; read-only commands write nothing. Every command taking the data root, through
+`commands/report.py` `reported_on_data_root` or `checked_data_root`, compares it with the
+installed set. A difference is `RECORD_SCHEMA_UNSUPPORTED`, with `changed_contracts` and the
+remedy to delete sealed datasets and the stamp and regenerate them from retained declarations,
+labels and review decisions. A stamp without meaning fingerprints cannot prove the earlier meaning
+and is refused with the same remedy and `unverified_contracts`; no data is deleted by the check.
+An absent stamp is currently treated as a fresh root even if sealed records already exist; preserve
+the stamp with its datasets. A damaged stamp is
+`RECORD_TAMPERED`. `data clean` reads no record and serves a stale root. Meaning fingerprints cover
+annotations including descriptions, so even editorial edits conservatively require regeneration.
+A record of another major gets the same regenerate remedy. The
+[audit record](../records/0102-data-contracts-data-contracts-audit.md) gives the checks and evidence.
+The [record-formatting decision](../records/0103-data-contracts-resolve-data-contract-record-markdown.md)
+keeps the owner-authorized exception.
 
 The section 17.3 classifier, the oracle, dispositions, views and comparison projections stay
 installed. Their tests run on synthetic version pairs in a private copy of the set moved to
@@ -176,9 +182,11 @@ readers had:
 - `is_shared_type` checks a value against a `shared/types` definition. Run ids and corpus ids given
   on the command line are checked as identifiers this way, so the pattern has one statement.
 
-The installed set is read once per process. A sealed read never validates: it checks seal, kind and
-the disposition of its major, so `corpus verify` costs what it did before. Validation does not run
-`x-rules`. The [corpus read path](corpus.md#reading-sealed-records) applies dispositions.
+The installed set is read once per process and checked for stage rules, file hashes and structure
+and meaning pins before it is used. Contract listing, validation and exports check the same pins.
+The build gate also checks the dialect and references. A sealed read never validates: it checks
+seal, kind and the disposition of its major, so `corpus verify` costs what it did before.
+Validation does not run `x-rules`. The [corpus read path](corpus.md#reading-sealed-records) applies dispositions.
 
 The validator reports a tagged `oneOf` through the branch its tag selects, so a wrong seed in a
 `blur` recipe is `/groups/0/encounters/0/streams/0/generated_cases/0/seed` and not "not valid under
@@ -320,9 +328,9 @@ meaning. `structure` drops annotations and `$id`, so two
 versions of one shape compare equal. `meaning` keeps annotations and `const` and `enum` values, and
 drops whatever is left empty, so a definition with no annotation does not move it.
 
-The history gate also reads the merge base of `HEAD` and `CONTRACT_BASE_REF` (default
-`origin/main`) and `HEAD` itself. A working set that states `development` is refused when either
-revision states `released`, because a released set never returns to development. A released
+The history gate reads the merge base of `HEAD` and `CONTRACT_BASE_REF` (default `origin/main`),
+`HEAD`, and every released registry revision in the ancestry of `HEAD`. A return to development
+after any released ancestor is refused, even if a later revision releases again. A released
 revision's every frozen file and complete version entry must be unchanged, so local edits to a
 version already committed on the feature branch are caught, and deleting a version or editing it
 together with its registry pins fails. A development revision froze nothing, so a development set
