@@ -9,10 +9,9 @@ from pathlib import Path
 from ss_track.core.evidence.sealed import read_sealed
 from ss_track.core.evidence.sealing import write_sealed
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
-from ss_track.core.scratch import exclusive_lock
+from ss_track.core.scratch import exclusive_lock, write_once
 from ss_track.corpus.declarations.fields import invalid
 from ss_track.corpus.records.kinds import CORPUS_POOL
-from ss_track.corpus.review.export import write_once
 from ss_track.corpus.sources.metadata_claims import Evidence, Unresolved
 from ss_track.corpus.sources.metadata_join import join_metadata
 from ss_track.corpus.sources.pool_emit import PoolDocuments, emit

@@ -17,9 +17,9 @@ from typing import Any
 
 import yaml
 
+from ss_track.core import scratch
 from ss_track.core.canonical import sha256_bytes
-from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
-from ss_track.core.scratch import write_atomically
+from ss_track.core.refusal import JsonValue, RefusalCode
 from ss_track.corpus.bundles.version_bundles import require_sources_hold
 from ss_track.corpus.declarations.declaration import CORPUS_CONTRACT, CORPUS_SCHEMA_VERSION
 from ss_track.corpus.declarations.fields import invalid
@@ -93,17 +93,7 @@ def declaration_bytes(document: Mapping[str, JsonValue]) -> bytes:
 
 def write_once(out: Path, payload: bytes) -> str:
     """Write a declaration once; the same bytes again change nothing, others are refused."""
-    if out.exists():
-        if out.is_file() and out.read_bytes() == payload:
-            return UNCHANGED
-        raise CorpusRefusal(
-            RefusalCode.CORPUS_CONFLICT,
-            "the output path already holds something else; choose another path",
-            {"path": str(out)},
-        )
-    out.parent.mkdir(parents=True, exist_ok=True)
-    write_atomically(out, payload)
-    return EXPORTED
+    return EXPORTED if scratch.write_once(out, payload) else UNCHANGED
 
 
 def export_review(

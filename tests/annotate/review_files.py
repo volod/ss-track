@@ -5,12 +5,12 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from ss_track.annotate.label_model import LabelSet
-from ss_track.annotate.pack_model import ScenarioPack
-from ss_track.annotate.review import freeze_labels
-from ss_track.annotate.review_model import Disagreement
-from ss_track.annotate.review_result import ReviewResult
-from ss_track.annotate.space import FrameSpace, read_frame_space
+from ss_track.annotate.labels.model import LabelSet
+from ss_track.annotate.packs.model import ScenarioPack
+from ss_track.annotate.review.freeze import ReviewInputs, freeze_labels
+from ss_track.annotate.review.model import Disagreement
+from ss_track.annotate.review.result import ReviewResult
+from ss_track.annotate.sources.frame_space import FrameSpace, read_frame_space
 from tests.annotate.documents import SPACE, label_body, load_labels, write_yaml
 from tests.annotate.support import DRAFT
 
@@ -95,15 +95,19 @@ def widen_box(body: dict[str, Any]) -> None:
     body["instances"][0]["frames"][0]["geometry"]["box"]["width"] = 5
 
 
-def freeze_written(folder: Path, source: Path) -> ReviewResult:
-    """Freeze the pair written in `folder` against `source`."""
+def freeze_written(folder: Path, source: Path, out: Path | None = None) -> ReviewResult:
+    """Freeze the pair written in `folder` against `source`, into `out` when it is given."""
+    target = folder if out is None else out
     return freeze_labels(
-        folder / "left.yaml",
-        folder / "right.yaml",
-        DRAFT,
-        source,
-        folder / "review.yaml",
+        review_inputs(folder, source),
         folder / "settlement.yaml",
-        folder / "frozen.json",
-        folder / "revision.json",
+        target / "frozen.json",
+        target / "revision.json",
+    )
+
+
+def review_inputs(folder: Path, source: Path) -> ReviewInputs:
+    """Return the pair, pack and review plan written in `folder`."""
+    return ReviewInputs(
+        folder / "left.yaml", folder / "right.yaml", DRAFT, source, folder / "review.yaml"
     )

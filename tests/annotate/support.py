@@ -7,7 +7,7 @@ from typing import Any
 import pytest
 import yaml
 
-from ss_track.annotate.pack import load_scenario_pack
+from ss_track.annotate.packs.load import load_scenario_pack
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
 from tests.schema.conftest import PROJECT_ROOT
 

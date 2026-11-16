@@ -21,7 +21,9 @@ import` and `ss-track corpus build`, `stage`, `verify`, `describe`, `hashes`, `c
 `diff` and `freeze` under [Contracts](contracts.md). `ss-track annotate validate` checks one
 label, seed or mask, described under [Corpus](corpus.md#annotation-contract). `ss-track annotate
 compare` and `annotate freeze` settle two label documents, described under
-[Corpus](corpus.md#annotation-review). No run, evaluation or report behavior exists yet; the
+[Corpus](corpus.md#annotation-review), and `ss-track annotate derive` gives each generated case
+its labels, described under [Corpus](corpus.md#derived-case-labels). No run, evaluation or report
+behavior exists yet; the
 [implementation plan](../plan.md) describes the scheduled work.
 
 Run it with:

@@ -63,6 +63,13 @@ include-package-data = false
 packages = [
   "ss_track",
   "ss_track.annotate",
+  "ss_track.annotate.declarations",
+  "ss_track.annotate.derivation",
+  "ss_track.annotate.labels",
+  "ss_track.annotate.packs",
+  "ss_track.annotate.review",
+  "ss_track.annotate.sources",
+  "ss_track.annotate.validation",
   "ss_track.commands",
   "ss_track.contract",
   "ss_track.contract.gen",

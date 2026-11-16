@@ -710,19 +710,26 @@ visibility then follows the frozen frame. A visibility change, or re-entry on a 
 `visible` or `partially_occluded`, clears re-entry and marks the selection `uncertain`. An event
 whose onset frame was not frozen is refused.
 
-The freeze writes that label document and a sealed revision. The sensitivity band is the two
-annotator document hashes. The revision pins those hashes, the review, the settlement, the sample
-and every disagreement with its outcome and rationale. It computes no score. Scores against each
-annotator's labels remain the annotation-sensitivity band in
+The freeze writes that label document and a sealed revision. Both are written once: the same
+freeze again changes nothing, another revision at those paths is refused, and so is an output path
+that is a file the freeze reads. The sensitivity band is the two annotator document hashes. The
+revision pins those hashes, the review, the settlement, the sample and every disagreement with its
+outcome and rationale. It computes no score. Scores against each annotator's labels remain the
+annotation-sensitivity band in
 [section 6.1](#61-operator-selected-tracking-sot-v2-dev). Ground truth, episode eligibility and
 exclusion masks are frozen and hashed **before** module execution.
 
 Label coordinates use the stored orientation that modules receive. Display rotation is a recorded
 fact, so a tool that shows a rotated view maps coordinates back before a label is validated, and a
-label that declares any other orientation is refused. A video file's source identity is its file
-hash. An ordered image sequence's source identity is the hash of its ordered image hashes.
-Validation, comparison and freeze accept either source and check labels against that identity and
-the stored frame. A directory that is not a sequence is refused.
+label that declares any other orientation is refused. A label names its source as a corpus stream
+does. A video file's source identity is its file hash. A file that holds more than one video stream
+names one by its index, and a later stream's identity is its stream identity
+([section 4.1](#41-corpus-identity-and-input-handling)). An ordered image sequence's source
+identity is the hash of its ordered image hashes. Validation, comparison and freeze accept each of
+these and check labels against that identity and the stored frame. A directory that is not a
+sequence is refused. A freeze may name a corpus stream instead of a source and two output paths.
+It then reads the source stored for that stream, files the revision under it, and refuses a
+decode whose frame shape is not the one the corpus pinned.
 
 Each labeled frame is `scorable`, `unscorable` or `not_denominator`. `unscorable` means the frame
 is unverifiable: identity is ambiguous, the mark or the visibility is `unknown`, or geometry is
@@ -735,11 +742,18 @@ geometry, then a point with no plausible extent. An unscorable or withheld frame
 score.
 
 A generated case takes its labels from its parent's frozen revision through the stored label
-transform, as a hashed revision of its own that nobody edits by hand. Frozen labels also check the
-rectangle a case rests on: a plate frame that shows a target inside that rectangle is refused, and a
-target the rectangle does not cover stays `unknown` rather than becoming `absent`. A track-following
-case names that revision and the instance its boxes came from. A frame of the case with no scorable
-box stays `unknown`.
+transform, as a hashed revision of its own that nobody edits by hand. The parent's frozen labels
+must name the source and the stored frame shape of the corpus stream they sit under, so labels of
+another source, or of another decode, derive nothing. Frozen labels also check the rectangle a case
+rests on. The plate frame's pixels are copied into that rectangle, so a plate frame that shows any
+part of a target inside it is refused, as is one that holds a target whose location is unknown.
+On a frame of the case, a target the rectangle does not cover stays `unknown` rather than becoming
+`absent`. A track-following case names that revision and the instance its boxes came from. A frame
+of the case with no scorable box stays `unknown`. A motion event follows its frame by the rule a
+freeze applies: it takes the frame's visibility, re-entry holds only on a `visible` or
+`partially_occluded` frame, and either change marks the selection `uncertain`. An event whose
+frame the case removed is left out. A target that returns records re-entry once, on the first
+frame it is back.
 
 Fusion labels distinguish the object/event's **scene-level identity** from visibility or
 detectability in each sensor. A camera may see an object while a microphone has no attributable
@@ -812,9 +826,10 @@ window, and stands one pixel off that box on the frames around the interval, alo
 axis. A moving removal replaces each box with the same rectangle of a plate frame plus seeded noise,
 and marks the box absent. A similar distractor copies the box onto a seed-chosen side that shares an
 edge and does not cover the target. The copy is a distractor and the target stays. Out of view
-shifts each frame of a declared interval until the whole box lies outside the frame, then marks a
-later frame that still has a box as re-entry. The label transform is `track_status`, one entry per
-window frame. None of these cases claims the motion is realistic.
+shifts each frame of a declared interval until the whole box lies outside the frame. Each later
+frame that still has a box is stored with the re-entry role, and the derived labels record the
+return once, on the first of them. The label transform is `track_status`, one entry per window
+frame. None of these cases claims the motion is realistic.
 
 A recipe may declare a graded list of one parameter, which expands to one case per level. The local
 report then shows each module's quality against that severity, so a comparison shows where a module

@@ -8,12 +8,14 @@ from urllib.parse import urlsplit
 
 from ss_track.core.canonical import canonical_json, sha256_bytes
 from ss_track.core.refusal import CorpusRefusal
+from ss_track.core.scratch import write_once
 from ss_track.corpus.declarations.fields import invalid
-from ss_track.corpus.review.export import write_once
 from ss_track.schema.validation.enforce import read_declaration
 
 CONTRACT = "declaration/source-inventory"
 _VERSION = 1
+EXPORTED = "exported"  # the statuses an inventory write reports
+UNCHANGED = "unchanged"
 _HF_COMMIT = re.compile(r"^[0-9a-f]{40}$")
 _HF_REPO = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._-]*$")
 _ZENODO_ID = re.compile(r"^[1-9][0-9]*$")
@@ -148,4 +150,5 @@ def inventory_sources(path: Path, out: Path) -> InventoryResult:
     """Write a canonical declaration once, without acquiring video or granting approval."""
     document = read_inventory(path)
     payload = canonical_json(document)
-    return InventoryResult(out, write_once(out, payload), document, sha256_bytes(payload))
+    status = EXPORTED if write_once(out, payload) else UNCHANGED
+    return InventoryResult(out, status, document, sha256_bytes(payload))

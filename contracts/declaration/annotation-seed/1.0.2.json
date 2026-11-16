@@ -1,0 +1,269 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ss-track:contract:declaration:annotation-seed:1.0.2",
+  "title": "Annotation seed",
+  "description": "One operator selection and an optional fixed list of perturbed seeds. The real selection stays primary. Replaying one document yields the same selection each time. The annotator id is recorded and is not part of that replay. This document is not a score.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "seed_id",
+    "label_sha256",
+    "annotator_id",
+    "source_sha256",
+    "frame_count",
+    "width",
+    "height",
+    "orientation_degrees",
+    "display_rotation_degrees",
+    "frame_index",
+    "pts",
+    "time_base",
+    "intended_instance_id",
+    "quality",
+    "original",
+    "perturbations"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1,
+      "minimum": 0,
+      "x-unit": "1",
+      "description": "Declaration major."
+    },
+    "seed_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "Stable name of this seed."
+    },
+    "label_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Hash of the validated label document this selection was drawn against."
+    },
+    "annotator_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "Who made the selection. Modules do not receive this as part of the replay."
+    },
+    "source_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Source identity, as a corpus stream names it. The first video stream of a file uses the file hash. A later video stream of that file uses its stream identity. An ordered image sequence uses the sequence identity of its ordered image hashes."
+    },
+    "frame_count": {
+      "type": "integer",
+      "minimum": 1,
+      "x-unit": "1",
+      "description": "Decoded frame count of the source."
+    },
+    "width": {
+      "type": "integer",
+      "minimum": 1,
+      "x-unit": "px",
+      "x-frame": "stored pixels",
+      "description": "Stored frame width."
+    },
+    "height": {
+      "type": "integer",
+      "minimum": 1,
+      "x-unit": "px",
+      "x-frame": "stored pixels",
+      "description": "Stored frame height."
+    },
+    "orientation_degrees": {
+      "type": "integer",
+      "enum": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "x-unit": "deg",
+      "description": "Orientation of these coordinates. Modules receive stored pixels at 0 degrees. Any other value is refused."
+    },
+    "display_rotation_degrees": {
+      "type": "integer",
+      "x-unit": "deg",
+      "description": "Display rotation recorded on the source. It is not a coordinate transform."
+    },
+    "frame_index": {
+      "type": "integer",
+      "minimum": 0,
+      "x-unit": "1",
+      "description": "Source frame of the original click or box."
+    },
+    "pts": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "x-unit": "1",
+      "description": "Presentation timestamp of the source frame, or null when the operator states no time."
+    },
+    "time_base": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[1-9][0-9]*/[1-9][0-9]*$",
+      "description": "Rational time base of pts, or null when pts is null."
+    },
+    "intended_instance_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+      "description": "The instance the operator meant, once adjudicated. Null until then."
+    },
+    "quality": {
+      "type": "string",
+      "enum": [
+        "as_clicked",
+        "imprecise",
+        "corrected"
+      ],
+      "description": "as_clicked and imprecise both give modules the original selection. imprecise records that the click was coarse. corrected gives modules the correction."
+    },
+    "original": {
+      "$ref": "#/$defs/selection",
+      "description": "The original click or box. It stays in the document when a correction replaces it."
+    },
+    "correction": {
+      "$ref": "#/$defs/selection",
+      "description": "Present only when quality is corrected. Modules receive this instead of the original."
+    },
+    "perturbations": {
+      "type": "array",
+      "minItems": 0,
+      "description": "Fixed robustness view. Empty when there is none. Order is part of the replay. The primary selection stays first.",
+      "items": {
+        "$ref": "#/$defs/perturbation",
+        "description": "One perturbation."
+      }
+    }
+  },
+  "x-rules": {
+    "label": "label_sha256 is the hash of the label file, and that file matches this source.",
+    "space": "orientation_degrees is the stored orientation, 0. display_rotation_degrees, source_sha256, width, height and frame_count match the video.",
+    "time": "pts and time_base are both set or both null. A set pts equals the source frame, and time_base equals the source time base.",
+    "target": "An intended instance is in the labels and has a label on frame_index.",
+    "quality": "corrected requires correction. as_clicked and imprecise refuse it. Modules receive the correction when it is present and the original otherwise.",
+    "perturbations": "Ids are unique and are not primary. Each offset changes the selection and stays inside the source. The replay lists the primary first, then each perturbation in order."
+  },
+  "$defs": {
+    "selection": {
+      "description": "A click or a box in the stored orientation.",
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "A click.",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "x",
+            "y"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "point",
+              "description": "A click, not a box."
+            },
+            "x": {
+              "type": "integer",
+              "minimum": 0,
+              "x-unit": "px",
+              "x-frame": "stored pixels",
+              "description": "Column."
+            },
+            "y": {
+              "type": "integer",
+              "minimum": 0,
+              "x-unit": "px",
+              "x-frame": "stored pixels",
+              "description": "Row."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "description": "A box.",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "x",
+            "y",
+            "width",
+            "height"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "box",
+              "description": "A box."
+            },
+            "x": {
+              "type": "integer",
+              "minimum": 0,
+              "x-unit": "px",
+              "x-frame": "stored pixels",
+              "description": "Left edge."
+            },
+            "y": {
+              "type": "integer",
+              "minimum": 0,
+              "x-unit": "px",
+              "x-frame": "stored pixels",
+              "description": "Top edge."
+            },
+            "width": {
+              "type": "integer",
+              "minimum": 1,
+              "x-unit": "px",
+              "x-frame": "stored pixels",
+              "description": "Width. The right edge is exclusive."
+            },
+            "height": {
+              "type": "integer",
+              "minimum": 1,
+              "x-unit": "px",
+              "x-frame": "stored pixels",
+              "description": "Height. The bottom edge is exclusive."
+            }
+          }
+        }
+      ]
+    },
+    "perturbation": {
+      "type": "object",
+      "description": "An integer offset from the selection modules receive.",
+      "additionalProperties": false,
+      "required": [
+        "perturbation_id",
+        "dx",
+        "dy",
+        "frame_offset"
+      ],
+      "properties": {
+        "perturbation_id": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+          "description": "Stable name of this perturbation."
+        },
+        "dx": {
+          "type": "integer",
+          "x-unit": "px",
+          "description": "Columns added to the selection. Negative moves left."
+        },
+        "dy": {
+          "type": "integer",
+          "x-unit": "px",
+          "description": "Rows added to the selection. Negative moves up."
+        },
+        "frame_offset": {
+          "type": "integer",
+          "x-unit": "1",
+          "description": "Frames added to the selection frame. Negative moves earlier."
+        }
+      }
+    }
+  }
+}

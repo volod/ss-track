@@ -38,11 +38,14 @@ makes it fail, and what it does not prove. A case with no task left is listed as
   Value: protects=reproducible cases that are not encounters; fails_when=a case counts as new
   evidence; no_claim=realism.
 - Derived case labels follow each stored transform, including `track_status` roles `unknown`,
-  `region`, `shift`, `reentry` and `unchanged`, and a plate showing a target.
-  `tests/annotate/test_derive_labels.py`, `test_derive_track.py` and `test_derive_command.py`
-  cover them.
+  `region`, `shift`, `reentry` and `unchanged`, and a plate showing any part of a target. Frozen
+  labels of another source or frame shape than their stream derive nothing, a return is one
+  re-entry event, and an event whose frame changed is `uncertain`.
+  `tests/annotate/derivation/test_derive_labels.py`, `test_derive_track.py`,
+  `test_derive_plate.py`, `test_derive_stream.py` and `test_derive_command.py` cover them.
   Value: protects=labels that follow pixels; fails_when=a covered target stays visible, a wrong
-  region yields `absent`, or a frame with no box becomes `absent`; no_claim=parent label quality.
+  region or a plate that shows a target yields `absent`, a frame with no box becomes `absent`, or
+  labels of another source reach a case; no_claim=parent label quality.
 - Golden transforms and architecture-sensitive decode tests pass on arm64, and one fixed corpus
   staged from one set of stored sources on x86-64 and arm64 stays `identical`, compared through
   `frame_set_sha256` and then per source. The corpus holds every decoder family the wheel can encode,
@@ -53,11 +56,13 @@ makes it fail, and what it does not prove. A case with no task left is listed as
   source is regenerated on one host, or a row does not decode as the format it claims; no_claim=macOS,
   timing, a decoder or pixel format outside the fixed corpus, or a host that did not stage it.
 - Hand-built disagreements between two label documents are reported exactly. An unresolved required
-  disagreement blocks the freeze, and a disagreement outside the review stays unknown.
-  `tests/annotate/test_annotation_review.py`, `test_annotation_freeze.py`,
-  `test_annotation_freeze_refusal.py` and `test_annotate_review_command.py` cover them.
-  Value: protects=review before freezing; fails_when=an unresolved case freezes; no_claim=reviewer
-  skill.
+  disagreement blocks the freeze, and a disagreement outside the review stays unknown. A frozen
+  revision is written once and never over a file the freeze reads.
+  `tests/annotate/review/test_annotation_review.py`, `test_annotation_freeze.py`,
+  `test_annotation_freeze_refusal.py`, `test_frozen_outputs.py`, `test_stream_freeze.py` and
+  `test_annotate_review_command.py` cover them.
+  Value: protects=review before freezing; fails_when=an unresolved case freezes, or a frozen
+  revision or an annotator's document is replaced; no_claim=reviewer skill.
 
 ## Fixture-level cases
 

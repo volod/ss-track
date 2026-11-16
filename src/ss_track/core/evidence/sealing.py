@@ -62,8 +62,13 @@ def _unsealed(body: Mapping[str, JsonValue]) -> dict[str, JsonValue]:
     return dict(body) | {SEAL_FIELD: _UNSEALED}
 
 
+def sealed_bytes(sealed: Mapping[str, JsonValue]) -> bytes:
+    """Return the bytes a sealed record is stored as."""
+    text = json.dumps(sealed, ensure_ascii=True, allow_nan=False, indent=2, sort_keys=True)
+    return f"{text}\n".encode("ascii")
+
+
 def write_sealed(path: Path, sealed: Mapping[str, JsonValue]) -> None:
     """Write a read-only record so that a crash cannot leave a partial file."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    text = json.dumps(sealed, ensure_ascii=True, allow_nan=False, indent=2, sort_keys=True)
-    write_atomically(path, f"{text}\n".encode("ascii"), mode=READ_ONLY_FILE_MODE)
+    write_atomically(path, sealed_bytes(sealed), mode=READ_ONLY_FILE_MODE)

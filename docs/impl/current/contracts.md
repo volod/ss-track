@@ -24,8 +24,8 @@ baseline scope and evidence. The installed set contains these document contracts
 | `declaration/recording` | `2.0.0`, `2.1.0`, `2.2.0`, `2.3.0`, `2.4.0`, `3.0.0`, `3.1.0` |
 | `declaration/video-hints` | `1.0.0` |
 | `declaration/scenario-pack` | `1.0.0` |
-| `declaration/annotation-label` | `1.0.0`, `1.0.1` |
-| `declaration/annotation-seed` | `1.0.0`, `1.0.1` |
+| `declaration/annotation-label` | `1.0.0`, `1.0.1`, `1.0.2` |
+| `declaration/annotation-seed` | `1.0.0`, `1.0.1`, `1.0.2` |
 | `declaration/annotation-mask` | `1.0.0` |
 | `declaration/annotation-review` | `1.0.0` |
 | `declaration/annotation-settlement` | `1.0.0` |
@@ -45,7 +45,7 @@ baseline scope and evidence. The installed set contains these document contracts
 | `record/corpus-pool` | `1.0.0` |
 | `record/source-manifest` | `2.0.0`, `2.1.0`, `2.2.0`, `2.3.0`, `2.4.0`, `3.0.0`, `3.1.0` |
 | `record/image-sequence` | `1.0.0` |
-| `record/annotation-revision` | `1.0.0`, `1.0.1` |
+| `record/annotation-revision` | `1.0.0`, `1.0.1`, `1.0.2` |
 | `record/derived-label` | `1.0.0` |
 | `result/command` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0`, `1.4.0`, `1.5.0`, `1.6.0`, `1.7.0`, `1.8.0`, `1.9.0`, `1.9.1`, `1.10.0`, `1.11.0`, `1.12.0`, `1.13.0`, `1.14.0`, `1.15.0`, `1.16.0`, `1.17.0`, `1.18.0`, `1.19.0`, `1.20.0`, `1.21.0`, `1.22.0`, `1.23.0`, `1.24.0`, `1.25.0`, `1.26.0`, `1.27.0`, `1.28.0`, `1.29.0`, `1.30.0`, `1.31.0`, `1.32.0` |
 
@@ -55,7 +55,8 @@ seals its ordered image hashes and declared rate. All inventory reads use the sh
 gate. The [sequence source interface](corpus.md#ordered-image-sequences) states identity and timing.
 `declaration/annotation-label` 1.0.1, `declaration/annotation-seed` 1.0.1 and
 `record/annotation-revision` 1.0.1 state that `source_sha256` is the file hash of a video or the
-sequence identity of an ordered image sequence. Documents stay at schema major 1.
+sequence identity of an ordered image sequence. Their 1.0.2 states that a later video stream of a
+file is named by its stream identity. Documents stay at schema major 1.
 
 The `event` family is a frozen descriptor set, not a JSON Schema document. `event/analytics`,
 `event/clock`, `event/frame`, `event/trial` and `event/wire` are each at `1.0.0`. The
@@ -64,7 +65,7 @@ The `event` family is a frozen descriptor set, not a JSON Schema document. `even
 `result/command` `1.30.0` adds optional `annotation` on `ss-track annotate validate`. The object
 names the document kind and hash, the pack hash for a label, the replay hash for a seed, and one
 row per frame or seed role. A row is `scorable`, `unscorable` or `not_denominator`. It has no
-numeric score.
+numeric score. The record's `version` is the frozen version the document was validated under.
 
 `result/command` `1.31.0` adds optional `label_review` on `ss-track annotate compare` and
 `annotate freeze`. Compare lists each disagreement and stays `valid` when the documents differ.

@@ -7,8 +7,9 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from ss_track.annotate.label_model import LabelSet
-from ss_track.annotate.pack_model import ScenarioPack
+from ss_track.annotate.derivation.derive import prepare_case_labels
+from ss_track.annotate.labels.model import LabelSet
+from ss_track.annotate.packs.model import ScenarioPack
 from tests.annotate.documents import SPACE, frame, label_body, load_labels, write_yaml
 
 BOX = {"x": 1, "y": 2, "width": 4, "height": 3}
@@ -112,3 +113,83 @@ def other_instance(index: int = 0, *, x: int = 20, y: int = 10) -> dict[str, Any
 def rect(x: int, y: int, width: int, height: int) -> dict[str, int]:
     """Return one stored rectangle."""
     return {"x": x, "y": y, "width": width, "height": height}
+
+
+def apply_track_case(
+    labels: LabelSet,
+    pack: ScenarioPack,
+    frames: list[dict[str, object]],
+    track: list[dict[str, object]],
+    *,
+    window: tuple[int, int] = (0, 1),
+    revision: str = REVISION,
+    **parameters: object,
+) -> LabelSet:
+    transform = {
+        "kind": "track_status",
+        "label_revision": revision,
+        "instance_id": "target-1",
+        "frames": frames,
+    }
+    body = case_of(
+        transform,
+        window=window,
+        parameters={"track": track, **parameters},
+    )
+    return prepare_case_labels(labels, body, pack, REVISION).labels
+
+
+def first_box(labels: LabelSet) -> tuple[int, int, int, int]:
+    box = labels.instances[0].frames[0].geometry.box
+    if box is None:
+        raise TypeError("frame has no box")
+    return (box.x, box.y, box.width, box.height)
+
+
+def track_box(index: int, *, x: int = 1, y: int = 2) -> dict[str, object]:
+    return {"frame_index": index, "box": rect(x, y, 4, 3)}
+
+
+def boxed(index: int, role: str, *, x: int = 1, y: int = 2) -> dict[str, object]:
+    return {"frame_index": index, "role": role, "region": rect(x, y, 4, 3)}
+
+
+def shift(index: int, dx: int, dy: int) -> dict[str, object]:
+    return {
+        "frame_index": index,
+        "role": "shift",
+        "dx": dx,
+        "dy": dy,
+        "region": dict(BOX),
+        "visibility": "out_of_view",
+    }
+
+
+def removal(index: int, region: dict[str, int]) -> dict[str, object]:
+    return {
+        "frame_index": index,
+        "role": "region",
+        "region": region,
+        "inside": "absent",
+        "overlap": "unknown",
+        "overlap_geometry": "unlocalizable",
+    }
+
+
+def distractor(index: int, region: dict[str, int]) -> dict[str, object]:
+    return removal(index, region) | {
+        "inside": "unknown",
+        "overlap": "unknown",
+        "added_objects": "distractor",
+    }
+
+
+def status_region(region: dict[str, int]) -> dict[str, object]:
+    return {
+        "kind": "region_status",
+        "frames": {"start_frame": 0, "end_frame": 1},
+        "region": region,
+        "inside": "absent",
+        "overlap": "unknown",
+        "overlap_geometry": "unlocalizable",
+    }

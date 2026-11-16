@@ -33,34 +33,6 @@ hardware or private data.
 
 ## Agent Implementation Tasks
 
-### Annotation and selection -- `annotation-selection`
-
-#### annotation-selection-audit (optional)
-
-Label validation, review, generated labels and image-sequence sources each touch identity and the
-frozen mask, and a difference between them would change what a score means.
-
-- Serves: `annotation-selection` -- [Annotation contract](../design/spec.md#42-annotation-contract)
-- Agent status: CLEAR
-- Milestone: M1
-- Effort: high
-- Dependencies: every other agent task in this group.
-- User-visible outcome: One set of rules decides what a label is, what can freeze and what stays
-  unverifiable.
-- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
-  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
-  score or refusal code.
-- Data and artifact paths: `src/ss_track/annotate/`, `tests/annotate/`,
-  `$DATA_DIR/corpus/<corpus-id>/labels/`.
-- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from the
-  rules that validation, review tools, generated labels and image-sequence sources each apply, and
-  from how a label joins a staged frame, a generated case and an image sequence.
-- Acceptance gates: Seed replay stays identical, an unresolved case never freezes, and an
-  unverifiable label never scores as zero. Every finding is fixed, routed to a task or dropped with
-  its reason, and `make quality` passes. Finding nothing is a valid result when the record states
-  what was reviewed.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
 ### Module contract and runner -- `module-contract-runner`
 
 #### scenario-contract
@@ -86,6 +58,16 @@ A comparison must pin everything that can change its result.
   refuses to run, as does one whose corpus fails `corpus verify` or whose pinned frame-set hash differs
   from the `frame_set_sha256` that command reports. The pin is the only check that sees a frame set
   rewritten on disk. A source with empty `completeness_checks` is reported, never assumed complete.
+  The labels a scenario pins are the seal of each stream's `record/annotation-revision` and of
+  each generated case's `record/derived-label` under `$DATA_DIR/corpus/<corpus-id>/labels/`
+  ([derived case labels](current/corpus.md#derived-case-labels)). `annotate derive` rewrites a
+  derived revision on each run, and a change to a derivation rule moves its seal, so a scenario
+  whose pinned label seal differs from the revision on disk refuses to run with both seals named,
+  as a changed frame set does. Episode eligibility comes from a frozen mask, which
+  `annotate validate --kind mask` checks against its labels, but no command stores a mask under the
+  corpus or derives one for a generated case. The scenario pins each mask it scores by hash and
+  path, a stream or case it names with no pinned mask refuses to run rather than scoring as zero,
+  and a fixture shows a mask whose `label_sha256` is not the pinned revision's label hash refused.
 - Documentation target: [Current implementation](current.md#areas), page `current/runner.md`.
 
 #### run-bundle-store
@@ -324,9 +306,14 @@ Motion proposals need their own event scores.
 - User-visible outcome: Reports show event recall, detection delay and operator-burden proposals.
 - Scope boundary: `motion-v1-dev` only. It is no general detection claim.
 - Data and artifact paths: `src/ss_track/suites/`, `tests/suites/`.
-- Execution path: Add matching-order fixtures and hand-computed recall.
+- Execution path: Add matching-order fixtures and hand-computed recall. Read events from the frozen
+  and derived label revisions. A derived case marks an event `uncertain` when its transform changed
+  the onset frame's visibility or cleared its re-entry
+  ([derived case labels](current/corpus.md#derived-case-labels)), so the suite reports the events
+  of each selection quality with their counts and does not drop an `uncertain` event silently.
 - Acceptance gates: Oracle fixtures reach recall 1 with zero burden proposals. A null module scores a
-  `VALID` zero and never `NOT_SCOREABLE`.
+  `VALID` zero and never `NOT_SCOREABLE`. A fixture with one `reviewed` and one `uncertain` event
+  shows both counts in the output.
 - Documentation target: [Current implementation](current.md#areas), page `current/evaluation.md`.
 
 #### extent-envelope-view
@@ -840,9 +827,10 @@ argument parsing.
 - User-visible outcome: Corpus provenance and corpus discovery are separate area packages, with
   imports in one direction, from discovery to provenance.
 - Scope boundary: A move of the inventory, acquisition, pool, sibling, selection, discovery,
-  review, link and evaluation modules to their own area package, with their tests. The write-once
-  and declaration-byte helpers that source import takes from review export move to the side that
-  owns them. No command name, record, contract, hash or refusal code changes.
+  review, link and evaluation modules to their own area package, with their tests. The
+  declaration-byte helper that source import takes from review export moves to the side that owns
+  it. Write-once publishing is already the shared `write_once` in `core/scratch.py`. No command
+  name, record, contract, hash or refusal code changes.
 - Data and artifact paths: `src/ss_track/corpus/`, `src/ss_track/discover/`,
   `src/ss_track/commands/`, `tests/corpus/`, `tests/discover/`.
 - Execution path: Move packages with their tests, split the discover command module by subcommand
@@ -3017,7 +3005,10 @@ G0a needs only one positive and one negative encounter, so it should not wait fo
   time per encounter. Review every frame of the selected negative window for target absence, and
   leave any uncertain frames unknown; the initial selection used a one-frame-per-second survey.
 - Data and artifact paths: `$DATA_DIR/corpus/<corpus-id>/labels/`.
-- Execution path: Two reviewers label and settle disagreements under a named authority.
+- Execution path: Two reviewers label and settle disagreements under a named authority. Freeze each
+  encounter's stream with `annotate freeze --corpus <corpus-id> --stream <stream-id>`, which files
+  the revision where `annotate derive` reads it
+  ([annotation review](current/corpus.md#annotation-review)).
 - Acceptance gates: Validation passes and the revision is frozen and hashed. Unresolved labels remain
   unknown; time spent labelling is recorded as planning evidence.
 - Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.

@@ -26,6 +26,14 @@ contracts:
       class: patch
       summary: State that a label source hash is a video file hash or an image-sequence
         identity.
+  - version: 1.0.2
+    file_sha256: 8f8fc2b72cdf720d7faef4ea7e648b95195b4d2a099ab62c705285ffd2eca337
+    fingerprints:
+      structure: 74939d704c73fc60311fa8500d2d00b820bf189b39b84aa0501df6634fcd37c0
+      meaning: 95a0822d41f5972c19202ccadd9990112825e3bf2296495b00b3d1721bc048a0
+    change:
+      class: patch
+      summary: State that a later video stream of a file is named by its stream identity.
 - family: declaration
   id: annotation-mask
   owner: annotation-selection
@@ -85,6 +93,14 @@ contracts:
       class: patch
       summary: State that a seed source hash is a video file hash or an image-sequence
         identity.
+  - version: 1.0.2
+    file_sha256: 70cd0d92a1f0c0bfa9fadedffb236d3ee5e0e704eccf2f8c68d15af0c5f19b5d
+    fingerprints:
+      structure: a71d5943041eacedcc0274fb6f9998cfe65f0acbea6c77594b438767667dcc91
+      meaning: 765a67417f6d5e51a8fb4953bd6c16194d4bd0ef515eb681213832b6219f3891
+    change:
+      class: patch
+      summary: State that a later video stream of a file is named by its stream identity.
 - family: declaration
   id: annotation-settlement
   owner: annotation-selection
@@ -530,6 +546,14 @@ contracts:
       class: patch
       summary: State that a revision source hash is a video file hash or an image-sequence
         identity.
+  - version: 1.0.2
+    file_sha256: 79353835fabc2a6448302f8f3f770f0cef592122f82e88301c5d7099aebf071f
+    fingerprints:
+      structure: a010cf41602b0b3acba9874b02d9364ac8becacc3ee301f7fbaa668b620f4ee9
+      meaning: 33e6ed755ddfdd2707e4bbbacd1739f2024f23f342da7ae2e6be392e08020ccf
+    change:
+      class: patch
+      summary: State that a later video stream of a file is named by its stream identity.
 - family: record
   id: audit-blinding
   owner: self-supervised-corpus

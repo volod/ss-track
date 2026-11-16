@@ -8,21 +8,24 @@ from typing import Any
 import pytest
 import yaml
 
-from ss_track.annotate.digest import as_document, declaration_hash
-from ss_track.annotate.disposition import DISPOSITIONS
-from ss_track.annotate.label_model import LabelSet
-from ss_track.annotate.label_read import read_label_set
-from ss_track.annotate.label_rules import check_label_set, label_entries
-from ss_track.annotate.mask import MaskSet, check_mask, read_mask
-from ss_track.annotate.pack_model import ScenarioPack
-from ss_track.annotate.result import LABEL_VERSION, AnnotationResult
-from ss_track.annotate.seed import SeedSet, check_seed, read_seed
-from ss_track.annotate.space import FrameSpace
-from ss_track.annotate.validate import LABEL_CONTRACT, MASK_CONTRACT, SEED_CONTRACT
+from ss_track.annotate.declarations.contracts import (
+    LABEL_CONTRACT,
+    MASK_CONTRACT,
+    SEED_CONTRACT,
+    read_hashed,
+    read_version,
+)
+from ss_track.annotate.labels.disposition import DISPOSITIONS
+from ss_track.annotate.labels.document import read_label_file
+from ss_track.annotate.labels.model import LabelSet
+from ss_track.annotate.packs.model import ScenarioPack
+from ss_track.annotate.sources.frame_space import FrameSpace
+from ss_track.annotate.validation.mask import MaskSet, check_mask, read_mask
+from ss_track.annotate.validation.result import AnnotationResult, label_entries
+from ss_track.annotate.validation.seed import SeedSet, check_seed, read_seed
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
 from ss_track.corpus.declarations.fields import Fields
 from ss_track.schema.registry.store import load_contract_set
-from ss_track.schema.validation.enforce import read_declaration
 from ss_track.schema.validation.strict import violations
 
 SPACE = FrameSpace(
@@ -208,24 +211,21 @@ def _no_score(value: object) -> None:
 
 def load_labels(path: Path, pack: ScenarioPack, space: FrameSpace = SPACE) -> LabelSet:
     """Read one label file and apply the rules against `space`."""
-    document = read_declaration(path, LABEL_CONTRACT, 1)
-    labels = read_label_set(Fields(document, path.name), declaration_hash(as_document(document)))
-    check_label_set(labels, pack, space)
-    return labels
+    return read_label_file(path, pack, space)
 
 
 def load_seed(path: Path, labels: LabelSet, space: FrameSpace = SPACE) -> SeedSet:
     """Read one seed file and apply the rules against the labels and `space`."""
-    document = read_declaration(path, SEED_CONTRACT, 1)
-    seed = read_seed(Fields(document, path.name), declaration_hash(as_document(document)))
+    document, digest = read_hashed(path, SEED_CONTRACT)
+    seed = read_seed(Fields(document, path.name), digest)
     check_seed(seed, labels, space)
     return seed
 
 
 def load_mask(path: Path, labels: LabelSet) -> MaskSet:
     """Read one mask file and require it to repeat the label dispositions."""
-    document = read_declaration(path, MASK_CONTRACT, 1)
-    mask = read_mask(Fields(document, path.name), declaration_hash(as_document(document)))
+    document, digest = read_hashed(path, MASK_CONTRACT)
+    mask = read_mask(Fields(document, path.name), digest)
     check_mask(mask, labels)
     return mask
 
@@ -235,7 +235,7 @@ def label_result(path: Path, labels: LabelSet, pack: ScenarioPack) -> Annotation
     return AnnotationResult(
         path,
         LABEL_CONTRACT,
-        LABEL_VERSION,
+        read_version(LABEL_CONTRACT),
         "label",
         labels.document_sha256,
         pack.pack_hash,
