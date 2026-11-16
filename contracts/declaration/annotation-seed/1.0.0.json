@@ -46,7 +46,7 @@
     },
     "source_sha256": {
       "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
-      "description": "File hash of the video. That hash is the identity of its first stream."
+      "description": "Source identity, as a corpus stream names it. The first video stream of a file uses the file hash. A later video stream of that file uses its stream identity. An ordered image sequence uses the sequence identity of its ordered image hashes."
     },
     "frame_count": {
       "type": "integer",

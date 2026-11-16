@@ -10,7 +10,7 @@ from ss_track.core.refusal import CorpusRefusal
 from ss_track.schema.compatibility.dispositions import PROTECTED_PROPERTIES, disposition_floor
 from ss_track.schema.compatibility.evolution import diff_schemas, required_bump
 from ss_track.schema.compatibility.freeze import freeze_contract
-from ss_track.schema.registry.contract import FACTS, RETIRED, VIEW, version_key
+from ss_track.schema.registry.contract import FACTS, VIEW, version_key
 from ss_track.schema.registry.fingerprints import walk
 from ss_track.schema.registry.store import load_contract_set
 from ss_track.schema.validation.enforce import older_disposition, readable_majors
@@ -23,14 +23,10 @@ _BUNDLE = "ss-track.frame-bundle"
 @pytest.mark.parametrize(
     ("kind", "found", "current", "disposition"),
     [
-        (_SOURCE, 1, 3, FACTS),
-        (_SOURCE, 2, 3, FACTS),
-        (_CORPUS, 1, 3, RETIRED),
-        (_CORPUS, 2, 3, RETIRED),
-        (_BUNDLE, 1, 3, RETIRED),
-        (_BUNDLE, 2, 3, RETIRED),
-        (_CORPUS, 0, 3, None),
-        (_CORPUS, 3, 3, None),
+        (_SOURCE, 0, 1, None),
+        (_CORPUS, 0, 1, None),
+        (_BUNDLE, 0, 1, None),
+        (_CORPUS, 1, 1, None),
         ("ss-track.unknown", 1, 2, None),
     ],
 )
@@ -41,8 +37,8 @@ def test_each_installed_older_major_has_its_stated_disposition(
 
 
 def test_no_installed_major_is_a_view_yet() -> None:
-    assert readable_majors(_CORPUS, 3) == [3]
-    assert readable_majors(_SOURCE, 3) == [3]
+    assert readable_majors(_CORPUS, 1) == [1]
+    assert readable_majors(_SOURCE, 1) == [1]
 
 
 def test_a_transition_states_the_disposition_of_the_major_it_replaces() -> None:
@@ -111,15 +107,15 @@ def test_a_const_widened_to_an_enum_holding_it_is_one_minor_change() -> None:
 
 def _next_corpus_major(contract_root: Path, tmp_path: Path) -> Path:
     folder = contract_root / "record/corpus-manifest"
-    chosen = max(folder.glob("3.*.json"), key=lambda path: version_key(path.stem))
+    chosen = max(folder.glob("1.*.json"), key=lambda path: version_key(path.stem))
     current = json.loads(chosen.read_bytes())
-    current["$id"] = current["$id"].replace(f":{chosen.stem}", ":4.0.0")
-    current["properties"]["schema_version"]["const"] = 4
+    current["$id"] = current["$id"].replace(f":{chosen.stem}", ":2.0.0")
+    current["properties"]["schema_version"]["const"] = 2
     stream = current["properties"]["streams"]["items"]
     rights = stream["properties"]["rights"]
     rights["properties"]["consent"] = {"type": "string", "description": "Who consented."}
     rights["required"] = [*rights["required"], "consent"]
-    path = tmp_path / "corpus-4.0.0.json"
+    path = tmp_path / "corpus-2.0.0.json"
     path.write_text(json.dumps(current))
     return path
 
@@ -148,7 +144,7 @@ def test_freeze_refuses_a_view_of_a_major_that_adds_an_operator_judgment(
     _freeze(contract_root, path, FACTS)
 
     contract = load_contract_set(contract_root).named("record/corpus-manifest")
-    assert contract.disposition_of(3) == FACTS
+    assert contract.disposition_of(1) == FACTS
 
 
 @pytest.mark.parametrize("field", ["camera_control_mode", "observer_platform"])

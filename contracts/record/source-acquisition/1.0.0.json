@@ -134,6 +134,83 @@
           }
         }
       }
+    },
+    "input_inventory_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "SHA-256 of the normalized operator inventory before provider enumeration."
+    },
+    "split_md5": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Published MD5 of the optional Zenodo split metadata."
+    },
+    "split_sha256": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Local SHA-256 of the optional Zenodo split metadata."
+    },
+    "metadata_files": {
+      "type": "array",
+      "description": "Explicitly selected, verified upstream metadata files.",
+      "items": {
+        "type": "object",
+        "description": "One explicitly selected upstream metadata file.",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "local_path",
+          "size",
+          "sha256",
+          "git_oid",
+          "lfs_sha256"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Upstream path.",
+            "x-rules": {
+              "text": "A text value contains a character other than whitespace."
+            }
+          },
+          "local_path": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Run-relative path of acquired video.",
+            "x-rules": {
+              "text": "A text value contains a character other than whitespace."
+            }
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 0,
+            "x-unit": "byte",
+            "description": "File size in bytes."
+          },
+          "sha256": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+            "description": "SHA-256 of local video bytes."
+          },
+          "git_oid": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Upstream Git object identifier, when provided."
+          },
+          "lfs_sha256": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Upstream LFS SHA-256, when provided."
+          }
+        }
+      }
     }
   },
   "x-rules": {

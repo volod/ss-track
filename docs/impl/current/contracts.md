@@ -1,233 +1,151 @@
 # Contracts
 
-Frozen contracts describe interchangeable formats for readers outside this repository. `contracts/`
-at the project root holds the frozen set, `src/ss_track/schema/` reads and
-checks it, and the [specification](../../design/spec.md#17-data-contracts-and-schema-evolution)
-states the rules. The [contract registry
-record](../records/0017-data-contracts-contract-registry.md) keeps the accepted task, its decisions
-and its evidence. To add or change a contract, follow the [authoring
+Contracts describe interchangeable formats for readers outside this repository. `contracts/` at the
+project root holds the set, `src/ss_track/schema/` reads and checks it, and the
+[specification](../../design/spec.md#17-data-contracts-and-schema-evolution) states the rules. The
+[contract registry record](../records/0017-data-contracts-contract-registry.md) keeps the accepted
+task, its decisions and its evidence. To add or change a contract, follow the [authoring
 guide](../../guide/authoring-contracts.md).
 
-The [corpus baseline record](../records/0018-data-contracts-corpus-contract-baseline.md) records the
-baseline scope and evidence. The installed set contains these document contracts:
+## Development stage
 
-| Contract | Frozen version |
+The registry states `stage: development`, as [spec section
+17.7](../../design/spec.md#177-development-stage-and-release) requires until the first release.
+Every contract therefore has exactly one version, `1.0.0`, with change class `initial`, and every
+record and declaration stamps `schema_version: 1`. The set holds no older version, no
+`retired_majors` entry, no disposition and no view. The [development baseline
+record](../records/0099-data-contracts-contract-development-baseline.md) holds the collapse from the
+earlier version history to this set.
+
+A change to a format edits its `1.0.0` file in place and re-pins it: `ss-track contracts freeze`
+with a candidate whose `$id` ends in `:1.0.0` replaces the file and its registry entry, and refuses
+any other version. Writers, fixtures and tests change in the same change. The gate accepts the
+edited file only with its new pins, and refuses a second version, a change class other than
+`initial` or a retired major. `schema/registry/stage.py` states those rules.
+
+Records written before an edit still stamp `schema_version: 1`, so a data root keeps
+`contract-set.json`: the structure fingerprint of every `record` contract its records were written
+under. `core/evidence/contract_stamp.py` writes it when a command first seals a record below a data
+root that has none, so a read-only command writes nothing. Every command that takes the data root,
+through `commands/report.py` `reported_on_data_root` or `checked_data_root`, compares it with the
+installed set first. A difference is `RECORD_SCHEMA_UNSUPPORTED` with `changed_contracts` and the
+remedy to delete the root's sealed datasets and the stamp and regenerate them from the retained
+declarations, labels and review decisions. A damaged stamp is `RECORD_TAMPERED`. `data clean` reads
+no record and serves a stale root. A description-only edit moves no structure fingerprint and asks
+for no regeneration. A record of another major on the read path gets the same regenerate remedy,
+because no release wrote one.
+
+The section 17.3 classifier, the oracle, dispositions, views and comparison projections stay
+installed. Their tests run on synthetic version pairs in a private copy of the set moved to
+`stage: released` (`tests/schema/conftest.py` `release`), and on a synthetic older major 0 that a
+test gives the current projection (`tests/corpus/conftest.py` `project_older_major`).
+
+## The installed set
+
+| Family | Contracts, each at `1.0.0` |
 | --- | --- |
-| `declaration/corpus` | `3.0.0`, `3.1.0`, `3.2.0`, `3.3.0` |
-| `declaration/dataset` | `1.0.0`, `1.1.0` |
-| `declaration/discovery-plan` | `1.0.0`, `1.1.0` |
-| `declaration/audit-review` | `1.0.0` |
-| `declaration/corpus-review` | `1.0.0`, `1.1.0`, `1.2.0` |
-| `declaration/link-decisions` | `1.0.0`, `1.1.0` |
-| `declaration/source-inventory` | `1.0.0` |
-| `declaration/corpus-pool` | `1.0.0`, `1.1.0` |
-| `declaration/recording` | `2.0.0`, `2.1.0`, `2.2.0`, `2.3.0`, `2.4.0`, `3.0.0`, `3.1.0` |
-| `declaration/video-hints` | `1.0.0` |
-| `declaration/scenario-pack` | `1.0.0` |
-| `declaration/annotation-label` | `1.0.0`, `1.0.1`, `1.0.2` |
-| `declaration/annotation-seed` | `1.0.0`, `1.0.1`, `1.0.2` |
-| `declaration/annotation-mask` | `1.0.0` |
-| `declaration/annotation-review` | `1.0.0` |
-| `declaration/annotation-settlement` | `1.0.0` |
-| `record/candidate-inventory` | `1.0.0` |
-| `record/audit-blinding` | `1.0.0` |
-| `record/corpus-freeze` | `1.0.0`, `1.1.0`, `1.2.0` |
-| `record/corpus-links` | `1.0.0`, `1.1.0` |
-| `record/corpus-manifest` | `3.0.0`, `3.1.0`, `3.2.0`, `3.3.0`, `3.4.0`, `3.5.0` |
-| `record/discovery-run` | `1.0.0`, `1.1.0`, `1.2.0` |
-| `record/feature-rows` | `1.0.0` |
-| `record/frame-bundle` | `3.0.0`, `3.1.0`, `3.2.0`, `3.3.0`, `3.4.0`, `3.5.0` |
-| `record/frame-set` | `1.0.0` |
-| `record/staged-hashes` | `1.0.0` |
-| `record/hash-comparison` | `1.0.0` |
-| `record/link-review-handoff` | `1.0.0` |
-| `record/source-acquisition` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0` |
-| `record/corpus-pool` | `1.0.0` |
-| `record/source-manifest` | `2.0.0`, `2.1.0`, `2.2.0`, `2.3.0`, `2.4.0`, `3.0.0`, `3.1.0` |
-| `record/image-sequence` | `1.0.0` |
-| `record/annotation-revision` | `1.0.0`, `1.0.1`, `1.0.2` |
-| `record/derived-label` | `1.0.0` |
-| `result/command` | `1.0.0`, `1.1.0`, `1.2.0`, `1.3.0`, `1.4.0`, `1.5.0`, `1.6.0`, `1.7.0`, `1.8.0`, `1.9.0`, `1.9.1`, `1.10.0`, `1.11.0`, `1.12.0`, `1.13.0`, `1.14.0`, `1.15.0`, `1.16.0`, `1.17.0`, `1.18.0`, `1.19.0`, `1.20.0`, `1.21.0`, `1.22.0`, `1.23.0`, `1.24.0`, `1.25.0`, `1.26.0`, `1.27.0`, `1.28.0`, `1.29.0`, `1.30.0`, `1.31.0`, `1.32.0` |
+| `declaration` | `annotation-label`, `annotation-mask`, `annotation-review`, `annotation-seed`, `annotation-settlement`, `audit-review`, `corpus`, `corpus-pool`, `corpus-review`, `dataset`, `discovery-plan`, `link-decisions`, `recording`, `scenario-pack`, `source-inventory`, `video-hints` |
+| `record` | `annotation-revision`, `audit-blinding`, `candidate-inventory`, `corpus-freeze`, `corpus-links`, `corpus-manifest`, `corpus-pool`, `derived-label`, `discovery-run`, `feature-rows`, `frame-bundle`, `frame-set`, `hash-comparison`, `image-sequence`, `link-review-handoff`, `source-acquisition`, `source-manifest`, `staged-hashes` |
+| `result` | `command` |
+| `shared` | `types` |
+| `event` | `analytics`, `clock`, `frame`, `trial`, `wire` |
 
-`declaration/recording` 3.1.0 adds explicit PNG membership and an optional rational frame rate.
-`record/source-manifest` 3.1.0 pins a retained image inventory; `record/image-sequence` 1.0.0
-seals its ordered image hashes and declared rate. All inventory reads use the shared sealed-record
-gate. The [sequence source interface](corpus.md#ordered-image-sequences) states identity and timing.
-`declaration/annotation-label` 1.0.1, `declaration/annotation-seed` 1.0.1 and
-`record/annotation-revision` 1.0.1 state that `source_sha256` is the file hash of a video or the
-sequence identity of an ordered image sequence. Their 1.0.2 states that a later video stream of a
-file is named by its stream identity. Documents stay at schema major 1.
+The [corpus baseline record](../records/0018-data-contracts-corpus-contract-baseline.md) records the
+baseline scope and evidence. The `event` family is a frozen descriptor set, not a JSON Schema
+document; the [runner page](runner.md) states the messages, the line checker and the breaking gate.
 
-The `event` family is a frozen descriptor set, not a JSON Schema document. `event/analytics`,
-`event/clock`, `event/frame`, `event/trial` and `event/wire` are each at `1.0.0`. The
-[runner page](runner.md) states the messages, the line checker and the breaking gate.
+### Recordings, sources and corpus versions
 
-`result/command` `1.30.0` adds optional `annotation` on `ss-track annotate validate`. The object
-names the document kind and hash, the pack hash for a label, the replay hash for a seed, and one
-row per frame or seed role. A row is `scorable`, `unscorable` or `not_denominator`. It has no
-numeric score. The record's `version` is the frozen version the document was validated under.
+`declaration/recording` states one video file or one ordered PNG image sequence, with an optional
+rational frame rate, optional `source.video_stream_index`, optional `color.matrix` and optional
+`origin`, omitted when a recording names no upstream collection. Its closed capture judgments
+`camera_control_mode` and `observer_platform` are stored as `unknown` when omitted.
+`record/source-manifest` seals one imported source: its sequence, with `video_stream_index` only
+when the decoded stream is not the first, optional `declared_color` when conversion used that
+declaration, the retained image inventory of an image sequence, and `origin`, which is sensitive, so
+a public descriptor omits it. `record/image-sequence` seals an image sequence's ordered hashes and
+declared rate. The [sequence source interface](corpus.md#ordered-image-sequences) states identity and
+timing.
 
-`result/command` `1.31.0` adds optional `label_review` on `ss-track annotate compare` and
-`annotate freeze`. Compare lists each disagreement and stays `valid` when the documents differ.
-Freeze reports `frozen` and adds the label hash, the revision seal and both output paths. The
-sensitivity band is the two annotator document hashes. The object has no `score` field.
+`declaration/corpus` states groups, encounters, streams and generated-case recipes: blur, noise,
+`compression`, `variable_timing`, `crossing_occluder`, `moving_removal`, `similar_distractor`,
+`out_of_view` and `scale_reduction`. `record/corpus-manifest` and `record/frame-bundle` hold those
+recipes and the label transforms, including `compression`, `timing`, `track_status` and `scale`.
+A corpus stream holds `content_sha256`, the file hash, only when its source identity is not that
+hash. Both records and the source manifest carry `x-sensitivity` marks, which a dataset descriptor
+reads. The corpus contract requires each stream's source terms. `declaration/corpus-pool` and
+`record/corpus-pool` state a combined-pool selection, with per-collection `metadata_names`, and its
+sealed result.
 
-`result/command` `1.32.0` adds status `derived` and optional `label_derivation` on
-`ss-track annotate derive`. Each generated case is `derived` or `unscorable`. An unscorable case
-has reason `no_frozen_labels` and is not a zero. `record/derived-label` 1.0.0 seals one derived
-revision. Neither object has a `score` field. [Derived case labels](corpus.md#derived-case-labels)
-states the paths and the transforms.
-
-`result/command` `1.29.0` adds `migration_operations` to `source_inspection`: every
-`ss-track import` operation a `facts` source record needs before it serves again, empty for a
-record that serves as it is. Its `capture` also states `observer_platform`, which a current source
-record holds; `1.27.0` and `1.28.0` predate that field, so an inspection of a current record did
-not conform to them.
-
-`result/command` `1.28.0` adds optional `capture_encounters` on a corpus build. Each camera-control
-mode and each observer platform has its own encounter count, including a count of zero.
-
-`result/command` `1.27.0` adds the `inspected` status and `source_inspection` result.
-
-`result/command` `1.26.0` adds the `planned` and `cleaned` statuses, the `clean` object of
-`data clean` and `DATA_ROOT_BUSY`.
-
-`result/command` `1.5.0` adds `redecoded`. `1.6.0` adds optional `unlinked` on a corpus build,
-present only when that data root has something to report. `1.7.0` adds optional `impact` when an
-amendment or a redecode replaces a record, and optional `scan` when the corpus directory could not
-be listed. `1.8.0` adds optional `preview` on `corpus preview`. `1.9.0` adds
-`VIDEO_STREAM_UNSPECIFIED`. `1.9.1` names `source_sha256` as the source identity, which is the
-file hash when the recording names its first video stream. `record/corpus-manifest` 3.2.0 adds
-optional `content_sha256` on a stream, present only when that stream's source identity is not the
-file hash. `declaration/recording` 2.2.0 adds optional
-`source.video_stream_index`. `record/source-manifest` 2.2.0 adds optional
-`sequence.video_stream_index`, absent when the decoded stream is the first.
-`declaration/recording` 2.3.0 adds optional `color.matrix`. `declaration/recording` 2.4.0 and
-`record/source-manifest` 2.4.0 add optional `origin`, omitted when a recording names no upstream
-collection. Origin on a source manifest is sensitive, so a public descriptor omits it.
-`declaration/recording` 3.0.0 and `record/source-manifest` 3.0.0 close `camera_control_mode` and
-`observer_platform`. An omitted judgment is stored as `unknown`. Earlier source majors remain
-`facts`.
-`declaration/corpus-pool` 1.0.0 and `record/corpus-pool` 1.0.0 state a combined-pool selection and
-its sealed result. `declaration/corpus-pool` 1.1.0 adds optional per-collection `metadata_names`,
-the operator's CSV name-to-path rules. `record/source-manifest` 2.3.0 and
-`record/frame-bundle` 3.2.0 add optional `declared_color`, present only when conversion used that
-declaration. `result/command` 1.10.0 adds `COLOR_TAG_CONFLICT`. `1.11.0` adds
-`DECODE_TIME_EXCEEDED` and `INTERRUPTED`. `1.12.0` adds optional `near_duplicates` on a corpus
-build, present only when a likely re-encode crosses groups or a window could not be read.
-`1.13.0` adds bundle status `reused` and optional `reused_from` on a staged bundle, present only
-when that bundle's frames were hard-linked from a linked corpus version. `1.14.0` adds reason
-`unreadable` on `near_duplicates.not_compared` and optional `scan` when the corpus directory could
-not be listed. A missing or unreadable version outside the declared chain is named, and the report
-still does not refuse. `1.15.0` adds the `discover` fields `run_id`, `inventory_count`,
-`candidate_count`, `feature_row_count` and `hint_sources`, and the codes `EXTRACTOR_UNPINNED`,
-`EXTRACTOR_INCOMPATIBLE`, `WORKER_FAILED` and `DISCOVERY_IN_PROGRESS`. `1.16.0` adds the
-`discover` fields `selection`, `unavailable_scores` and `coverage`. `1.17.0` adds `links`, the
-counted summary of a link review. `1.18.0` adds `queue`, `review` and `superseded`, the counted
-results of review and freeze, `declaration_path` and `declaration_sha256`, and the code
-`LINKS_UNRESOLVED`.
-`declaration/corpus` 3.1.0 adds `compression` and `variable_timing` recipes.
-`record/corpus-manifest` 3.3.0 and `record/frame-bundle` 3.3.0 add those
-recipes and the label kinds `compression` and `timing`. `declaration/corpus` 3.2.0 adds
-`crossing_occluder`, `moving_removal`, `similar_distractor` and `out_of_view`.
-`record/corpus-manifest` 3.4.0 and `record/frame-bundle` 3.4.0 add those recipes and the label kind
-`track_status`. `declaration/corpus` 3.3.0 adds `scale_reduction`; both record contracts at
-3.5.0 add that recipe and the `scale` label transform. Writers still stamp the major. A
-declaration stamped schema 3 validates under `declaration/corpus` 3.3.0, and a dataset descriptor
-copies that newest minor.
-
-`declaration/source-inventory` 1.0.0 records upstream candidate videos, pins and unresolved facts;
-`result/command` 1.19.0 adds its status and missing-fact counts, and 1.20.0 adds its path,
-digest and totals. The
+`declaration/source-inventory` records upstream candidate videos, pins and unresolved facts; the
 [inventory reader](corpus.md#source-inventory) enforces cross-field and path rules.
+`record/source-acquisition` links the provider selection, its input inventory hash, Zenodo split
+metadata hashes, selected upstream metadata files, verified local video hashes and the normalized
+inventory. The [acquisition workflow](corpus.md#source-acquisition) states the checks and the rights
+boundary. `declaration/dataset` states the operator-supplied title, description, license, citation,
+address and publication date that the [dataset descriptor](corpus.md#dataset-descriptors) consumes.
 
-`record/source-acquisition` links the provider selection, verified local video hashes and normalized
-inventory. Minor versions add the input inventory hash, Zenodo split metadata hashes and selected
-upstream metadata files. The [acquisition workflow](corpus.md#source-acquisition) states the checks
-and rights boundary.
+Each free-text declaration property states the `text` rule under `x-rules`: the value holds a
+character other than whitespace. The dialect cannot state that over any script, and `Fields.text`
+enforces it. `tests/schema/registry/test_agreement.py` fails when a free-text declaration property
+lacks the rule.
 
-`declaration/dataset` states the operator-supplied title, description, license, citation, address
-and publication date. It can be checked with `ss-track contracts validate` and is consumed by the
-[dataset descriptor](corpus.md#dataset-descriptors).
+### Labels
 
-`declaration/recording` 2.1.0 and `declaration/dataset` 1.1.0 state, under `x-rules` as `text` on
-each free-text property, that the value holds a character other than whitespace. The dialect cannot
-state that over any script, and `Fields.text` enforces it; the accepted values do not change.
-`tests/schema/registry/test_agreement.py` fails when a free-text declaration property lacks the rule.
+`declaration/annotation-label`, `declaration/annotation-seed`, `declaration/annotation-mask`,
+`declaration/annotation-review` and `declaration/annotation-settlement` state operator labels,
+seeds, masks and their review. `source_sha256` names the file hash of a video, the stream identity
+of a later video stream, or the sequence identity of an ordered image sequence.
+`record/annotation-revision` seals a frozen label revision and `record/derived-label` one derived
+revision of a generated case. [Derived case labels](corpus.md#derived-case-labels) states the paths
+and the transforms.
 
-`record/corpus-manifest` 3.1.0, `record/source-manifest` 2.1.0 and `record/frame-bundle` 3.1.0 add
-`x-sensitivity` marks and do not change the values a record stores. `schema_version` remains the
-major, so a record sealed at 3.0.0 or 2.0.0 still validates under the newest minor. The descriptor
-uses that newest minor when it chooses public fields.
+### Discovery, links and review
 
 `record/discovery-run`, `record/candidate-inventory` and `record/feature-rows`, owned by
 `self-supervised-corpus`, hold a discovery run, one stream's candidate windows and one extractor's
 row keys for one stream; [discovery records](corpus/discovery-records.md) states their rules and
-validators. Their `x-references` name `record/frame-set` and `record/corpus-manifest` fields.
-`record/discovery-run` 1.1.0 adds optional `source_approval`, `feature_rows` and a hint source's
-`matches`, each with its rule on the new node, because a root `x-rules` change takes a major.
-`record/discovery-run` 1.2.0 adds the crop `tiled` and an extractor's optional `tile`, whose rule
-places it on the frame. `declaration/discovery-plan` and `declaration/video-hints`, owned by the same
-capability, state a [discovery run's plan and an ss-video hint file](corpus/discovery-runs.md);
-`declaration/discovery-plan` 1.1.0 adds an extractor's optional `tiles` and the optional
-`selection`. `record/corpus-links` and `declaration/link-decisions`, owned by the same capability,
-hold a link review of one version and a reviewer's decisions on pairs of recordings; the
-[leakage review](corpus/leakage-review.md) states their rules, which `read_links` enforces.
-`record/link-review-handoff` is the sealed manifest inside a media-free portable review tar. It
-binds the corpus, frame set, link record, optional checkpoint branch and every archive member by
-size and SHA-256. Recipe members are text inputs only; media, staged frames, feature rows and model
-weights remain local to independently prepared hosts.
+validators. A run holds optional `source_approval`, `feature_rows`, a hint source's `matches`, the
+crop `tiled` and an extractor's optional `tile`. `declaration/discovery-plan` and
+`declaration/video-hints` state a [discovery run's plan and an ss-video hint
+file](corpus/discovery-runs.md), with an extractor's optional `tiles` and the optional `selection`.
+`record/corpus-links` and `declaration/link-decisions` hold a link review of one version and a
+reviewer's decisions on pairs of recordings; the [leakage review](corpus/leakage-review.md) states
+their rules, which `read_links` enforces. `record/link-review-handoff` is the sealed manifest inside
+a media-free portable review tar. It binds the corpus, frame set, link record, optional checkpoint
+branch and every archive member by size and SHA-256. Recipe members are text inputs only; media,
+staged frames, feature rows and model weights remain local to independently prepared hosts.
+
 `declaration/corpus-review` and `record/corpus-freeze` hold a reviewer's decisions on the windows a
-discovery run offers and the sealed export of the version frozen from them.
-`declaration/corpus-review` 1.1.0 and the freeze record's review object in 1.1.0 add optional
-`independence`, `blinding`, `reviewer_minutes` and `audit_id`. A review that omits them still
-validates, and a freeze copies a field only when the review stated it. 1.2.0 of both adds an
-optional `selection_pass`: the pass reviewer, optional minutes, and an observation for each
-selected window the run offers. It is absent when no pass was recorded.
-`declaration/audit-review` 1.0.0 is the cue-free review of one blinded audit sample, and
-`record/audit-blinding` 1.0.0 is the private mapping back to the candidates. `result/command`
-1.21.0 adds `presented`, `unblinded` and the `blind` counts. 1.22.0 adds `estimated` and
-`inconclusive`, and the paired selection comparison: `runs`, `audit`, `observations`,
-`review_blinding`, `review_independence`, `review_effort_minutes` and `limits`. Those review fields
-are declarations. They are not the `blind` counts. 1.23.0 adds optional `review_budget` and
-`sibling_offers`. `review_budget` states the declared protocol, the shared audit count, each
-queue, the additions beyond that shared count, and whether the comparable counts match. An
-unmatched or unmeasured budget is `inconclusive`. Unrecorded minutes stay unmeasured rather
-than zero. 1.24.0 adds optional `by_source` on `discover evaluate` and widens `limits` from four
-entries to five. `by_source` reports each sealed collection beside the combined population, using
-the stratum design weight, and states shared-stratum covariance. A missing collection stays null
-rather than zero. Commands other than `discover evaluate` omit `by_source`. `sources` remains the
-hash-comparison list. 1.25.0 adds the `selection_pass` value of `review_budget.protocol`, and an
-optional `review_budget.selection_pass` with each run's pass work and yield, the windows reviewers
-looked at in all and each pass observation that disagrees with the run's review. It is absent
-when neither review recorded a pass, so a comparison without one is still a 1.24.0 record.
-[review and freeze](corpus/review-and-freeze.md) states their rules, which `read_review`,
+discovery run offers and the sealed export of the version frozen from them, with optional
+`independence`, `blinding`, `reviewer_minutes`, `audit_id` and `selection_pass`. A freeze copies a
+field only when the review stated it. `declaration/audit-review` is the cue-free review of one
+blinded audit sample, and `record/audit-blinding` the private mapping back to the candidates.
+[Review and freeze](corpus/review-and-freeze.md) states their rules, which `read_review`,
 `read_audit_review`, `read_blinding` and `read_freeze` enforce. A decision is a `oneOf` tagged by
 `decision`, so an `unreviewed` entry carries no observation.
 
-`shared/types` supplies hashes and identifiers. Every shipped document format has a frozen contract,
-and every frame-set reference resolves at its annotated schema pointer. Capture fields preserve
+### Command results
+
+`result/command` closes the result vocabulary of every command and leaves only `details` open.
+Among others it states the `inspected` source inspection, `planned` and `cleaned` with the `clean`
+object of `data clean`, `capture_encounters` on a corpus build, `unlinked`, `near_duplicates` and
+`impact`, the `discover` fields, `links`, `queue`, `review` and `superseded`, the blind counts and
+the paired selection comparison with `review_budget`, `sibling_offers` and `by_source`, and the
+`annotation`, `label_review` and `label_derivation` objects of `ss-track annotate`. Optional objects
+are absent when a command has nothing to report. A label result has no `score` field, and an
+unscorable case is never a zero. An unrecorded review minute stays unmeasured rather than zero.
+
+`shared/types` supplies hashes and identifiers. Every shipped document format has a contract, and
+every frame-set reference resolves at its annotated schema pointer. Capture fields preserve
 operator descriptions and numbers: the dialect allows exactly `["string", "number"]` and its nullable
 form. Numeric descriptive metadata has no physical-unit claim; declared range retains metres.
-The extension does not allow arbitrary scalar unions or change a recording's accepted values.
 
 Each sealed format's kind and major have one statement, its `RecordFormat` in
-`corpus/records/kinds.py`, beside every kind and the `RecordFormat` class.
-The writer stamps a record with `RecordFormat.stamp()` and the read path reads with the same value.
-Declaration majors are constants in `corpus/declarations/declaration.py` and
-`corpus/descriptors/descriptor.py`. Declaration and record majors stay independent, and their
-written bytes are unchanged. The corpus contract requires source terms even at major 3: an earlier
-schema-3 manifest without them fails explicit validation, and at runtime the read path tells it
-apart as a stated shape with the `facts` disposition, as no major does.
-
-Earlier recording/source major 1 and corpus/bundle majors 1 and 2 are listed in `retired_majors`
-without frozen schemas. Each entry's `status` is its disposition, `facts` or `retired`, and the read
-path consumes it. Source major 1 is `facts`, because `--amend-terms` reads its stated facts and
-writes the current major; every other entry is `retired`, because no retained record needs it.
-The reason distinguishes retained runtime evidence from historic test fixtures, and `migration`
-states what a holder of such a record must do. That text is the remedy a
-`RECORD_SCHEMA_UNSUPPORTED` refusal of an older record gives. `result/command` 1.3.0 lists either
-status; it was frozen for this and for lineage `not_compared`.
+`corpus/records/kinds.py`. The writer stamps a record with `RecordFormat.stamp()` and the read path
+reads with the same value. Declaration majors are constants in `corpus/declarations/declaration.py`,
+`annotate/declarations/contracts.py` and `corpus/descriptors/descriptor.py`. Declaration and record
+majors stay independent.
 
 ## Runtime enforcement
 
@@ -246,10 +164,8 @@ readers had:
 - `require_record` validates a record, already holding its seal, under the newest frozen version of
   the major it stamps, and `core/evidence/sealing.py` `seal` calls it before returning. A writer defect,
   including an unregistered kind, a major with no frozen version or a `NaN`, is `RECORD_INVALID`
-  with nothing written. `record_violations` returns the same check's findings without refusing, and
-  `sealing.seal_violations` asks it for a body before sealing: an amendment that carries an older
-  record forward refuses one the current contract would refuse as `RECORD_SCHEMA_UNSUPPORTED`,
-  listing the `violations`, so no list of required keys is kept in code.
+  with nothing written. An amendment or redecode seals its successor the same way, so no list of
+  required keys is kept in code.
 - `older_remedy` returns the change log's migration for an older major of a record kind.
 - `older_disposition` returns how a record of an earlier major is read: the strictest disposition
   of each major it steps through to the current one, from `Contract.disposition_of`, which reads a
@@ -391,6 +307,8 @@ version:
 - `schema_version` as the integer const of the major, in `declaration` and `record` contracts, and
   `kind` as a const with the seal required, in `record` contracts;
 - both fingerprints, stating the pinned and computed values; `freeze` generates these pins;
+- the rules of the registry's stage: in `development`, one version `1.0.0` per contract with change
+  class `initial`, and no retired major;
 - every `$ref`, once every file above is intact. The `event` family skips `$id`, the dialect, the
   stamps and `$ref`. Its file hash still catches any edit. The descriptor check then requires the
   contract URN, the protobuf package, `json_name` equal to the field name, and both fingerprints.
@@ -402,10 +320,14 @@ meaning. `structure` drops annotations and `$id`, so two
 versions of one shape compare equal. `meaning` keeps annotations and `const` and `enum` values, and
 drops whatever is left empty, so a definition with no annotation does not move it.
 
-The history gate also compares every frozen file and its complete version entry with the merge base
-of `HEAD` and `CONTRACT_BASE_REF` (default `origin/main`). It compares with `HEAD` too, so local
-edits to a version already committed on the feature branch are caught. Deleting a version or editing
-it together with its registry pins fails. Missing refs and shallow history fail closed. A baseline
+The history gate also reads the merge base of `HEAD` and `CONTRACT_BASE_REF` (default
+`origin/main`) and `HEAD` itself. A working set that states `development` is refused when either
+revision states `released`, because a released set never returns to development. A released
+revision's every frozen file and complete version entry must be unchanged, so local edits to a
+version already committed on the feature branch are caught, and deleting a version or editing it
+together with its registry pins fails. A development revision froze nothing, so a development set
+is compared with its own pins alone, and a registry that predates the `stage` field reads as
+development. Missing refs and shallow history fail closed. A baseline
 predating `contracts/registry.yaml` permits the initial set; all subsequent transitions still
 undergo compatibility checks. `python -m ss_track.schema.registry.check --root <contracts>` remains
 the Git-free check for an installed or copied set.
@@ -440,9 +362,7 @@ to its embedded comparison, not to a newly stamped result version.
 
 `tests/conftest.py` validates production sealed writes and CLI JSON emissions throughout the test
 session, independently of the runtime check in `seal`. It checks records before tests deliberately
-damage them. An amendment's archived copy of a
-retired source major is checked against the original record and its seal, not against today's shape.
-Subprocess outputs are checked by retained examples and end-to-end
+damage them. Subprocess outputs are checked by retained examples and end-to-end
 artifact validation rather than an in-process hook. `tests/schema/examples/` holds an example of
 every frozen document contract. Baseline tests also hold the refusal-code enum equal to `RefusalCode`,
 check units and vocabularies, exercise transform branches and resolve the available frame-set
@@ -463,21 +383,23 @@ which will not overwrite a frozen image whose bytes differ. A later event versio
 whose disposition is at least `facts`, a compatible structure change is a minor, and any other
 change is a patch. The [runner page](runner.md) states the rule.
 
+In the development stage, `freeze` takes only a `1.0.0` candidate, replaces that file and its
+registry entry in place with change class `initial`, and classifies no transition; `diff` still
+explains the edit against the current file. Everything below applies once the set is released.
+
 The candidate's `$id` names its family, id and proposed version. `--root` defaults to the installed
 contract set; publishing needs a writable set. Initial contracts also require `--owner`. `diff`
 returns `status: diffed`, `contract`, `version`, `required_bump`, and `changes`, each with `pointer`,
 `class` and `reason`. A pointer refers to the new schema, or to the old schema for a removed node.
 A no-change or initial candidate reports `required_bump: none`. `freeze` returns the same shape with
-`status: frozen`; these outputs and the optional listing disposition use `result/command` 1.1.0.
-Existing command outputs still validate under 1.0.0.
+`status: frozen`, in the same `result/command` shape.
 
 The walk compares nested properties, list items, fixed tuple positions, local and external reference
 targets, capture scalar unions and tagged branches matched by tag value. Reordering branches is
 not a change. Recursive shapes terminate by active reference pairs; dangling references and alias
 cycles refuse. Semantic annotations cannot silently change within a major. Adding an optional
 constraint under open `details` is major because previously legal values may fail it. A `const`
-replaced by an `enum` that holds its value is one minor change at `/enum`, as `result/command` 1.3.0
-did for a historic major's status.
+replaced by an `enum` that holds its value is one minor change at `/enum`.
 
 Freeze stages the whole set, verifies identities, strict JSON, dialect, references and pins, then
 checks the bump and backward compatibility with every earlier minor in the same major. Major
@@ -569,15 +491,13 @@ outside the dialect.
 paths. Reference tests cover external targets and recursion, each also under the oracle.
 `tests/schema/compatibility/test_patterns.py` checks every structural verdict and every derivative
 verdict against the automaton. Freeze and history tests exercise insufficient bumps, missing
-metadata, rollback, repinning, deletion and missing history in isolated Git repositories. Historic
-replay tests project observed keys and types from the five real bumps; they do not invent complete
-historic schemas or count a changed stamp as proof. The same replay gives each bump its warranted
-disposition: the floor and a candidate view applied to the real older record give `view` for bundle
-1 to 2, bundle 2 to 3 and corpus 2 to 3, and `facts` for corpus 1 to 2 and source 1 to 2.
-`tests/schema/compatibility/test_dispositions.py` covers the installed dispositions, the floor and
-its freeze refusal. Hash-stability tests replay the real frame-set producer, validate existing
-command output against the previous minor and reject new null/default fields, unannounced keys and
-changed existing values. The [evolution task
+metadata, rollback, repinning, deletion and missing history in isolated Git repositories, on a
+private set moved to `stage: released`. `tests/schema/registry/test_stage.py` covers the development
+stage: an in-place edit with and without its re-pin, a refused second version, the in-place freeze,
+history that accepts a development edit, compares a released revision and refuses a return to
+development. `tests/schema/compatibility/test_dispositions.py` covers the floor and its freeze
+refusal on a synthetic next major. Hash-stability tests reject new null/default fields,
+unannounced keys and changed existing values. The [evolution task
 record](../records/0019-data-contracts-contract-evolution-gate.md) holds the gate's acceptance.
 
 ### ODCS catalog export
@@ -592,8 +512,8 @@ The exporter writes one ODCS 3.2 JSON document per registered JSON Schema contra
 Schema remains the authority for instance validation and compatibility. The command validates every
 document before writing any of them with the bundled official schema, pinned by SHA-256 and upstream
 commit in [ODCS schema provenance](../../../contracts/meta/standards/README.md). Validation needs no
-network and no new runtime dependency. The `result/command` 1.4.0 contract covers `exported` and
-`written` results and their file lists, including the existing reference-docs command.
+network and no new runtime dependency. `result/command` covers the `exported` and `written` results
+and their file lists, including the reference-docs command.
 
 A schema object lists flattened schema-like property paths. Nested arrays use `/items`, tuple
 positions use `/prefixItems/<n>`, and `/$defs/<name>` names a separately listed source definition.

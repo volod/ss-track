@@ -27,9 +27,9 @@ ANNOTATION_REVISION_KIND = "ss-track.annotation-revision"
 DERIVED_LABEL_KIND = "ss-track.derived-label"
 
 
-SOURCE_MANIFEST = RecordFormat(SOURCE_MANIFEST_KIND, major=3)
-CORPUS_MANIFEST = RecordFormat(CORPUS_MANIFEST_KIND, major=3)
-FRAME_BUNDLE = RecordFormat(FRAME_BUNDLE_KIND, major=3)
+SOURCE_MANIFEST = RecordFormat(SOURCE_MANIFEST_KIND, major=1)
+CORPUS_MANIFEST = RecordFormat(CORPUS_MANIFEST_KIND, major=1)
+FRAME_BUNDLE = RecordFormat(FRAME_BUNDLE_KIND, major=1)
 FRAME_SET = RecordFormat(FRAME_SET_KIND, major=1)
 STAGED_HASHES = RecordFormat(STAGED_HASHES_KIND, major=1)
 HASH_COMPARISON = RecordFormat(HASH_COMPARISON_KIND, major=1)  # written; no command reads it back

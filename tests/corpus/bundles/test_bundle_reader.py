@@ -23,7 +23,7 @@ def staged(
 
 
 def test_a_bundle_from_another_schema_is_refused_by_name(staged: Path) -> None:
-    reseal(staged / "manifest.json", schema_version=1)
+    reseal(staged / "manifest.json", schema_version=0)
 
     with pytest.raises(CorpusRefusal) as caught:
         open_frame_bundle(staged)

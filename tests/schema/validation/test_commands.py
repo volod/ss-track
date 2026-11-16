@@ -9,6 +9,7 @@ from ss_track.core.refusal import RefusalCode
 from ss_track.schema import validate_file
 from ss_track.schema.validation.strict import VIOLATION_LIMIT
 from tests.schema.conftest import (
+    EXAMPLES,
     KEPT_FRAME_SET,
     Register,
     versioned_schema,
@@ -218,7 +219,7 @@ def test_a_kind_with_no_contract_is_named(tmp_path: Path) -> None:
 
 
 def test_the_contract_of_another_format_refuses_the_file() -> None:
-    other = KEPT_FRAME_SET.with_name("corpus-schema-3-129a350.json")
+    other = EXAMPLES / "record-corpus-manifest.json"
 
     assert (
         refused_validation(other, contract_name=FRAME_SET_CONTRACT).code

@@ -33,6 +33,62 @@ hardware or private data.
 
 ## Agent Implementation Tasks
 
+### Data contracts -- `data-contracts`
+
+#### event-package-development-edit
+
+An event package cannot follow the development-stage rule: `make proto-gen` writes an image only
+when it is missing or identical, and `make proto-check` holds the image and `buf breaking` to the
+committed `1.0.0`, so an architecture fix to an event message can only be made as a new version.
+
+- Serves: `data-contracts` -- [Development stage and
+  release](../design/spec.md#177-development-stage-and-release)
+- Agent status: CLEAR
+- Milestone: M1
+- Dependencies: none.
+- User-visible outcome: In the development stage, an edit of an event proto under
+  `src/ss_track/contract/proto/` regenerates its `1.0.0` image and bindings in place and re-pins its
+  registry entry with one command, and `make proto-check` passes. In the released stage the image
+  stays frozen and `buf breaking` classifies a new version, as today.
+- Scope boundary: The proto build and its gate only. JSON Schema contracts already edit in place.
+  No event message changes in this task, and a released image is never rewritten.
+- Data and artifact paths: `src/ss_track/contract/build.py`, `src/ss_track/contract/image.py`,
+  `contracts/event/`, `contracts/registry.yaml`, `tests/contract/`.
+- Execution path: Read the registry stage in the proto build. In development, rewrite the `1.0.0`
+  image and the generated bindings, update the registry pins and skip `buf breaking` against the
+  previous image. In released, keep the current behavior.
+- Acceptance gates: A fixture proto edit in a development private set regenerates `1.0.0` and passes
+  `make proto-check`; the same edit in a released set is refused as a frozen image change; a second
+  event version in development fails the stage check. `make ci` passes.
+- Documentation target: [Runner](current/runner.md).
+
+#### data-contracts-audit (optional)
+
+A development-stage gate that lets a contract change without a version must still refuse every
+change it did not pin, or formats drift silently before release.
+
+- Serves: `data-contracts` -- [Development stage and
+  release](../design/spec.md#177-development-stage-and-release)
+- Agent status: CLEAR
+- Milestone: M1
+- Effort: high
+- Dependencies: every other agent task in this group.
+- User-visible outcome: The stage rules, the contract-set check on the read path and the regenerate
+  flow are reviewed against section 17.7, and every finding is fixed or routed.
+- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
+  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
+  score or refusal code.
+- Data and artifact paths: `contracts/`, `src/ss_track/schema/`, `tests/schema/`.
+- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from
+  section 17.7 and `AGENTS.md` against the history gate, the registry meta-schema, the shared read
+  path and the data-root stamp. Decide whether a meaning-only contract edit, such as a changed enum
+  meaning, must also ask a data root for regeneration, since the stamp holds structure fingerprints
+  only.
+- Acceptance gates: Every section 17.7 rule has a failing fixture or is named as human judgment.
+  Every finding is fixed, routed to a task or dropped with its reason, and `make quality` passes.
+  Finding nothing is a valid result when the record states what was reviewed.
+- Documentation target: [Contracts](current/contracts.md).
+
 ### Module contract and runner -- `module-contract-runner`
 
 #### scenario-contract
@@ -2967,6 +3023,34 @@ A locked test needs a named custodian and access rules that no software can supp
 - Acceptance gates: A hashed policy exists before any locked evaluation. With no custodian, a
   `locked` split stays membership only and no held-out claim is made.
 - Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
+
+### Data contracts -- `data-contracts`
+
+#### contract-release-freeze
+
+The first release is the point where records leave this repository, so from then on a format can
+no longer change in place and every earlier record must stay readable.
+
+- Serves: `data-contracts` -- [Development stage and
+  release](../design/spec.md#177-development-stage-and-release)
+- Agent status: HUMAN-GATED
+- Dependencies: every other required task in both lanes; the owner's release decision.
+- User-visible outcome: The registry states `stage: released`. The gate refuses any edit of a frozen
+  file and classifies every new version under section 17.3, a major declares its predecessor's
+  disposition, and the tests read one retained real record of every contract at major 1.
+- Scope boundary: The stage switch, its retained records and the documentation of the released flow.
+  No contract content changes at release: a fix found while preparing it is a development edit made
+  before the switch. The gate refuses a return to `development`.
+- Data and artifact paths: `contracts/registry.yaml`, `src/ss_track/schema/`, `tests/schema/`,
+  `tests/corpus/records/`, `AGENTS.md`, `docs/guide/authoring-contracts.md`, `contracts/README.md`.
+- Execution path: The owner declares the release. Regenerate the data root a final time under the
+  current set, retain one real record of each contract as a test fixture, set the stage, and replace
+  the development-stage rule in `AGENTS.md` and the authoring guide with the versioned evolution
+  flow.
+- Acceptance gates: Under `stage: released`, a fixture in-place edit of a frozen file is refused, a
+  fixture minor classifies as section 17.3 declares, and a switch back to `development` is refused.
+  Every retained record reads as evidence. `make ci` passes.
+- Documentation target: [Contracts](current/contracts.md).
 
 ### Annotation and selection -- `annotation-selection`
 

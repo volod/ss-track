@@ -15,27 +15,42 @@
     "title": {
       "type": "string",
       "minLength": 1,
-      "description": "Dataset title."
+      "description": "Dataset title.",
+      "x-rules": {
+        "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+      }
     },
     "description": {
       "type": "string",
       "minLength": 1,
-      "description": "Dataset description."
+      "description": "Dataset description.",
+      "x-rules": {
+        "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+      }
     },
     "license": {
       "type": "string",
       "minLength": 1,
-      "description": "Dataset license."
+      "description": "Dataset license.",
+      "x-rules": {
+        "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+      }
     },
     "citation": {
       "type": "string",
       "minLength": 1,
-      "description": "Dataset citation."
+      "description": "Dataset citation.",
+      "x-rules": {
+        "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+      }
     },
     "address": {
       "type": "string",
       "minLength": 1,
-      "description": "Dataset address."
+      "description": "Dataset address.",
+      "x-rules": {
+        "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+      }
     },
     "publication_date": {
       "type": "string",

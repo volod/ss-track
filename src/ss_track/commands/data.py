@@ -37,5 +37,6 @@ def _run_clean(arguments: argparse.Namespace) -> int:
             corpora=list(arguments.corpus),
             runs=list(arguments.run_id),
             apply=bool(arguments.apply),
-        )
+        ),
+        contracts_checked=False,  # clean reads no record, so it also serves a stale root
     )

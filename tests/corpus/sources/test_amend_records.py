@@ -1,6 +1,5 @@
-"""What an amendment keeps: the replaced record, one whole record, and older majors."""
+"""What an amendment keeps: the replaced record and one whole record."""
 
-import json
 import stat
 import subprocess
 import sys
@@ -10,11 +9,9 @@ from pathlib import Path
 
 import pytest
 
-from ss_track.corpus import ImportResult, RefusalCode, amend_source, verify_corpus_frames
-from ss_track.corpus.records.kinds import SOURCE_MANIFEST
+from ss_track.corpus import ImportResult, amend_source, verify_corpus_frames
 from ss_track.corpus.storage.layout import replaced_record_path
-from tests.corpus._amending import CORPUS, evidence, read_source, refused, rights_with, staged
-from tests.corpus._historic import kept_record
+from tests.corpus._amending import CORPUS, evidence, read_source, staged
 from tests.corpus.conftest import WriteCorpus, WriteRecording
 
 
@@ -126,54 +123,3 @@ def test_concurrent_amendments_lose_no_record(
     every = {result.manifest_sha256 for result in results} | {imported.manifest_sha256}
     assert kept | {current} == every
     assert current not in kept
-
-
-def _older_record(name: str, data_root: Path) -> tuple[str, Path]:
-    """Place a record written by the code of its own commit, under its real source hash."""
-    text = kept_record(name).decode("ascii")
-    sha256 = json.loads(text)["source"]["sha256"]
-    directory = data_root / "import" / sha256
-    directory.mkdir(parents=True)
-    path = directory / "manifest.json"
-    path.write_text(text, encoding="ascii")
-    return sha256, path
-
-
-def test_a_real_record_without_terms_gains_them_and_the_current_major(
-    write_recording: WriteRecording, data_root: Path
-) -> None:
-    sha256, path = _older_record("source-schema-1-d6b704d.json", data_root)
-    old = read_source(path)
-    declared = write_recording(sha256=sha256, rights=rights_with(sharing="public"))
-
-    result = amend_source(declared, data_root, amend_capture=True)
-
-    new = read_source(path)
-    assert new["schema_version"] == 3
-    assert result.changed_terms == ["rights.derived_frames", "rights.retain_until"]
-    assert result.decode_policy_current is False
-    unchanged = {"manifest_sha256", "schema_version", "rights", "sensitivity", "capture"}
-    assert {k: v for k, v in new.items() if k not in unchanged} == {
-        k: v for k, v in old.items() if k not in unchanged
-    }
-    assert read_source(result.replaced_path or Path()) == old
-
-
-def test_a_real_record_short_of_the_current_major_is_refused_by_name(
-    write_recording: WriteRecording, data_root: Path
-) -> None:
-    sha256, path = _older_record("source-schema-1-0238d55.json", data_root)
-    before = path.read_bytes()
-    declared = write_recording(sha256=sha256)
-
-    refusal = refused(
-        lambda: amend_source(declared, data_root), RefusalCode.RECORD_SCHEMA_UNSUPPORTED
-    )
-
-    assert set(refusal.details["missing_operations"]) == {"--amend-capture", "--redecode"}
-    assert refusal.details["accepted_schema_versions"] == [SOURCE_MANIFEST.major]
-    assert refusal.details["age"] == "older"
-    assert refusal.details["found_schema_version"] == 1
-    assert refusal.details["kind"] == SOURCE_MANIFEST.kind
-    assert path.read_bytes() == before
-    assert not (path.parent / "replaced").exists()

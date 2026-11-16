@@ -2,7 +2,7 @@
   "capture": {
     "background": null,
     "camera": null,
-    "camera_control_mode": null,
+    "camera_control_mode": "unknown",
     "exposure": null,
     "focus": null,
     "fov": null,
@@ -10,6 +10,7 @@
     "lighting": null,
     "motion": null,
     "object_pixel_extent": null,
+    "observer_platform": "unknown",
     "range": {
       "method": null,
       "status": "unknown",
@@ -35,7 +36,7 @@
   },
   "decode_policy_sha256": "946fa68e3a97ae7c890a13e7329f3bd52d7ffb1cacf8acfd64c990bfd0f9a9b5",
   "kind": "ss-track.source-manifest",
-  "manifest_sha256": "b36e06f73373f99caa0ecbfd80b41d6ca8ca2983b649f87357afa2621a928837",
+  "manifest_sha256": "9148c0a9bfa87681f7ac768abcdda4e8798b0ab3409224e8b1b740c62b24593a",
   "rights": {
     "basis": "owned",
     "derived_frames": true,
@@ -44,7 +45,7 @@
     "retention": "project duration",
     "sharing": "restricted"
   },
-  "schema_version": 2,
+  "schema_version": 1,
   "sensitivity": {
     "level": "low",
     "notes": null

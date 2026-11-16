@@ -12,7 +12,7 @@ recipe transfers about 9.8 GB.
 | --- | --- |
 | `inventory.yaml` | `declaration/source-inventory` 1.0.0: the Zenodo record and Hugging Face commit, the first 31 selected videos and their terms |
 | `inventory-additions.yaml` | Six further drone-dataset videos for the branch and skyline strata, acquired as their own run |
-| `pool.yaml` | `declaration/corpus-pool` 1.1.0: rights, splits, the CSV name rules that join the drone metadata to its videos, and the related groups |
+| `pool.yaml` | `declaration/corpus-pool` 1.0.0: rights, splits, the CSV name rules that join the drone metadata to its videos, and the related groups |
 | `link-decisions.yaml` | `declaration/link-decisions`: the delegated link review of the ungrouped version, 8 related and 58 unrelated pairs |
 | `plan-diverse.yaml`, `plan-uniform.yaml` | The paired discovery plans: one pool, audit seed and budget |
 | `protocol.md` | The review protocol, frozen before `discover blind` |
@@ -149,9 +149,10 @@ done
 
 ## Expected identities
 
-From the origin host's sealed records. The source, pool, corpus and frame-set identities must match
-on every host. The model-assisted run's identity also records its device and batch size, so it
-matches only for the same host settings; the uniform run and the audit draw do not depend on them.
+From the origin host's sealed records, written under the development contract set. The source,
+pool, corpus and frame-set identities must match on every host. The model-assisted run's identity
+also records its device and batch size, so it matches only for the same host settings; the uniform
+run and the audit draw do not depend on them.
 
 | Record | SHA-256 |
 | --- | --- |
@@ -160,13 +161,13 @@ matches only for the same host settings; the uniform run and the audit draw do n
 | Acquisition `pilot-drone-acq-20261112` | `bc9946dcbcfbdf40e0e9f2d0f4062f3e94b57c715fe4968bcb0f1fb7be0ccf9e` |
 | Acquisition `pilot-drone-extra-acq-20261113` | `571be24eaf916c2f19c8e7d5ce1673567f4e97a273afb335e1e77e85e392dce0` |
 | Pool `pilot-pool-grouped-20261113` | `6f60d81c6767b3c3ea0a7a7b6268b66bc6d74c68c85dfc879f3c93bf084a6083` |
-| Corpus manifest `pilot-two-source-grouped-20261113` | `47b8aa20c55377daaa79388e2dee403ad0112421056d80c72666a9cf2f02a70c` |
-| Frame set | `2d7c30b9b518beb749d1628d2d965b21f2f37d6752a13a1711889ef3bb678d7c` |
-| Run `pilot-uniform-grouped-20261113` | `eee2d02c464795e5528a214fc6d633f217aad643aca978fc1e22978a24e5f459` |
-| Run `pilot-diverse-grouped-20261113` (`cuda`, batch 64) | `e5d59b73d9f73a65ebfb3d95ad943257d72fbf78cf86cf9e63f3ab601d12c31e` |
-| Links `pilot-links-grouped-20261113` | `748d524efe0d39338ebc6faeded0f99af1e39e11ac193c5bac69b1cc4f7976d2` |
-| Frozen `pilot-frozen-diverse-20261113` (`freeze.json`) | `23c1661133058bfe986e245543d0d830b7a3cbf8eff0ac294fab0f2ea37be8a3` |
-| Frozen `pilot-frozen-uniform-20261113` (`freeze.json`) | `bf9d9b38952abffc158b8be494e5bd93e55e698a1f434ab13fc7c204a8deccf6` |
+| Corpus manifest `pilot-two-source-grouped-20261113` | `f38207e7bbb8c30e48356f750a7704f9820f30e9f070a8838779de3b87b1ed7f` |
+| Frame set | `e7b0a74e1602f8e955c593db2df8debcc1653bb6a104bb80d2ac3bbc46b82f1b` |
+| Run `pilot-uniform-grouped-20261113` | `696e7728154f3de6b787a0d57cd5591fef5fb257be503a46ad52d18ef239caec` |
+| Run `pilot-diverse-grouped-20261113` (`cuda`, batch 64) | `0dac22229a7889cf3f42d2a6604734e0a025903af38b361ac5a17ed899ebe6d4` |
+| Links `pilot-links-grouped-20261113` | `d71e8ebdbb4e3d8f8a6768c2f80c5f9b7365030f2b3b1ee17e2b2c3c4eff07bf` |
+| Frozen `pilot-frozen-diverse-20261113` (`freeze.json`) | `d00596e52dcd0199944e2f3f8b6d4fa6ece1140643a227c0120ccbab2126d791` |
+| Frozen `pilot-frozen-uniform-20261113` (`freeze.json`) | `3c7f8551f89d11a27ff900620a5b6f6c6944eca8ddcde647f41ce4358e9af904` |
 
 The [pilot record](../../records/0067-self-supervised-corpus-corpus-two-source-pilot.md) holds the
 measured resources and the unresolved evidence.

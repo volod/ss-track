@@ -5,7 +5,7 @@ from typing import Any
 
 import pytest
 
-from ss_track.core.refusal import CorpusRefusal, RefusalCode
+from ss_track.core.refusal import RefusalCode
 from ss_track.corpus.cases.transforms import TRANSFORM_REVISIONS
 from ss_track.corpus.declarations.declaration import CORPUS_SCHEMA_VERSION
 from ss_track.corpus.records.kinds import CORPUS_MANIFEST, FRAME_BUNDLE, STAGED_HASHES
@@ -13,38 +13,13 @@ from ss_track.schema import validate_file
 from ss_track.schema.registry.fingerprints import walk
 from ss_track.schema.registry.store import load_contract_set
 from ss_track.schema.validation.strict import violations
-from tests.schema.conftest import EXAMPLES, KEPT_FRAME_SET
+from tests.schema.conftest import EXAMPLES
 
 
 def frozen(name: str) -> dict[str, Any]:
     contracts = load_contract_set()
     contract = contracts.named(name)
     return contracts.frozen_schema(contract, contract.versions[-1])
-
-
-@pytest.mark.parametrize(
-    "filename",
-    [
-        "source-schema-2-129a350.json",
-        "corpus-schema-3-129a350.json",
-        "bundle-schema-3-d6b704d.json",
-        "frame-set-schema-1-fd982a1.json",
-        "staged-hashes-schema-1-0bf3b9e.json",
-        "hash-comparison-schema-1-0bf3b9e.json",
-    ],
-)
-def test_retained_current_records_validate_unchanged(filename: str) -> None:
-    path = KEPT_FRAME_SET.with_name(filename)
-    before = path.read_bytes()
-    assert validate_file(path).seal_checked
-    assert path.read_bytes() == before
-
-
-def test_corpus_three_before_source_terms_is_not_the_frozen_contract() -> None:
-    with pytest.raises(CorpusRefusal) as caught:
-        validate_file(KEPT_FRAME_SET.with_name("corpus-schema-3-d6b704d.json"))
-    assert caught.value.code is RefusalCode.RECORD_INVALID
-    assert "rights" in str(caught.value.details)
 
 
 @pytest.mark.parametrize("format", [CORPUS_MANIFEST, FRAME_BUNDLE, STAGED_HASHES])

@@ -2,13 +2,16 @@
 
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
+from ss_track.core.evidence import read_refusals
 from ss_track.core.evidence.read_refusals import NEWER, OLDER, UNSTATED
 from ss_track.core.evidence.sealed import read_comparable, read_sealed, read_stated
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
 from ss_track.corpus.records.kinds import RecordFormat
+from ss_track.schema.registry.contract import RELEASED
 from tests._sealing import self_sealed
 
 BODY = {"kind": "test-record", "schema_version": 3, "b": [1, None], "a": "value"}
@@ -81,8 +84,8 @@ def _refusal_of(tmp_path: Path, schema_version: object) -> CorpusRefusal:
 @pytest.mark.parametrize(
     ("schema_version", "age", "remedy"),
     [
-        pytest.param(2, OLDER, "trusted copy", id="older-with-no-change-log"),
-        pytest.param(4, NEWER, "install the ss-track version", id="newer"),
+        pytest.param(2, OLDER, "regenerate the datasets", id="older-with-no-change-log"),
+        pytest.param(4, NEWER, "regenerate the datasets", id="newer"),
         pytest.param(..., UNSTATED, "trusted copy", id="absent"),
         pytest.param(None, UNSTATED, "trusted copy", id="null"),
         pytest.param("3", UNSTATED, "trusted copy", id="text"),
@@ -119,3 +122,19 @@ def test_an_older_record_no_change_log_states_is_neither_stated_nor_projected(
     found = read_comparable(path, FORMAT)
     assert (found.major, found.projected) == (2, None)
     assert found.seal == json.loads(path.read_text(encoding="ascii"))["manifest_sha256"]
+
+
+@pytest.mark.parametrize(
+    ("schema_version", "remedy"),
+    [
+        pytest.param(2, "trusted copy", id="older-with-no-change-log"),
+        pytest.param(4, "install the ss-track version", id="newer"),
+    ],
+)
+def test_a_released_set_names_the_release_remedies(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, schema_version: int, remedy: str
+) -> None:
+    released = SimpleNamespace(contracts=SimpleNamespace(stage=RELEASED))
+    monkeypatch.setattr(read_refusals, "installed_contracts", lambda: released)
+
+    assert remedy in str(_refusal_of(tmp_path, schema_version).details["remedy"])

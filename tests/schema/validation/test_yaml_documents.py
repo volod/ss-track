@@ -26,8 +26,8 @@ def test_yaml_dates_are_normalized_only_for_validation(
 @pytest.mark.parametrize(
     "text",
     [
-        "schema_version: 3\nschema_version: 3\n",
-        "schema_version: 3\nnested: {a: 1, a: 2}\n",
+        "schema_version: 1\nschema_version: 1\n",
+        "schema_version: 1\nnested: {a: 1, a: 2}\n",
         "value: .nan\n",
         "value: .inf\n",
         "value: -.inf\n",
@@ -48,14 +48,14 @@ def test_non_json_yaml_values_refuse_cleanly(tmp_path: Path, text: str) -> None:
 def test_yaml_corpus_and_json_corpus_follow_the_same_contract(tmp_path: Path) -> None:
     path = tmp_path / "corpus.yaml"
     path.write_text(
-        "schema_version: 3\ncorpus_id: example\n"
+        "schema_version: 1\ncorpus_id: example\n"
         "scenario_rights: {sharing: restricted, max_sensitivity: high}\n"
         "groups:\n- group_id: one\n  split: development\n  encounters:\n"
         "  - encounter_id: encounter\n    streams:\n"
         f"    - stream_id: camera\n      source_sha256: {'a' * 64}\n"
     )
-    assert validate_file(path, contract_name="declaration/corpus").version == "3.3.0"
-    path.write_text(path.read_text().replace("schema_version: 3", "schema_version: 3.0"))
+    assert validate_file(path, contract_name="declaration/corpus").version == "1.0.0"
+    path.write_text(path.read_text().replace("schema_version: 1", "schema_version: 1.0"))
     with pytest.raises(CorpusRefusal) as caught:
         validate_file(path, contract_name="declaration/corpus")
     assert caught.value.code is RefusalCode.MANIFEST_INVALID
@@ -74,7 +74,7 @@ def test_json_overflow_is_not_hidden_inside_open_details(tmp_path: Path, payload
 def test_real_recording_preserves_descriptions_numbers_and_dates(tmp_path: Path) -> None:
     path = tmp_path / "recording.yaml"
     text = (
-        "schema_version: 2\nsource: {path: clip.mkv}\n"
+        "schema_version: 1\nsource: {path: clip.mkv}\n"
         "rights: {holder: Owner, basis: owned, retention: project, retain_until: 2030-01-02, "
         "derived_frames: true, sharing: restricted}\n"
         "sensitivity: {level: low}\n"
@@ -82,7 +82,7 @@ def test_real_recording_preserves_descriptions_numbers_and_dates(tmp_path: Path)
         "range: {status: estimated, value_m: 'about 3', method: visual}}\n"
     )
     path.write_text(text)
-    assert validate_file(path, contract_name="declaration/recording").version == "2.4.0"
+    assert validate_file(path, contract_name="declaration/recording").version == "1.0.0"
     assert path.read_text() == text
     path.write_text(text.replace("camera: 42", "camera: null"))
     with pytest.raises(CorpusRefusal) as caught:
@@ -103,7 +103,7 @@ def test_explicit_validation_refuses_a_yaml_date_where_a_reader_does(
     """`contracts validate` and the readers share one rule, so neither accepts what the other refuses."""
     path = tmp_path / "recording.yaml"
     path.write_text(
-        "schema_version: 2\nsource: {path: clip.mkv}\n"
+        "schema_version: 1\nsource: {path: clip.mkv}\n"
         "rights: {holder: Owner, basis: owned, retention: project, retain_until: 2030-01-02, "
         "derived_frames: true, sharing: restricted}\n"
         "sensitivity: {level: low}\ncapture: {camera: 42}\n".replace(old, new)

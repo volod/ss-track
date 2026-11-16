@@ -70,7 +70,7 @@
     },
     "source_sha256": {
       "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
-      "description": "File hash of the video the labels name."
+      "description": "Source identity the labels name, as a corpus stream names it. The first video stream of a file uses the file hash. A later video stream uses its stream identity. An ordered image sequence uses the sequence identity."
     },
     "review_sha256": {
       "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",

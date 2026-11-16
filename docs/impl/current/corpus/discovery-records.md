@@ -21,7 +21,7 @@ One run is one directory under `$DATA_DIR/self-supervised-corpus/<run-id>/`:
 
 | File | Contract | Holds |
 | --- | --- | --- |
-| `run.json` | `record/discovery-run` 1.2.0 | Frame set read, extractors, scores, hint sources and what became of their matches, pool, selection, audit design, the owner's source approval, one line per inventory and per feature record |
+| `run.json` | `record/discovery-run` 1.0.0 | Frame set read, extractors, scores, hint sources and what became of their matches, pool, selection, audit design, the owner's source approval, one line per inventory and per feature record |
 | `inventories/<stream-id>.json` | `record/candidate-inventory` 1.0.0 | Every candidate window of one stream |
 | `features/<extractor-id>/<stream-id>.json` | `record/feature-rows` 1.0.0 | One extractor's row keys for one stream, and the seal of the vector file beside it |
 
@@ -31,9 +31,8 @@ a discovery run id.
 inventory and each feature record by hash, as a frame set seals its bundles. A run is built in
 scratch and published by one rename under a lock, so a reader meets a whole run or none.
 A run id never holds two different runs: repeating the same records changes nothing, and
-different records are `CORPUS_CONFLICT`. Version 1.1.0 adds `source_approval`, `feature_rows` and a
-hint source's `matches`, each optional, so a 1.0.0 record still validates. Version 1.2.0 adds the
-crop `tiled` and an extractor's `tile`. One inventory per stream
+different records are `CORPUS_CONFLICT`. `source_approval`, `feature_rows`, a hint source's
+`matches`, the crop `tiled` and an extractor's `tile` are optional. One inventory per stream
 keeps each record bounded by its stream's length. As written, a golden pool candidate with two
 scores takes about 650 bytes, so one hour of 25 frame per second video cut into eight-frame windows
 is about 7 MB.

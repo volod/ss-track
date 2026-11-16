@@ -6,8 +6,7 @@ hash, when its identity is not that hash. The amendment report reads each stream
 pin. The shared-frame rule reads a bundle's frame hashes. A projection yields only those, from a
 record as it was written, and stays for as long as records of its major may exist: a record's
 disposition decides whether it may serve as evidence, never whether a successor is compared with
-it. Corpus major 1 held no group or split, so it has no projection and a successor reports it as
-not compared. Bundle major 1 has none either: only a corpus version of major 1 staged one.
+it. A major with no projection is reported by a successor as not compared.
 """
 
 from collections.abc import Callable, Iterator, Mapping
@@ -16,7 +15,7 @@ from typing import Any
 
 from ss_track.core.canonical import SEAL_FIELD
 from ss_track.core.refusal import JsonValue
-from ss_track.corpus.records.kinds import CORPUS_MANIFEST_KIND, FRAME_BUNDLE_KIND
+from ss_track.corpus.records.kinds import CORPUS_MANIFEST, FRAME_BUNDLE
 
 OTHER_SCHEMA = "other_schema"
 SUPERSEDES_FIELD = "supersedes"
@@ -122,8 +121,6 @@ def installed_projections() -> Mapping[tuple[str, int], Projection]:
 
 
 INSTALLED_PROJECTIONS: dict[tuple[str, int], Projection] = {
-    (CORPUS_MANIFEST_KIND, 2): _corpus,
-    (CORPUS_MANIFEST_KIND, 3): _corpus,
-    (FRAME_BUNDLE_KIND, 2): _bundle,
-    (FRAME_BUNDLE_KIND, 3): _bundle,
+    (CORPUS_MANIFEST.kind, CORPUS_MANIFEST.major): _corpus,
+    (FRAME_BUNDLE.kind, FRAME_BUNDLE.major): _bundle,
 }

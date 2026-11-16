@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:ss-track:contract:declaration:annotation-label:1.0.0",
   "title": "Annotation labels",
-  "description": "Operator labels for one video: visibility, geometry, instance identity and motion events, in the stored orientation modules receive. A class id has the shape of an identifier. The pinned scenario pack states which ids exist and what each role means. This document is not a score.",
+  "description": "Operator labels for one video or one ordered image sequence: visibility, geometry, instance identity and motion events, in the stored orientation modules receive. A class id has the shape of an identifier. The pinned scenario pack states which ids exist and what each role means. This document is not a score.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -41,7 +41,7 @@
     },
     "source_sha256": {
       "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
-      "description": "File hash of the video. That hash is the identity of its first stream."
+      "description": "Source identity, as a corpus stream names it. The first video stream of a file uses the file hash. A later video stream of that file uses its stream identity. An ordered image sequence uses the sequence identity of its ordered image hashes."
     },
     "frame_count": {
       "type": "integer",

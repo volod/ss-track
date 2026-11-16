@@ -31,7 +31,6 @@ from ss_track.corpus.sources.replacement import (
     ReplacementResult,
     replace_record,
     replacing_source,
-    require_migration_operations,
     require_unchanged_facts,
     successor_of,
 )
@@ -56,15 +55,10 @@ def redecode_source(
     declaration = load_recording_declaration(declaration_path)
     sha256 = source_identity(declared_content_hash(declaration), _index_for_redecode(declaration))
     with replacing_source(data_root, sha256, _NOT_IMPORTED) as existing:
-        require_migration_operations(
-            existing, sha256, amend_capture=amend_capture, amend_terms=amend_terms, redecode=True
-        )
         require_unchanged_facts(existing.record, declaration, sha256, amend_capture=amend_capture)
         terms = declared_terms(declaration) if amend_terms else _carried_terms(existing.record)
         capture = capture_changes(existing.record, declaration) if amend_capture else {}
-        successor = successor_of(
-            existing, _redecoded(existing, declaration) | terms | capture, sha256
-        )
+        successor = successor_of(existing, _redecoded(existing, declaration) | terms | capture)
         return replace_record(
             REDECODED, existing, successor, sha256, data_root, policy_current=True
         )

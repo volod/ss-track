@@ -23,6 +23,9 @@ VIEW = "view"
 FACTS = "facts"
 RETIRED = "retired"
 DISPOSITIONS = (VIEW, FACTS, RETIRED)  # from most to least usable, so the strictest step wins
+DEVELOPMENT = "development"  # the registry stages of spec section 17.7, from meta/registry.json
+RELEASED = "released"
+BASELINE_VERSION = "1.0.0"  # the one version each contract has in the development stage
 _URN_PREFIX = "urn:ss-track:contract"
 
 

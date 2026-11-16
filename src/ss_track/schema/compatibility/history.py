@@ -1,4 +1,8 @@
-"""Compare the working contract set with immutable versions held by Git history."""
+"""Compare the working contract set with Git history, by the stage each revision states.
+
+A development set is checked against its own pins alone; a released revision's versions are
+immutable, and no revision may return a released set to development.
+"""
 
 import argparse
 import logging
@@ -9,7 +13,8 @@ from pathlib import Path
 from ss_track.core.refusal import CorpusRefusal
 from ss_track.schema.compatibility.versioning import transition_findings
 from ss_track.schema.registry.check import check_contract_set
-from ss_track.schema.registry.contract import INITIAL, Contract, FrozenVersion
+from ss_track.schema.registry.contract import INITIAL, RELEASED, Contract, FrozenVersion
+from ss_track.schema.registry.stage import regression_finding, stage_of
 from ss_track.schema.registry.store import ContractSet, load_contract_set
 
 _LOG = logging.getLogger(__name__)
@@ -82,6 +87,18 @@ def evolution_findings(contracts: ContractSet) -> list[str]:
     return findings
 
 
+def _revision_findings(snapshot: Path, revision: str, current: ContractSet) -> list[str]:
+    """Compare a committed set by the stage rules of spec section 17.7.
+
+    A development revision froze nothing, so only a released one holds bytes that must not move.
+    """
+    previous = stage_of(snapshot)
+    findings = regression_finding(previous, current.stage, revision)
+    if previous == RELEASED:
+        findings += immutable_findings(load_contract_set(snapshot), current)
+    return findings
+
+
 def history_findings(project: Path, base_ref: str) -> list[str]:
     """Fail closed on absent history; compare the merge base and the committed working baseline."""
     root = project / "contracts"
@@ -99,7 +116,7 @@ def history_findings(project: Path, base_ref: str) -> list[str]:
             with tempfile.TemporaryDirectory(prefix="ss-track-contract-history-") as temporary:
                 snapshot = Path(temporary)
                 if _snapshot(project, revision, snapshot):
-                    findings += immutable_findings(load_contract_set(snapshot), current)
+                    findings += _revision_findings(snapshot, revision, current)
     except (ValueError, OSError, CorpusRefusal) as error:
         findings.append(f"cannot check contract history: {error}")
     return sorted(set(findings))

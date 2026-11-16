@@ -15,9 +15,7 @@ from ss_track.schema.registry.fingerprints import meaning_fingerprint, structure
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CONTRACTS = PROJECT_ROOT / "contracts"
-KEPT_FRAME_SET = (
-    PROJECT_ROOT / "tests" / "corpus" / "kept_records" / "frame-set-schema-1-fd982a1.json"
-)
+KEPT_FRAME_SET = Path(__file__).parent / "frame-set-record.json"  # a sealed record, as written
 EXAMPLES = Path(__file__).parent / "examples"  # one example document of every contract
 STANDARD = "https://json-schema.org/draft/2020-12/schema"
 SHA256_REF = "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256"
@@ -85,9 +83,28 @@ def versioned_schema(
 
 @pytest.fixture
 def contract_root(tmp_path: Path) -> Path:
-    root = tmp_path / "contracts"
+    """A private released copy of the set, where versions evolve under spec section 17.3."""
+    return release(development_copy(tmp_path))
+
+
+@pytest.fixture
+def development_root(tmp_path: Path) -> Path:
+    """A private copy of the set in the stage it ships in, development."""
+    return development_copy(tmp_path)
+
+
+def development_copy(directory: Path) -> Path:
+    root = directory / "contracts"
     shutil.copytree(CONTRACTS, root, ignore=shutil.ignore_patterns("__pycache__"))
     root.joinpath("__init__.py").unlink()
+    return root
+
+
+def release(root: Path) -> Path:
+    """Move a private set to the released stage, as `contract-release-freeze` will move the real one."""
+    registry = read_registry(root)
+    registry["stage"] = "released"
+    write_registry(root, registry)
     return root
 
 

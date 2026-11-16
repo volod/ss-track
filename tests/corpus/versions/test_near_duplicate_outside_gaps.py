@@ -64,7 +64,7 @@ def test_an_unprojected_unlinked_version_is_named(
         "pilot-v1",
         [single_group("site-a", "development", stream_of(imported))],
     )
-    reseal(earlier.manifest_path, schema_version=1)
+    reseal(earlier.manifest_path, schema_version=0)
 
     built = build_version(
         write_grouped_corpus,

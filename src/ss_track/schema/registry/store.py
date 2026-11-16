@@ -21,6 +21,7 @@ from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.core.strict_json import finite_float, reject_constant, unique_object
 from ss_track.core.strict_yaml import UniqueKeyLoader
 from ss_track.schema.registry.contract import (
+    DEVELOPMENT,
     EVENT_FAMILY,
     KIND_FIELD,
     RECORD_FAMILY,
@@ -112,6 +113,7 @@ class ContractSet:
 
     root: Path
     contracts: tuple[Contract, ...]
+    stage: str = DEVELOPMENT
 
     def named(self, name: str) -> Contract:
         """Return one contract by `<family>/<id>`, refusing a name the registry lacks."""
@@ -186,4 +188,5 @@ def load_contract_set(root: Path | None = None) -> ContractSet:
         first = found[0]
         raise damaged(f"{REGISTRY_NAME}{first.pointer}: {first.message}")
     assert isinstance(registry, dict)  # the schema above requires a mapping
-    return ContractSet(base, tuple(_contract(entry) for entry in registry["contracts"]))
+    contracts = tuple(_contract(entry) for entry in registry["contracts"])
+    return ContractSet(base, contracts, str(registry["stage"]))

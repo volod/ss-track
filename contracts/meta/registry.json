@@ -5,9 +5,13 @@
   "description": "The shape of registry.yaml, which lists every contract, its status and its frozen versions.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "contracts"],
+  "required": ["schema_version", "stage", "contracts"],
   "properties": {
     "schema_version": {"type": "integer", "const": 1, "description": "Version of this registry format."},
+    "stage": {
+      "enum": ["development", "released"],
+      "description": "Development: each contract has one version, 1.0.0, edited in place and re-pinned. Released: every frozen version is immutable and a change is a new version. A released set never returns to development."
+    },
     "contracts": {
       "type": "array",
       "description": "Every contract, in family and id order.",

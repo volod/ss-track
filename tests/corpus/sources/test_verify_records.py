@@ -36,7 +36,7 @@ def _overwrite_record(source: ImportResult) -> None:
 
 
 def _reseal_old_schema(source: ImportResult) -> None:
-    reseal(source.manifest_path, schema_version=1)
+    reseal(source.manifest_path, schema_version=0)
 
 
 @pytest.mark.parametrize(

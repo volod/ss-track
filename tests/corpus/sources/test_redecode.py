@@ -1,8 +1,7 @@
 """`import --redecode` decodes an imported source's stored bytes again, under the installed policy.
 
 A plain `--redecode` carries the existing terms forward unchanged; `--amend-terms` given alongside
-it takes them from the declaration instead, which is the only route for a record too old for either
-flag alone. `tests/corpus/kept_records/` holds the real schema 1 records these cases replay.
+it takes them from the declaration instead.
 """
 
 import subprocess
@@ -17,7 +16,6 @@ from ss_track.commands.report import EXIT_OK, EXIT_REFUSED
 from ss_track.corpus import (
     ImportResult,
     RefusalCode,
-    amend_source,
     build_corpus,
     redecode_source,
     verify_corpus_frames,
@@ -31,7 +29,6 @@ from tests.corpus._amending import (
     staged,
     stored_source,
 )
-from tests.corpus._historic import place_record
 from tests.corpus.conftest import WriteCorpus, WriteRecording, last_record, stream_of
 
 _UPGRADED = DecodePolicy(decoder="pyav", decoder_version="99", ffmpeg_version="99")
@@ -41,12 +38,6 @@ def _install_upgraded_policy(monkeypatch: pytest.MonkeyPatch) -> None:
     """Simulate a newer decode policy wherever `corpus build` and `--redecode` read it."""
     monkeypatch.setattr("ss_track.corpus.sources.redecode.current_decode_policy", lambda: _UPGRADED)
     monkeypatch.setattr("ss_track.corpus.versions.builder.current_decode_policy", lambda: _UPGRADED)
-
-
-def _older_record(name: str, path: Path) -> None:
-    """Replace a real record with one the kept major wrote, over the real stored bytes at `path`."""
-    path.chmod(0o644)
-    place_record(name, path)
 
 
 def test_an_older_policy_is_replaced_and_a_new_build_accepts_it(
@@ -108,71 +99,6 @@ def test_a_stored_source_that_no_longer_matches_its_hash_is_refused(
     assert refusal.details["source_sha256"] == imported.source_sha256
 
 
-def test_a_record_with_no_terms_to_carry_is_refused_and_names_amend_terms(
-    imported: ImportResult, write_recording: WriteRecording, data_root: Path
-) -> None:
-    _older_record("source-schema-1-d6b704d.json", imported.manifest_path)
-    before = imported.manifest_path.read_bytes()
-
-    refusal = refused(
-        lambda: redecode_source(write_recording(), data_root), RefusalCode.RECORD_SCHEMA_UNSUPPORTED
-    )
-
-    assert set(refusal.details["missing_operations"]) == {"--amend-capture", "--amend-terms"}
-    assert imported.manifest_path.read_bytes() == before
-    assert not (imported.manifest_path.parent / "replaced").exists()
-
-
-def test_an_older_record_is_amended_and_then_redecoded_and_builds(
-    imported: ImportResult,
-    write_recording: WriteRecording,
-    write_corpus: WriteCorpus,
-    data_root: Path,
-) -> None:
-    _older_record("source-schema-1-d6b704d.json", imported.manifest_path)
-
-    amended = amend_source(write_recording(rights=rights_with()), data_root, amend_capture=True)
-    assert amended.status == "amended"
-    assert amended.decode_policy_current is False
-
-    redecoded = redecode_source(write_recording(), data_root)
-    assert redecoded.status == "redecoded"
-    assert redecoded.decode_policy_current is True
-
-    declared = write_corpus([stream_of(imported)])
-    assert build_corpus(declared, data_root).status == "built"
-
-
-def test_a_record_too_old_for_amend_terms_alone_builds_through_both_flags_together(
-    imported: ImportResult,
-    write_recording: WriteRecording,
-    write_corpus: WriteCorpus,
-    data_root: Path,
-) -> None:
-    _older_record("source-schema-1-0238d55.json", imported.manifest_path)
-
-    refused(
-        lambda: amend_source(write_recording(rights=rights_with()), data_root),
-        RefusalCode.RECORD_SCHEMA_UNSUPPORTED,
-    )
-    refused(
-        lambda: redecode_source(write_recording(), data_root),
-        RefusalCode.RECORD_SCHEMA_UNSUPPORTED,
-    )
-
-    result = redecode_source(
-        write_recording(rights=rights_with()), data_root, amend_terms=True, amend_capture=True
-    )
-
-    assert result.status == "redecoded"
-    assert result.decode_policy_current is True
-    new = read_source(result.manifest_path)
-    assert new["schema_version"] == 3
-    assert {"color", "interlaced_frames", "source_bits_per_component"} <= new["sequence"].keys()
-    declared = write_corpus([stream_of(imported)])
-    assert build_corpus(declared, data_root).status == "built"
-
-
 _KILLED_RUN = """
     import os
     import sys
@@ -197,8 +123,7 @@ _KILLED_RUN = """
 def test_a_killed_redecode_leaves_one_whole_record_and_a_rerun_finishes_it(
     imported: ImportResult, write_recording: WriteRecording, data_root: Path, kill_at: int
 ) -> None:
-    _older_record("source-schema-1-d6b704d.json", imported.manifest_path)
-    declared = write_recording(rights=rights_with())
+    declared = write_recording(rights=rights_with(sharing="public"))
     command = [sys.executable, "-c", textwrap.dedent(_KILLED_RUN), str(declared), str(data_root)]
 
     run = subprocess.run([*command, str(kill_at)], check=False, capture_output=True)

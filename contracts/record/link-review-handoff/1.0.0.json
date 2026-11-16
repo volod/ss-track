@@ -62,12 +62,18 @@
       "description": "Seal of the carried link record."
     },
     "base_checkpoint_sha256": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Checkpoint identity accepted before this review branch, or null when none existed.",
       "pattern": "^[0-9a-f]{64}$"
     },
     "checkpoint_sha256": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Checkpoint identity carried now, or null when no checkpoint exists.",
       "pattern": "^[0-9a-f]{64}$"
     },
@@ -79,7 +85,12 @@
         "type": "object",
         "description": "One fixed archive member and its identity.",
         "additionalProperties": false,
-        "required": ["path", "role", "size", "sha256"],
+        "required": [
+          "path",
+          "role",
+          "size",
+          "sha256"
+        ],
         "properties": {
           "path": {
             "type": "string",
@@ -89,7 +100,12 @@
           "role": {
             "type": "string",
             "description": "Purpose of this member.",
-            "enum": ["links", "staged_hashes", "checkpoint", "recipe"]
+            "enum": [
+              "links",
+              "staged_hashes",
+              "checkpoint",
+              "recipe"
+            ]
           },
           "size": {
             "type": "integer",

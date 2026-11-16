@@ -140,6 +140,89 @@
           "description": "Include and exclude decisions.",
           "x-unit": "1",
           "minimum": 0
+        },
+        "independence": {
+          "type": "string",
+          "description": "Whether independence of selection was declared. Absent when the review does not state it. A declaration is not a verification.",
+          "enum": [
+            "declared",
+            "not_declared"
+          ]
+        },
+        "blinding": {
+          "type": "string",
+          "description": "Whether blinding to selection, scores, offer reasons and source labels was declared. Absent when the review does not state it. A declaration is not a verification.",
+          "enum": [
+            "declared",
+            "not_declared"
+          ]
+        },
+        "reviewer_minutes": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "min",
+          "description": "Minutes the reviewer recorded. Absent when the review did not state them."
+        },
+        "audit_id": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+          "description": "Blinded audit the review was mapped from. Absent when the review names none."
+        },
+        "selection_pass": {
+          "type": "object",
+          "description": "A selection pass: every window the run selected and offers, reviewed again, including windows the audit sample also showed. It makes each run's selection work its selected count, whatever the audit overlap. It never changes selection, the audit draw or the audit weights. Absent when no pass was recorded.",
+          "additionalProperties": false,
+          "required": [
+            "reviewer",
+            "windows"
+          ],
+          "properties": {
+            "reviewer": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Who reviewed the selected windows again, as the review states."
+            },
+            "reviewer_minutes": {
+              "type": "integer",
+              "minimum": 0,
+              "x-unit": "min",
+              "description": "Minutes the pass reviewer recorded. Absent when the review did not state them."
+            },
+            "windows": {
+              "type": "array",
+              "minItems": 0,
+              "description": "Reviewed windows, ascending by stream and candidate, each at most once.",
+              "items": {
+                "type": "object",
+                "description": "One selected window reviewed again in the pass.",
+                "additionalProperties": false,
+                "required": [
+                  "stream_id",
+                  "candidate_id",
+                  "observation"
+                ],
+                "properties": {
+                  "stream_id": {
+                    "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                    "description": "The stream of the discovery run whose inventory holds the candidate."
+                  },
+                  "candidate_id": {
+                    "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                    "description": "The candidate, as its inventory names it."
+                  },
+                  "observation": {
+                    "type": "string",
+                    "description": "What the pass reviewer saw in the window, with the meanings a decision's observation has. It is reported as review yield and never replaces the audit observation of the window in an estimate. An observation is never a label.",
+                    "enum": [
+                      "target_present",
+                      "target_absent",
+                      "confuser",
+                      "unknown"
+                    ]
+                  }
+                }
+              }
+            }
+          }
         }
       },
       "required": [

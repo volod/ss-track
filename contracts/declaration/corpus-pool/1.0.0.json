@@ -194,6 +194,41 @@
                 }
               }
             }
+          },
+          "metadata_names": {
+            "type": "array",
+            "description": "Operator rules that map the name column of an acquired CSV metadata file to video paths.",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "description": "One CSV file whose row names start with name_prefix; the rest of the name follows path_prefix.",
+              "additionalProperties": false,
+              "required": [
+                "file",
+                "name_prefix",
+                "path_prefix"
+              ],
+              "properties": {
+                "file": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Acquired CSV metadata path the rule applies to.",
+                  "x-rules": {
+                    "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+                  }
+                },
+                "name_prefix": {
+                  "type": "string",
+                  "description": "Directory prefix a row name must start with, each segment ending in a slash; empty matches every name.",
+                  "pattern": "^([A-Za-z0-9_-][A-Za-z0-9_.-]*/)*$"
+                },
+                "path_prefix": {
+                  "type": "string",
+                  "description": "Directory prefix of the video path that replaces name_prefix, each segment ending in a slash; empty adds none.",
+                  "pattern": "^([A-Za-z0-9_-][A-Za-z0-9_.-]*/)*$"
+                }
+              }
+            }
           }
         }
       }

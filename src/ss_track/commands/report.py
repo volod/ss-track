@@ -6,6 +6,7 @@ from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Protocol
 
+from ss_track.core.evidence.contract_stamp import require_current_data_root
 from ss_track.core.paths import resolve_data_root
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
 
@@ -40,9 +41,25 @@ def reported(action: Callable[[], Reportable]) -> int:
     return EXIT_OK
 
 
-def reported_on_data_root(action: Callable[[Path], Reportable]) -> int:
-    """Run one action on the data root and report its one JSON record."""
-    return reported(lambda: action(resolve_data_root()))
+def reported_on_data_root(
+    action: Callable[[Path], Reportable], *, contracts_checked: bool = True
+) -> int:
+    """Run one action on the data root and report its one JSON record.
+
+    The root is first held to the installed development contract set, so a record written under an
+    earlier in-place contract edit is never read or extended. Only housekeeping that reads no
+    record, such as `data clean`, passes `contracts_checked=False`.
+    """
+    return reported(
+        lambda: action(checked_data_root() if contracts_checked else resolve_data_root())
+    )
+
+
+def checked_data_root() -> Path:
+    """Return the data root once its records are known to follow the installed contracts."""
+    data_root = resolve_data_root()
+    require_current_data_root(data_root)
+    return data_root
 
 
 def _refuse(refusal: CorpusRefusal) -> int:

@@ -103,5 +103,6 @@ Copy the [template](template.md) using the
 | 0096 | `generated-case-labels` | [0096-annotation-selection-generated-case-labels](0096-annotation-selection-generated-case-labels.md) |
 | 0097 | `annotation-sequence-source` | [0097-annotation-selection-annotation-sequence-source](0097-annotation-selection-annotation-sequence-source.md) |
 | 0098 | `annotation-selection-audit` | [0098-annotation-selection-annotation-selection-audit](0098-annotation-selection-annotation-selection-audit.md) |
+| 0099 | `contract-development-baseline` | [0099-data-contracts-contract-development-baseline](0099-data-contracts-contract-development-baseline.md) |
 
-Next unused sequence: `0099`.
+Next unused sequence: `0100`.

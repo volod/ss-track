@@ -7,7 +7,6 @@ Readers then read today's major as the older one, which is the case every later 
 """
 
 import json
-import shutil
 from collections.abc import Callable, Iterator, Mapping
 from contextlib import contextmanager
 from pathlib import Path
@@ -21,15 +20,14 @@ from ss_track.core.refusal import JsonValue
 from ss_track.corpus.records import projections as projection_table
 from ss_track.corpus.records.kinds import CORPUS_MANIFEST, RecordFormat
 from ss_track.corpus.versions import builder, manifests
-from ss_track.quality.project_root import discover_project_root
 from ss_track.schema.compatibility.freeze import freeze_contract
 from ss_track.schema.registry import contract, store
 from ss_track.schema.validation import enforce
+from tests.schema.conftest import development_copy, release
 
 CORPUS_CONTRACT = "record/corpus-manifest"
 CURRENT = CORPUS_MANIFEST.major
 NEXT = CURRENT + 1
-_CONTRACTS = discover_project_root(Path(__file__).parent) / "contracts"
 
 type Upcast = Callable[[Mapping[str, JsonValue]], dict[str, JsonValue]]
 
@@ -65,10 +63,8 @@ def freeze_next(root: Path, disposition: str, added: str, schema: Mapping[str, A
 
 
 def private_contracts(directory: Path) -> Path:
-    root = directory / "contracts"
-    shutil.copytree(_CONTRACTS, root, ignore=shutil.ignore_patterns("__pycache__"))
-    root.joinpath("__init__.py").unlink()
-    return root
+    """A released private copy, because only a released set takes a next major."""
+    return release(development_copy(directory))
 
 
 @contextmanager

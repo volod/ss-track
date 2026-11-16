@@ -16,6 +16,8 @@ from ss_track.schema.compatibility.publishing import publish
 from ss_track.schema.compatibility.versioning import bump_kind, transition_findings
 from ss_track.schema.registry.check import check_contract_set
 from ss_track.schema.registry.contract import (
+    BASELINE_VERSION,
+    DEVELOPMENT,
     DISPOSITIONS,
     INITIAL,
     MAJOR,
@@ -133,7 +135,9 @@ def _register(
         }
         registry["contracts"].append(contract)
     if any(item["version"] == entry["version"] for item in contract["versions"]):
-        raise damaged("a frozen version cannot be replaced")
+        if registry.get("stage") != DEVELOPMENT:
+            raise damaged("a frozen version cannot be replaced")
+        contract["versions"] = []  # the development stage re-pins its one version in place
     contract["versions"].append(entry)
     contract["status"] = "active"
     contract.pop("reason", None)
@@ -167,7 +171,12 @@ def freeze_contract(
     owner: str | None = None,
     root: Path | None = None,
 ) -> EvolutionResult:
-    """Validate a staged set in isolation before writing schema bytes and the generated pins."""
+    """Validate a staged set in isolation before writing schema bytes and the generated pins.
+
+    In the development stage the one version, `1.0.0`, is replaced in place and re-pinned, with no
+    transition to classify. In the released stage a new version is classified against its
+    predecessor and no frozen file is replaced.
+    """
     if name.startswith("event/"):
         raise damaged("event contracts are published by the proto build, not contracts freeze")
     base = default_root() if root is None else root
@@ -175,7 +184,13 @@ def freeze_contract(
     schema, version = _candidate(contracts, name, path)
     changes = _changes(contracts, name, schema)
     contract = contracts.find(name)
-    previous = None if contract is None else contract.newest()
+    developing = contracts.stage == DEVELOPMENT
+    if developing and version != BASELINE_VERSION:
+        raise damaged(
+            f"the development stage holds one version, {BASELINE_VERSION}: edit it in place and "
+            "freeze it again to re-pin it"
+        )
+    previous = None if contract is None or developing else contract.newest()
     actual = bump_kind(previous.version, version) if previous else INITIAL
     change = _change_log(actual, summary, migration, disposition)
     payload = path.read_bytes()
@@ -199,5 +214,5 @@ def freeze_contract(
             findings += transition_findings(staged, updated, previous, candidate)
         if findings:
             raise damaged("freeze refused: " + "; ".join(findings))
-    publish(base, relative, payload, written, original)
+    publish(base, relative, payload, written, original, replace=developing)
     return EvolutionResult(name, version, changes, "frozen")

@@ -125,14 +125,6 @@ def require_record(record: Mapping[str, JsonValue]) -> None:
     )
 
 
-def record_violations(record: Mapping[str, JsonValue]) -> list[Violation]:
-    """Return how a record breaks the newest version of the major it stamps, refusing nothing."""
-    document, contract, frozen = _held_to(record)
-    installed = installed_contracts()
-    schema = installed.contracts.frozen_schema(contract, frozen)
-    return violations(document, schema, installed.registry)
-
-
 def _held_to(
     record: Mapping[str, JsonValue],
 ) -> tuple[dict[str, JsonValue], Contract, FrozenVersion]:

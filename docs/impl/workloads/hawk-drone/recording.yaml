@@ -1,4 +1,4 @@
-schema_version: 3
+schema_version: 1
 source:
   path: hawk-attacks-drone.webm
   sha256: 85534498c6a3422f13e17a02042e47ac3df414cbc8df58050a92bc62f3394e6c

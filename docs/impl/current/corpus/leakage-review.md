@@ -245,7 +245,7 @@ decisions listed as `same_group`.
 
 ## Decisions
 
-`declaration/link-decisions` 1.1.0 (1.0.0 remains readable):
+`declaration/link-decisions` 1.0.0:
 
 ```yaml
 schema_version: 1
@@ -265,7 +265,7 @@ group already holds both, is listed under `decisions_outside_links` as `not_in_c
 
 ## Record
 
-`self-supervised-corpus/<run-id>/links.json` is `record/corpus-links` 1.1.0 (1.0.0 remains readable):
+`self-supervised-corpus/<run-id>/links.json` is `record/corpus-links` 1.0.0:
 
 | Field | Holds |
 | --- | --- |

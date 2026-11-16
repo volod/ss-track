@@ -3,12 +3,12 @@ from pathlib import Path
 
 import pytest
 
+from ss_track.core.evidence.contract_stamp import REGENERATE_REMEDY
 from ss_track.core.evidence.sealed import read_sealed
 from ss_track.corpus import CorpusRefusal, ImportResult, RefusalCode, build_corpus
 from ss_track.corpus.decoding.decode_policy import current_decode_policy
 from ss_track.corpus.records.kinds import CORPUS_MANIFEST
 from ss_track.corpus.versions.manifests import load_corpus_manifest
-from ss_track.schema.validation.enforce import older_remedy
 from tests.corpus._media import FRAME_COUNT, HEIGHT, WIDTH
 from tests.corpus.conftest import WriteCorpus, reseal, stream_of
 
@@ -180,7 +180,7 @@ def test_a_corpus_from_another_schema_is_refused_by_name(
     imported: ImportResult, write_corpus: WriteCorpus, data_root: Path
 ) -> None:
     result = build_corpus(write_corpus([stream_of(imported)]), data_root)
-    reseal(result.manifest_path, schema_version=1)
+    reseal(result.manifest_path, schema_version=0)
 
     with pytest.raises(CorpusRefusal) as caught:
         load_corpus_manifest("pilot-v1", data_root)
@@ -190,11 +190,11 @@ def test_a_corpus_from_another_schema_is_refused_by_name(
         "record": "manifest.json",
         "path": str(result.manifest_path),
         "kind": CORPUS_MANIFEST.kind,
-        "found_schema_version": 1,
-        "accepted_schema_versions": [3],
+        "found_schema_version": 0,
+        "accepted_schema_versions": [1],
         "age": "older",
-        "disposition": "retired",
-        "remedy": older_remedy(CORPUS_MANIFEST.kind, 1),
+        "disposition": None,
+        "remedy": REGENERATE_REMEDY,
     }
 
 

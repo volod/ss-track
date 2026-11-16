@@ -27,6 +27,7 @@ from ss_track.schema.registry.contract import (
 )
 from ss_track.schema.registry.dialect import dialect_findings
 from ss_track.schema.registry.fingerprints import meaning_fingerprint, structure_fingerprint, walk
+from ss_track.schema.registry.stage import stage_findings
 from ss_track.schema.registry.store import (
     DIALECT_NAME,
     META_DIRECTORY,
@@ -215,6 +216,7 @@ def check_contract_set(root: Path) -> list[str]:
     except CorpusRefusal as refusal:
         return [refusal.message]
     findings = _registry_findings(contracts) + _stray_findings(contracts)
+    findings += stage_findings(contracts)
     known_urns = {
         contract.urn(frozen)
         for contract in contracts.contracts
