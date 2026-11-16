@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "label_id": "clip-a",
+  "pack_id": "aerial-small-objects",
+  "pack_hash": "abababababababababababababababababababababababababababababababab",
+  "source_sha256": "abababababababababababababababababababababababababababababababab",
+  "frame_count": 4,
+  "width": 64,
+  "height": 48,
+  "orientation_degrees": 0,
+  "display_rotation_degrees": 90,
+  "instances": [
+    {
+      "instance_id": "target-1",
+      "class_id": "bird",
+      "identity": "reviewed",
+      "non_scoring_mark": null,
+      "frames": [
+        {
+          "frame_index": 0,
+          "visibility": "visible",
+          "camera_motion": "static",
+          "annotator_id": "ann-a",
+          "geometry": {
+            "kind": "box",
+            "box": {
+              "x": 1,
+              "y": 2,
+              "width": 4,
+              "height": 3
+            },
+            "amodal_box": null,
+            "uncertainty_px": 1,
+            "plausible_extent_px": null
+          }
+        }
+      ]
+    }
+  ],
+  "motion_events": [
+    {
+      "event_id": "onset-1",
+      "instance_id": "target-1",
+      "onset_frame": 0,
+      "onset_uncertainty_frames": 1,
+      "visibility": "visible",
+      "selection_quality": "reviewed",
+      "reentry": false
+    }
+  ]
+}

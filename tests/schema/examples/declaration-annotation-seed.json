@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "seed_id": "seed-1",
+  "label_sha256": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+  "annotator_id": "op-1",
+  "source_sha256": "abababababababababababababababababababababababababababababababab",
+  "frame_count": 4,
+  "width": 64,
+  "height": 48,
+  "orientation_degrees": 0,
+  "display_rotation_degrees": 90,
+  "frame_index": 0,
+  "pts": null,
+  "time_base": null,
+  "intended_instance_id": "target-1",
+  "quality": "as_clicked",
+  "original": {
+    "kind": "box",
+    "x": 1,
+    "y": 2,
+    "width": 4,
+    "height": 3
+  },
+  "perturbations": [
+    {
+      "perturbation_id": "shift-1",
+      "dx": 1,
+      "dy": 0,
+      "frame_offset": 0
+    }
+  ]
+}

@@ -33,166 +33,7 @@ hardware or private data.
 
 ## Agent Implementation Tasks
 
-### Annotation and selection -- `annotation-selection`
-
-#### scenario-pack-contract
-
-Labels, scenarios and reports all name a scenario pack, but no format defines one. A class ID has
-no pinned meaning, and the mission's targets exist only in prose.
-
-- Serves: `annotation-selection` -- [Evidence lanes](../design/spec.md#2-evidence-lanes-and-claims)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: `ss-track contracts validate` accepts a scenario pack that states its
-  classes, annotation vocabulary and limits, and a draft `aerial-small-objects` pack is the first.
-- Scope boundary: A `declaration` contract for a pack: stable class IDs with scoring, distractor
-  and ignore roles, a class hierarchy, minimum box, point and identifiable extents, extent bins,
-  observer-platform strata, and named slots for the access policy, the non-disturbance envelope
-  and the Phase 2 declarations of spec sections 19.3 and 19.7: target set, known non-targets,
-  unknown set, declaration deadline and burden, declared target size and stand-off levels. The
-  draft mission pack holds bird, bird of prey, drone, aircraft, insect and clutter classes. Its
-  values are the owner's, through `approve-mission-scenario-pack`. No species list and no
-  envelope value is invented here, and a Phase 2 slot stays empty until its human task fills it.
-- Data and artifact paths: `contracts/declaration/scenario-pack/`, `scenarios/packs/`,
-  `src/ss_track/annotate/`, `tests/annotate/`.
-- Execution path: Add the contract and its registry entry, a loader that returns one pack hash,
-  and positive and malformed fixtures.
-- Acceptance gates: A duplicate class ID, a class with no role, an extent bin that overlaps
-  another, and an envelope slot filled with no approval record are each refused with a reason.
-  Changing any class, role, extent or bin changes the pack hash. `make ci` passes.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
-#### annotation-contract
-
-Labels need stable identity and a frozen mask before scores can mean anything.
-
-- Serves: `annotation-selection` -- [Annotation contract](../design/spec.md#42-annotation-contract)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: scenario-pack-contract.
-- User-visible outcome: An operator validates visibility status, geometry, instance identity, motion
-  events, operator seeds and masks against a versioned contract.
-- Scope boundary: Label, seed and mask contracts, validation and frozen seed replay, in the stored
-  orientation modules receive. Class names stay data in a scenario pack, so a label contract states
-  the shape of a class ID and the pinned pack states its values. Labelling itself is human work.
-- Data and artifact paths: `src/ss_track/annotate/`, `tests/annotate/`.
-- Execution path: Add `ss-track annotate validate` with positive and malformed fixtures, including a
-  source with display rotation.
-- Acceptance gates: Identical seeds replay identically, and invalid labels are rejected with a reason.
-  An unverifiable label stays unscorable and is never scored as zero. A label in any orientation other
-  than the stored one is refused.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
-#### annotation-review-tools
-
-Two reviewers must be able to compare labels and settle disagreement.
-
-- Serves: `annotation-selection` -- [Annotation contract](../design/spec.md#42-annotation-contract)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: annotation-contract.
-- User-visible outcome: Reviewers see disagreements and freeze one hashed label revision, with a
-  sensitivity band retained for scoring.
-- Scope boundary: Comparison, a recorded rationale, freezing, and a declared review sample for larger
-  corpora. A labelling interface is out of scope.
-- Data and artifact paths: `src/ss_track/annotate/`, `tests/annotate/`.
-- Execution path: Add agreement reports over two label sets with fixtures.
-- Acceptance gates: Hand-built disagreements are reported exactly. An unresolved disagreement blocks
-  the freeze or stays `unknown`.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
-#### generated-case-labels
-
-A generated case cannot be scored until its labels follow its pixels, and a wrong region must not
-create a false negative.
-
-- Serves: `annotation-selection` -- [Annotation contract](../design/spec.md#42-annotation-contract)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: annotation-review-tools.
-- User-visible outcome: `ss-track annotate derive` gives each generated case a hashed label revision
-  from its parent's frozen labels and stored label transform, including a `track_status` case.
-- Scope boundary: Every stored label transform: region status, translation with clipping and
-  `out_of_view`, frame maps, `scale`, `compression`, `timing` and `track_status`. `scale` divides
-  geometry, uncertainty and plausible extent by its integer factor and clips to the output frame.
-  It turns a box under the pinned pack's minimum box extent into `point_only`, and a target under
-  its minimum point extent into
-  `unlocalizable`. `compression` and `timing` do not move geometry. `timing` records that
-  presentation time is `derived`. `track_status` lists one role per case-window frame: `unknown`
-  when that frame has no box, `region` for a painted rectangle, `shift` when the frame leaves the
-  view, `reentry` when the box is back, and `unchanged` when the box stays. `unknown` stays
-  `unknown` and is never `absent`. A `shift` frame is `out_of_view`. A `reentry` frame records
-  re-entry. A `region` role names the painted rectangle: the occluder, the removed box, or the
-  distractor copy. The target box on a distractor frame is not that rectangle and stays as the
-  parent labeled it. The plate check applies to each box `moving_removal` replaces. A track case
-  whose boxes or `label_revision` do not match that instance in the parent's frozen revision is
-  refused. Derived labels are never edited by hand.
-- Data and artifact paths: `src/ss_track/annotate/`, `tests/annotate/`,
-  `$DATA_DIR/corpus/<corpus-id>/labels/`.
-- Execution path: Apply each label-transform kind to hand-built parent labels, then check plates and
-  regions against those labels. Apply each `track_status` role to the frame it names.
-- Acceptance gates: Hand-computed labels match for every transform, including `scale`,
-  `compression`, `timing` and `track_status`. A scaled box under the pack's minimum extent is
-  `point_only`, never a box. A plate showing a target inside its region is refused, and a target
-  the region does not fully cover stays `unknown`. A frame with no scorable box stays `unknown`.
-  The same plate check applies to each box `moving_removal` replaces. A track case whose boxes or
-  `label_revision` do not match that instance in the parent's frozen revision is refused. A parent
-  with no frozen labels leaves its cases unscorable, never scored as zero.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
-#### annotation-selection-audit (optional)
-
-Label validation, review and generated labels each touch identity and the frozen mask, and a
-difference between them would change what a score means.
-
-- Serves: `annotation-selection` -- [Annotation contract](../design/spec.md#42-annotation-contract)
-- Agent status: CLEAR
-- Milestone: M1
-- Effort: high
-- Dependencies: every other agent task in this group.
-- User-visible outcome: One set of rules decides what a label is, what can freeze and what stays
-  unverifiable.
-- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
-  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
-  score or refusal code.
-- Data and artifact paths: `src/ss_track/annotate/`, `tests/annotate/`,
-  `$DATA_DIR/corpus/<corpus-id>/labels/`.
-- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits). Start from the
-  rules that validation, review tools and generated labels each apply, and from how a label joins a
-  staged frame and a generated case.
-- Acceptance gates: Seed replay stays identical, an unresolved case never freezes, and an
-  unverifiable label never scores as zero. Every finding is fixed, routed to a task or dropped with
-  its reason, and `make quality` passes. Finding nothing is a valid result when the record states
-  what was reviewed.
-- Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
-
 ### Module contract and runner -- `module-contract-runner`
-
-#### event-schema-contract
-
-Python and later C++ modules need one versioned meaning for every event.
-
-- Serves: `module-contract-runner` -- [Module contract](../design/spec.md#5-module-contract-execution-and-fault-semantics)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: Modules and tools share a validated event schema with golden fixtures, and a
-  breaking change fails CI.
-- Scope boundary: The G0 and G1 record families. G2 fusion records are out of scope.
-- Data and artifact paths: `src/ss_track/contract/`, `tests/contract/`.
-- Execution path: Define `.proto` files and protobuf-JSON JSON Lines validation. Add a Make target
-  that regenerates bindings and a CI drift check, keep generated files out of the size and lint
-  gates, and add the smallest justified dependency to `uv.lock`. Register each package under
-  `contracts/event/`, pin `buf-bin` in the dev extra, and gate on `buf breaking` with the `WIRE_JSON`
-  category against the frozen descriptor set, because G0 events travel as JSON. The registry,
-  `make lint-contracts` and the contract `$id` pattern hold JSON Schema files only, so this task
-  teaches them the `event` family.
-- Acceptance gates: Golden fixtures cover absent and unknown fields, malformed payloads, coordinates,
-  timestamps and power units. A malformed event is rejected with a reason. A renamed field, a reused
-  field number and a changed `json_name` each fail the gate. `FrameRef` round-trips every
-  field the staged bundle reports, including `transform` and `content_frame_index`, with those meanings.
-- Documentation target: [Current implementation](current.md#areas), new page `current/runner.md`.
 
 #### scenario-contract
 
@@ -201,18 +42,32 @@ A comparison must pin everything that can change its result.
 - Serves: `module-contract-runner` -- [Run artifacts](../design/spec.md#10-run-artifacts-and-comparison-dashboard)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: event-schema-contract, annotation-contract.
+- Dependencies: none.
 - User-visible outcome: A scenario file pins scenario pack, corpus, frame set, labels, selection,
   replay mode, metric suite, seed and deadlines, and yields one cohort key.
 - Scope boundary: The scenario schema, one cohort-key function, and one type that owns windows and
-  runs. G2 boundaries are out of scope.
+  runs. The scenario also holds the extent-envelope floors of spec section 6.7: an optional
+  `extent_floors` map from a primary-measure name to a value and its basis. The pack has no floor
+  field. An absent map or entry stays unset, and no default is written. Checking measure names
+  against a suite is `extent-envelope-view`'s job. G2 boundaries are out of scope.
 - Data and artifact paths: `src/ss_track/contract/`, `scenarios/`, `tests/contract/`.
 - Execution path: Add the scenario as a `declaration` contract with example scenarios, and
   table-driven cohort-key fixtures.
-- Acceptance gates: Changing any key field changes the cohort key. A scenario with a missing hash
+- Acceptance gates: Changing any key field, an extent floor included, changes the cohort key. A
+  floor with no basis is refused. A scenario with a missing hash
   refuses to run, as does one whose corpus fails `corpus verify` or whose pinned frame-set hash differs
   from the `frame_set_sha256` that command reports. The pin is the only check that sees a frame set
   rewritten on disk. A source with empty `completeness_checks` is reported, never assumed complete.
+  The labels a scenario pins are the seal of each stream's `record/annotation-revision` and of
+  each generated case's `record/derived-label` under `$DATA_DIR/corpus/<corpus-id>/labels/`
+  ([derived case labels](current/corpus.md#derived-case-labels)). `annotate derive` rewrites a
+  derived revision on each run, and a change to a derivation rule moves its seal, so a scenario
+  whose pinned label seal differs from the revision on disk refuses to run with both seals named,
+  as a changed frame set does. Episode eligibility comes from a frozen mask, which
+  `annotate validate --kind mask` checks against its labels, but no command stores a mask under the
+  corpus or derives one for a generated case. The scenario pins each mask it scores by hash and
+  path, a stream or case it names with no pinned mask refuses to run rather than scoring as zero,
+  and a fixture shows a mask whose `label_sha256` is not the pinned revision's label hash refused.
 - Documentation target: [Current implementation](current.md#areas), page `current/runner.md`.
 
 #### run-bundle-store
@@ -228,7 +83,9 @@ Every score must be recomputable from immutable evidence.
   visibility field that defaults to restricted. `loc-lm-bench` is a pattern to check, not an import.
 - Data and artifact paths: `src/ss_track/contract/`, `tests/contract/`, `$DATA_DIR/run/<run-id>/`.
 - Execution path: Add bundle reader and writer with crash and retry fixtures. The run manifest and
-  bundle are `record` contracts, and the manifest lists the contract set in force.
+  bundle are `record` contracts, and the manifest lists the contract set in force. The manifest
+  field list is the `RunManifest` message of `event/analytics`. This task seals that protobuf-JSON
+  object and does not define a second field list.
 - Acceptance gates: A crash fixture leaves no complete-looking bundle, a retried ID stays
   idempotent, and each manifest records its re-run command. A bundle with no visibility value reads
   as restricted. Run scratch and any reproducible cache are registered
@@ -426,7 +283,7 @@ Operators need tracking scores that cannot be gamed by omission.
 - Serves: `motion-sot-evaluation` -- [Tracking suite](../design/spec.md#61-operator-selected-tracking-sot-v2-dev)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: plugin-evaluator-core, annotation-contract.
+- Dependencies: plugin-evaluator-core.
 - User-visible outcome: Reports show lock coverage, horizon retention and exposure with denominators.
 - Scope boundary: `sot-v2-dev`, and `sot-paced-v1` scoring of late and missing results. Absence and
   re-entry diagnostics are included. Later suites are out of scope.
@@ -445,13 +302,18 @@ Motion proposals need their own event scores.
 - Serves: `motion-sot-evaluation` -- [Motion proposals](../design/spec.md#62-motion-proposals-motion-v1-dev)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: plugin-evaluator-core, annotation-contract.
+- Dependencies: plugin-evaluator-core.
 - User-visible outcome: Reports show event recall, detection delay and operator-burden proposals.
 - Scope boundary: `motion-v1-dev` only. It is no general detection claim.
 - Data and artifact paths: `src/ss_track/suites/`, `tests/suites/`.
-- Execution path: Add matching-order fixtures and hand-computed recall.
+- Execution path: Add matching-order fixtures and hand-computed recall. Read events from the frozen
+  and derived label revisions. A derived case marks an event `uncertain` when its transform changed
+  the onset frame's visibility or cleared its re-entry
+  ([derived case labels](current/corpus.md#derived-case-labels)), so the suite reports the events
+  of each selection quality with their counts and does not drop an `uncertain` event silently.
 - Acceptance gates: Oracle fixtures reach recall 1 with zero burden proposals. A null module scores a
-  `VALID` zero and never `NOT_SCOREABLE`.
+  `VALID` zero and never `NOT_SCOREABLE`. A fixture with one `reviewed` and one `uncertain` event
+  shows both counts in the output.
 - Documentation target: [Current implementation](current.md#areas), page `current/evaluation.md`.
 
 #### extent-envelope-view
@@ -462,7 +324,7 @@ at which a module stops working.
 - Serves: `motion-sot-evaluation` -- [Extent envelope](../design/spec.md#67-small-target-extent-envelope)
 - Agent status: CLEAR
 - Milestone: M1
-- Dependencies: sot-suite, motion-suite, scenario-pack-contract.
+- Dependencies: sot-suite, motion-suite.
 - User-visible outcome: Each tracking and motion result carries an extent envelope by bin and a
   smallest supported extent, with real encounters and scale-reduction cases as separate curves.
 - Scope boundary: Bins from the pinned scenario pack and floors from the scenario. Pixels always,
@@ -474,7 +336,9 @@ at which a module stops working.
 - Acceptance gates: Hand-computed bin counts, intervals, statuses and the supported extent match.
   A bin under the encounter minimum is `insufficient_data`, a generated case never fills a real
   bin, and a module that proposes everywhere gains no smaller supported extent. No supported bin
-  is reported as a result, never as an error.
+  is reported as a result, never as an error. A measure with no floor reports its bins and an
+  `unavailable` supported extent, which is distinct from no supported bin. A floor for a measure
+  the suite does not report, or one outside that measure's range, is refused.
 - Documentation target: [Current implementation](current.md#areas), page `current/evaluation.md`.
 
 #### development-decision-status
@@ -620,7 +484,7 @@ The whole offline path must work on real labelled video.
 - Agent status: RUN NEEDED
 - Milestone: M1
 - Dependencies: local-comparison-report, reference-sot-tracker, motion-suite,
-  label-pilot-encounters, generated-case-labels.
+  label-pilot-encounters.
 - User-visible outcome: Two reference versions produce an inspectable G0a report on one positive and
   one negative encounter.
 - Scope boundary: G0a pipeline validity. No improvement, real-time or energy claim.
@@ -671,7 +535,7 @@ A pass or fail on one generated case does not show where a module starts to degr
   cases](../design/spec.md#43-deterministic-cases-and-negative-evidence)
 - Agent status: CLEAR
 - Milestone: M2
-- Dependencies: local-comparison-report, generated-case-labels.
+- Dependencies: local-comparison-report.
 - User-visible outcome: A recipe declares graded levels of one parameter, including the factor of a
   scale-reduction case, and the local report shows each module's quality against that severity.
 - Scope boundary: One parameter, one encounter set and one saved metric per curve. No composite
@@ -963,9 +827,10 @@ argument parsing.
 - User-visible outcome: Corpus provenance and corpus discovery are separate area packages, with
   imports in one direction, from discovery to provenance.
 - Scope boundary: A move of the inventory, acquisition, pool, sibling, selection, discovery,
-  review, link and evaluation modules to their own area package, with their tests. The write-once
-  and declaration-byte helpers that source import takes from review export move to the side that
-  owns them. No command name, record, contract, hash or refusal code changes.
+  review, link and evaluation modules to their own area package, with their tests. The
+  declaration-byte helper that source import takes from review export moves to the side that owns
+  it. Write-once publishing is already the shared `write_once` in `core/scratch.py`. No command
+  name, record, contract, hash or refusal code changes.
 - Data and artifact paths: `src/ss_track/corpus/`, `src/ss_track/discover/`,
   `src/ss_track/commands/`, `tests/corpus/`, `tests/discover/`.
 - Execution path: Move packages with their tests, split the discover command module by subcommand
@@ -1005,7 +870,7 @@ A trial must start from what the host really supports.
 - Serves: `hardware-probe-adaptive-launch` -- [Probe and launch](../design/spec.md#71-probe-and-adaptive-launch)
 - Agent status: CLEAR
 - Milestone: M2
-- Dependencies: event-schema-contract.
+- Dependencies: none.
 - User-visible outcome: `ss-track hardware-probe` writes a host profile with explicit support status.
 - Scope boundary: CPU, memory, storage, scheduler, governor, frequency and throttle evidence, and
   whether frequency can be capped. Sensors belong to `joint-mode-probe`; accelerators stay in
@@ -1273,13 +1138,13 @@ Every sensor needs one way to say what it saw, and what it could not see.
 - Serves: `sensor-adapter-frontends` -- [Module contract](../design/spec.md#5-module-contract-execution-and-fault-semantics)
 - Agent status: CLEAR
 - Milestone: M3
-- Dependencies: event-schema-contract, scenario-contract.
+- Dependencies: scenario-contract.
 - User-visible outcome: Typed observations carry modality, evidence role, timing, geometry, coverage
   and provenance.
 - Scope boundary: G2 record families for observations and epochs. Sensor drivers are later tasks.
 - Data and artifact paths: `src/ss_track/contract/`, `tests/contract/`.
-- Execution path: Extend the schema as an additive event contract version, without changing G0
-  `FrameResult` meaning, with golden fixtures.
+- Execution path: Add G2 observations as a new event package. Do not edit the frozen G0 descriptor
+  bytes or the `FrameResult` message. Golden fixtures cover the observation vocabulary.
 - Acceptance gates: `no_detection`, `out_of_view`, `disabled_by_policy`, `missing`, `stale` and
   `invalid` stay distinct. An untyped confidence field is rejected.
 - Documentation target: [Current implementation](current.md#areas), page `current/sensor-mesh.md`.
@@ -1291,7 +1156,7 @@ The G0 scenario excludes G2 boundaries, so component comparisons need an explici
 - Serves: `sensor-adapter-frontends` -- [Specification](../design/spec.md#5-module-contract-execution-and-fault-semantics)
 - Agent status: CLEAR
 - Milestone: M3
-- Dependencies: sensor-observation-contract, run-bundle-store, annotation-review-tools.
+- Dependencies: sensor-observation-contract, run-bundle-store.
 - User-visible outcome: Four boundary-specific scenarios freeze raw/observation inputs, producers,
   clocks, calibration, opportunity labels and epoch schedules into hashed bundles.
 - Scope boundary: Extend the existing scenario and bundle code, including mixed-modality raw attachments,
@@ -1976,8 +1841,7 @@ scores a declaration, an abstention or an unknown class.
 - Serves: `target-recognition` -- [Target recognition](../design/spec.md#193-autonomous-target-recognition)
 - Agent status: CLEAR
 - Milestone: M7
-- Dependencies: tracker-epoch-suite, fusion-calibration-suite, scenario-pack-contract,
-  extent-envelope-view.
+- Dependencies: tracker-epoch-suite, fusion-calibration-suite, extent-envelope-view.
 - User-visible outcome: A recognizer's `RecognitionResult` events are scored for declaration recall
   at a fixed false-declaration burden, time to declaration, abstention, calibration and open-set
   behavior.
@@ -2062,7 +1926,7 @@ A run that says it used an accelerator proves nothing unless the run records wha
 - Serves: `tensor-compute-backends` -- [Compute variants](../design/spec.md#194-compute-variants-and-energy-per-decision)
 - Agent status: CLEAR
 - Milestone: M7
-- Dependencies: event-schema-contract, host-capability-probe.
+- Dependencies: host-capability-probe.
 - User-visible outcome: Every run names one compute variant and carries a compute manifest with
   its model, precision, backend, device, partition and fallback policy.
 - Scope boundary: The manifest as a `record` contract with the spec section 7.3 fields, `opaque`
@@ -2290,7 +2154,7 @@ operator flew.
 - Agent status: CLEAR
 - Milestone: M8
 - Research: yes
-- Dependencies: plugin-evaluator-core, scenario-pack-contract, platform-energy-budget.
+- Dependencies: plugin-evaluator-core, platform-energy-budget.
 - User-visible outcome: `ss-track follow evaluate` moves a simulated observer under a following
   law against reviewed or synthetic target trajectories, and records every step in a run bundle.
 - Scope boundary: A kinematic observer in a local level frame with declared speed, acceleration
@@ -2694,7 +2558,7 @@ Finished devices need a suite that works without an operator seed.
 - Serves: `device-bench-evaluation` -- [Device bench evaluation](../design/spec.md#166-device-bench-evaluation)
 - Agent status: CLEAR
 - Milestone: M5
-- Dependencies: installed-system-suite, event-schema-contract.
+- Dependencies: installed-system-suite.
 - User-visible outcome: A vendor adapter's events score detection delay, lock coverage and false
   alarms.
 - Scope boundary: The suite, adapter contract and same-stimulus cohort key. A device that exposes
@@ -3114,11 +2978,13 @@ frozen against a draft pack would have to be made again.
 - Serves: `annotation-selection` -- [Mission and phases](../design/spec.md#mission-and-phases)
 - Agent status: HUMAN-GATED
 - Milestone: M1
-- Dependencies: scenario-pack-contract.
+- Dependencies: none.
 - User-visible outcome: The `aerial-small-objects` pack has owner-approved classes, roles, minimum
-  extents, extent bins, floors and observer-platform strata, and its hash is recorded.
-- Scope boundary: Phase 1 values only. Fine-grained species and drone types and the
-  non-disturbance envelope are later human tasks and stay empty slots.
+  extents, extent bins and observer-platform strata, and its hash is recorded. The
+  extent-envelope floor is a scenario value and belongs to `approve-mission-extent-floors`.
+- Scope boundary: Phase 1 values only. The draft leaves minimum extents and extent bins unset.
+  Fine-grained species and drone types and the non-disturbance envelope are later human tasks and
+  stay empty slots. This task does not invent those values.
 - Data and artifact paths: `scenarios/packs/`.
 - Execution path: The owner reviews the draft against the pilot footage and states each value with
   its basis. An agent validates the pack and records its hash.
@@ -3133,13 +2999,16 @@ G0a needs only one positive and one negative encounter, so it should not wait fo
 - Serves: `annotation-selection` -- [Annotation contract](../design/spec.md#42-annotation-contract)
 - Agent status: HUMAN-GATED
 - Milestone: M1
-- Dependencies: annotation-review-tools, approve-mission-scenario-pack.
+- Dependencies: approve-mission-scenario-pack.
 - User-visible outcome: Two encounters have frozen labels, selections and masks.
 - Scope boundary: The pilot encounters, including motion events. The pass also measures labelling
   time per encounter. Review every frame of the selected negative window for target absence, and
   leave any uncertain frames unknown; the initial selection used a one-frame-per-second survey.
 - Data and artifact paths: `$DATA_DIR/corpus/<corpus-id>/labels/`.
-- Execution path: Two reviewers label and settle disagreements under a named authority.
+- Execution path: Two reviewers label and settle disagreements under a named authority. Freeze each
+  encounter's stream with `annotate freeze --corpus <corpus-id> --stream <stream-id>`, which files
+  the revision where `annotate derive` reads it
+  ([annotation review](current/corpus.md#annotation-review)).
 - Acceptance gates: Validation passes and the revision is frozen and hashed. Unresolved labels remain
   unknown; time spent labelling is recorded as planning evidence.
 - Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
@@ -3160,6 +3029,30 @@ Within-corpus comparisons need reviewed labels across independent encounters.
 - Acceptance gates: Validation passes, groups are independent by the spec section 4.1 rule, and the
   revision is frozen. Unlabelable objects stay `unknown`.
 - Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
+
+### Motion and tracking evaluation -- `motion-sot-evaluation`
+
+#### approve-mission-extent-floors
+
+The smallest supported extent depends on a quality floor that only the owner can set. An agent
+default would decide the headline result of the mission's first priority.
+
+- Serves: `motion-sot-evaluation` -- [Extent envelope](../design/spec.md#67-small-target-extent-envelope)
+- Agent status: HUMAN-GATED
+- Milestone: M1
+- Dependencies: scenario-contract.
+- User-visible outcome: The mission scenarios state an owner-approved extent-envelope floor, with
+  its basis, for the SOT success measure and for motion event recall at the declared
+  operator-burden operating point.
+- Scope boundary: Floors only, set on the scenario under spec section 6.7 and not on the pack.
+  Bins and minimum extents belong to `approve-mission-scenario-pack`. A floor the owner cannot
+  state stays unset, and that measure's smallest supported extent stays `unavailable`.
+- Data and artifact paths: `scenarios/`.
+- Execution path: The owner states each floor and its basis before any envelope run it covers. An
+  agent validates the scenarios and records their hashes.
+- Acceptance gates: The scenarios validate, every floor has a stated basis, and the floors are
+  committed before the first run that reports a supported extent against them.
+- Documentation target: [Current implementation](current.md#areas), page `current/evaluation.md`.
 
 ### Self-supervised video corpus -- `self-supervised-corpus`
 
@@ -3352,7 +3245,7 @@ Fusion evaluation needs synchronized recordings with independent truth.
 - Serves: `sensor-adapter-frontends` -- [Reference sensor mesh](../design/spec.md#165-reference-sensor-mesh)
 - Agent status: BLOCKED BY HUMAN
 - Milestone: M3
-- Dependencies: synchronized-sensor-capture, run-camera-characterization, annotation-review-tools.
+- Dependencies: synchronized-sensor-capture, run-camera-characterization.
 - User-visible outcome: Authorized bench encounters exist with per-sensor opportunity labels and a
   disjoint calibration split.
 - Scope boundary: Bench recordings. New public-space capture needs its spec section 11 approvals.
@@ -3392,12 +3285,13 @@ A species or drone type can be scored only against labels from someone able to i
 - Serves: `target-recognition` -- [Target recognition](../design/spec.md#193-autonomous-target-recognition)
 - Agent status: HUMAN-GATED
 - Milestone: M7
-- Dependencies: scenario-pack-contract, annotation-review-tools, recognition-suite.
+- Dependencies: recognition-suite.
 - User-visible outcome: The mission pack names its target set and unknown-class set, and reviewed
   tracks carry expert class labels in development, calibration and evaluation encounters.
 - Scope boundary: Fine-grained class labels on visually identifiable material, the minimum
-  identifiable extent and the false-declaration burden. No behavior label and no individual
-  identity. Material nobody can identify stays `unknown`.
+  identifiable extent and the false-declaration burden, stored on the pack as `phase2` and
+  per-class `min_identifiable_extent_px`. `unknown_set` names no class. No behavior label and no
+  individual identity. Material nobody can identify stays `unknown`.
 - Data and artifact paths: `scenarios/packs/`, `$DATA_DIR/corpus/<corpus-id>/labels/`.
 - Execution path: A person with the needed expertise labels and reviews under a named authority.
   An agent validates, freezes and hashes the revision.
@@ -3482,12 +3376,14 @@ species and a site that no software can supply.
 - Serves: `standoff-following-evaluation` -- [Scenario safety](../design/spec.md#11-scenario-safety-privacy-and-data-governance)
 - Agent status: HUMAN-GATED
 - Milestone: M8
-- Dependencies: scenario-pack-contract, following-quality-suite.
+- Dependencies: following-quality-suite.
 - User-visible outcome: The mission pack carries an approved non-disturbance envelope, and the
   following laws have results against it.
 - Scope boundary: Minimum stand-off, closing speed, approach directions, altitude band, exclusion
-  zones, following time and end conditions for each living-subject class, and a collision-risk
-  envelope for drone targets. Simulation only. A field flight needs its own approvals.
+  zones, following time and end conditions. The pack field is `non_disturbance_envelopes`, kind
+  `living` or `collision`, and `class_ids` may name the classes an entry covers. A zone stores an
+  identifier, radius and height, and stores no coordinates. Simulation only. A field flight needs
+  its own approvals.
 - Data and artifact paths: `scenarios/packs/`, `$DATA_DIR/run/<run-id>/`.
 - Execution path: A named responsible person states each value with its basis and signs the
   approval record. An agent validates the pack and runs the mission following scenario.

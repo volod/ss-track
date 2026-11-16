@@ -1,0 +1,617 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ss-track:contract:declaration:scenario-pack:1.0.0",
+  "title": "Scenario pack",
+  "description": "Operator declaration of one scenario pack: the class map, the annotation vocabulary, extent limits, observer-platform strata, and the named slots a later approval fills. It grants no permission to approach a subject, names no species, and stores no exclusion-zone coordinates. An absent slot is unset. This contract does not fill it.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "pack_id",
+    "classes",
+    "vocabulary",
+    "limits",
+    "observer_platform_strata"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1,
+      "minimum": 0,
+      "x-unit": "1",
+      "description": "Declaration major."
+    },
+    "pack_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "Stable name of this pack. The mission pack is aerial-small-objects."
+    },
+    "classes": {
+      "type": "array",
+      "description": "Every class this pack can name, each with one stable id.",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/class-entry",
+        "description": "One class."
+      }
+    },
+    "vocabulary": {
+      "$ref": "#/$defs/vocabulary",
+      "description": "Annotation terms this pack pins. Activity terms are the only list a pack may extend."
+    },
+    "limits": {
+      "$ref": "#/$defs/limits",
+      "description": "Minimum extents and extent bins. Null and an empty bin list mean the owner has not set them."
+    },
+    "observer_platform_strata": {
+      "type": "array",
+      "description": "Observer platforms this pack reports separately. The values are the recording vocabulary.",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "description": "One observer platform.",
+        "enum": [
+          "ground_fixed",
+          "ground_handheld",
+          "airborne",
+          "unknown"
+        ]
+      }
+    },
+    "access_policy": {
+      "$ref": "#/$defs/access-policy",
+      "description": "Who may read, tune against or re-score material under this pack. Absent until a custodian records one."
+    },
+    "non_disturbance_envelopes": {
+      "type": "array",
+      "description": "Stand-off limits. Absent until a named responsible person approves them. Each entry stores no coordinates.",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/envelope",
+        "description": "One approved envelope."
+      }
+    },
+    "phase2": {
+      "$ref": "#/$defs/phase2",
+      "description": "Declarations from spec sections 19.3 and 19.7. Absent until the owner sets them. Engineering defaults are not stored here."
+    }
+  },
+  "x-rules": {
+    "class-ids": "Class ids are unique within the pack.",
+    "class-parents": "A parent is another class in this pack. Parent links do not cycle.",
+    "extent-bins": "An empty bin list means the bins are unset. A non-empty list is half-open pixel intervals [min_px, max_px) that partition every extent from 0 upward: the first starts at 0, neighbors meet at an edge, none overlap, none leave a gap, and the last has no upper bound. Bin ids are unique. A bounded bin has max_px greater than min_px.",
+    "extent-order": "When both minimum extents are set, the point extent is less than or equal to the box extent.",
+    "envelope-order": "d_alert_m is at least d_min_m. A sector's elevation_min_deg is at most its elevation_max_deg. Sector ids, zone ids and end conditions are unique within one envelope.",
+    "envelope-classes": "Class ids named by an envelope exist in this pack, are unique within that envelope, and are not repeated across envelopes.",
+    "phase2-classes": "target_set and known_non_targets, when set, each list class ids of this pack once and do not share a class.",
+    "stand-off-levels": "Stand-off levels, when set, strictly increase.",
+    "activity": "Activity terms are unique.",
+    "strata": "Observer-platform strata are unique."
+  },
+  "$defs": {
+    "approval": {
+      "type": "object",
+      "description": "The named person and the record that approves a slot. The record is named, not opened.",
+      "additionalProperties": false,
+      "required": [
+        "owner",
+        "reference"
+      ],
+      "properties": {
+        "owner": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Who approved the value.",
+          "x-rules": {
+            "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+          }
+        },
+        "reference": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Identifier of the approval record.",
+          "x-rules": {
+            "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+          }
+        }
+      }
+    },
+    "class-entry": {
+      "type": "object",
+      "description": "One class. Its id is stable. Its display name is not an id.",
+      "additionalProperties": false,
+      "required": [
+        "class_id",
+        "name",
+        "role",
+        "parent_class_id"
+      ],
+      "properties": {
+        "class_id": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+          "description": "Stable class id. Distinct from an instance id and a track id."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Display name. This is not a species list.",
+          "x-rules": {
+            "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+          }
+        },
+        "role": {
+          "type": "string",
+          "description": "scoring classes form the scoring set. distractor and ignore are the pack's distractor and ignore-region policy. unknown is a label status, not a role.",
+          "enum": [
+            "scoring",
+            "distractor",
+            "ignore"
+          ]
+        },
+        "parent_class_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+          "description": "Parent class id, or null when this class is a root."
+        },
+        "min_identifiable_extent_px": {
+          "type": "integer",
+          "minimum": 1,
+          "x-unit": "px",
+          "description": "Pixel extent below which reviewers could not identify this class. Absent until the owner sets it."
+        }
+      }
+    },
+    "vocabulary": {
+      "type": "object",
+      "description": "The terms a label may use under this pack. The closed lists are the spec section 4.2 vocabulary, in this order.",
+      "additionalProperties": false,
+      "required": [
+        "visibility",
+        "geometry",
+        "camera_motion",
+        "non_scoring_mark",
+        "activity"
+      ],
+      "properties": {
+        "visibility": {
+          "type": "array",
+          "description": "Visibility of one instance in one frame.",
+          "prefixItems": [
+            {
+              "type": "string",
+              "const": "visible",
+              "description": "The visible extent can be marked."
+            },
+            {
+              "type": "string",
+              "const": "partially_occluded",
+              "description": "Some of the visible extent is hidden."
+            },
+            {
+              "type": "string",
+              "const": "fully_occluded",
+              "description": "None of the extent is visible, and the instance is still in the field of view."
+            },
+            {
+              "type": "string",
+              "const": "out_of_view",
+              "description": "The instance has left the recorded field of view."
+            },
+            {
+              "type": "string",
+              "const": "absent",
+              "description": "Confirmed absence in a negative interval."
+            },
+            {
+              "type": "string",
+              "const": "unknown",
+              "description": "The status cannot be decided."
+            }
+          ],
+          "items": false,
+          "minItems": 6,
+          "maxItems": 6
+        },
+        "geometry": {
+          "type": "array",
+          "description": "How a label localizes an instance.",
+          "prefixItems": [
+            {
+              "type": "string",
+              "const": "box",
+              "description": "A box over the visible extent."
+            },
+            {
+              "type": "string",
+              "const": "point_only",
+              "description": "A point, with a reviewed maximum plausible extent when it is scored."
+            },
+            {
+              "type": "string",
+              "const": "unlocalizable",
+              "description": "Uncertainty too large for a meaningful location."
+            }
+          ],
+          "items": false,
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "camera_motion": {
+          "type": "array",
+          "description": "Camera motion of a frame.",
+          "prefixItems": [
+            {
+              "type": "string",
+              "const": "static",
+              "description": "The camera is still."
+            },
+            {
+              "type": "string",
+              "const": "translation_or_pan",
+              "description": "The camera translates or pans."
+            },
+            {
+              "type": "string",
+              "const": "shake",
+              "description": "The camera shakes."
+            },
+            {
+              "type": "string",
+              "const": "unknown",
+              "description": "Camera motion cannot be decided."
+            }
+          ],
+          "items": false,
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "non_scoring_mark": {
+          "type": "array",
+          "description": "Mark for an object outside the scoring class set. These terms are not the class roles and are not equated with each other.",
+          "prefixItems": [
+            {
+              "type": "string",
+              "const": "distractor",
+              "description": "A real object outside the scoring set."
+            },
+            {
+              "type": "string",
+              "const": "ignore_region",
+              "description": "A region that is not scored."
+            },
+            {
+              "type": "string",
+              "const": "unknown",
+              "description": "The mark cannot be decided."
+            }
+          ],
+          "items": false,
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "activity": {
+          "type": "array",
+          "description": "Scenario-specific activity states. Empty until a vocabulary is declared. Image-plane displacement is not a state.",
+          "items": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+            "description": "One activity term."
+          }
+        }
+      }
+    },
+    "limits": {
+      "type": "object",
+      "description": "Pixel extents used to score and to bin the small-target envelope. Null and an empty list are unset, not a default.",
+      "additionalProperties": false,
+      "required": [
+        "min_box_extent_px",
+        "min_point_extent_px",
+        "extent_bins"
+      ],
+      "properties": {
+        "min_box_extent_px": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "x-unit": "px",
+          "description": "A box below this extent is point_only. Null means the owner has not set it."
+        },
+        "min_point_extent_px": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "x-unit": "px",
+          "description": "A target below this extent is unlocalizable. Null means the owner has not set it."
+        },
+        "extent_bins": {
+          "type": "array",
+          "description": "Bin edges of target extent s_gt = sqrt(w_gt * h_gt), in pixels of the frame the module received. Empty means unset.",
+          "items": {
+            "$ref": "#/$defs/extent-bin",
+            "description": "One extent bin."
+          }
+        }
+      }
+    },
+    "extent-bin": {
+      "type": "object",
+      "description": "One half-open pixel interval [min_px, max_px). Null max_px means no upper bound.",
+      "additionalProperties": false,
+      "required": [
+        "bin_id",
+        "min_px",
+        "max_px"
+      ],
+      "properties": {
+        "bin_id": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+          "description": "Stable name of this bin."
+        },
+        "min_px": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "px",
+          "description": "Inclusive lower edge."
+        },
+        "max_px": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "x-unit": "px",
+          "description": "Exclusive upper edge, or null when the bin has no upper bound."
+        }
+      }
+    },
+    "access-policy": {
+      "type": "object",
+      "description": "A named access policy. The policy text stays in the approval record.",
+      "additionalProperties": false,
+      "required": [
+        "approval"
+      ],
+      "properties": {
+        "approval": {
+          "$ref": "#/$defs/approval",
+          "description": "Custodian approval of this policy."
+        }
+      }
+    },
+    "approach-sector": {
+      "type": "object",
+      "description": "One permitted approach sector. Bearing may wrap. Elevation is the altitude band, in degrees.",
+      "additionalProperties": false,
+      "required": [
+        "sector_id",
+        "bearing_start_deg",
+        "bearing_end_deg",
+        "elevation_min_deg",
+        "elevation_max_deg"
+      ],
+      "properties": {
+        "sector_id": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+          "description": "Stable name of this sector."
+        },
+        "bearing_start_deg": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 360,
+          "x-unit": "deg",
+          "description": "Start bearing in degrees. 0 and 360 are the same direction."
+        },
+        "bearing_end_deg": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 360,
+          "x-unit": "deg",
+          "description": "End bearing in degrees."
+        },
+        "elevation_min_deg": {
+          "type": "number",
+          "minimum": -90,
+          "maximum": 90,
+          "x-unit": "deg",
+          "description": "Lower elevation of the altitude band."
+        },
+        "elevation_max_deg": {
+          "type": "number",
+          "minimum": -90,
+          "maximum": 90,
+          "x-unit": "deg",
+          "description": "Upper elevation of the altitude band."
+        }
+      }
+    },
+    "exclusion-zone": {
+      "type": "object",
+      "description": "A restricted zone named by identifier. Coordinates are location-bearing and are not a field of this pack.",
+      "additionalProperties": false,
+      "required": [
+        "zone_id",
+        "radius_m",
+        "height_m"
+      ],
+      "properties": {
+        "zone_id": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+          "description": "Identifier a report may name. Not a coordinate."
+        },
+        "radius_m": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-unit": "m",
+          "description": "Horizontal radius of the zone."
+        },
+        "height_m": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-unit": "m",
+          "description": "Height of the zone."
+        }
+      }
+    },
+    "envelope": {
+      "type": "object",
+      "description": "One non-disturbance or collision envelope. Stating it requires an approval record. It is a human judgment, not evidence that a subject was undisturbed.",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "approval",
+        "d_min_m",
+        "d_alert_m",
+        "v_close_max_m_s",
+        "approach_sectors",
+        "exclusion_zones",
+        "t_follow_max_s",
+        "end_conditions"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "description": "living is a behavioral stand-off for a living subject. collision is a collision-risk stand-off for a drone or other aircraft.",
+          "enum": [
+            "living",
+            "collision"
+          ]
+        },
+        "approval": {
+          "$ref": "#/$defs/approval",
+          "description": "Approval by the named responsible person. Required when the envelope is stated."
+        },
+        "class_ids": {
+          "type": "array",
+          "description": "Classes this entry covers. Absent leaves that choice to the approval record.",
+          "minItems": 1,
+          "items": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+            "description": "One class id from this pack."
+          }
+        },
+        "d_min_m": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-unit": "m",
+          "description": "Minimum stand-off as slant range."
+        },
+        "d_alert_m": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-unit": "m",
+          "description": "Inside this range the observer may not close."
+        },
+        "v_close_max_m_s": {
+          "type": "number",
+          "minimum": 0,
+          "x-unit": "m/s",
+          "description": "Largest closing speed outside d_alert_m."
+        },
+        "approach_sectors": {
+          "type": "array",
+          "description": "Permitted approach directions and elevation band.",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/approach-sector",
+            "description": "One sector."
+          }
+        },
+        "exclusion_zones": {
+          "type": "array",
+          "description": "Zones the observer may not enter. Empty means none are declared here.",
+          "items": {
+            "$ref": "#/$defs/exclusion-zone",
+            "description": "One zone."
+          }
+        },
+        "t_follow_max_s": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-unit": "s",
+          "description": "Maximum continuous following time."
+        },
+        "end_conditions": {
+          "type": "array",
+          "description": "Named conditions that end an encounter.",
+          "minItems": 1,
+          "items": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+            "description": "One end condition."
+          }
+        }
+      }
+    },
+    "phase2": {
+      "type": "object",
+      "description": "Phase 2 slots. Each property is absent until the owner sets it.",
+      "additionalProperties": false,
+      "required": [],
+      "properties": {
+        "target_set": {
+          "type": "array",
+          "description": "Fine-grained class ids a declaration may name.",
+          "minItems": 1,
+          "items": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+            "description": "One target class id."
+          }
+        },
+        "known_non_targets": {
+          "type": "array",
+          "description": "Look-alike class ids a recognizer may be fitted on.",
+          "minItems": 1,
+          "items": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+            "description": "One known non-target class id."
+          }
+        },
+        "unknown_set": {
+          "type": "boolean",
+          "const": true,
+          "description": "Encounters of classes outside this pack are held out of fitting and of threshold choice. Presence declares that set. It names no class."
+        },
+        "identifiable_duration_s": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-unit": "s",
+          "description": "How long an instance must stay at its identifiable extent to be eligible. The engineering default of 1 second is not stored until the owner sets it."
+        },
+        "declaration_deadline_s": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-unit": "s",
+          "description": "Time after eligibility by which a declaration is useful. The engineering default of 10 seconds is not stored until the owner sets it."
+        },
+        "declaration_burden_per_hour": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-unit": "1/h",
+          "description": "Permitted false declarations per hour of scored exposure. The engineering default of 1 is not stored until the owner sets it."
+        },
+        "target_size_m": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-unit": "m",
+          "description": "Declared target size used only to turn a simulated range into a pixel extent. It is not a measured size and restates no field result."
+        },
+        "stand_off_levels_m": {
+          "type": "array",
+          "description": "Stand-off distances for the mission trade-off, from the minimum outward.",
+          "minItems": 1,
+          "items": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "x-unit": "m",
+            "description": "One stand-off distance."
+          }
+        }
+      }
+    }
+  }
+}

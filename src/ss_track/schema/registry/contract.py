@@ -14,6 +14,7 @@ VERSION_FIELD = "schema_version"
 RECORD_FAMILY = "record"
 DECLARATION_FAMILY = "declaration"
 SHARED_FAMILY = "shared"
+EVENT_FAMILY = "event"
 INITIAL = "initial"  # the change classes a registry entry states, from meta/registry.json
 PATCH = "patch"
 MINOR = "minor"
@@ -30,9 +31,9 @@ def contract_urn(family: str, contract_id: str, version: str) -> str:
     return f"{_URN_PREFIX}:{family}:{contract_id}:{version}"
 
 
-def version_path(name: str, version: str) -> Path:
+def version_path(name: str, version: str, suffix: str = ".json") -> Path:
     """Return where one frozen version of `<family>/<id>` sits, relative to the set's root."""
-    return Path(*name.split("/"), f"{version}.json")
+    return Path(*name.split("/"), f"{version}{suffix}")
 
 
 def version_key(version: str) -> tuple[int, ...]:
@@ -76,7 +77,8 @@ class Contract:
         return contract_urn(self.family, self.contract_id, frozen.version)
 
     def relative_path(self, frozen: FrozenVersion) -> Path:
-        return version_path(self.name, frozen.version)
+        suffix = ".binpb" if self.family == EVENT_FAMILY else ".json"
+        return version_path(self.name, frozen.version, suffix)
 
     def newest(self, major: int | None = None) -> FrozenVersion | None:
         """Return the newest frozen version, of one major when given, which reads all its minors."""

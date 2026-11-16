@@ -9,10 +9,9 @@ from ss_track.core.canonical import canonical_json, sha256_bytes
 from ss_track.core.evidence.sealed import read_sealed
 from ss_track.core.evidence.sealing import seal
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
-from ss_track.core.scratch import exclusive_lock
+from ss_track.core.scratch import exclusive_lock, write_once
 from ss_track.corpus.declarations.fields import invalid
 from ss_track.corpus.records.kinds import SOURCE_ACQUISITION
-from ss_track.corpus.review.export import write_once
 from ss_track.corpus.sources.acquisition_inventory import populate, select
 from ss_track.corpus.sources.archive import _target, extract_selected, list_files
 from ss_track.corpus.sources.inventory import InventoryResult, _path, read_inventory
@@ -282,10 +281,10 @@ def acquire(request: AcquisitionRequest, data_root: Path) -> AcquisitionResult:
         record = seal(body)
         write_once(root / "inventory.json", inventory)
         path = root / "acquisition.json"
-        status = write_once(path, canonical_json(record))
+        written = write_once(path, canonical_json(record))
         digest = record["manifest_sha256"]
         assert isinstance(digest, str)
-        result_status = "unchanged" if status == "unchanged" else "written"
+        result_status = "written" if written else "unchanged"
         return AcquisitionResult(
             path,
             digest,

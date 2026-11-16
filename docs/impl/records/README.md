@@ -96,5 +96,12 @@ Copy the [template](template.md) using the
 | 0089 | `scale-reduction-case` | [0089-corpus-provenance-scale-reduction-case](0089-corpus-provenance-scale-reduction-case.md) |
 | 0090 | `frame-sequence-source-import` | [0090-corpus-provenance-frame-sequence-source-import](0090-corpus-provenance-frame-sequence-source-import.md) |
 | 0091 | `corpus-provenance-audit` | [0091-corpus-provenance-corpus-provenance-audit](0091-corpus-provenance-corpus-provenance-audit.md) |
+| 0092 | `scenario-pack-contract` | [0092-annotation-selection-scenario-pack-contract](0092-annotation-selection-scenario-pack-contract.md) |
+| 0093 | `annotation-contract` | [0093-annotation-selection-annotation-contract](0093-annotation-selection-annotation-contract.md) |
+| 0094 | `annotation-review-tools` | [0094-annotation-selection-annotation-review-tools](0094-annotation-selection-annotation-review-tools.md) |
+| 0095 | `event-schema-contract` | [0095-module-contract-runner-event-schema-contract](0095-module-contract-runner-event-schema-contract.md) |
+| 0096 | `generated-case-labels` | [0096-annotation-selection-generated-case-labels](0096-annotation-selection-generated-case-labels.md) |
+| 0097 | `annotation-sequence-source` | [0097-annotation-selection-annotation-sequence-source](0097-annotation-selection-annotation-sequence-source.md) |
+| 0098 | `annotation-selection-audit` | [0098-annotation-selection-annotation-selection-audit](0098-annotation-selection-annotation-selection-audit.md) |
 
-Next unused sequence: `0092`.
+Next unused sequence: `0099`.

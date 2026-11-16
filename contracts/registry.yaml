@@ -1,6 +1,122 @@
 schema_version: 1
 contracts:
 - family: declaration
+  id: annotation-label
+  owner: annotation-selection
+  status: active
+  description: 'Operator labels for one video or one ordered image sequence: visibility,
+    geometry, instance identity and motion events, in the stored orientation modules
+    receive. A class id has the shape of an identifier. The pinned scenario pack states
+    which ids exist and what each role means. This document is not a score.'
+  versions:
+  - version: 1.0.0
+    file_sha256: 1edf04bcb6e33098969539c40cb3ed0a8f2d042c7b39f7329cb167b202bbab73
+    fingerprints:
+      structure: 74939d704c73fc60311fa8500d2d00b820bf189b39b84aa0501df6634fcd37c0
+      meaning: 5a3a5847fa1464ee31132d15e4eda043055641728d598627fc577a94e632c948
+    change:
+      class: initial
+      summary: Initial contract.
+  - version: 1.0.1
+    file_sha256: 7e01b02d9adef6387c1d3254aca441e3ffd7a039396390f81743826e4e922427
+    fingerprints:
+      structure: 74939d704c73fc60311fa8500d2d00b820bf189b39b84aa0501df6634fcd37c0
+      meaning: b262005fb1e66abe66929abbbc13cd6162c521ffbf817451304f09ed6b392815
+    change:
+      class: patch
+      summary: State that a label source hash is a video file hash or an image-sequence
+        identity.
+  - version: 1.0.2
+    file_sha256: 8f8fc2b72cdf720d7faef4ea7e648b95195b4d2a099ab62c705285ffd2eca337
+    fingerprints:
+      structure: 74939d704c73fc60311fa8500d2d00b820bf189b39b84aa0501df6634fcd37c0
+      meaning: 95a0822d41f5972c19202ccadd9990112825e3bf2296495b00b3d1721bc048a0
+    change:
+      class: patch
+      summary: State that a later video stream of a file is named by its stream identity.
+- family: declaration
+  id: annotation-mask
+  owner: annotation-selection
+  status: active
+  description: The frozen eligibility and exclusion mask for one label document. Each
+    labeled frame is repeated with the status validation assigned. An unverifiable
+    frame stays unscorable. This document holds no numeric score, so that frame cannot
+    be stored as zero.
+  versions:
+  - version: 1.0.0
+    file_sha256: 3ef605eaaabdb9adc0f48171d6edf69fca8744c1230fb1ab0e41fc850ad92403
+    fingerprints:
+      structure: c49008bf959655f7e77a3396453f52faa0847ada7206dd5ab424bdd0f4b9fc7e
+      meaning: 9a98b2211395428e6a82cbd636d8234bcd51196ea88797863acd03f83597179f
+    change:
+      class: initial
+      summary: Initial contract.
+- family: declaration
+  id: annotation-review
+  owner: annotation-selection
+  status: active
+  description: Which frames two reviewers must settle before a label revision can
+    freeze. The whole small corpus uses entire. A larger corpus may name a sample.
+    Difficult disagreements are added by the command and are not listed here.
+  versions:
+  - version: 1.0.0
+    file_sha256: b4b941e236f925f1937909a6a657cb3525ddbc8fa4ae17c8a50aa2c1871eaa68
+    fingerprints:
+      structure: 23c4b7b2511a43f8f391c3146c44caef2d45bda0fc674858434f42d4b23ae536
+      meaning: c3e156c30fa2c8b03681bd2d27e06f4ed69ced2891cad0570047cc3af95d19f5
+    change:
+      class: initial
+      summary: Initial contract.
+- family: declaration
+  id: annotation-seed
+  owner: annotation-selection
+  status: active
+  description: One operator selection and an optional fixed list of perturbed seeds.
+    The real selection stays primary. Replaying one document yields the same selection
+    each time. The annotator id is recorded and is not part of that replay. This document
+    is not a score.
+  versions:
+  - version: 1.0.0
+    file_sha256: a7a9185f4a921421df2d43fa59285635180dfa94f51fc8894c305d16426fcaca
+    fingerprints:
+      structure: a71d5943041eacedcc0274fb6f9998cfe65f0acbea6c77594b438767667dcc91
+      meaning: 962c5abdd3c2b139975da986b74dea4ce21741d12cd5558f84eb0676aa1adc48
+    change:
+      class: initial
+      summary: Initial contract.
+  - version: 1.0.1
+    file_sha256: b0b6628b65b555894b6e2856dd23e520c171dd232967d6a6372895fd8911efcb
+    fingerprints:
+      structure: a71d5943041eacedcc0274fb6f9998cfe65f0acbea6c77594b438767667dcc91
+      meaning: 5bd7d945221debec9b38ae7d66b0b66f86bb85c582b10fc196e2713cbb8dab56
+    change:
+      class: patch
+      summary: State that a seed source hash is a video file hash or an image-sequence
+        identity.
+  - version: 1.0.2
+    file_sha256: 70cd0d92a1f0c0bfa9fadedffb236d3ee5e0e704eccf2f8c68d15af0c5f19b5d
+    fingerprints:
+      structure: a71d5943041eacedcc0274fb6f9998cfe65f0acbea6c77594b438767667dcc91
+      meaning: 765a67417f6d5e51a8fb4953bd6c16194d4bd0ef515eb681213832b6219f3891
+    change:
+      class: patch
+      summary: State that a later video stream of a file is named by its stream identity.
+- family: declaration
+  id: annotation-settlement
+  owner: annotation-selection
+  status: active
+  description: One recorded decision for each disagreement a review must settle. A
+    rationale is required, including when the outcome is unknown.
+  versions:
+  - version: 1.0.0
+    file_sha256: 3ef4eda284ee4f6459d619c120bc18cb980cf1ea604c11376d1ae735a9697d17
+    fingerprints:
+      structure: 08e5965798dbe6a85f260d108d176675ad3e85a5e1b64452a85d1dcb45c0dfd0
+      meaning: 0b446a836d633b19d7509305950eb527f4f68d84d4dcac3580528bf489d3537d
+    change:
+      class: initial
+      summary: Initial contract.
+- family: declaration
   id: audit-review
   owner: self-supervised-corpus
   status: active
@@ -280,6 +396,24 @@ contracts:
     migration: Set schema_version 2 and state rights.retain_until and rights.derived_frames,
       which only an operator can state.
 - family: declaration
+  id: scenario-pack
+  owner: annotation-selection
+  status: active
+  description: 'Operator declaration of one scenario pack: the class map, the annotation
+    vocabulary, extent limits, observer-platform strata, and the named slots a later
+    approval fills. It grants no permission to approach a subject, names no species,
+    and stores no exclusion-zone coordinates. An absent slot is unset. This contract
+    does not fill it.'
+  versions:
+  - version: 1.0.0
+    file_sha256: 07a5d2fd3bde6407ff6a582794d0f9973e1bb843f9fd30f30111b2664e67941e
+    fingerprints:
+      structure: 93093191cbafa48dbb85e5ea8f0da1a1177dbe2a3bfd239d0b1ade84a1709f60
+      meaning: 31646525fb3e37ae9ccbb287432daf4226b0d26a3aadc4248ecfeb660bf89d4a
+    change:
+      class: initial
+      summary: Initial contract.
+- family: declaration
   id: source-inventory
   owner: self-supervised-corpus
   status: active
@@ -310,6 +444,116 @@ contracts:
     change:
       class: initial
       summary: Initial contract.
+- family: event
+  id: analytics
+  owner: module-contract-runner
+  status: active
+  description: Run identity, validation, sensor and resource samples, and power. A
+    sensor sample is not a G2 observation. Joules are derived energy, not watts.
+  versions:
+  - version: 1.0.0
+    file_sha256: bb72b3694088d19f94be19ba5655a2fe9d3d2737708c072bc6bbedbcb04dabe7
+    fingerprints:
+      structure: 595c99fbc4ba100eca3c836d298481abac0d3ba2da690d995e93e2c3bedb1c23
+      meaning: f0f80b33ce62c9d9a70122ab9a041fa454c6d368f770f7fcea98371488288fc7
+    change:
+      class: initial
+      summary: Initial contract.
+- family: event
+  id: clock
+  owner: module-contract-runner
+  status: active
+  description: A clock reading and the stable identity of one event. Media PTS is
+    not capture time. A framed event names one source frame. An unframed event names
+    an interval and no frame.
+  versions:
+  - version: 1.0.0
+    file_sha256: 13f5e2fde872f26348bf8430dde8ef6fe1f7bcbe899ca3aa9466737e6591ea56
+    fingerprints:
+      structure: f5415b723ca0f83fd1810e3c1b372b0e152fcccc6036f83b1489ef3acec046e8
+      meaning: 87a2fa28244f17340fc4adb6c9a9d30571324a931b563a12cc202d02a30608cb
+    change:
+      class: initial
+      summary: Initial contract.
+- family: event
+  id: frame
+  owner: module-contract-runner
+  status: active
+  description: One staged frame and how to reach it. content_frame_index is the parent
+    frame whose pixels are shown. transform is identity for a source bundle. Display
+    rotation is not this field.
+  versions:
+  - version: 1.0.0
+    file_sha256: 2bb6915d03dcc29feb52de20caec118d2158b28053ce492beb95a86eecef94fd
+    fingerprints:
+      structure: 178e5ae2204aeecea0a1c30007b9ac634fd6dfd276ea01433709acc70239aec7
+      meaning: 3d8942de0598aecc80a944b673abdfe0f76335a4743bb2fba385b40a72bb1d1e
+    change:
+      class: initial
+      summary: Initial contract.
+- family: event
+  id: trial
+  owner: module-contract-runner
+  status: active
+  description: A G1 instrument, calibration and hardware trial. A trial stores trace
+    hashes, not samples, and it is not a frame event.
+  versions:
+  - version: 1.0.0
+    file_sha256: 8cf3ae65986ea054a8cd663c522db010038acd0f00ecfc1eb6956b265291bc4d
+    fingerprints:
+      structure: 4159f22059945feb54253eea5fc5434656f39845bed072080df7a0c361f98ad3
+      meaning: 7206d7b202af7528bcc04000c8711eded0cf26d6d8b4fb08307ce949dbf80da1
+    change:
+      class: initial
+      summary: Initial contract.
+- family: event
+  id: wire
+  owner: module-contract-runner
+  status: active
+  description: Module outputs for one frame. Empty detections are a valid frame result.
+    G0 and G1 have no actuator endpoint. G2 fusion records are not here.
+  versions:
+  - version: 1.0.0
+    file_sha256: 74d8f0fe8be7a814f627fd14a7f1509b4aafbfb454cefb7cd9e3c75353a0454e
+    fingerprints:
+      structure: cd6f4c356e2aaf23af4731c0e5643b995da60afb53cc163cd5dc7123871f3d35
+      meaning: a3a6c41d621269314b1f18222e6b37589a69976d0b2cdaea80b70faea7b7dd39
+    change:
+      class: initial
+      summary: Initial contract.
+- family: record
+  id: annotation-revision
+  owner: annotation-selection
+  status: active
+  description: The sealed freeze of one label revision. It pins the frozen label hash,
+    both annotator documents, the review sample and every disagreement. It has no
+    score.
+  versions:
+  - version: 1.0.0
+    file_sha256: fc9f22c5c6763f39f3aaf74e3299c44d145730fa3cb716fb17583b4d4f9ad95f
+    fingerprints:
+      structure: a010cf41602b0b3acba9874b02d9364ac8becacc3ee301f7fbaa668b620f4ee9
+      meaning: 7e4e8578c46f3a93975a671bedb5db2b0a5d9ec2bae24c290a0f63881a76a514
+    change:
+      class: initial
+      summary: Initial contract.
+  - version: 1.0.1
+    file_sha256: 2b4ca1e2008eab1de52b98b11e915ee5c7b5f3d63afea6616df87c328dfbec3d
+    fingerprints:
+      structure: a010cf41602b0b3acba9874b02d9364ac8becacc3ee301f7fbaa668b620f4ee9
+      meaning: 4395a5ef5604d61592437614a0b8ad0b1920e3d442eeeb3e26191a9738deb11c
+    change:
+      class: patch
+      summary: State that a revision source hash is a video file hash or an image-sequence
+        identity.
+  - version: 1.0.2
+    file_sha256: 79353835fabc2a6448302f8f3f770f0cef592122f82e88301c5d7099aebf071f
+    fingerprints:
+      structure: a010cf41602b0b3acba9874b02d9364ac8becacc3ee301f7fbaa668b620f4ee9
+      meaning: 33e6ed755ddfdd2707e4bbbacd1739f2024f23f342da7ae2e6be392e08020ccf
+    change:
+      class: patch
+      summary: State that a later video stream of a file is named by its stream identity.
 - family: record
   id: audit-blinding
   owner: self-supervised-corpus
@@ -491,6 +735,22 @@ contracts:
     fingerprints:
       structure: 23c5bdcd81392dbe5be618f6cd225132dee2b9f7ea0135950e6700b340aec527
       meaning: ded9a84193416ecfc5323dfbb127c15f2854465c87014774cb863fa7bfc01b00
+    change:
+      class: initial
+      summary: Initial contract.
+- family: record
+  id: derived-label
+  owner: annotation-selection
+  status: active
+  description: The sealed derivation of one generated case's labels from its parent's
+    frozen revision and stored label transform. It has no score, and the labels are
+    not edited by hand.
+  versions:
+  - version: 1.0.0
+    file_sha256: 1a6a74dfe49d85f0c448df683be59dca4054a47acbb49f4e732731469713be8f
+    fingerprints:
+      structure: 0bfec4cad1d1ca1634b844d2daae55ca91e707a21682eef738a24edad8325d34
+      meaning: d7ba8f6ed7b1606a87dff7ea9f20a9c19c6317d7968bc99312870ad516589559
     change:
       class: initial
       summary: Initial contract.
@@ -1070,6 +1330,31 @@ contracts:
       class: minor
       summary: Source inspection states a current record's observer platform and names
         the import operations a facts record needs.
+  - version: 1.30.0
+    file_sha256: 39baad8174be79e129e82ee050ec7061cdc31e0bfe0cccf795c7b95c24ec3000
+    fingerprints:
+      structure: a6f1efe4a95e40343bff2494dc8f5c087773eb5a0bc911e20d188e13c9b8b3cc
+      meaning: b08e48a06d4a07a766faf7c9a5389de302757d7acf8fd8df6e92bb2863d59b57
+    change:
+      class: minor
+      summary: Add the annotation validation result. It has no numeric score.
+  - version: 1.31.0
+    file_sha256: ff11d9c761e0336f178cce5d6946a8d7c83680a872d80dc7fc30b9b0f90dec4e
+    fingerprints:
+      structure: 6c68b7a2e5d1df74f1b602dad7d529702070455b14d0ba917470b7b8fe814594
+      meaning: 58c83d5412b270ac0149c73d81bf1454062e974b6b3ddb5484cb2d01d1320c8c
+    change:
+      class: minor
+      summary: Report label comparison and freeze.
+  - version: 1.32.0
+    file_sha256: 84e11f4cf1ef53be1bf674369fce09f468f26780690ece69f874eb608d9df3a9
+    fingerprints:
+      structure: 27bd12df22158b9308a6e3db9d68adaa766b6fd4adf71c5b0e2fd02cbc7a442c
+      meaning: 03b67fba73daaa26d6e8150c9ca6343cb7000c1ad31704b3d7b3fa53e24d7fa2
+    change:
+      class: minor
+      summary: Report derived labels for generated cases. An unscorable case is not
+        a zero.
 - family: shared
   id: types
   owner: data-contracts

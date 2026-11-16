@@ -11,12 +11,14 @@ from ss_track.corpus.declarations.fields import TEXT_RULE
 from ss_track.corpus.decoding.declared_color import MATRIX_CODES
 from ss_track.corpus.descriptors.descriptor_public import SPLITS
 from ss_track.corpus.records.kinds import (
+    ANNOTATION_REVISION,
     AUDIT_BLINDING,
     CANDIDATE_INVENTORY,
     CORPUS_FREEZE,
     CORPUS_LINKS,
     CORPUS_MANIFEST,
     CORPUS_POOL,
+    DERIVED_LABEL,
     DISCOVERY_RUN,
     FEATURE_ROWS,
     FRAME_BUNDLE,
@@ -47,6 +49,8 @@ _WRITTEN = (
     FRAME_BUNDLE,
     FRAME_SET,
     HASH_COMPARISON,
+    ANNOTATION_REVISION,
+    DERIVED_LABEL,
     IMAGE_SEQUENCE,
     LINK_REVIEW_HANDOFF,
     SOURCE_ACQUISITION,
@@ -59,6 +63,17 @@ def _types() -> dict[str, dict[str, str]]:
     path = CONTRACTS / "shared" / "types" / "1.0.0.json"
     definitions: dict[str, dict[str, str]] = json.loads(path.read_text(encoding="utf-8"))["$defs"]
     return definitions
+
+
+def test_a_nullable_class_parent_repeats_the_shared_identifier_pattern() -> None:
+    contracts = load_contract_set(CONTRACTS)
+    contract = contracts.named("declaration/scenario-pack")
+    newest = contract.newest()
+    assert newest is not None
+    parent = contracts.frozen_schema(contract, newest)["$defs"]["class-entry"]["properties"]
+    parent = parent["parent_class_id"]
+
+    assert parent["pattern"] == _types()["identifier"]["pattern"]
 
 
 def test_a_nullable_identifier_repeats_the_shared_pattern() -> None:

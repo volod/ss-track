@@ -14,7 +14,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 
-from ss_track.core.refusal import CorpusRefusal
+from ss_track.core.refusal import CorpusRefusal, RefusalCode
 
 SCRATCH_PREFIX = ".incoming-"
 READ_ONLY_FILE_MODE = 0o444
@@ -110,3 +110,32 @@ def write_atomically(path: Path, payload: bytes, *, mode: int | None = None) -> 
     except BaseException:
         temporary.unlink(missing_ok=True)
         raise
+
+
+def holds_payload(path: Path, payload: bytes) -> bool:
+    """Return whether `path` already holds exactly `payload`, refusing anything else there.
+
+    A path that holds other bytes, or is not a file, is `CORPUS_CONFLICT`: a write-once output is
+    never replaced, so the caller chooses another path.
+    """
+    if not path.exists():
+        return False
+    if path.is_file() and path.read_bytes() == payload:
+        return True
+    raise CorpusRefusal(
+        RefusalCode.CORPUS_CONFLICT,
+        "the output path already holds something else; choose another path",
+        {"path": str(path)},
+    )
+
+
+def write_once(path: Path, payload: bytes, *, mode: int | None = None) -> bool:
+    """Write a file once and return whether it was written.
+
+    The same bytes again change nothing. Other bytes at that path are refused, not replaced.
+    """
+    if holds_payload(path, payload):
+        return False
+    path.parent.mkdir(parents=True, exist_ok=True)
+    write_atomically(path, payload, mode=mode)
+    return True

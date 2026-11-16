@@ -8,6 +8,7 @@ import argparse
 import logging
 from collections.abc import Sequence
 
+from ss_track.commands.annotate import add_annotate_commands
 from ss_track.commands.contracts import add_contract_commands
 from ss_track.commands.corpus import add_corpus_commands
 from ss_track.commands.data import add_data_commands
@@ -36,6 +37,7 @@ def build_parser() -> argparse.ArgumentParser:
     add_discover_commands(subcommands)
     add_contract_commands(subcommands)
     add_data_commands(subcommands)
+    add_annotate_commands(subcommands)
     return parser
 
 

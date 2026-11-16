@@ -8,6 +8,7 @@ from ss_track.core.canonical import SEAL_FIELD, seal_of
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.schema.registry.contract import (
     DECLARATION_FAMILY,
+    EVENT_FAMILY,
     KIND_FIELD,
     RECORD_FAMILY,
     SHARED_FAMILY,
@@ -169,6 +170,12 @@ def validate_file(
     """Check every field of one file under one frozen version, and a record's seal."""
     contracts = load_contract_set(root)
     named = contracts.named(contract_name) if contract_name else None
+    if named is not None and named.family == EVENT_FAMILY:
+        raise CorpusRefusal(
+            RefusalCode.CONTRACT_UNKNOWN,
+            f"{named.name} is protobuf-JSON lines, not a JSON document",
+            {"contract": named.name},
+        )
     from_yaml = named is not None and named.family == DECLARATION_FAMILY
     document = _read_document(path, declaration=from_yaml)
     contract = named if named is not None else _contract_of(contracts, document)

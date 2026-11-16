@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package ss_track.event.frame.v1;
+
+import "contract_options.proto";
+
+option (ss_track.contract.v1.contract_urn) = "urn:ss-track:contract:event:frame:1.0.0";
+
+// One staged frame, and how to reach it, independently of any module.
+// Field names and presence match the staged bundle FrameRef.
+message FrameRef {
+  string stream_id = 1 [json_name = "stream_id"];
+  // SHA-256 of the source media.
+  string source_sha256 = 2 [json_name = "source_sha256"];
+  // Zero-based index in the source sequence.
+  uint32 frame_index = 3 [json_name = "frame_index"];
+  // The parent frame whose pixels this frame shows. Equal to frame_index unless a
+  // generated case repeats or substitutes another frame.
+  uint32 content_frame_index = 4 [json_name = "content_frame_index"];
+  // Presentation timestamp in time_base ticks. Absent when the bundle stores none.
+  optional int64 pts = 5 [json_name = "pts"];
+  // Rational seconds per pts tick. Absent when the bundle stores none.
+  optional string time_base = 6 [json_name = "time_base"];
+  // measured, derived or missing. Quality is established, never assumed.
+  string timestamp_quality = 7 [json_name = "timestamp_quality"];
+  // Operator evidence that PTS came from a capture clock. Absent when none was declared.
+  optional string capture_clock_evidence = 8 [json_name = "capture_clock_evidence"];
+  uint32 width = 9 [json_name = "width"];
+  uint32 height = 10 [json_name = "height"];
+  string pixel_format = 11 [json_name = "pixel_format"];
+  // identity for a source bundle, whose pixels are as stored. A generated case names
+  // its transform. Display rotation is a record fact and is not this field.
+  string transform = 12 [json_name = "transform"];
+  string bundle_sha256 = 13 [json_name = "bundle_sha256"];
+  string frame_name = 14 [json_name = "frame_name"];
+  // SHA-256 of the staged frame bytes.
+  string sha256 = 15 [json_name = "sha256"];
+}

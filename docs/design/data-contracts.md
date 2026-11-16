@@ -32,6 +32,7 @@ old evidence can never be migrated in place.
 | --- | --- | --- | --- | --- |
 | `recording.yaml` | Operator | Beside the media | 2 | `declaration/recording` 2.0.0 |
 | `corpus.yaml`, including recipes | Operator | Operator's choice | 3 | `declaration/corpus` 3.0.0 |
+| Scenario pack | Operator | `scenarios/packs/` | 1 | `declaration/scenario-pack` 1.0.0 |
 | Source manifest | `import` | `$DATA_DIR/import/<sha256>/` | 2 | `record/source-manifest` 2.0.0 |
 | Corpus manifest | `corpus build` | `$DATA_DIR/corpus/<id>/` | 3 | `record/corpus-manifest` 3.0.0 |
 | Frame bundle manifest | `corpus stage` | `$DATA_DIR/corpus/<id>/frames/<stream>/` | 3 | `record/frame-bundle` 3.0.0 |
@@ -40,8 +41,12 @@ old evidence can never be migrated in place.
 | Hash comparison | `corpus compare` | `$DATA_DIR/run/<run-id>/` | 1 | `record/hash-comparison` 1.0.0 |
 | Command result and refusal | Every command | One JSON log line | None | `result/command-result` 1.0.0 |
 
-Planned formats enter through their owning tasks: labels, seeds and masks, the scenario, scenario
-packs, events, the run manifest and bundle, metric results, host profiles, hardware protocols,
+G0 and G1 events are frozen protobuf descriptor sets: `event/analytics`, `event/clock`,
+`event/frame`, `event/trial` and `event/wire`, each at 1.0.0. A line is protobuf-JSON. The
+[runner](../impl/current/runner.md) checks it; `contracts validate` does not.
+
+Planned formats enter through their owning tasks: labels, seeds and masks, the scenario,
+the run manifest and bundle, metric results, host profiles, hardware protocols,
 instrument and calibration records, power traces, stand requirements and telemetry profiles.
 Configuration is covered too: `.env` carries only local paths, and every behavior-changing setting
 already lives in a declaration or a pinned scenario.

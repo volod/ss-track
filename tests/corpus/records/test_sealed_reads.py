@@ -37,12 +37,15 @@ _WORKER_PROTOCOL = {
 _PACKAGE_METADATA_READER = Path("corpus/siblings/perception_worker.py")
 # The loader parses only the JSON it serialized itself, to validate a record as it will be written.
 _PROVIDER_PARSER = Path("corpus/sources/provider_http.py")
+# Protobuf-JSON event lines are not sealed records. The parser returns a message or a refusal.
+_EVENT_LINES = Path("contract/events.py")
 _JSON_READERS = {
     _GATE,
     _CONTRACT_FILE_READER,
     _DEEP_PARSER,
     _DECLARATION_LOADER,
     _PROVIDER_PARSER,
+    _EVENT_LINES,
     *_WORKER_PROTOCOL,
 }
 # Acquired collection metadata is provider YAML, not a sealed record. The unique-key loader is its

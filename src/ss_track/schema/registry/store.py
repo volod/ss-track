@@ -20,7 +20,13 @@ from ss_track.core.canonical import sha256_bytes
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.core.strict_json import finite_float, reject_constant, unique_object
 from ss_track.core.strict_yaml import UniqueKeyLoader
-from ss_track.schema.registry.contract import KIND_FIELD, RECORD_FAMILY, Contract, FrozenVersion
+from ss_track.schema.registry.contract import (
+    EVENT_FAMILY,
+    KIND_FIELD,
+    RECORD_FAMILY,
+    Contract,
+    FrozenVersion,
+)
 from ss_track.schema.validation.strict import Schema, violations
 
 CONTRACT_FILES_PACKAGE = "ss_track.contract_files"
@@ -119,6 +125,8 @@ class ContractSet:
 
     def frozen_schema(self, contract: Contract, frozen: FrozenVersion) -> Schema:
         """Read one frozen version, refusing a file that is not the one the registry pinned."""
+        if contract.family == EVENT_FAMILY:
+            raise damaged(f"{contract.name} is an event descriptor, not a JSON schema")
         path = self.root / contract.relative_path(frozen)
         try:
             found = sha256_bytes(path.read_bytes())
@@ -162,6 +170,7 @@ class ContractSet:
                 ),
             )
             for contract in self.contracts
+            if contract.family != EVENT_FAMILY
             for frozen in contract.versions
         ]
         return Registry().with_resources(resources)

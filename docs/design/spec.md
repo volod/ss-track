@@ -114,7 +114,9 @@ establish air-to-air performance, so a Phase 1 mission claim rests on airborne-o
 or states that it has none. Scenario packs define classes, annotation vocabulary, operational limits
 and access policy for settings such as protected habitats, roads and laboratory benches; results
 from different packs are stratified unless a predeclared common metric and sampling frame justify
-pooling.
+pooling. Each class has a stable id and one role, `scoring`, `distractor` or `ignore`. The access
+policy, the non-disturbance envelope and the Phase 2 declarations are slots on the pack. A slot the
+owner has not set is absent, and an envelope stated without its approval record is refused.
 
 ## 3. Scope and delivery gates
 
@@ -661,8 +663,11 @@ marked `unlocalizable`.
 All visible objects in the G0 scoring classes receive an instance ID or an explicit
 `identity_ambiguous` label, so a track on another object can be distinguished from a correct target
 track. Objects outside the scoring class set are marked `distractor`, `ignore_region` or `unknown`
-under a versioned scenario policy; these terms are not silently equated. Motion-event onset, onset
-uncertainty, target visibility, camera motion (`static`, `translation_or_pan`, `shake`, `unknown`),
+under a versioned scenario policy; these terms are not silently equated. A class role of `scoring`
+puts that class in the scoring set. `distractor` and `ignore` are the pack's distractor and
+ignore-region policy. `unknown` stays a label status and is not a class role. Motion-event
+onset, onset uncertainty, target visibility, camera motion (`static`, `translation_or_pan`,
+`shake`, `unknown`),
 selection quality and re-entry are recorded. Semantic states such as walking, riding, gliding or
 stationary use a later scenario-specific vocabulary; image-plane displacement alone does not
 establish physical state.
@@ -670,21 +675,85 @@ establish physical state.
 The operator selection stores original click/box coordinates, source frame/time, intended target if
 adjudicated, seed-quality category and any correction. Competing modules receive exactly the same
 selection. A fixed, versioned set of perturbed spatial/temporal seeds may be added as a robustness
-view; the real operator seed remains primary. Two annotators review the entire small G0 material,
-resolving disagreements with a recorded rationale or retaining `unknown`. Larger corpora may use a
-predeclared review sample plus all difficult cases. Ground truth, episode eligibility and exclusion
-masks are frozen and hashed **before** module execution.
+view; the real operator seed remains primary. Seed quality is `as_clicked`, `imprecise` or
+`corrected`. Modules receive the correction when quality is `corrected`, and the original
+selection for the other two categories. Each perturbation is an integer column, row and frame
+offset. Replay lists the real selection first, then each perturbation in document order. The
+replay covers the seed id, the quality, the intended instance and those selections. The annotator
+id stays on the seed document. Motion-event selection quality is `reviewed` or `uncertain`.
+
+Two annotators compare label documents of one source and one pack. A disagreement is one field
+whose canonical JSON differs. The annotator id and the label id are not disagreements. Equal
+numbers, including `1` and `1.0`, are not a disagreement. Presence means one document lacks the
+instance, the frame or the motion event. The other fields of a missing subject are not listed.
+
+A review covers the entire small corpus, or a predeclared sample plus every difficult
+disagreement. An entire review lists no sample frames. A sample may be empty, which reviews only
+difficult disagreements. A disagreement is difficult when it is presence, or when either label
+marks identity `identity_ambiguous`, a mark or a visibility `unknown`, geometry `unlocalizable`,
+or a motion-event selection `uncertain`. A required disagreement with no decision blocks the
+freeze. A disagreement outside the review stays `unknown` and does not block it.
+
+The frozen label id is the settlement revision id. Every frozen frame's annotator id is the
+review authority. An unknown frame is visibility `unknown` and geometry `unlocalizable`. Camera
+motion stays independent: an agreed camera is kept, and an unknown camera is `unknown`. Any other
+unknown frame field wipes visibility and geometry. An unknown class keeps the left class, sets
+identity to `identity_ambiguous`, and keeps a mark the role allows. An unknown identity is
+`identity_ambiguous`. A class and a mark the pack cannot combine are refused. Adopting one side of
+a one-sided subject keeps that side. Omitting it leaves the subject out. Unknown presence keeps
+an unknown frame or an `identity_ambiguous` instance. An instance with no remaining frame is
+refused, and a revision with no instance is refused.
+
+An unknown motion-event field other than selection quality drops the event, as does a presence
+decision that omits it. Unknown selection quality keeps the event and marks it `uncertain`. Event
+visibility then follows the frozen frame. A visibility change, or re-entry on a frame that is not
+`visible` or `partially_occluded`, clears re-entry and marks the selection `uncertain`. An event
+whose onset frame was not frozen is refused.
+
+The freeze writes that label document and a sealed revision. Both are written once: the same
+freeze again changes nothing, another revision at those paths is refused, and so is an output path
+that is a file the freeze reads. The sensitivity band is the two annotator document hashes. The
+revision pins those hashes, the review, the settlement, the sample and every disagreement with its
+outcome and rationale. It computes no score. Scores against each annotator's labels remain the
+annotation-sensitivity band in
+[section 6.1](#61-operator-selected-tracking-sot-v2-dev). Ground truth, episode eligibility and
+exclusion masks are frozen and hashed **before** module execution.
 
 Label coordinates use the stored orientation that modules receive. Display rotation is a recorded
 fact, so a tool that shows a rotated view maps coordinates back before a label is validated, and a
-label that declares any other orientation is refused.
+label that declares any other orientation is refused. A label names its source as a corpus stream
+does. A video file's source identity is its file hash. A file that holds more than one video stream
+names one by its index, and a later stream's identity is its stream identity
+([section 4.1](#41-corpus-identity-and-input-handling)). An ordered image sequence's source
+identity is the hash of its ordered image hashes. Validation, comparison and freeze accept each of
+these and check labels against that identity and the stored frame. A directory that is not a
+sequence is refused. A freeze may name a corpus stream instead of a source and two output paths.
+It then reads the source stored for that stream, files the revision under it, and refuses a
+decode whose frame shape is not the one the corpus pinned.
+
+Each labeled frame is `scorable`, `unscorable` or `not_denominator`. `unscorable` means the frame
+is unverifiable: identity is ambiguous, the mark or the visibility is `unknown`, or geometry is
+`unlocalizable` on a frame that could otherwise be localized. `not_denominator` means the frame is
+verifiable and stays out of the primary localization denominator: `fully_occluded`, `out_of_view`,
+`absent`, an ignore region, or a point with no reviewed plausible extent. When several of these
+apply, the reported reason is the first match in that order: identity ambiguity, an unknown mark,
+an ignore region, unknown visibility, full occlusion, out of view or absence, unlocalizable
+geometry, then a point with no plausible extent. An unscorable or withheld frame has no numeric
+score.
 
 A generated case takes its labels from its parent's frozen revision through the stored label
-transform, as a hashed revision of its own that nobody edits by hand. Frozen labels also check the
-rectangle a case rests on: a plate frame that shows a target inside that rectangle is refused, and a
-target the rectangle does not cover stays `unknown` rather than becoming `absent`. A track-following
-case names that revision and the instance its boxes came from. A frame of the case with no scorable
-box stays `unknown`.
+transform, as a hashed revision of its own that nobody edits by hand. The parent's frozen labels
+must name the source and the stored frame shape of the corpus stream they sit under, so labels of
+another source, or of another decode, derive nothing. Frozen labels also check the rectangle a case
+rests on. The plate frame's pixels are copied into that rectangle, so a plate frame that shows any
+part of a target inside it is refused, as is one that holds a target whose location is unknown.
+On a frame of the case, a target the rectangle does not cover stays `unknown` rather than becoming
+`absent`. A track-following case names that revision and the instance its boxes came from. A frame
+of the case with no scorable box stays `unknown`. A motion event follows its frame by the rule a
+freeze applies: it takes the frame's visibility, re-entry holds only on a `visible` or
+`partially_occluded` frame, and either change marks the selection `uncertain`. An event whose
+frame the case removed is left out. A target that returns records re-entry once, on the first
+frame it is back.
 
 Fusion labels distinguish the object/event's **scene-level identity** from visibility or
 detectability in each sensor. A camera may see an object while a microphone has no attributable
@@ -757,9 +826,10 @@ window, and stands one pixel off that box on the frames around the interval, alo
 axis. A moving removal replaces each box with the same rectangle of a plate frame plus seeded noise,
 and marks the box absent. A similar distractor copies the box onto a seed-chosen side that shares an
 edge and does not cover the target. The copy is a distractor and the target stays. Out of view
-shifts each frame of a declared interval until the whole box lies outside the frame, then marks a
-later frame that still has a box as re-entry. The label transform is `track_status`, one entry per
-window frame. None of these cases claims the motion is realistic.
+shifts each frame of a declared interval until the whole box lies outside the frame. Each later
+frame that still has a box is stored with the re-entry role, and the derived labels record the
+return once, on the first of them. The label transform is `track_status`, one entry per window
+frame. None of these cases claims the motion is realistic.
 
 A recipe may declare a graded list of one parameter, which expands to one case per level. The local
 report then shows each module's quality against that severity, so a comparison shows where a module
@@ -994,7 +1064,8 @@ IoU success AUC on box frames, center-error distribution, per-size/seed/camera-m
 continuation when the target is not visible, and re-entry/reacquisition in a separate suite. A
 Kaplan-Meier curve may be exploratory only: target exit and clip end in operator-steered video can
 be informative censoring, so it is **not** the primary G0 ranking or a field-survival estimate.
-Scores against each annotator's labels form an annotation-sensitivity band.
+Scores against each annotator's labels form an annotation-sensitivity band. The frozen revision
+retains both annotator document hashes and does not compute this score.
 
 ### 6.2 Motion proposals: `motion-v1-dev`
 
@@ -1134,7 +1205,9 @@ range. It can measure how quality changes as the target covers fewer pixels, whi
 a later range claim rests on. Every tracking and motion suite therefore reports an **extent
 envelope**: its primary measure per bin of target extent `s_gt = sqrt(w_gt * h_gt)`, in pixels of
 the frame the module received, with a point-only label binned by its reviewed maximum plausible
-extent. The bin edges come from the scenario pack and are part of the cohort. Each bin shows its
+extent. The bin edges come from the scenario pack and are part of the cohort. They are half-open
+pixel intervals that partition every extent from zero upward, without overlap or gap, and the last
+interval has no upper bound. No bin list means the envelope is not defined yet. Each bin shows its
 numerator, denominator, scorable exposure, encounter count and interval, and a bin with fewer
 encounters than the suite's declared minimum reports `insufficient_data`, not a value.
 
@@ -1143,6 +1216,16 @@ larger bin with sufficient data has an interval whose lower bound clears a floor
 declared before the run. For motion proposals the measure is event recall at the declared
 operator-burden operating point, so a module cannot lower its supported extent by proposing
 everywhere. No supported bin is a valid result and is reported as one.
+
+The scenario states one floor for each primary measure of its pinned suite, keyed by that measure's
+name and in that measure's units. Each floor carries its basis. A floor for a measure the suite does
+not report, or a value outside the measure's range, is refused. A measure with no floor still
+reports its bins, and its smallest supported extent is `unavailable`. That is not the same result
+as no supported bin. The floor is not a pack field. Bins describe the target domain, and every
+suite that scores the pack shares them. A floor is a quality threshold on one suite's measure, and
+the pack hash pins frozen labels, so a pack-level floor would make a new threshold re-freeze the
+labels. The scenario hash is in the cohort key, so a changed floor is a different cohort. Ranking
+floors in [section 16.1](#161-cohort-ranking) follow the same rule and live in the frozen protocol.
 
 Real encounters and [scale-reduction cases](#43-deterministic-cases-and-negative-evidence) form
 two separate curves. The generated curve shows where a module degrades when pixels are removed
@@ -2018,7 +2101,10 @@ benchmark counts violations of that envelope. It never states that a subject was
 because the envelope is a human judgment about a species and a site, and a simulated or recorded
 subject does not react. A nest or roost position is location-bearing and stays restricted: a
 report names a terminal zone by its declared identifier, never by coordinates. A drone target has
-an envelope as well, set by collision risk and the reserve's rules instead of by behavior.
+an envelope as well, set by collision risk and the reserve's rules instead of by behavior. Each
+envelope is a slot on the scenario pack, kind `living` or `collision`. Stating one without the
+approval record of the named responsible person is refused. A zone in the pack is an identifier, a
+radius and a height. Coordinates are not a pack field.
 
 ### Measurement-only scope
 
@@ -2168,7 +2254,8 @@ are required **before the named later claim or gate**, rather than blocking G0a:
 | Input | Required before |
 | --- | --- |
 | Scenario packs, class taxonomy, recording rights/retention, locked-test custodian and access policy | Creating a locked test or shared dashboard for each domain |
-| Mission scenario pack: target and confuser classes, minimum box and point extents, extent bins and floors, observer-platform strata | Freezing G0 labels or reporting a small-target extent envelope |
+| Mission scenario pack: target and confuser classes, minimum box and point extents, extent bins and observer-platform strata | Freezing G0 labels or reporting a small-target extent envelope |
+| Extent-envelope floor for each primary measure of the mission scenarios, with its basis, declared on the scenario and not on the pack ([section 6.7](#67-small-target-extent-envelope)) | Reporting a smallest supported extent; without it the envelope reports bins only |
 | Annotation reviewers and disagreement authority | Freezing G0 labels; a small two-reviewer set is the G0 default |
 | Operator response delay and the actions an operator may take | An operator-session result beyond the engineering default |
 | Expert-labelled, visually identifiable material for each declared species or drone type, with an unknown-class set | Any autonomous target declaration claim |
@@ -2979,7 +3066,9 @@ class of drone, or that it does not, or that it cannot tell. It builds on the co
 of [section 16.7](#167-track-level-classification) and adds the fine-grained classes that section
 leaves out.
 
-The scenario pack declares, before any recognizer runs:
+The scenario pack declares the following before any recognizer runs. Each row is a slot. The
+engineering defaults below are not written into a pack. A slot the owner has not set is absent, and
+a result that needs it is unavailable.
 
 | Declaration | Meaning |
 | --- | --- |
@@ -3223,9 +3312,10 @@ rendered. Perception is a **surrogate** drawn, with a recorded seed, from eviden
 Each table states its origin as `measured`, with the hash of the run it came from, `datasheet` or
 `assumed`. The simulator turns simulated range into extent with the camera's measured angular
 resolution and the pack's declared target size. That is a model input, and it restates no
-measured result in metres. Draws are independent between epochs unless a table supplies a
-measured dependence. The report says so, because independence flatters a system whose failures
-cluster.
+measured result in metres. Declared target size and the stand-off levels are slots on the pack and
+stay absent until the owner sets them. Draws are independent between epochs unless a table
+supplies a measured dependence. The report says so, because independence flatters a system whose
+failures cluster.
 
 Every episode ends in exactly one outcome, taken in this order:
 

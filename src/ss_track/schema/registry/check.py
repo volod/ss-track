@@ -17,6 +17,7 @@ from ss_track.core.refusal import CorpusRefusal
 from ss_track.schema.compatibility.evolution import pointer_parts
 from ss_track.schema.registry.contract import (
     DECLARATION_FAMILY,
+    EVENT_FAMILY,
     KIND_FIELD,
     RECORD_FAMILY,
     VERSION_FIELD,
@@ -36,7 +37,7 @@ from ss_track.schema.registry.store import (
 )
 from ss_track.schema.validation.strict import Schema
 
-_SCHEMA_SUFFIX = "*.json"
+_FILE_GLOBS = ("*.json", "*.binpb")
 
 _LOG = logging.getLogger(__name__)
 
@@ -67,7 +68,12 @@ def _stray_findings(contracts: ContractSet) -> list[str]:
         for frozen in contract.versions
     }
     meta = contracts.root / META_DIRECTORY
-    found = {path for path in contracts.root.rglob(_SCHEMA_SUFFIX) if meta not in path.parents}
+    found = {
+        path
+        for pattern in _FILE_GLOBS
+        for path in contracts.root.rglob(pattern)
+        if meta not in path.parents
+    }
     return [
         f"{path.relative_to(contracts.root)}: not listed in the registry"
         for path in sorted(found - listed)
@@ -110,29 +116,55 @@ def _fingerprint_findings(frozen: FrozenVersion, schema: Schema) -> list[str]:
 
 
 def _version_findings(
-    contracts: ContractSet, contract: Contract, frozen: FrozenVersion, dialect: Schema
+    contracts: ContractSet,
+    contract: Contract,
+    frozen: FrozenVersion,
+    dialect: Schema,
+    known_urns: set[str],
 ) -> list[str]:
     """Check one frozen file against the registry and the dialect."""
     path = contracts.root / contract.relative_path(frozen)
     try:
-        found = sha256_bytes(path.read_bytes())
+        payload = path.read_bytes()
+    except OSError as error:
+        return [f"cannot read the file: {error}"]
+    edited = sha256_bytes(payload) != frozen.file_sha256
+    if contract.family == EVENT_FAMILY:
+        from ss_track.contract.image import event_version_findings
+
+        findings = (
+            [f"frozen file was edited: registry {frozen.file_sha256}, file {sha256_bytes(payload)}"]
+            if edited
+            else []
+        )
+        return findings + event_version_findings(
+            payload, contract.urn(frozen), frozen.structure, frozen.meaning, known_urns
+        )
+    try:
         schema = read_schema(path)
-    except (OSError, CorpusRefusal) as error:
+    except CorpusRefusal as error:
         return [f"cannot read the file: {error}"]
     findings = []
-    if found != frozen.file_sha256:
-        findings.append(f"frozen file was edited: registry {frozen.file_sha256}, file {found}")
+    if edited:
+        findings.append(
+            f"frozen file was edited: registry {frozen.file_sha256}, file {sha256_bytes(payload)}"
+        )
     findings += _identity_findings(contract, frozen, schema)
     findings += dialect_findings(schema, dialect)
     findings += _stamp_findings(contract, frozen, schema)
     return findings + _fingerprint_findings(frozen, schema)
 
 
+def _document_contracts(contracts: ContractSet) -> list[Contract]:
+    """Return the JSON Schema contracts. Event packages are descriptor sets."""
+    return [contract for contract in contracts.contracts if contract.family != EVENT_FAMILY]
+
+
 def _reference_findings(contracts: ContractSet) -> list[str]:
     """Resolve every `$ref` of intact files, because a validator meets a bad one only when used."""
     registry = contracts.schema_registry()
     findings = []
-    for contract in contracts.contracts:
+    for contract in _document_contracts(contracts):
         for frozen in contract.versions:
             urn = contract.urn(frozen)
             resolver = registry.resolver(urn)
@@ -162,7 +194,7 @@ def _annotation_resolves(contracts: ContractSet, reference: str) -> bool:
 
 def _annotation_findings(contracts: ContractSet) -> list[str]:
     findings = []
-    for contract in contracts.contracts:
+    for contract in _document_contracts(contracts):
         for frozen in contract.versions:
             for node in walk(contracts.frozen_schema(contract, frozen)):
                 reference = node.get("x-references")
@@ -183,10 +215,16 @@ def check_contract_set(root: Path) -> list[str]:
     except CorpusRefusal as refusal:
         return [refusal.message]
     findings = _registry_findings(contracts) + _stray_findings(contracts)
+    known_urns = {
+        contract.urn(frozen)
+        for contract in contracts.contracts
+        if contract.family == EVENT_FAMILY
+        for frozen in contract.versions
+    }
     for contract in contracts.contracts:
         for frozen in contract.versions:
             label = f"{contract.name} {frozen.version}"
-            found = _version_findings(contracts, contract, frozen, dialect)
+            found = _version_findings(contracts, contract, frozen, dialect, known_urns)
             findings += [f"{label}: {finding}" for finding in found]
     return findings or _reference_findings(contracts)
 

@@ -1,0 +1,316 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ss-track:contract:record:annotation-revision:1.0.1",
+  "title": "Annotation revision",
+  "description": "The sealed freeze of one label revision. It pins the frozen label hash, both annotator documents, the review sample and every disagreement. It has no score.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind",
+    "schema_version",
+    "manifest_sha256",
+    "revision_id",
+    "authority",
+    "coverage",
+    "label_sha256",
+    "pack_id",
+    "pack_hash",
+    "source_sha256",
+    "review_sha256",
+    "settlement_sha256",
+    "sensitivity_band",
+    "reviewers",
+    "sample",
+    "disagreements"
+  ],
+  "properties": {
+    "kind": {
+      "type": "string",
+      "const": "ss-track.annotation-revision",
+      "description": "Record kind."
+    },
+    "schema_version": {
+      "type": "integer",
+      "const": 1,
+      "minimum": 0,
+      "x-unit": "1",
+      "description": "Format major."
+    },
+    "manifest_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Record seal."
+    },
+    "revision_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "Label id of the frozen revision."
+    },
+    "authority": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "Who settled the revision."
+    },
+    "coverage": {
+      "type": "string",
+      "description": "entire or sample, as the review plan stated.",
+      "enum": [
+        "entire",
+        "sample"
+      ]
+    },
+    "label_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "SHA-256 of the canonical JSON of the frozen label document."
+    },
+    "pack_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "Scenario pack the labels name."
+    },
+    "pack_hash": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Hash of that pack."
+    },
+    "source_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Source identity the labels name. A video file uses its file hash. An ordered image sequence uses the sequence identity."
+    },
+    "review_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "SHA-256 of the canonical JSON of the review plan."
+    },
+    "settlement_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "SHA-256 of the canonical JSON of the settlement."
+    },
+    "sensitivity_band": {
+      "$ref": "#/$defs/sensitivity-band",
+      "description": "Both annotator document hashes."
+    },
+    "reviewers": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "description": "Left reviewer, then right reviewer.",
+      "items": {
+        "$ref": "#/$defs/reviewer",
+        "description": "One side."
+      }
+    },
+    "sample": {
+      "type": "array",
+      "minItems": 0,
+      "description": "The predeclared sample, in review-plan order. Empty when coverage is entire.",
+      "items": {
+        "$ref": "#/$defs/sample-item",
+        "description": "One frame."
+      }
+    },
+    "disagreements": {
+      "type": "array",
+      "minItems": 0,
+      "description": "Every disagreement, in report order, with the outcome the freeze recorded.",
+      "items": {
+        "$ref": "#/$defs/disagreement",
+        "description": "One field."
+      }
+    }
+  },
+  "x-rules": {
+    "band": "sensitivity_band hashes are the two reviewer label documents. Scores against those documents are the annotation-sensitivity band. This record does not compute a score.",
+    "unknown": "An unresolved disagreement in the review obligation is not sealed. A disagreement outside the sample has outcome unknown.",
+    "sample": "coverage entire has an empty sample. coverage sample lists the predeclared frames. Difficult disagreements stay in the obligation even when absent from the sample."
+  },
+  "$defs": {
+    "sensitivity-band": {
+      "type": "object",
+      "description": "The two label documents a later score can be computed against. This object is not a score.",
+      "additionalProperties": false,
+      "required": [
+        "left_sha256",
+        "right_sha256"
+      ],
+      "properties": {
+        "left_sha256": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+          "description": "Left label document hash."
+        },
+        "right_sha256": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+          "description": "Right label document hash."
+        }
+      },
+      "x-rules": {
+        "band": "Scores against these two documents are the annotation-sensitivity band. This record does not compute them."
+      }
+    },
+    "reviewer": {
+      "type": "object",
+      "description": "One label document in the comparison.",
+      "additionalProperties": false,
+      "required": [
+        "side",
+        "label_sha256",
+        "annotator_ids"
+      ],
+      "properties": {
+        "side": {
+          "type": "string",
+          "description": "Which document this is.",
+          "enum": [
+            "left",
+            "right"
+          ]
+        },
+        "label_sha256": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+          "description": "SHA-256 of the canonical JSON of this label document."
+        },
+        "annotator_ids": {
+          "type": "array",
+          "minItems": 1,
+          "description": "Annotator ids on this document, sorted.",
+          "items": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+            "description": "One annotator id."
+          }
+        }
+      }
+    },
+    "sample-item": {
+      "type": "object",
+      "description": "One predeclared instance frame.",
+      "additionalProperties": false,
+      "required": [
+        "instance_id",
+        "frame_index"
+      ],
+      "properties": {
+        "instance_id": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+          "description": "Instance the sample names."
+        },
+        "frame_index": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Zero-based frame index in the decoded source."
+        }
+      }
+    },
+    "disagreement": {
+      "type": "object",
+      "description": "One field that differs between the two label documents. left and right are canonical JSON.",
+      "additionalProperties": false,
+      "required": [
+        "subject",
+        "instance_id",
+        "frame_index",
+        "event_id",
+        "field",
+        "left",
+        "right",
+        "difficult",
+        "obligation",
+        "outcome",
+        "rationale"
+      ],
+      "properties": {
+        "subject": {
+          "type": "string",
+          "description": "What the field belongs to.",
+          "enum": [
+            "instance",
+            "frame",
+            "event"
+          ]
+        },
+        "instance_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+          "description": "Instance id. Null for a motion event."
+        },
+        "frame_index": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Frame index. Null except for a frame."
+        },
+        "event_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+          "description": "Motion event id. Null except for an event."
+        },
+        "field": {
+          "type": "string",
+          "description": "The field that differs. presence means one side lacks the subject.",
+          "enum": [
+            "presence",
+            "class_id",
+            "identity",
+            "non_scoring_mark",
+            "visibility",
+            "camera_motion",
+            "geometry.kind",
+            "geometry.box",
+            "geometry.amodal_box",
+            "geometry.point",
+            "geometry.uncertainty_px",
+            "geometry.plausible_extent_px",
+            "instance_id",
+            "onset_frame",
+            "onset_uncertainty_frames",
+            "selection_quality",
+            "reentry"
+          ]
+        },
+        "left": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Canonical JSON of the left value. Null is the four characters null."
+        },
+        "right": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Canonical JSON of the right value. Null is the four characters null."
+        },
+        "difficult": {
+          "type": "boolean",
+          "description": "True when one side lacks the subject, or a label marks the case uncertain, so a sample cannot leave it out."
+        },
+        "obligation": {
+          "type": "string",
+          "description": "required blocks an unsettled freeze. outside stays unknown.",
+          "enum": [
+            "required",
+            "outside"
+          ]
+        },
+        "outcome": {
+          "type": "string",
+          "description": "compare leaves this unresolved. freeze records left, right or unknown.",
+          "enum": [
+            "unresolved",
+            "left",
+            "right",
+            "unknown"
+          ]
+        },
+        "rationale": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1,
+          "description": "Why this outcome was recorded. Null on compare, and null when an uncovered disagreement stays unknown."
+        }
+      }
+    }
+  }
+}

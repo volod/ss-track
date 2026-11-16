@@ -1,0 +1,103 @@
+syntax = "proto3";
+
+package ss_track.event.wire.v1;
+
+import "clock.proto";
+import "contract_options.proto";
+
+option (ss_track.contract.v1.contract_urn) = "urn:ss-track:contract:event:wire:1.0.0";
+
+// Top-left origin, half-open extent, in a named image space.
+message Box {
+  // Named raw or transformed image space. For a staged frame, the FrameRef transform.
+  string space = 1 [json_name = "space"];
+  double x = 2 [json_name = "x"];
+  double y = 3 [json_name = "y"];
+  // Half-open width in pixels. A non-positive extent is rejected.
+  double width = 4 [json_name = "width"];
+  // Half-open height in pixels. A non-positive extent is rejected.
+  double height = 5 [json_name = "height"];
+}
+
+// A pixel point and its uncertainty in one named image space.
+message Point {
+  string space = 1 [json_name = "space"];
+  double x = 2 [json_name = "x"];
+  double y = 3 [json_name = "y"];
+  // Non-negative uncertainty in pixels.
+  optional double uncertainty = 4 [json_name = "uncertainty"];
+}
+
+message TargetSelection {
+  ss_track.event.clock.v1.EventRef ref = 1 [json_name = "ref"];
+  string instance_id = 2 [json_name = "instance_id"];
+  Box box = 3 [json_name = "box"];
+}
+
+message Detection {
+  string class_id = 1 [json_name = "class_id"];
+  // Confidence that the box is this class. Not a track-existence probability.
+  optional double class_confidence = 2 [json_name = "class_confidence"];
+  Box box = 3 [json_name = "box"];
+}
+
+enum TrackUpdate {
+  TRACK_UPDATE_UNSPECIFIED = 0;
+  MEASURED = 1;
+  PREDICTED = 2;
+  LOST = 3;
+  // Prefixed because proto3 enum names share a package and AdvisoryKind also abstains.
+  TRACK_ABSTAIN = 4;
+}
+
+message TrackState {
+  string track_id = 1 [json_name = "track_id"];
+  TrackUpdate update = 2 [json_name = "update"];
+  // Confidence the track exists. Distinct from class_confidence.
+  optional double presence_confidence = 3 [json_name = "presence_confidence"];
+  Box box = 4 [json_name = "box"];
+}
+
+// Acknowledges exactly one input frame. An empty valid result has no detections
+// and no tracks. A missing result is the absence of this message, not an empty one.
+message FrameResult {
+  ss_track.event.clock.v1.EventRef ref = 1 [json_name = "ref"];
+  repeated Detection detections = 2 [json_name = "detections"];
+  repeated TrackState tracks = 3 [json_name = "tracks"];
+}
+
+enum AdvisoryKind {
+  ADVISORY_KIND_UNSPECIFIED = 0;
+  CENTER = 1;
+  HOLD = 2;
+  SEARCH = 3;
+  ABORT = 4;
+  ADVISORY_ABSTAIN = 5;
+}
+
+// An image-plane recommendation. G0 and G1 have no actuator endpoint.
+message AdvisoryAction {
+  ss_track.event.clock.v1.EventRef ref = 1 [json_name = "ref"];
+  AdvisoryKind kind = 2 [json_name = "kind"];
+  string instance_id = 3 [json_name = "instance_id"];
+  // How far ahead the recommendation looks, in seconds.
+  optional double horizon_seconds = 4 [json_name = "horizon_seconds"];
+  // Confidence in the recommendation. Not a detection or track probability.
+  optional double action_confidence = 5 [json_name = "action_confidence"];
+  string reason = 6 [json_name = "reason"];
+  Point aim = 7 [json_name = "aim"];
+}
+
+enum RunCode {
+  RUN_CODE_UNSPECIFIED = 0;
+  MODULE_FAULT = 1;
+  RUNNER_INVALID = 2;
+  UNSUPPORTED = 3;
+  NOT_SCOREABLE = 4;
+}
+
+message RunEvent {
+  ss_track.event.clock.v1.EventRef ref = 1 [json_name = "ref"];
+  RunCode code = 2 [json_name = "code"];
+  string reason = 3 [json_name = "reason"];
+}

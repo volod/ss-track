@@ -398,8 +398,18 @@ supported robots, sensors, domains, and compute platforms grow.
 ## Development
 
 The benchmark capabilities above are planned. Today the repository provides the locked Python
-package, the `ss-track` command with [corpus source import](docs/impl/current/corpus.md), and the
-quality and planning infrastructure the rest will be built on.
+package and the `ss-track` command. It imports declared sources and builds, stages and verifies
+[corpus versions](docs/impl/current/corpus.md) with their generated cases. It proposes and
+reviews candidate windows for a
+[self-supervised corpus](docs/impl/current/corpus/discovery-runs.md), and it reads the published
+[data contracts](docs/impl/current/contracts.md). `ss-track annotate` validates labels, operator
+seeds and masks, settles two annotators' documents into one
+[frozen label revision](docs/impl/current/corpus.md#annotation-review), and derives the labels of
+each [generated case](docs/impl/current/corpus.md#derived-case-labels). A draft
+[scenario pack](docs/impl/current/corpus.md#scenario-pack) for the aerial-small-objects mission
+names classes only. Its extents, access policy, non-disturbance envelope and Phase 2 declarations
+stay unset until the owner approves them. No run, evaluation or report exists yet. The
+[current-state index](docs/impl/current.md) lists what each area provides.
 
 ### Quick start
 
@@ -472,6 +482,9 @@ src/ss_track/              production package; cli.py is its entry point
   commands/                command groups and the one JSON record each command reports
   corpus/                  import, decode, versions, staged bundles, cases, descriptors,
                            discovery, link review and corpus review
+  annotate/                scenario packs, labels, seeds and masks, label review and freeze,
+                           and the labels of generated cases
+  contract/                event packages, their bindings, line checks and breaking gate
   schema/                  the contract registry, validation, compatibility gate and views
   quality/                 documentation and plan checks
 tests/                     unit and governance tests

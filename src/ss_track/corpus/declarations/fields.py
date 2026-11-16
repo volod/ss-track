@@ -82,12 +82,28 @@ class Fields:
     def index(self, key: str) -> int:
         return self._get(key, int)
 
+    def nullable_index(self, key: str) -> int | None:
+        """Read a required integer or an explicit null."""
+        if self._raw[key] is None:
+            return None
+        return self.index(key)
+
+    def number(self, key: str) -> float:
+        """Read a required number. An integer declaration is that number."""
+        return float(self._get(key, (int, float)))
+
     def scalar(self, key: str) -> _Scalar | None:
         """Read an optional descriptive value, keeping an absent one as unknown."""
         return cast(_Scalar, self._get(key, (str, int, float))) if self.has(key) else None
 
     def child(self, key: str) -> "Fields":
         return Fields(self._raw[key], f"{self._where}.{key}")
+
+    def nullable_child(self, key: str) -> "Fields | None":
+        """Read a required object or an explicit null."""
+        if self._raw[key] is None:
+            return None
+        return self.child(key)
 
     def optional_child(self, key: str) -> "Fields":
         """Read a nested mapping, treating an absent one as empty."""

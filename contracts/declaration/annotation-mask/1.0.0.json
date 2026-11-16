@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ss-track:contract:declaration:annotation-mask:1.0.0",
+  "title": "Annotation mask",
+  "description": "The frozen eligibility and exclusion mask for one label document. Each labeled frame is repeated with the status validation assigned. An unverifiable frame stays unscorable. This document holds no numeric score, so that frame cannot be stored as zero.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "mask_id",
+    "label_sha256",
+    "frames",
+    "episodes"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1,
+      "minimum": 0,
+      "x-unit": "1",
+      "description": "Declaration major."
+    },
+    "mask_id": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+      "description": "Stable name of this mask."
+    },
+    "label_sha256": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+      "description": "Hash of the validated label document this mask freezes."
+    },
+    "frames": {
+      "type": "array",
+      "minItems": 1,
+      "description": "One row per labeled frame. The disposition and reason match the label rule.",
+      "items": {
+        "$ref": "#/$defs/mask-frame",
+        "description": "One labeled frame."
+      }
+    },
+    "episodes": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Eligibility of each instance over a half-open window. Every labeled frame sits in exactly one episode.",
+      "items": {
+        "$ref": "#/$defs/episode",
+        "description": "One episode."
+      }
+    }
+  },
+  "x-rules": {
+    "label": "label_sha256 is the hash of the label file.",
+    "frames": "One row per labeled instance frame. The disposition and reason match the label rule. A row that calls an unscorable frame scorable is refused. The document has no score field.",
+    "episodes": "start_frame is strictly before end_frame and the window lies inside the source. Every labeled frame sits in exactly one episode of its instance. An eligible episode contains a scorable frame and states no exclusion reason. An excluded episode states a reason."
+  },
+  "$defs": {
+    "mask-frame": {
+      "type": "object",
+      "description": "The frozen status of one labeled frame.",
+      "additionalProperties": false,
+      "required": [
+        "instance_id",
+        "frame_index",
+        "disposition",
+        "reason"
+      ],
+      "properties": {
+        "instance_id": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+          "description": "The labeled instance."
+        },
+        "frame_index": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Zero-based source frame."
+        },
+        "disposition": {
+          "type": "string",
+          "enum": [
+            "scorable",
+            "unscorable",
+            "not_denominator"
+          ],
+          "description": "scorable can enter a primary localization denominator later. unscorable is unverifiable. not_denominator is verifiable and is not that denominator. None of these is a number."
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "identity_ambiguous",
+            "unknown_mark",
+            "ignore_region",
+            "unknown",
+            "fully_occluded",
+            "out_of_view",
+            "absent",
+            "unlocalizable",
+            "no_plausible_extent",
+            null
+          ],
+          "description": "Why the frame is unscorable or withheld. Null when the frame is scorable."
+        }
+      }
+    },
+    "episode": {
+      "type": "object",
+      "description": "Whether one instance's window is eligible.",
+      "additionalProperties": false,
+      "required": [
+        "episode_id",
+        "instance_id",
+        "start_frame",
+        "end_frame",
+        "eligibility",
+        "exclusion_reason"
+      ],
+      "properties": {
+        "episode_id": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+          "description": "Stable name of this episode."
+        },
+        "instance_id": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+          "description": "The instance this window covers."
+        },
+        "start_frame": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "1",
+          "description": "Inclusive start frame."
+        },
+        "end_frame": {
+          "type": "integer",
+          "minimum": 1,
+          "x-unit": "1",
+          "description": "Exclusive end frame."
+        },
+        "eligibility": {
+          "type": "string",
+          "enum": [
+            "eligible",
+            "excluded"
+          ],
+          "description": "eligible requires a scorable frame in the window. excluded keeps those frames out of a later denominator."
+        },
+        "exclusion_reason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1,
+          "description": "Why the episode is excluded. Null when it is eligible.",
+          "x-rules": {
+            "text": "Holds a character other than whitespace: text that is only whitespace is refused."
+          }
+        }
+      }
+    }
+  }
+}

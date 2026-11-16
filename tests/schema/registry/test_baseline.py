@@ -108,6 +108,8 @@ def _numeric_quantity(node: Any) -> bool:
 def test_all_numeric_quantities_and_color_codes_are_annotated() -> None:
     contracts = load_contract_set()
     for contract in contracts.contracts:
+        if contract.family == "event":
+            continue
         for version in contract.versions:
             schema = contracts.frozen_schema(contract, version)
             for node in walk(schema):
@@ -153,7 +155,7 @@ def test_examples_cover_every_frozen_document_contract() -> None:
     examples = EXAMPLES
     contracts = load_contract_set()
     for contract in contracts.contracts:
-        if contract.family == "shared" or not contract.versions:
+        if contract.family in {"shared", "event"} or not contract.versions:
             continue
         path = examples / f"{contract.family}-{contract.contract_id}.json"
         assert validate_file(path, contract_name=contract.name)

@@ -25,6 +25,9 @@ VECTORS_SUFFIX = ".f32"
 MANIFEST_NAME = "manifest.json"
 FRAME_SET_NAME = "frame-set.json"
 FREEZE_NAME = "freeze.json"
+LABELS_DIRECTORY = "labels"
+LABELS_NAME = "labels.json"
+LABEL_REVISION_NAME = "revision.json"
 BLINDING_NAME = "blinding.json"
 FREEZE_LOCK = ".freeze.lock"
 _REPLACED_SUFFIX = ".json"
@@ -73,6 +76,21 @@ def frame_set_path(data_root: Path, corpus_id: str) -> Path:
 def freeze_path(data_root: Path, corpus_id: str) -> Path:
     """Return a frozen corpus version's freeze record, beside its manifest."""
     return corpus_directory(data_root, corpus_id) / FREEZE_NAME
+
+
+def labels_directory(data_root: Path, corpus_id: str) -> Path:
+    """Return the directory of frozen and derived label revisions for one corpus."""
+    return corpus_directory(data_root, corpus_id) / LABELS_DIRECTORY
+
+
+def label_document_path(data_root: Path, corpus_id: str, owner_id: str) -> Path:
+    """Return the label document of one stream or one generated case."""
+    return labels_directory(data_root, corpus_id) / owner_id / LABELS_NAME
+
+
+def label_revision_path(data_root: Path, corpus_id: str, owner_id: str) -> Path:
+    """Return the sealed label revision of one stream or one generated case."""
+    return labels_directory(data_root, corpus_id) / owner_id / LABEL_REVISION_NAME
 
 
 def descriptions_directory(data_root: Path, corpus_id: str) -> Path:

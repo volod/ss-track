@@ -1,0 +1,62 @@
+# Draft mission pack. Roles, the parent link and the platform list are unapproved
+# placeholders so this file can validate. approve-mission-scenario-pack replaces them.
+# Minimum extents, extent bins, the access policy, non-disturbance envelopes and
+# phase2 are unset on purpose. This file names no species and no envelope value.
+schema_version: 1
+pack_id: aerial-small-objects
+classes:
+  - class_id: bird
+    name: bird
+    role: scoring
+    parent_class_id: null
+  - class_id: bird-of-prey
+    name: bird of prey
+    role: scoring
+    parent_class_id: bird
+  - class_id: drone
+    name: drone
+    role: scoring
+    parent_class_id: null
+  - class_id: aircraft
+    name: aircraft
+    role: scoring
+    parent_class_id: null
+  - class_id: insect
+    name: insect
+    role: distractor
+    parent_class_id: null
+  - class_id: clutter
+    name: clutter
+    role: ignore
+    parent_class_id: null
+vocabulary:
+  visibility:
+    - visible
+    - partially_occluded
+    - fully_occluded
+    - out_of_view
+    - absent
+    - unknown
+  geometry:
+    - box
+    - point_only
+    - unlocalizable
+  camera_motion:
+    - static
+    - translation_or_pan
+    - shake
+    - unknown
+  non_scoring_mark:
+    - distractor
+    - ignore_region
+    - unknown
+  activity: []
+limits:
+  min_box_extent_px: null
+  min_point_extent_px: null
+  extent_bins: []
+observer_platform_strata:
+  - ground_fixed
+  - ground_handheld
+  - airborne
+  - unknown

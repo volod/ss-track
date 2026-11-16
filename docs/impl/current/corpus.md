@@ -12,7 +12,10 @@ or twice in one group, under different source hashes.
 `ss-track corpus hashes` and `ss-track corpus compare` show whether two hosts staged the same
 bytes. Each command produces a complete record or a structured refusal, and none invents a value
 it could not establish.
-Annotation does not exist yet; the [plan](../plan.md) schedules it. The task records keep the accepted
+`ss-track annotate validate`, `compare`, `freeze` and `derive` check labels, seeds and masks
+against a scenario pack and the source, settle two annotators' documents into one frozen
+revision, and give each generated case its own label revision. Labelling itself is human work,
+which the [plan](../plan.md) schedules. The task records keep the accepted
 tasks, their decisions and their acceptance evidence:
 [import and corpus build](../records/0001-corpus-provenance-corpus-manifest-import.md),
 [frame staging](../records/0002-corpus-provenance-frame-bundle-staging.md),
@@ -29,9 +32,10 @@ tasks, their decisions and their acceptance evidence:
 [source terms amendment](../records/0014-corpus-provenance-source-terms-amendment.md),
 [source capture inspection](../records/0086-corpus-provenance-source-capture-inspection.md),
 [amendment impact](../records/0034-corpus-provenance-amendment-impact-report.md),
-[record read gate](../records/0016-data-contracts-record-read-gate.md) and the
+[record read gate](../records/0016-data-contracts-record-read-gate.md), the
 [corpus provenance group audits](../records/0049-corpus-provenance-corpus-provenance-audit.md)
-([second pass](../records/0091-corpus-provenance-corpus-provenance-audit.md)).
+([second pass](../records/0091-corpus-provenance-corpus-provenance-audit.md)) and the
+[annotation group audit](../records/0098-annotation-selection-annotation-selection-audit.md).
 
 The available corpus path imports declared sources and stages reviewed selections. `ss-track discover`
 proposes candidate windows of staged frames from pinned sibling embeddings and ss-video hints, scores
@@ -341,11 +345,12 @@ traceback. Import and stage remove their scratch before that record is written:
 ## Declarations
 
 Each file is checked in full against its contract on read, `declaration/recording` 3.0.0 and
-`declaration/corpus` 3.3.0, before any reader takes a value from it. A recording may carry optional
-`origin`. An import omits it when the declaration has none, and an amendment or redecode that drops
-a recorded origin is refused. Both contracts reject unknown fields, repeated keys, non-finite
-numbers and any other schema version, so a misspelled key cannot silently drop a fact. A recording
-is schema 3 and a corpus is schema 3. There are no defaults for rights,
+`declaration/corpus` 3.3.0, before any reader takes a value from it. A scenario pack is
+`declaration/scenario-pack` 1.0.0. See [Scenario pack](#scenario-pack). A recording may carry
+optional `origin`. An import omits it when the declaration has none, and an amendment or redecode
+that drops a recorded origin is refused. Both contracts reject unknown fields, repeated keys,
+non-finite numbers and any other schema version, so a misspelled key cannot silently drop a fact.
+A recording is schema 3 and a corpus is schema 3. There are no defaults for rights,
 sensitivity, split or scenario rights: a declaration without them is refused, and `basis` has no
 `unknown` value. A refusal names the contract version and the first violation by JSON pointer, a wrong
 `schema_version` before anything else, and its details list up to 20 violations, as
@@ -420,6 +425,401 @@ groups:
             source_sha256: "<64 hex>"
 ```
 
+### Scenario pack
+
+`declaration/scenario-pack` 1.0.0 pins the class map, annotation vocabulary, extent limits and
+observer-platform strata a later label or scenario names. `load_scenario_pack` in
+`src/ss_track/annotate/packs/load.py` reads one YAML file, applies the `x-rules` the schema cannot
+state,
+and returns one `pack_hash`. The hash is the SHA-256 of the canonical JSON of the validated
+document. Object key order and comments do not change it. Array order does. Changing a class, its
+role, a minimum extent or an extent bin changes it.
+
+The draft pack is `scenarios/packs/aerial-small-objects.yaml`. It names bird, bird of prey, drone,
+aircraft, insect and clutter. The roles, the `bird-of-prey` parent and the four observer platforms
+are unapproved placeholders so the file can validate. `approve-mission-scenario-pack` replaces
+them. Minimum box and point extents are null, the bin list is empty, and the access policy,
+non-disturbance envelopes and `phase2` object are absent. The file names no species and no envelope
+value. A class id is an identifier. The display name is separate, so `bird-of-prey` is not the
+words `bird of prey`.
+
+```bash
+ss-track contracts validate \
+  --file scenarios/packs/aerial-small-objects.yaml \
+  --contract declaration/scenario-pack
+```
+
+`contracts validate` checks structure. The loader also refuses a duplicate class id, a missing or
+cyclic parent, extent bins that do not partition pixel extent from 0 upward as half-open intervals,
+a point minimum above the box minimum, and an envelope stated without `approval.owner` and
+`approval.reference`. A class with no role fails the schema. A zone coordinate is not a field.
+Bins, when set, start at 0, meet at their edges and end with one unbounded bin. The pack has no
+extent-envelope floor, and a floor under `limits` or at the top level fails the schema. Spec
+[section 6.7](../../design/spec.md#67-small-target-extent-envelope) puts the floor on the
+scenario, one per primary measure, because a floor is a quality threshold of one suite and the
+pack hash pins frozen labels.
+
+An envelope kind is `living` or `collision`. A zone stores `zone_id`, `radius_m` and `height_m`.
+`phase2` holds `target_set`, `known_non_targets`, `unknown_set`, `identifiable_duration_s`,
+`declaration_deadline_s`, `declaration_burden_per_hour`, `target_size_m` and `stand_off_levels_m`.
+Per-class `min_identifiable_extent_px` sits on the class. Engineering defaults are not written in.
+`unknown_set: true` names no class. An absent key stays unset. Strata use the recording
+vocabulary: `ground_fixed`, `ground_handheld`, `airborne` and `unknown`.
+
+The closed vocabulary is visibility, geometry, camera motion and the non-scoring mark
+(`distractor`, `ignore_region`, `unknown`). `activity` stays empty until a vocabulary is declared.
+Class role `ignore` is the ignore-region policy. It is not the label mark `ignore_region`.
+
+Tests are `tests/annotate/packs/test_scenario_pack.py` and `test_pack_rules.py`. The JSON
+example `tests/schema/examples/declaration-scenario-pack.json` is the draft and has the same hash.
+The [task record](../records/0092-annotation-selection-scenario-pack-contract.md) holds the
+acceptance evidence.
+
+### Annotation contract
+
+`ss-track annotate validate` checks one label, one seed or one mask against a scenario pack and
+the source modules receive. The command lives in `src/ss_track/commands/annotate.py`.
+`validate_labels`, `validate_seed` and `validate_mask` in
+`src/ss_track/annotate/validation/validate.py` read the documents and apply the rules the schemas
+leave in `x-rules`.
+
+`src/ss_track/annotate/` groups its modules by responsibility, and each subpackage imports only
+the ones listed before it. `validation` and `review` do not import each other.
+`tests/annotate/test_layering.py` holds that order.
+
+| Subpackage | Holds |
+| --- | --- |
+| `declarations` | The contract names, the one declaration hash and the checks a built document passes |
+| `sources` | The stored frames of a source, the space a document declares, and the join to a corpus stream |
+| `packs` | The scenario pack reader and its `x-rules` |
+| `labels` | The label model, its rules, dispositions, the event rule and the written document |
+| `validation` | `annotate validate`: labels, seeds and masks |
+| `review` | `annotate compare` and `freeze`: disagreements, settlement and the sealed revision |
+| `derivation` | `annotate derive`: a generated case's labels from its parent's frozen revision |
+
+`declaration/annotation-label` 1.0.2 is the label document: visibility, geometry, instance
+identity and motion events. `declaration/annotation-seed` 1.0.2 is the operator selection and its
+perturbations. `declaration/annotation-mask` 1.0.0 repeats every labeled frame and the episodes
+that cover those frames. Each document hash is the SHA-256 of the canonical JSON, the same rule as
+the pack hash. Key order and comments do not change it. Array order does.
+
+`result/command` 1.30.0 adds optional `annotation` to a successful validation. `version` is the
+frozen contract version the document was validated under, the newest of its major. The object
+carries the document hash, `pack_hash` for a label, `replay_sha256` for a seed, and one entry per labeled
+frame, seed role or mask frame. An entry is `scorable`, `unscorable` or `not_denominator`, with a
+reason when it has one. The object has no `score` field. An unscorable frame and a withheld frame
+have no numeric score.
+
+Coordinates are stored pixels. Decoded pixels are not rotated, so the stored orientation is 0
+degrees. `display_rotation_degrees` is copied from the source, including its sign, and is not
+applied to the coordinates. A document whose orientation is anything else is refused. Its width,
+height, frame count, source hash and display rotation must match the source. A box is half-open
+and lies inside the frame. An amodal box is a separate field, and a null amodal box stays null.
+
+A class id has the shape of an identifier. The pinned pack states the values and the role. The
+label's `pack_id` and `pack_hash` must be that pack. A scoring class has a null mark. A distractor
+class uses `distractor` or `unknown`. An ignore class uses `ignore_region` or `unknown`. A
+distractor with a reviewed box is scorable. An ignore region is `not_denominator`.
+
+The reported reason is the first match of spec
+[section 4.2](../../design/spec.md#42-annotation-contract): identity ambiguity, an unknown mark,
+an ignore region, unknown visibility, full occlusion, out of view or absence, unlocalizable
+geometry, then a point with no plausible extent. A visibility other than `visible` or
+`partially_occluded` that carries a box or a point is refused. Seed quality is `as_clicked`,
+`imprecise` or `corrected`. Modules receive the correction when quality is `corrected`, and the
+original selection otherwise. Replay lists that selection and then each perturbation, and it
+excludes the annotator id. The same document, including a reordered file or a comment, has the
+same replay hash. A perturbation that does not move the selection, uses the id `primary`, or
+leaves the stored frame is refused.
+
+A mask repeats each label disposition. An eligible episode contains a scorable frame and states
+no exclusion reason. An excluded episode states a reason. Every labeled frame sits in exactly one
+episode. A mask that calls an unscorable frame scorable is refused.
+
+`--source` is one video file or one retained image-sequence directory. The identity is the one a
+corpus stream names. A video file's identity is its file hash. A file that holds more than one
+video stream is `VIDEO_STREAM_UNSPECIFIED` until `--video-stream-index` names one, counted from
+zero among video streams. Index 0 keeps the file hash. A later stream's identity is its
+[stream identity](#two-cameras-of-one-file), the value `import` reports for that camera, and the
+file hash is then refused. An index on a sequence is refused. A sequence directory is the one
+import retains, with `index.json` and the ordered images. Its identity is the sequence identity: the
+SHA-256 of the canonical JSON of those ordered image hashes. Paths and frame rate do not change
+it. Validation hashes each image, then decodes it, so width, height, display rotation, frame
+count and timing come from the stored pixels. A label, seed or mask whose `source_sha256` is a
+file hash, or any other hash, is `MANIFEST_INVALID`. A directory with no sequence inventory is
+`SOURCE_NOT_FOUND`; order is not inferred from filenames. An image whose bytes differ from the
+inventory is `SOURCE_HASH_MISMATCH`. Contracts 1.0.1 and 1.0.2 state those identities. The
+document `schema_version` stays 1. `--labels` is required for a seed or a mask.
+
+```bash
+ss-track annotate validate \
+  --kind label \
+  --file labels.yaml \
+  --pack scenarios/packs/aerial-small-objects.yaml \
+  --source clip.mp4
+ss-track annotate validate \
+  --kind label \
+  --file labels.yaml \
+  --pack scenarios/packs/aerial-small-objects.yaml \
+  --source "$DATA_DIR/import/<identity>/source.sequence"
+```
+
+Tests are under `tests/annotate/`: `labels/test_disposition.py`, `test_annotation_labels.py`,
+`test_annotation_vocabulary.py` and `test_events.py`, `validation/test_annotation_seeds.py`,
+`test_annotation_masks.py` and `test_annotate_command.py`, and
+`sources/test_annotation_sequence.py` and `test_video_stream.py`. The examples are
+`tests/schema/examples/declaration-annotation-label.json`,
+`declaration-annotation-seed.json` and `declaration-annotation-mask.json`. The
+[task record](../records/0093-annotation-selection-annotation-contract.md) holds the acceptance
+evidence. Sequence sources are the
+[task record](../records/0097-annotation-selection-annotation-sequence-source.md). The group
+audit, with the later video stream, is the
+[task record](../records/0098-annotation-selection-annotation-selection-audit.md).
+
+### Annotation review
+
+`ss-track annotate compare` reports every field that differs between two label documents of one
+source and one pack. `ss-track annotate freeze` records a decision for each required disagreement
+and writes one label document plus a sealed revision. Both commands live in
+`src/ss_track/commands/annotate.py`. `compare_labels` and `freeze_labels` in
+`src/ss_track/annotate/review/freeze.py` load the documents. `compare_label_sets` in
+`src/ss_track/annotate/review/compare.py` builds the rows.
+
+A disagreement is one field whose canonical JSON differs. The annotator id and the label id are
+not disagreements. Equal numbers, including `1` and `1.0`, are not a disagreement. Presence means
+one document lacks the instance, the frame or the motion event. The other fields of a missing
+subject are not listed. Rows are ordered by subject, then id, with presence before the other
+fields of that subject.
+
+`declaration/annotation-review` 1.0.0 is the review plan. Coverage `entire` lists no sample
+frames. Coverage `sample` may be empty, which reviews only difficult disagreements. A sample
+names each frame once, and each named instance is in one of the two documents.
+`declaration/annotation-settlement` 1.0.0 records one decision per settled disagreement. The
+outcome is `left`, `right` or `unknown`, and the rationale is not blank. The authority matches
+the review. A decision that names no disagreement, or a duplicate decision, is refused.
+
+A disagreement is difficult when it is presence, or when either label marks identity
+`identity_ambiguous`, a mark or a visibility `unknown`, geometry `unlocalizable`, or a
+motion-event selection `uncertain`. Compare succeeds when the documents can be compared, including
+when they differ. Its status is `valid`. A required disagreement with no decision blocks the
+freeze with `MANIFEST_INVALID`. A disagreement outside the review stays `unknown` and does not
+block it.
+
+The frozen label id is the settlement revision id. Every frozen frame's annotator id is the
+review authority. An unknown frame is visibility `unknown` and geometry `unlocalizable`. Camera
+motion stays independent: an agreed camera is kept, and an unknown camera is `unknown`. Any other
+unknown frame field wipes visibility and geometry. An unknown class keeps the left class, sets
+identity to `identity_ambiguous`, and keeps a mark the role allows. An unknown identity is
+`identity_ambiguous`. A class and a mark the pack cannot combine are refused. Adopting one side
+of a one-sided subject keeps that side. Omitting it leaves the subject out. Unknown presence
+keeps an unknown frame or an `identity_ambiguous` instance. An instance with no remaining frame
+is refused, and a revision with no instance is refused.
+
+An unknown motion-event field other than selection quality drops the event, as does a presence
+decision that omits it. Unknown selection quality keeps the event and marks it `uncertain`. Event
+visibility then follows the frozen frame. A visibility change, or re-entry on a frame that is not
+`visible` or `partially_occluded`, clears re-entry and marks the selection `uncertain`. An event
+whose onset frame was not frozen is refused. `follow_frame` in
+`src/ss_track/annotate/labels/events.py` is that rule, and [derivation](#derived-case-labels)
+applies the same function.
+
+`record/annotation-revision` 1.0.2 seals the revision. The sensitivity band is the two annotator
+document hashes, left then right. The record also pins the review, the settlement, the pack, the
+source, the sample and every disagreement with its outcome and rationale. It computes no score.
+The label hash is the declaration hash of the frozen document. The revision hash is the record
+seal. Instance order in the inputs does not change the label hash.
+
+A frozen revision is written once. The two output paths must differ, and neither may be a file
+the freeze reads: a label document, the pack, the source, the review or the settlement. That is
+`MANIFEST_INVALID` and names the input. The same freeze to the same paths changes nothing and
+reports the same hashes. A path that already holds other bytes is `CORPUS_CONFLICT`, and neither
+file is written, so a frozen revision is never replaced: freeze a corrected settlement to another
+path, or build the corpus version that supersedes this one. The label document is written before
+the revision. A run killed between the two leaves no revision, which
+[derivation](#derived-case-labels) reads as not frozen, and the same freeze again completes it.
+`write_once` and `holds_payload` in `src/ss_track/core/scratch.py` are the shared rule, which
+`discover export` uses too.
+
+`result/command` 1.31.0 adds optional `label_review`. Compare has no label hash and no output
+paths. Freeze adds `label_sha256`, `revision_sha256`, `labels_path` and `revision_path`. The
+object has no `score` field.
+
+`--source` and `--video-stream-index` name the source as
+[validation](#annotation-contract) does. Compare and freeze check both label documents against
+that identity and those stored pixels. A file hash on a sequence or on a later video stream, or
+the sequence identity on a video file, is refused.
+
+A freeze can name a corpus stream instead: `--corpus <corpus-id> --stream <stream-id>` replaces
+`--source`, `--video-stream-index`, `--labels-out` and `--revision-out`. It reads the source
+`import` stored for that stream, hashing it again, at the video stream the source record names.
+It writes `$DATA_DIR/corpus/<corpus-id>/labels/<stream-id>/labels.json` and `revision.json`,
+where [derivation](#derived-case-labels) reads them. Before writing, it requires the decoded
+`width`, `height` and `frame_count` to equal the corpus stream's, so labels validated under
+another decode than the corpus pinned are `MANIFEST_INVALID`. The two forms cannot be mixed, the
+two stream options are given together, and a generated case id is refused because its labels are
+derived. `stream_target` in `src/ss_track/annotate/sources/corpus_stream.py` resolves the stream.
+The hashes equal those of the same freeze named by paths.
+
+Freezing a long track stays linear in its frames: the rows a decision left unknown are indexed
+once. On one instance of 6,000 frames with a box disagreement on every frame, building the frozen
+document took 1.07 s when each frame scanned every row and takes 0.03 s now, with the same
+document.
+
+```bash
+ss-track annotate compare \
+  --left left.yaml \
+  --right right.yaml \
+  --pack scenarios/packs/aerial-small-objects.yaml \
+  --source clip.mp4 \
+  --review review.yaml
+ss-track annotate freeze \
+  --left left.yaml \
+  --right right.yaml \
+  --pack scenarios/packs/aerial-small-objects.yaml \
+  --source clip.mp4 \
+  --review review.yaml \
+  --settlement settlement.yaml \
+  --labels-out labels.json \
+  --revision-out revision.json
+ss-track annotate freeze \
+  --left left.yaml \
+  --right right.yaml \
+  --pack scenarios/packs/aerial-small-objects.yaml \
+  --review review.yaml \
+  --settlement settlement.yaml \
+  --corpus pilot-v1 \
+  --stream one
+```
+
+Tests are under `tests/annotate/review/`: `test_annotation_review.py`,
+`test_annotation_freeze.py`, `test_annotation_freeze_refusal.py`, `test_frozen_outputs.py`,
+`test_frozen_sides.py`, `test_stream_freeze.py` and `test_annotate_review_command.py`, with
+`tests/annotate/sources/test_annotation_sequence.py` and `test_video_stream.py` for the other
+sources. The examples are
+`tests/schema/examples/declaration-annotation-review.json`,
+`declaration-annotation-settlement.json` and `record-annotation-revision.json`. The
+[task record](../records/0094-annotation-selection-annotation-review-tools.md) holds the
+acceptance evidence. Sequence sources for compare and freeze are the
+[task record](../records/0097-annotation-selection-annotation-sequence-source.md).
+
+### Derived case labels
+
+`ss-track annotate derive` writes one label document and one sealed revision for each generated
+case. The command is in `src/ss_track/commands/annotate.py`. `derive_corpus` in
+`src/ss_track/annotate/derivation/derive.py` reads the built corpus and the pack named by
+`--pack`.
+
+The parent's frozen revision is placed at
+`$DATA_DIR/corpus/<corpus-id>/labels/<stream-id>/labels.json` beside `revision.json`, which
+`annotate freeze --corpus <corpus-id> --stream <stream-id>` writes. That revision is
+`record/annotation-revision`. A missing file leaves every case of that parent
+`unscorable`, reason `no_frozen_labels`. The command status is still `derived`. An unscorable case
+has no hashes, no paths and no score, and it is not a zero. A label document whose declaration
+hash is not the revision's `label_sha256` is `MANIFEST_INVALID`. A damaged revision seal is
+`RECORD_TAMPERED`.
+
+The parent's frozen labels are joined to the stream they sit under. Their `source_sha256`,
+`width`, `height` and `frame_count` must equal the corpus stream's, which states the identity
+[validation](#annotation-contract) checks and the frame shape the corpus's pinned decode gave.
+Labels of another source, or of another decode of this one, are `MANIFEST_INVALID`, naming the
+fact and both values, before any case is written. `require_stream` in
+`src/ss_track/annotate/sources/declared_space.py` is that check, beside the one that joins a
+document to a decoded source. Stream ids and case ids share one namespace in a corpus version, so
+a stream's labels and a case's labels never share a directory.
+
+Derived files are `$DATA_DIR/corpus/<corpus-id>/labels/<case-id>/labels.json` and `revision.json`.
+The label id is the case id. Annotator ids, the source hash, orientation, display rotation and
+frame count stay the parent's. Width and height change only for `scale`. The document is
+`declaration/annotation-label` 1.0.1, and its hash is the declaration hash. The revision is
+`record/derived-label` 1.0.0 (`ss-track.derived-label`). It pins the parent revision seal, the
+parent label hash, the pack, the source and the SHA-256 of the canonical JSON of the stored
+label transform. It has no score. Derived labels are not edited by hand.
+
+Every case is checked before any case is written, under
+`$DATA_DIR/corpus/<corpus-id>/labels/.derive.lock`. A refusal leaves files already written in
+place. The command does not decode the case. A derived document passes the label contract and
+every label rule but the source join, which its parent already passed. Derived files are
+rewritten on each run, because they are a function of the corpus manifest, the parent revision
+and this code. A change to a derivation rule therefore changes the hashes the next run seals.
+
+A motion event follows its frame by the rule a [freeze](#annotation-review) applies. It takes the
+frame's visibility, re-entry holds only on a `visible` or `partially_occluded` frame, and either
+change marks the selection `uncertain`, because the event is no longer the reviewed onset. An
+event on a frame the case removed is left out.
+
+A transform that touches every frame rebuilds each track in one pass. On one instance of 6,000
+frames, deriving a `scale`, a `translate` or a `region_status` case took about 1.65 s when each
+frame replaced its track, and takes 0.01 to 0.05 s now, with the same labels.
+
+`identity` and `compression` do not move geometry. `timing` does not move geometry and records
+`timestamp_quality` `derived`. A `frame_map` drops labels on removed indexes. A repeated frame
+takes the labels of `content_frame_index`, and the revision records `derived` because that
+frame's presentation time is no longer measured. An instance with no remaining frame is dropped.
+A derivation that leaves no instance is refused. `translate` shifts by the stored offsets, clips
+to the frame and sets that frame's camera motion to `shake`. A box or point that leaves the frame
+is `out_of_view` and unlocalizable. A partial clip keeps the visibility and the clipped box.
+
+`scale` uses the output size `ceil(n / factor)`, the same size the pixel reduction stores. A
+half-open span `[start, stop)` maps to `[start // factor, (stop - 1) // factor + 1]`, then clips
+to that frame. Uncertainty and plausible extent are divided by the factor. An extent that divides
+to zero is null. A box whose `width * height` is below `min_box_extent_px` squared becomes
+`point_only` at `x = left + (width - 1) // 2`, `y = top + (height - 1) // 2`. Its plausible
+extent is `floor(sqrt(width * height))`. A point whose divided extent is below
+`min_point_extent_px` becomes `unlocalizable` and keeps its visibility. An unset minimum does not
+convert. A null plausible extent stays null.
+
+`region_status` applies inside its half-open frame window. A box wholly inside takes `inside`.
+A box that only overlaps takes `overlap` and loses its geometry, because `overlap_geometry` is
+`unlocalizable`. A point inside takes `inside`. A frame the region does not meet stays as the
+parent labeled it. Unknown visibility stays `unknown` and is never rewritten to `absent`. The
+stored record has no sprite box, so a moving-background case does not gain sprite instances.
+
+`track_status` requires `label_revision` to equal the parent revision seal, which is
+`manifest_sha256` of `record/annotation-revision`, not the label-document hash. Each box in
+`parameters.track` must equal that instance's frozen box. A window frame absent from the track
+must not carry a scorable box. `unknown` forces visibility `unknown` and unlocalizable geometry,
+and adds the frame when the parent did not mark it, with camera motion `unknown`. `unchanged`
+and `reentry` require the stored region to equal the parent box. The target returns once, so
+re-entry is recorded once, on the first `reentry` frame, after the other edits. It is set on the
+event for that frame, or added as the event `reentry-<instance-id>-<frame>`. A later `reentry`
+frame only keeps its box. `shift` translates every instance on
+that frame, then forces the target to `out_of_view` even when a sliver would remain. `region`
+applies the rectangle to every instance on that frame except the tracked instance when
+`added_objects` is `distractor`. The copy is a new instance `copy-<instance-id>`, of the pack's
+one distractor class, mark `distractor`, and the painted rectangle is its box. The target box
+stays as the parent labeled it. A pack that does not name exactly one distractor class is refused.
+
+A case whose parameters include `plate_frame` copies that frame's pixels into each painted
+region. It is refused when, on the plate frame, any part of a scoring target's box lies inside a
+painted region, or its point does: those pixels would show a target on a frame the case calls
+`absent`. A slowly moving target therefore cannot serve as its own plate. It is also refused when
+a scoring target on the plate frame has no known location: visibility `unknown`, or
+`unlocalizable` geometry on a frame that is not `fully_occluded`, `out_of_view` or `absent`. The
+regions are the `region_status` rectangle and each `track_status` frame whose role is `region`,
+including each box `moving_removal` replaces. The check reads the parent labels, and a
+distractor or an ignore region on the plate frame is not a target. A plate frame the parent does
+not label is the operator's claim, which [case preview](#case-preview) shows. On a frame of the
+case, a target the region only overlaps takes the `overlap` status and loses its geometry, so an
+absence frame stays `unknown`. A frame with no scorable box stays `unknown`.
+
+`result/command` 1.32.0 adds status `derived` and optional `label_derivation`. One row per
+generated case follows the manifest order. A derived row names both hashes, both paths and
+`timestamp_quality`, which is `derived` or null. The object has no `score` field.
+
+```bash
+ss-track annotate derive \
+  --corpus pilot-v1 \
+  --pack scenarios/packs/aerial-small-objects.yaml
+```
+
+Tests are under `tests/annotate/derivation/`: `test_derive_labels.py`, `test_derive_track.py`,
+`test_derive_plate.py`, `test_derive_stream.py` and `test_derive_command.py`. The example is
+`tests/schema/examples/record-derived-label.json`. The
+[task record](../records/0096-annotation-selection-generated-case-labels.md) holds the acceptance
+evidence, and the
+[group audit](../records/0098-annotation-selection-annotation-selection-audit.md) the stream
+join, the event rule, the single re-entry and the plate check.
+
 ### Ordered image sequences
 
 A recording can use lossless PNG images instead of a video file. `source.path` is the image root,
@@ -463,7 +863,9 @@ none was declared, and describes it as an image sequence instead of a video stre
 retained image bytes; corpus verification retains its existing frame and source-record checks.
 Amendments can still address the identity after original images are removed using the declared
 hashes. Tests under `tests/corpus/sources/test_image_sequence.py` cover the complete flow and named
-failures; decoder fixtures live under `tests/corpus/decoding/test_image_sequence.py`. See the
+failures; decoder fixtures live under `tests/corpus/decoding/test_image_sequence.py`. Annotation
+validation, comparison and freeze read that retained directory. See
+[Annotation contract](#annotation-contract) and the
 [implementation record](../records/0090-corpus-provenance-frame-sequence-source-import.md).
 
 ### Video stream selection
@@ -1476,7 +1878,8 @@ presentation order. A `FrameRef` carries stream, source hash, frame index, PTS, 
 quality and capture-clock evidence, dimensions, pixel format, transform, bundle hash, frame name and
 frame hash, plus `content_frame_index`, the parent frame whose pixels it shows. `transform` is
 `identity` for a stream, whose pixels are as stored, with display rotation staying a record fact,
-and the transform name for a generated case. An absent PTS stays `null`. An index the bundle does
+and the transform name for a generated case. The same fields are the `event/frame` message; the
+[runner](runner.md#checking-a-line) checks a line. An absent PTS stays `null`. An index the bundle does
 not hold is `FRAME_NOT_IN_BUNDLE`.
 
 ### Dataset descriptors
@@ -1675,9 +2078,10 @@ reading a removed frame is `FRAME_NOT_IN_BUNDLE`, so a removed operator seed fra
 that avoids it. `duplicated_frames` repeats the previous frame's pixels at a frame's own index
 and PTS, with `content_frame_index` naming the frame shown. A run of repeats all show the last
 real frame, and the first frame of a selection is never repeated. Labels follow pixels, so a
-repeated frame takes the labels of the frame it shows. Such a frame's PTS is no longer a capture
-time, so a `measured` parent gives a `derived` case with no capture-clock evidence. A
-`missing` parent stays `missing`.
+repeated frame takes the labels of the frame it shows.
+[Derived case labels](#derived-case-labels) applies that stored transform to the parent's frozen
+revision. Such a frame's PTS is no longer a capture time, so a `measured` parent gives a
+`derived` case with no capture-clock evidence. A `missing` parent stays `missing`.
 `compression` keeps each frame's PTS and the parent's timestamp quality, and it hard-links frames
 outside its window. `variable_timing` keeps every pixel, so every frame hard-links. It multiplies
 the gap ending at each frame inside the window by an integer from 2 to `max_scale`. Frames before
@@ -1776,7 +2180,9 @@ directory, is `STORAGE_FAILED`.
 | `missing` | At least one frame stores no PTS. Stored values are kept and absent ones stay `null` |
 
 A `variable_timing` case is always `derived` and stores no capture-clock evidence. A `compression`
-case does not change presentation time, so it keeps the parent's quality.
+case does not change presentation time, so it keeps the parent's quality. The derived label
+revision records the same claim: `derived` for timing and for a repeated frame, and null for
+compression. [Derived case labels](#derived-case-labels) states the label revision.
 
 Duplicate or decreasing PTS is `PTS_NON_INCREASING`, naming the first offending frame. Capture-clock
 evidence for a stream with missing PTS is `TIMESTAMP_CLAIM_UNSUPPORTED`. Under `nofillin`, AVI and

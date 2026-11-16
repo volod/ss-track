@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from ss_track.core.refusal import JsonValue
-from ss_track.schema.registry.contract import Contract
+from ss_track.schema.registry.contract import EVENT_FAMILY, Contract
 from ss_track.schema.registry.store import ContractSet, load_contract_set
 
 
@@ -93,6 +93,8 @@ def render_docs(out: Path, root: Path | None = None) -> DocsResult:
     edges: set[tuple[str, str, str]] = set()
     written = []
     for contract in contracts.contracts:
+        if contract.family == EVENT_FAMILY:
+            continue
         written.append(_render_contract(contracts, contract, out, edges))
     graph = [
         "# Contract lineage",

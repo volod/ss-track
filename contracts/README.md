@@ -7,14 +7,21 @@ This directory is complete on its own and ships inside the `ss-track` wheel.
 | Path | Holds |
 | --- | --- |
 | `registry.yaml` | Every contract: family, id, owner, status, frozen versions, change log |
-| `<family>/<id>/<version>.json` | One frozen version, never edited, in JSON Schema 2020-12 |
+| `<family>/<id>/<version>.json` | One frozen JSON Schema version, never edited, in JSON Schema 2020-12 |
+| `event/<id>/<version>.binpb` | One frozen protobuf descriptor set. It is not a JSON Schema document |
 | `shared/` | Value types that other contracts reference by exact version |
 | `meta/dialect.json` | The restricted JSON Schema a contract may use |
 | `meta/registry.json` | The shape of `registry.yaml` |
 
-A contract is identified by `urn:ss-track:contract:<family>:<id>:<version>`, which is its `$id`. To
-validate with any JSON Schema 2020-12 validator, load every frozen file, register each under its
-`$id`, and validate against the version whose major equals the record's `schema_version`. `$ref`
+A JSON Schema contract is identified by `urn:ss-track:contract:<family>:<id>:<version>`, which is
+its `$id`. An event package uses the same URN, stored as a protobuf file option rather than `$id`.
+The [runner page](../docs/impl/current/runner.md) states how a protobuf-JSON line is checked.
+`ss-track contracts validate` does not parse those lines, and `ss-track contracts freeze` does not
+publish an event package.
+
+To validate with any JSON Schema 2020-12 validator, load every frozen JSON Schema file and register
+each under its `$id`. Validate against the version whose major equals the record's
+`schema_version`. `$ref`
 points only at those URNs, so nothing needs a network.
 
 A record stamps `kind` and the contract's major. It does not stamp a minor, because its seal covers
@@ -26,11 +33,12 @@ Declarations are YAML. A value such as `2024-01-05` is a date to a YAML 1.1 read
 YAML 1.2 one, so ss-track accepts it unquoted only where the contract states `format: date`; quote it
 anywhere else.
 
-The baseline freezes recording and corpus declarations, source and corpus manifests, frame bundles,
-frame sets, staged hashes, hash comparisons and command results. Discovery runs and candidate
-inventories record why a window of staged frames became a candidate for review. Every frame-set
-reference annotation resolves at its exact schema pointer. General drafts still have a `reason`
-and must not be treated as validated without a frozen version.
+The baseline freezes recording and corpus declarations, scenario packs, annotation labels, seeds
+and masks, source and corpus manifests,
+frame bundles, frame sets, staged hashes, hash comparisons and command results. Discovery runs and
+candidate inventories record why a window of staged frames became a candidate for review. Every
+frame-set reference annotation resolves at its exact schema pointer. General drafts still have
+a `reason` and must not be treated as validated without a frozen version.
 
 `retired_majors` lists earlier majors with no frozen contract, each with a disposition (`facts` or
 `retired`, as its `status`), a reason and the `migration` a holder of such a record must make.

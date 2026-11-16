@@ -10,7 +10,7 @@ from jsonschema import Draft201909Validator
 
 from ss_track.cli import main
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
-from ss_track.schema.registry.contract import Contract
+from ss_track.schema.registry.contract import EVENT_FAMILY, Contract
 from ss_track.schema.registry.store import ContractSet, load_contract_set
 from ss_track.schema.views.odcs import ODCS_SCHEMA, ODCS_SHA256, export_odcs
 from ss_track.schema.views.odcs_projection import Projection
@@ -73,8 +73,9 @@ def test_all_contracts_validate_cover_source_properties_and_are_deterministic(
     before = {p.relative_to(out): p.read_bytes() for p in out.rglob("*.json")}
     assert export_odcs(out) == result
     assert before == {p.relative_to(out): p.read_bytes() for p in out.rglob("*.json")}
-    assert len(before) == len(contracts.contracts)
-    for contract in contracts.contracts:
+    documents = [item for item in contracts.contracts if item.family != EVENT_FAMILY]
+    assert len(before) == len(documents)
+    for contract in documents:
         _check_contract_view(out, contracts, contract, validator)
 
 
@@ -172,7 +173,8 @@ def test_cli_export_and_existing_docs_emit_valid_command_results(
     assert main(["contracts", "export", "--format", "odcs", "--out", str(tmp_path / "odcs")]) == 0
     result = json.loads(caplog.records[-1].getMessage())
     assert result["status"] == "exported"
-    assert len(result["files"]) == len(load_contract_set().contracts)
+    documents = [item for item in load_contract_set().contracts if item.family != EVENT_FAMILY]
+    assert len(result["files"]) == len(documents)
     assert main(["contracts", "docs", "--out", str(tmp_path / "docs")]) == 0
     assert json.loads(caplog.records[-1].getMessage())["status"] == "written"
 

@@ -41,7 +41,7 @@ def validate_written_contracts() -> Iterator[Counter[str]]:
     schemas = {
         contract.name: contracts.frozen_schema(contract, contract.versions[-1])
         for contract in contracts.contracts
-        if contract.versions and contract.family != "shared"
+        if contract.versions and contract.family not in {"shared", "event"}
     }
     kinds = {
         schema["properties"]["kind"]["const"]: name
@@ -75,10 +75,7 @@ def validate_written_contracts() -> Iterator[Counter[str]]:
 
     with pytest.MonkeyPatch.context() as patch:
         for name, module in tuple(sys.modules.items()):
-            if (
-                name.startswith("ss_track.corpus.")
-                and getattr(module, "write_sealed", None) is write
-            ):
+            if name.startswith("ss_track.") and getattr(module, "write_sealed", None) is write:
                 patch.setattr(module, "write_sealed", checked_write)
         patch.setattr(report, "log_json", checked_log)
         yield seen

@@ -9,6 +9,12 @@ makes it fail, and what it does not prove. A case with no task left is listed as
 ## Existing behavior to protect
 
 - `ss-track info` stays unchanged as subcommands are added. `tests/test_cli.py` already covers it.
+- Golden event lines reject an unknown field, malformed JSON, a non-positive box, a bad time base
+  and a watts unit other than `W`. A staged `FrameRef` round-trips, including `transform` and
+  `content_frame_index`. A renamed field, a reused field number and a changed `json_name` fail
+  `buf breaking`. `tests/contract/` covers them.
+  Value: protects=one meaning for every G0 and G1 event; fails_when=generated bindings drift or a
+  wire-incompatible edit passes; no_claim=C++ round trips or G2 fusion records.
 - Truncated, zero-length, wrong-hash, non-increasing PTS and selection-past-end inputs stay
   structured refusals. `tests/corpus/` covers them.
   Value: protects=structured refusal; fails_when=a bad source yields a score; no_claim=real decoder
@@ -31,6 +37,15 @@ makes it fail, and what it does not prove. A case with no task left is listed as
   and adds nothing to any evidence count. `tests/corpus/` covers them.
   Value: protects=reproducible cases that are not encounters; fails_when=a case counts as new
   evidence; no_claim=realism.
+- Derived case labels follow each stored transform, including `track_status` roles `unknown`,
+  `region`, `shift`, `reentry` and `unchanged`, and a plate showing any part of a target. Frozen
+  labels of another source or frame shape than their stream derive nothing, a return is one
+  re-entry event, and an event whose frame changed is `uncertain`.
+  `tests/annotate/derivation/test_derive_labels.py`, `test_derive_track.py`,
+  `test_derive_plate.py`, `test_derive_stream.py` and `test_derive_command.py` cover them.
+  Value: protects=labels that follow pixels; fails_when=a covered target stays visible, a wrong
+  region or a plate that shows a target yields `absent`, a frame with no box becomes `absent`, or
+  labels of another source reach a case; no_claim=parent label quality.
 - Golden transforms and architecture-sensitive decode tests pass on arm64, and one fixed corpus
   staged from one set of stored sources on x86-64 and arm64 stays `identical`, compared through
   `frame_set_sha256` and then per source. The corpus holds every decoder family the wheel can encode,
@@ -40,6 +55,14 @@ makes it fail, and what it does not prove. A case with no task left is listed as
   Value: protects=a stated cross-architecture boundary; fails_when=a difference goes unrecorded, a
   source is regenerated on one host, or a row does not decode as the format it claims; no_claim=macOS,
   timing, a decoder or pixel format outside the fixed corpus, or a host that did not stage it.
+- Hand-built disagreements between two label documents are reported exactly. An unresolved required
+  disagreement blocks the freeze, and a disagreement outside the review stays unknown. A frozen
+  revision is written once and never over a file the freeze reads.
+  `tests/annotate/review/test_annotation_review.py`, `test_annotation_freeze.py`,
+  `test_annotation_freeze_refusal.py`, `test_frozen_outputs.py`, `test_stream_freeze.py` and
+  `test_annotate_review_command.py` cover them.
+  Value: protects=review before freezing; fails_when=an unresolved case freezes, or a frozen
+  revision or an annotator's document is replaced; no_claim=reviewer skill.
 
 ## Fixture-level cases
 
@@ -47,9 +70,6 @@ makes it fail, and what it does not prove. A case with no task left is listed as
 
 - `annotation-contract`: malformed labels, an unverifiable label, and seed replay.
   Value: protects=frozen truth; fails_when=an unverifiable label scores zero; no_claim=label quality.
-- `annotation-review-tools`: hand-built disagreements between two label sets.
-  Value: protects=review before freezing; fails_when=an unresolved case freezes; no_claim=reviewer
-  skill.
 - `source-terms-enforcement`: a source one day either side of its retention date, and a generated case
   of a source that forbids derived frames.
   Value: protects=recorded terms; fails_when=a source outside its terms is staged; no_claim=legal
@@ -110,14 +130,6 @@ makes it fail, and what it does not prove. A case with no task left is listed as
   Value: protects=each frame counted once in one version; fails_when=a frame counts twice, or a
   cross-group pair is no longer leakage; no_claim=re-encoded copies, or a copy that replaces its
   original in a linked version.
-- `generated-case-labels`: hand-built labels through each transform, including `track_status` roles
-  `unknown`, `region`, `shift`, `reentry` and `unchanged`, and a plate showing a target.
-  Value: protects=labels that follow pixels; fails_when=a covered target stays visible, a wrong
-  region yields `absent`, or a frame with no box becomes `absent`; no_claim=parent label quality.
-- `event-schema-contract`: golden fixtures, unknown fields, malformed payloads and regenerated
-  bindings.
-  Value: protects=one meaning for every event; fails_when=generated code drifts from `.proto`;
-  no_claim=C++ round trips.
 - `scenario-contract`: each cohort-key field changed in turn, and a scenario with a missing hash.
   Value: protects=comparison identity; fails_when=a changed input keeps its key; no_claim=none
   beyond protects.
