@@ -102,3 +102,106 @@ def test_released_matching_images_are_not_rewritten(private_set: Path) -> None:
     before = image.stat().st_mtime_ns
     build.write_artifacts(private_set)
     assert image.stat().st_mtime_ns == before
+
+
+def test_development_recovers_multiple_missing_images(private_set: Path) -> None:
+    for package in ("analytics", "clock"):
+        (private_set / "event" / package / "1.0.0.binpb").unlink()
+    build.write_artifacts(private_set)
+    assert check_contract_set(private_set) == []
+    assert build.drift_findings(private_set) == []
+
+
+def test_invalid_batch_leaves_images_and_pins_untouched(private_set: Path) -> None:
+    before = {path: path.read_bytes() for path in private_set.rglob("*.binpb")}
+    registry = private_set / "registry.yaml"
+    original = registry.read_bytes()
+    proto = build.PROTO_ROOT / "wire.proto"
+    proto.write_text(
+        proto.read_text().replace(
+            "urn:ss-track:contract:event:wire:1.0.0", "urn:ss-track:contract:event:wire:1.1.0"
+        )
+    )
+    with pytest.raises(ValueError, match="development requires"):
+        build.write_artifacts(private_set)
+    assert registry.read_bytes() == original
+    assert all(path.read_bytes() == data for path, data in before.items())
+
+
+def test_publication_failure_rolls_back_the_batch(
+    private_set: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from ss_track.schema.compatibility import batch_publish
+
+    missing = private_set / "event/analytics/1.0.0.binpb"
+    missing.unlink()
+    before = {path: path.read_bytes() for path in private_set.rglob("*.binpb")}
+    registry = private_set / "registry.yaml"
+    original = registry.read_bytes()
+    write = batch_publish._write_atomically
+    calls = 0
+
+    def fail_second(root: Path, target: Path, payload: bytes) -> None:
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise OSError("injected write failure")
+        write(root, target, payload)
+
+    monkeypatch.setattr(batch_publish, "_write_atomically", fail_second)
+    with pytest.raises(OSError, match="injected write failure"):
+        build.write_artifacts(private_set)
+    assert calls >= 2
+    assert not missing.exists()
+    assert registry.read_bytes() == original
+    assert all(path.read_bytes() == data for path, data in before.items())
+
+
+def test_batch_rejects_a_concurrent_image_edit(
+    private_set: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from ss_track.contract import development
+    from ss_track.core.refusal import CorpusRefusal
+
+    publish = development.publish_batch
+    target = private_set / "event/clock/1.0.0.binpb"
+    registry = (private_set / "registry.yaml").read_bytes()
+
+    def change_before_publish(
+        root: Path,
+        changes: dict[Path, bytes],
+        previous: dict[Path, bytes | None],
+        written: bytes,
+        original: bytes,
+    ) -> None:
+        target.write_bytes(b"concurrent edit")
+        publish(root, changes, previous, written, original)
+
+    monkeypatch.setattr(development, "publish_batch", change_before_publish)
+    with pytest.raises(CorpusRefusal, match="changed during generation"):
+        build.write_artifacts(private_set)
+    assert target.read_bytes() == b"concurrent edit"
+    assert (private_set / "registry.yaml").read_bytes() == registry
+
+
+def test_binding_write_failure_rolls_back_images_and_pins(
+    private_set: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from ss_track.schema.compatibility import batch_publish
+
+    before = {path: path.read_bytes() for path in private_set.rglob("*.binpb")}
+    bindings = {path: path.read_bytes() for path in build._GEN_ROOT.glob("*_pb2.py")}
+    original = (private_set / "registry.yaml").read_bytes()
+    write = batch_publish._write_atomically
+
+    def fail_binding(root: Path, target: Path, payload: bytes) -> None:
+        if target.parent == build._GEN_ROOT:
+            raise OSError("binding write failed")
+        write(root, target, payload)
+
+    monkeypatch.setattr(batch_publish, "_write_atomically", fail_binding)
+    with pytest.raises(OSError, match="binding write failed"):
+        build.write_artifacts(private_set)
+    assert (private_set / "registry.yaml").read_bytes() == original
+    assert all(path.read_bytes() == data for path, data in before.items())
+    assert all(path.read_bytes() == data for path, data in bindings.items())

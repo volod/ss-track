@@ -35,28 +35,6 @@ hardware or private data.
 
 ### Data contracts -- `data-contracts`
 
-#### event-package-batch-recovery
-
-The development generator validates the whole set after staging one package. If two event images
-are missing, the first staged update is refused because the other image is still missing, although
-both can be regenerated from their protos. This prevents recovery of an incomplete development set.
-
-- Serves: `data-contracts` -- [Development stage and
-  release](../design/spec.md#177-development-stage-and-release)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: One generation command restores all missing development event images and
-  updates their pins together while preserving released images.
-- Scope boundary: Event artifact staging and publication; no event message changes.
-- Data and artifact paths: `src/ss_track/contract/build.py`, `contracts/event/`, `tests/contract/`.
-- Execution path: Stage and validate the complete set of event candidates before publication.
-  Preserve concurrent-update protections and avoid exposing a partially pinned set on failure.
-- Acceptance gates: A private development set with two missing images regenerates and passes the
-  contract and proto checks; a failed batch leaves prior images and pins intact; released images stay
-  frozen. `make ci` passes.
-- Documentation target: [Runner](current/runner.md).
-
 #### data-contracts-audit (optional)
 
 A development-stage gate that lets a contract change without a version must still refuse every

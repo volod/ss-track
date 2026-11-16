@@ -107,4 +107,6 @@ Copy the [template](template.md) using the
 
 | 0100 | `event-package-development-edit` | [0100-data-contracts-event-package-development-edit](0100-data-contracts-event-package-development-edit.md) |
 
-Next unused sequence: `0101`.
+| 0101 | `event-package-batch-recovery` | [0101-data-contracts-event-package-batch-recovery](0101-data-contracts-event-package-batch-recovery.md) |
+
+Next unused sequence: `0102`.

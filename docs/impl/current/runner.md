@@ -69,12 +69,15 @@ released stage it also runs `buf breaking` against each frozen image. It is part
 
 In development, edit the proto and run `make proto-gen` to regenerate the `1.0.0` images, re-pin
 registered event packages and refresh the bindings. The generator validates each updated contract
-set before publishing it. If multiple event images are missing, restore the tracked images before
-running the generator; it validates the set one package at a time. After a contract edit, regenerate
+set as a batch before publishing it. It restores missing images together and refuses stale registry
+or image snapshots; a failed publication rolls back written images and bindings. Readers may temporarily refuse
+the set while image and pin writes are in progress; retry after generation finishes. After a contract
+edit, regenerate
 affected development datasets as required
 by the [development-stage rules](../../design/spec.md#177-development-stage-and-release). In the
 released stage the generator refuses to overwrite a different frozen image; a new URN is required.
-See the [task record](../records/0100-data-contracts-event-package-development-edit.md).
+See the [development edit record](../records/0100-data-contracts-event-package-development-edit.md)
+and [batch recovery record](../records/0101-data-contracts-event-package-batch-recovery.md).
 
 A new released event version is classified without a JSON Schema diff. Identical descriptor bytes are
 refused. A breaking change requires a major, migration text, and a disposition of at least `facts`,
@@ -94,6 +97,8 @@ image. Comments on the event file itself remain and feed the meaning fingerprint
 | --- | --- |
 | `contract/proto/` | The sources and the buf lint and breaking configuration |
 | `contract/build.py` | `make proto-gen` and `make proto-check` |
+| `contract/development.py` | Stage and re-pin the complete development event set |
+| `schema/compatibility/batch_publish.py` | Publish a validated batch with stale-input checks and rollback |
 | `contract/breaking.py` | The buf commands |
 | `contract/image.py`, `contract/image_shape.py` | Descriptor identity, structure and meaning fingerprints |
 | `contract/events.py` | Parsing one named message from JSON Lines |
