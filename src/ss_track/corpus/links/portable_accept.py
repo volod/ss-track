@@ -6,6 +6,7 @@ from tempfile import TemporaryDirectory
 from typing import Any, cast
 
 from ss_track.core.canonical import SEAL_FIELD, sha256_bytes
+from ss_track.core.evidence.contract_stamp import require_current_data_root
 from ss_track.core.evidence.sealing import write_sealed
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.core.scratch import exclusive_lock, write_atomically
@@ -21,7 +22,7 @@ from ss_track.corpus.links.portable_archive import (
     read_archive,
 )
 from ss_track.corpus.links.portable_state import accepted_path, checkpoint_path, file_digest
-from ss_track.corpus.links.records import read_links
+from ss_track.corpus.links.records import read_links, read_links_file
 from ss_track.corpus.storage.layout import links_path
 
 
@@ -38,11 +39,7 @@ def _verify_archive_records(
     archive: PortableArchive, directory: Path
 ) -> tuple[dict[str, JsonValue], Path]:
     links_file, hashes_file = _temporary_records(archive, directory)
-    temporary_root = directory / "data"
-    target = links_path(temporary_root, str(archive.manifest["links_run_id"]))
-    target.parent.mkdir(parents=True)
-    target.write_bytes(links_file.read_bytes())
-    links = read_links(temporary_root, str(archive.manifest["links_run_id"]))
+    links = read_links_file(links_file, str(archive.manifest["links_run_id"]))
     hashes = read_staged_hashes(hashes_file)
     manifest = archive.manifest
     if (
@@ -127,6 +124,7 @@ def accept_handoff(
 ) -> PortableResult:
     """Compare a locally created corpus, then safely accept links and checkpoint state."""
     authorized(is_authorized)
+    require_current_data_root(data_root)
     archive = read_archive(archive_path)
     corpus_id = str(archive.manifest["corpus_id"])
     with TemporaryDirectory(prefix="ss-track-handoff-") as directory_name:

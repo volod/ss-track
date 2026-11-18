@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from ss_track.core.evidence.contract_stamp import require_current_data_root
 from ss_track.core.evidence.read_refusals import incomplete_record
 from ss_track.core.evidence.sealing import seal, write_sealed
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
@@ -133,6 +134,7 @@ def compare_staged_hashes(
     left_path: Path, right_path: Path, run_id: str, data_root: Path
 ) -> ComparisonResult:
     """Compare two hosts' records and keep the result, then refuse if they differ."""
+    require_current_data_root(data_root)
     target = run_directory(data_root, run_id) / HASH_COMPARISON_NAME
     left, right = read_staged_hashes(left_path), read_staged_hashes(right_path)
     _require_comparable(left, right)

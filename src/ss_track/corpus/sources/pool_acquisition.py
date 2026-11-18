@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import cast
 
+from ss_track.core.evidence.contract_stamp import require_current_data_root
 from ss_track.core.evidence.sealed import read_sealed
 from ss_track.core.evidence.sealing import sha256_file
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
@@ -57,6 +58,7 @@ class AcquisitionFacts:
 
 def load_acquisition(run_id: str, data_root: Path) -> AcquisitionFacts:
     """Read one acquisition, refusing a run that is missing or whose bytes changed."""
+    require_current_data_root(data_root)
     root = discovery_run_directory(data_root, run_id)
     record_path = root / "acquisition.json"
     if not record_path.is_file():

@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from ss_track.core.canonical import SEAL_FIELD
+from ss_track.core.evidence.contract_stamp import require_current_data_root
 from ss_track.core.evidence.read_refusals import incomplete_record
 from ss_track.core.evidence.sealed import read_sealed
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
@@ -47,6 +48,7 @@ def _lines(run: Mapping[str, Any]) -> list[Any]:
 
 def read_discovery(data_root: Path, run_id: str) -> DiscoveryRecords:
     """Read a run and every inventory it seals, refusing a missing, altered or rule-breaking one."""
+    require_current_data_root(data_root)
     path = discovery_run_path(data_root, run_id)
     if not is_shared_type("identifier", run_id) or not path.is_file():
         raise CorpusRefusal(

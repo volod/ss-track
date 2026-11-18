@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, cast
 
 from ss_track.core.canonical import canonical_json, sha256_bytes
+from ss_track.core.evidence.contract_stamp import require_current_data_root, stamp_before_write
 from ss_track.core.evidence.sealed import read_sealed
 from ss_track.core.evidence.sealing import seal
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
@@ -234,6 +235,7 @@ def _reserve_request(root: Path, request: AcquisitionRequest, input_sha: str) ->
 
 def acquire(request: AcquisitionRequest, data_root: Path) -> AcquisitionResult:
     """Acquire selected videos and publish an immutable normalized inventory and record."""
+    require_current_data_root(data_root)
     if not is_shared_type("identifier", request.run_id):
         raise invalid("run id is not an identifier")
     if request.download_budget < 0 or request.extraction_budget < 0:
@@ -281,6 +283,7 @@ def acquire(request: AcquisitionRequest, data_root: Path) -> AcquisitionResult:
         record = seal(body)
         write_once(root / "inventory.json", inventory)
         path = root / "acquisition.json"
+        stamp_before_write(path)
         written = write_once(path, canonical_json(record))
         digest = record["manifest_sha256"]
         assert isinstance(digest, str)

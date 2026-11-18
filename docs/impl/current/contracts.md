@@ -32,13 +32,33 @@ installed set. A difference is `RECORD_SCHEMA_UNSUPPORTED`, with `changed_contra
 remedy to delete sealed datasets and the stamp and regenerate them from retained declarations,
 labels and review decisions. A stamp without meaning fingerprints cannot prove the earlier meaning
 and is refused with the same remedy and `unverified_contracts`; no data is deleted by the check.
-An absent stamp is currently treated as a fresh root even if sealed records already exist; preserve
-the stamp with its datasets. A damaged stamp is
-`RECORD_TAMPERED`. `data clean` reads no record and serves a stale root. Meaning fingerprints cover
-annotations including descriptions, so even editorial edits conservatively require regeneration.
-A record of another major gets the same regenerate remedy. The
-[audit record](../records/0102-data-contracts-data-contracts-audit.md) gives the checks and evidence.
-The [record-formatting decision](../records/0103-data-contracts-resolve-data-contract-record-markdown.md)
+When the stamp is absent, `core/evidence/unstamped.py` walks the reachable root before a command
+uses it and again under the first-write lock. It streams object keys and refuses a file with both
+record identity and seal keys at the top level, regardless of filename. It follows symlinks and
+avoids directory cycles; inaccessible or non-regular files fail closed with `STORAGE_FAILED`. An
+entry that disappears during the walk, such as another command's scratch file, and a dangling link
+hold no readable bytes and are skipped. Declarations and other operator inputs remain in place, and
+a read-only check writes no stamp. A record read rechecks a root whose stamp was absent or has
+disappeared since the command started. Root-taking corpus operations and evidence readers check it
+too. Each checked root is kept for the command, so checking a second root does not stop the
+stamping or rechecks of the first. A standalone path-only read has no data root to infer; its
+caller must establish that context when it belongs to a data root. An explicit-path
+`annotate freeze` into the data root is not checked yet; `development-explicit-path-revision-root`
+owns it.
+
+The scan costs one directory traversal plus the bytes needed to identify JSON objects, with fixed
+input buffers and directory-cycle tracking. On one private root of 25,000 PNG files (102.4 MB) in
+50 directories, three checks took 0.983, 0.688 and 0.685 seconds; peak traced memory was 4.99 MiB
+on the first check, including installed-contract initialization, and 0.06 MiB on each later check.
+A stamped root does not scan. One command can scan an unstamped root once per check, several times
+in all; the optional `development-unstamped-scan-reuse` task reduces that. The
+[unstamped-evidence record](../records/0104-data-contracts-development-unstamped-evidence.md)
+states the fixture and its limits. A damaged stamp is `RECORD_TAMPERED`. `data clean` reads no
+record and serves a stale root. Meaning fingerprints cover annotations including descriptions, so
+even editorial edits conservatively require regeneration. A record of another major gets the same
+regenerate remedy. The [audit record](../records/0102-data-contracts-data-contracts-audit.md) gives
+the broader checks and evidence. The
+[record-formatting decision](../records/0103-data-contracts-resolve-data-contract-record-markdown.md)
 keeps the owner-authorized exception.
 
 The section 17.3 classifier, the oracle, dispositions, views and comparison projections stay
@@ -185,8 +205,9 @@ readers had:
 The installed set is read once per process and checked for stage rules, file hashes and structure
 and meaning pins before it is used. Contract listing, validation and exports check the same pins.
 The build gate also checks the dialect and references. A sealed read never validates: it checks
-seal, kind and the disposition of its major, so `corpus verify` costs what it did before.
-Validation does not run `x-rules`. The [corpus read path](corpus.md#reading-sealed-records) applies dispositions.
+the data-root stamp when relevant, seal, kind and the disposition of its major. It does not walk
+the contract to validate the record. Validation does not run `x-rules`. The
+[corpus read path](corpus.md#reading-sealed-records) applies dispositions.
 
 The validator reports a tagged `oneOf` through the branch its tag selects, so a wrong seed in a
 `blur` recipe is `/groups/0/encounters/0/streams/0/generated_cases/0/seed` and not "not valid under

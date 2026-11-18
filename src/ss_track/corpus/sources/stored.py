@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from ss_track.core.canonical import SEAL_FIELD
+from ss_track.core.evidence.contract_stamp import require_current_data_root
 from ss_track.core.evidence.sealed import read_sealed
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.records.kinds import SOURCE_MANIFEST
@@ -33,6 +34,7 @@ class VerifiedSource:
 
 def load_source_record(source_sha256: str, data_root: Path) -> dict[str, JsonValue]:
     """Read one imported source's record, refusing a source that was never imported."""
+    require_current_data_root(data_root)
     manifest_path = source_directory(data_root, source_sha256) / MANIFEST_NAME
     if not manifest_path.is_file():
         raise CorpusRefusal(

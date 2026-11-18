@@ -602,7 +602,9 @@ copying a dataset between hosts. Each host independently acquires, imports, buil
 same pinned source selection from portable text recipe inputs. A media-free handoff carries those
 inputs, the sealed link record, one host's staged-hash evidence and an optional checkpoint. Before
 accepting review work, the receiving host verifies its local sources and frames and compares their
-identities with the exporting host down to each staged frame. The handoff preserves the reviewer,
+identities with the exporting host down to each staged frame. In development it must also bind
+and compare the structure and meaning of the record and shared contracts; it refuses a missing or
+different contract-set identity before changing local review state. The handoff preserves the reviewer,
 source identities and checkpoint branch point, and refuses expired, unauthorized, incomplete,
 corrupted or divergent work rather than overwriting decisions. It carries no source media, staged
 frames, feature rows or model weights; does not grant source rights, execute recipe files,
@@ -2922,14 +2924,19 @@ states one stage for the whole set, and the gate enforces that stage's rules.
 In the development stage, a sealed record written under an earlier edit of its contract still
 stamps `schema_version: 1`, so the major alone cannot tell it apart. Before the first sealed write,
 the data root records structure and meaning fingerprints of every record and shared contract, and
-a root containing sealed evidence without a stamp is refused. Every command that takes the root
-compares them with the installed set first. A difference refuses
+a root containing sealed evidence without a stamp is refused. A missing stamp is checked before
+reading evidence and again under the first-write lock; a fresh root or one holding only operator
+inputs remains usable without a read-side write. Every command that takes the root compares the
+stamp with the installed set first. A difference refuses
 the command with `RECORD_SCHEMA_UNSUPPORTED`, names the changed contracts and gives the remedy to
 regenerate; housekeeping that reads no record, such as `data clean`, still runs. A stamp that lacks
 meaning fingerprints cannot prove its records' meanings and is refused with the same remedy. The
 fingerprint includes descriptions, so even an editorial description change conservatively asks for
 regeneration: a machine cannot decide whether prose changes a value's interpretation. A record of
-another major gets the same remedy, because no release wrote one. The section 17.3 classifier, the
+another major gets the same remedy, because no release wrote one. A development handoff of sealed
+records between data roots must bind the exporting contract set and refuse acceptance when its
+record or shared structure or meaning is missing or differs. Released handoffs follow versioned
+compatibility instead. The section 17.3 classifier, the
 independent oracle, dispositions and views stay installed in both stages, tested on synthetic version
 pairs, so that they are proven when release starts using them.
 

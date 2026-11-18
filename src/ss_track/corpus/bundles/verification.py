@@ -6,6 +6,7 @@ Each bundle record is opened once, and a frame file with more than one name is h
 from datetime import date
 from pathlib import Path
 
+from ss_track.core.evidence.contract_stamp import require_current_data_root
 from ss_track.corpus.bundles.bundle_reader import open_corpus_bundle
 from ss_track.corpus.bundles.duplicate_frames import require_unshared_frames
 from ss_track.corpus.bundles.frame_set import require_frame_set
@@ -33,6 +34,7 @@ def verify_corpus_frames(
     and staging is what ties those frames to the source bytes. Shared frames are checked again
     because a predecessor staged after this version was not there to compare with.
     """
+    require_current_data_root(data_root)
     checked_on = evaluation_date(today)
     corpus = load_corpus_manifest(corpus_id, data_root)
     require_sources_hold(corpus, data_root, checked_on)

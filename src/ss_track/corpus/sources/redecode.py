@@ -17,6 +17,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from ss_track.core.evidence.contract_stamp import require_current_data_root
 from ss_track.core.refusal import JsonValue, RefusalCode
 from ss_track.corpus.declarations.declaration import (
     RecordingDeclaration,
@@ -52,6 +53,7 @@ def redecode_source(
     amend_capture: bool = False,
 ) -> ReplacementResult:
     """Decode one imported source's stored bytes again, and re-seal it under one atomic replace."""
+    require_current_data_root(data_root)
     declaration = load_recording_declaration(declaration_path)
     sha256 = source_identity(declared_content_hash(declaration), _index_for_redecode(declaration))
     with replacing_source(data_root, sha256, _NOT_IMPORTED) as existing:

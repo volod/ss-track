@@ -24,6 +24,7 @@ from ss_track.annotate.packs.model import ScenarioPack
 from ss_track.annotate.review.revision import read_annotation_revision
 from ss_track.annotate.sources.declared_space import require_stream
 from ss_track.core.canonical import SEAL_FIELD
+from ss_track.core.evidence.contract_stamp import require_current_data_root
 from ss_track.core.refusal import JsonValue
 from ss_track.core.scratch import exclusive_lock
 from ss_track.corpus.declarations.fields import Fields, invalid
@@ -65,6 +66,7 @@ def prepare_case_labels(
 
 def derive_corpus(corpus_id: str, pack_path: Path, data_root: Path) -> DeriveResult:
     """Derive every generated case, or leave a case unscorable when its parent has no revision."""
+    require_current_data_root(data_root)
     manifest = load_corpus_manifest(corpus_id, data_root)
     pack = load_scenario_pack(pack_path)
     streams = {text(stream, "stream_id"): stream for stream in _objects(manifest, "streams")}

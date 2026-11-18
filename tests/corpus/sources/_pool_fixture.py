@@ -6,6 +6,7 @@ from pathlib import Path
 import yaml
 
 from ss_track.core.canonical import canonical_json, sha256_bytes
+from ss_track.core.evidence.contract_stamp import require_current_data_root
 from ss_track.core.evidence.sealing import seal, write_sealed
 from ss_track.corpus.records.kinds import SOURCE_ACQUISITION
 from tests.corpus._media import expected_rgb, write_clip
@@ -82,6 +83,7 @@ def publish(
     metadata: dict[str, bytes] | None = None,
 ) -> None:
     """Write one sealed acquisition whose local bytes match the record."""
+    require_current_data_root(data_root)
     root = data_root / "self-supervised-corpus" / run_id
     video_rows = [
         _store(root, f"media/{path}", path, payload) for path, payload in sorted(files.items())

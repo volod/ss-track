@@ -108,5 +108,6 @@ Copy the [template](template.md) using the
 | 0101 | `event-package-batch-recovery` | [0101-data-contracts-event-package-batch-recovery](0101-data-contracts-event-package-batch-recovery.md) |
 | 0102 | `data-contracts-audit` | [0102-data-contracts-data-contracts-audit](0102-data-contracts-data-contracts-audit.md) |
 | 0103 | `resolve-data-contract-record-markdown` | [0103-data-contracts-resolve-data-contract-record-markdown](0103-data-contracts-resolve-data-contract-record-markdown.md) |
+| 0104 | `development-unstamped-evidence` | [0104-data-contracts-development-unstamped-evidence](0104-data-contracts-development-unstamped-evidence.md) |
 
-Next unused sequence: `0104`.
+Next unused sequence: `0105`.

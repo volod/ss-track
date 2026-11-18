@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from ss_track.core.canonical import SEAL_FIELD
+from ss_track.core.evidence.contract_stamp import require_current_data_root
 from ss_track.core.evidence.sealed import read_sealed
 from ss_track.core.evidence.sealing import seal, write_sealed
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
@@ -144,6 +145,7 @@ def write_discovery(data_root: Path, records: DiscoveryRecords) -> DiscoveryWrit
     The run must name exactly what its corpus version staged on this data root. Writers wait for
     one another only while they publish, which is brief: the work before it is done outside.
     """
+    require_current_data_root(data_root)
     require_bound(data_root, records.run, records.inventories, records.features)
     root = discovery_root(data_root)
     path = discovery_run_path(data_root, records.run_id)

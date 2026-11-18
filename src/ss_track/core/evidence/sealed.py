@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from ss_track.core.canonical import SEAL_FIELD, seal_of
+from ss_track.core.evidence.contract_stamp import check_before_read
 from ss_track.core.evidence.format import RecordFormat
 from ss_track.core.evidence.read_refusals import (
     incomplete_record,
@@ -123,6 +124,7 @@ def _read_intact(path: Path, record_format: RecordFormat) -> dict[str, JsonValue
     `ValueError` covers bad text, bad JSON, an over-long integer and a `NaN`, which `canonical_json`
     refuses because no record can hold one. Unmatched, those would end in a traceback.
     """
+    check_before_read(path)
     try:
         loaded = json.loads(path.read_text(encoding="ascii"))
         if not isinstance(loaded, dict):

@@ -93,13 +93,9 @@ roots lacking meanings refuse until regenerated; the check does not delete data 
 
 ## Audit handoff
 
-- `AUD-data-contracts-audit-1` (blocking): A missing stamp currently makes an existing data root
-  look fresh. A copied sealed record or a record left by a crash of the previous first-write flow
-  can be read, or a later first write can stamp that root under a different set. The reproduction
-  is `require_current_data_root` on a directory with a sealed record and no `contract-set.json`;
-  `_read_stamp` returns `None` and the command proceeds. Owner: `development-unstamped-evidence`,
-  which states both read and write cases and preserves operator inputs. The group audit stays open
-  to review that work.
+- `AUD-data-contracts-audit-1` (blocking): An unstamped root could contain sealed records and be
+  treated as fresh. Fixed in the [unstamped-evidence record](0104-data-contracts-development-unstamped-evidence.md);
+  the group audit remains open to review the complete change.
 
 - `AUD-data-contracts-audit-2` (blocking): `make lint-md` reports four overlong lines in closed
   records 0100 and 0101. Fixed with the owner-authorized whitespace-only reflow in the
@@ -114,5 +110,5 @@ publication is fail-closed and documented; no follow-up is needed for that obser
 
 The per-change audit, targeted checks, full quality and CI passed. The group audit remains active
 in the plan until `development-unstamped-evidence` is completed and re-audited. The current
-Contracts page and records index are updated. Plan counts after: 127 agent and 30 human tasks. No
+Contracts page and records index are updated. Plan counts after: 126 agent and 30 human tasks. No
 capability changed status; `data-contracts` remains planned.

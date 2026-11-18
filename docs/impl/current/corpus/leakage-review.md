@@ -88,6 +88,8 @@ accept the handoff. This command verifies the complete local corpus, writes this
 installs the sealed link record and checkpoint. Different source sets, decode policies, corpus
 manifests, frame sets or individual frame bytes refuse. An expired, damaged or unauthorized archive
 also refuses without changing review decisions.
+Development handoffs do not yet carry the exporting contract-set stamp. Use exactly the same
+contract set on both hosts; matching data hashes alone do not prove matching contract meanings.
 
 ```bash
 .venv/bin/ss-track discover review-accept --archive pilot-link-review.tar \

@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from ss_track.core.canonical import SEAL_FIELD
+from ss_track.core.evidence.contract_stamp import require_current_data_root
 from ss_track.core.evidence.sealed import read_sealed
 from ss_track.core.evidence.sealing import seal, write_sealed
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
@@ -65,6 +66,7 @@ class ImportResult:
 
 def import_source(declaration_path: Path, data_root: Path) -> ImportResult:
     """Import one recording, leaving a complete record or nothing."""
+    require_current_data_root(data_root)
     declaration = load_recording_declaration(declaration_path)
     if declaration.image_sequence is None:
         require_regular_file(declaration.source_path)

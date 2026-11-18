@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from ss_track.core.canonical import SEAL_FIELD
+from ss_track.core.evidence.contract_stamp import require_current_data_root
 from ss_track.core.evidence.sealed import read_sealed
 from ss_track.core.evidence.sealing import seal, write_sealed
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
@@ -91,6 +92,7 @@ def record_staged_hashes(corpus_id: str, run_id: str, data_root: Path) -> Staged
 
     Verifying first means the record states frames that are on disk now, not what a stage reported.
     """
+    require_current_data_root(data_root)
     target = run_directory(data_root, run_id) / STAGED_HASHES_NAME
     verified = verify_corpus_frames(corpus_id, data_root)
     corpus = load_corpus_manifest(corpus_id, data_root)

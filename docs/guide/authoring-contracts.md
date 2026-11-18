@@ -82,8 +82,10 @@ disposition, view or historic fixture to keep outdated development data or tests
 A data root's `contract-set.json` pins structure and meaning for record and shared contracts. A
 command on a root written before either changes refuses with `RECORD_SCHEMA_UNSUPPORTED` and
 `changed_contracts`. A structure-only stamp cannot prove the earlier meaning and is also refused.
-Regenerate it: delete the root's sealed datasets and `contract-set.json`, keep operator-written
-declarations, labels and review decisions, and run the commands that built the datasets again. An
+If the stamp is missing, an unstamped root containing record-shaped evidence is refused instead of
+being stamped under the current set. Regenerate it: delete the root's sealed datasets and
+`contract-set.json`, keep operator-written declarations, labels and review decisions, and run the
+commands that built the datasets again. An
 edit of descriptions or examples also asks for regeneration, because the meaning fingerprint
 cannot distinguish editorial prose from a changed interpretation. A change that alters the shape of
 an operator-written input also edits every retained one in the same change and states the edit in its

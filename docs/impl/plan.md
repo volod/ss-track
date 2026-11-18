@@ -35,32 +35,92 @@ hardware or private data.
 
 ### Data contracts -- `data-contracts`
 
-#### development-unstamped-evidence
+#### development-portable-handoff-provenance
 
-A development root without `contract-set.json` is treated as fresh even when it contains sealed
-records. If a stamp is lost, or a first write made by older code was interrupted before stamping,
-a command can read those records or stamp the root under a later contract set, silently accepting
-unproven evidence. The shared sealed-read path and first-write ordering do not establish whether an
-unstamped root already contains records.
+A development review archive does not bind the source root's contract stamp. Two roots can use the
+same `1.0.0` record bytes while a record or shared contract has a different meaning; the receiving
+root accepts the archive after comparing only data hashes. This can silently reinterpret a remote
+review under another contract set.
 
 - Serves: `data-contracts` -- [Development stage and
   release](../design/spec.md#177-development-stage-and-release)
 - Agent status: CLEAR
 - Milestone: M1
 - Dependencies: none.
-- User-visible outcome: A root with unstamped sealed evidence refuses with a regenerate remedy;
-  genuinely new roots and roots holding only operator inputs remain usable without a read-side write.
-- Scope boundary: Development data-root provenance checks; do not delete evidence or operator inputs,
-  alter released reads, seals or frozen contract bytes.
-- Data and artifact paths: `src/ss_track/core/evidence/`, data-root layout owners under
-  `src/ss_track/`, `tests/corpus/records/`, private fixture data roots.
-- Execution path: Identify all sealed-record locations and direct write entry points; implement a
-  fail-closed check before an unstamped root can read evidence or receive its first stamp, with a
-  bounded-cost path for large roots. Preserve declarations and clean-only access.
-- Acceptance gates: Fixtures with an unstamped sealed record refuse both a read and a first write,
-  even when a command writes before reading it; an empty root and one containing only declarations
-  remain usable and read-only commands create no stamp. Released behavior stays unchanged; test a
-  large representative root and report cost. `make ci` passes.
+- User-visible outcome: Development handoffs prove the source and receiving contract sets agree
+  before any review state or local evidence is changed; missing or different pins refuse safely.
+- Scope boundary: Portable review contract provenance and its checks. Preserve released-stage
+  compatibility, existing sealed record semantics and operator-written inputs.
+- Data and artifact paths: `contracts/record/link-review-handoff/1.0.0.json`,
+  `contracts/registry.yaml`, `src/ss_track/corpus/links/`, `tests/corpus/links/`, `$DATA_DIR/`.
+- Execution path: Bind the exporting root's record and shared structure and meaning fingerprints
+  in the handoff contract and verify them before acceptance. Edit and re-pin `1.0.0` in place,
+  update the writer and reader, and regenerate affected development datasets and handoffs from
+  retained declarations and decisions, following the contract authoring rules.
+- Acceptance gates: Two private roots with identical source and frame bytes and different record
+  meaning pins refuse a handoff before writing local records or checkpoints; missing provenance
+  refuses, matching pins round-trip, and released handoffs retain their versioned behavior. All
+  operator-written inputs remain; `make ci` passes.
+- Documentation target: [Contracts](current/contracts.md) and
+  [Leakage review](current/corpus/leakage-review.md).
+
+#### development-explicit-path-revision-root
+
+`ss-track annotate freeze` with `--source`, `--labels-out` and `--revision-out` runs without a
+data-root check. A `--revision-out` inside `DATA_DIR` therefore publishes a sealed
+`record/annotation-revision` without a contract stamp and without scanning for unstamped evidence.
+On a fresh root, the next root-checking command finds that record and refuses the operator's new
+revision with the regenerate remedy. On a stamped root the write skips the stamp check that every
+other sealed write gets. Reproduce: set `DATA_DIR` to an empty directory, freeze with
+`--revision-out "$DATA_DIR/revision.json"`, then run `ss-track corpus inspect-source`; it refuses
+`RECORD_SCHEMA_UNSUPPORTED`. Expected: a sealed write that lands in the data root is held to the
+root's contract set and stamps it, and a write outside the root stays standalone.
+
+- Serves: `data-contracts` -- [Development stage and
+  release](../design/spec.md#177-development-stage-and-release)
+- Agent status: CLEAR
+- Milestone: M1
+- Dependencies: none.
+- User-visible outcome: An explicit-path freeze into `DATA_DIR` checks and stamps the root before
+  publishing, so the next command accepts its revision; a freeze outside the root is unchanged.
+- Scope boundary: The explicit-path write route of `annotate freeze` and any other explicit-output
+  sealed writer found by the same review. Do not change record bytes, the `--corpus --stream`
+  route, released behavior or frozen contracts.
+- Data and artifact paths: `src/ss_track/commands/annotate.py`, `src/ss_track/annotate/review/`,
+  `src/ss_track/core/evidence/contract_stamp.py`, `tests/annotate/`, `tests/corpus/records/`.
+- Execution path: When an explicit sealed output resolves inside the data root, check the root
+  before work so `write_sealed` stamps it; review other explicit `--out` sealed writers for the same
+  route.
+- Acceptance gates: A fresh root receiving an explicit-path revision is stamped and a following
+  root-checking command succeeds; a root with unstamped evidence refuses the freeze before writing;
+  an output outside `DATA_DIR` writes no stamp. `make ci` passes.
+- Documentation target: [Contracts](current/contracts.md) and [Corpus](current/corpus.md).
+
+#### development-unstamped-scan-reuse (optional)
+
+On a root without `contract-set.json`, one command can walk the whole root several times: the CLI
+check, the operation's own check, each sealed read before the first write, and the locked check
+before that write. One measured scan of 25,000 PNG files took about 0.7 seconds, so a command on a
+large unstamped root can spend several seconds in repeated scans, and the documented cost states
+only one scan.
+
+- Serves: `data-contracts` -- [Development stage and
+  release](../design/spec.md#177-development-stage-and-release)
+- Agent status: CLEAR
+- Milestone: M1
+- Dependencies: none.
+- User-visible outcome: A command on a large unstamped root scans it as few times as safety allows,
+  and the Contracts page states the per-command cost.
+- Scope boundary: Scan scheduling within one command. Keep the locked recheck before the first
+  stamp and the recheck before a read when a record could have arrived since the last scan; do not
+  weaken fail-closed handling or change released behavior.
+- Data and artifact paths: `src/ss_track/core/evidence/`, `tests/corpus/records/`.
+- Execution path: Count scans per command on a representative root, then reuse a scan result for
+  repeated checks of the same root where no write or read window separates them, for example
+  between the CLI check and the operation's first check.
+- Acceptance gates: A test counts scans for a read-only command and a first-write command on an
+  unstamped root and shows fewer full walks; every existing unstamped-evidence regression still
+  refuses. Report before and after per-command time on a large root. `make ci` passes.
 - Documentation target: [Contracts](current/contracts.md).
 
 #### data-contracts-audit (optional)

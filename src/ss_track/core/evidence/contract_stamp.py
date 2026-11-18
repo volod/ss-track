@@ -14,6 +14,7 @@ from collections.abc import Mapping
 from contextvars import ContextVar
 from pathlib import Path
 
+from ss_track.core.evidence.unstamped import first_unstamped_record
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.core.scratch import write_atomically
 from ss_track.core.strict_json import reject_constant, unique_object
@@ -53,21 +54,52 @@ def installed_meanings() -> dict[str, str] | None:
     }
 
 
-_CHECKED_ROOT: ContextVar[Path | None] = ContextVar("checked_data_root", default=None)
+# Every root this command has checked, each with whether it had no stamp when checked. A check of
+# one root never drops another, so a nested check cannot stop the outer root's stamping.
+_CHECKED_ROOTS: ContextVar[tuple[tuple[Path, bool], ...]] = ContextVar(
+    "checked_data_roots", default=()
+)
+
+
+def _set_checked(root: Path, unstamped: bool | None) -> None:
+    """Record `root` as checked, or forget it when `unstamped` is None."""
+    kept = tuple(item for item in _CHECKED_ROOTS.get() if item[0] != root)
+    _CHECKED_ROOTS.set(kept if unstamped is None else (*kept, (root, unstamped)))
+
+
+def _checked_root(path: Path) -> tuple[Path, bool] | None:
+    """Return the most specific checked root that holds `path`, directly or through a link."""
+    spellings = (path.absolute(), path.resolve())
+    holding = [
+        item
+        for item in _CHECKED_ROOTS.get()
+        if any(spelling.is_relative_to(item[0]) for spelling in spellings)
+    ]
+    return max(holding, key=lambda item: len(item[0].parts), default=None)
 
 
 def require_current_data_root(data_root: Path) -> None:
     """Refuse a data root stamped under another development contract set.
 
-    A root that passes becomes the one this command's sealed writes stamp, by `stamp_before_write`.
+    A root that passes joins the roots this command's sealed writes stamp, by `stamp_before_write`;
+    checking another root keeps it.
     """
+    resolved = data_root.resolve()
+    _set_checked(resolved, None)
     installed = installed_fingerprints()
     if installed is None:
         return
     path = data_root / STAMP_NAME
     stamped = _read_stamp(path)
     if stamped is None:
-        _CHECKED_ROOT.set(data_root.resolve())
+        found = first_unstamped_record(data_root)
+        if found is not None:
+            raise CorpusRefusal(
+                RefusalCode.RECORD_SCHEMA_UNSUPPORTED,
+                "the data root contains sealed evidence but has no development contract stamp",
+                {"record": str(found), "stamp": str(path), "remedy": REGENERATE_REMEDY},
+            )
+        _set_checked(resolved, True)
         return
     stamped_structure, stamped_meaning = stamped
     meanings = installed_meanings()
@@ -98,15 +130,16 @@ def require_current_data_root(data_root: Path) -> None:
             "the data root cannot be verified against the development contract set",
             details,
         )
-    _CHECKED_ROOT.set(data_root.resolve())
+    _set_checked(resolved, False)
 
 
 def stamp_before_write(path: Path) -> None:
     """Check and stamp the root under a lock before publishing a sealed record."""
-    root = _CHECKED_ROOT.get()
+    checked = _checked_root(path)
     installed = installed_fingerprints()
-    if root is None or installed is None or not path.resolve().is_relative_to(root):
+    if checked is None or installed is None:
         return
+    root = checked[0]
     root.mkdir(parents=True, exist_ok=True)
     descriptor = os.open(root, os.O_RDONLY)
     try:
@@ -119,6 +152,16 @@ def stamp_before_write(path: Path) -> None:
             _write_stamp(stamp, installed, meanings)
     finally:
         os.close(descriptor)
+
+
+def check_before_read(path: Path) -> None:
+    """Recheck a root that was unstamped, or lost its stamp, before reading its record."""
+    checked = _checked_root(path)
+    if checked is None:
+        return
+    root, unstamped = checked
+    if unstamped or not (root / STAMP_NAME).is_file():
+        require_current_data_root(root)
 
 
 def _read_stamp(

@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from ss_track.core.canonical import SEAL_FIELD
+from ss_track.core.evidence.contract_stamp import require_current_data_root
 from ss_track.core.evidence.sealed import read_sealed, read_stated
 from ss_track.core.evidence.sealing import seal, write_sealed
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
@@ -140,6 +141,7 @@ def replace_record(
 
     A successor equal to the existing record writes nothing and reports `unchanged`.
     """
+    require_current_data_root(data_root)
     path = existing.path
     sealed = seal(successor)
     if sealed == existing.record:

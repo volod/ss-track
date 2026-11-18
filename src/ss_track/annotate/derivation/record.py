@@ -15,6 +15,7 @@ from ss_track.annotate.labels.document import checked_document, write_label
 from ss_track.annotate.labels.model import LabelSet
 from ss_track.annotate.packs.model import ScenarioPack
 from ss_track.core.canonical import SEAL_FIELD
+from ss_track.core.evidence.contract_stamp import require_current_data_root
 from ss_track.core.evidence.sealing import seal, write_sealed
 from ss_track.core.refusal import JsonValue
 from ss_track.corpus.records.kinds import DERIVED_LABEL
@@ -43,6 +44,7 @@ def publish_case(
     labels: LabelSet, pack: ScenarioPack, derivation: Derivation, data_root: Path, corpus_id: str
 ) -> DerivedCase:
     """Validate, write and seal one case, and return its row."""
+    require_current_data_root(data_root)
     document, label_sha256 = checked_document(labels, pack)
     labels_path = label_document_path(data_root, corpus_id, derivation.case_id)
     revision_path = label_revision_path(data_root, corpus_id, derivation.case_id)

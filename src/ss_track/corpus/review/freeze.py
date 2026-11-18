@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from ss_track.core.canonical import SEAL_FIELD
+from ss_track.core.evidence.contract_stamp import require_current_data_root
 from ss_track.core.evidence.sealing import seal, write_sealed
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.core.scratch import exclusive_lock
@@ -136,6 +137,7 @@ def freeze_corpus(
     today: date | None = None,
 ) -> FreezeResult:
     """Freeze one built and staged corpus version as the one its review makes."""
+    require_current_data_root(data_root)
     checked_on = evaluation_date(today)
     corpus = load_corpus_manifest(corpus_id, data_root)
     require_sources_hold(corpus, data_root, checked_on)

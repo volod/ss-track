@@ -36,14 +36,15 @@ def _amend(write_recording: WriteRecording) -> list[str]:
     return ["import", "--source", str(declared), "--amend-terms"]
 
 
-def test_a_read_writes_no_stamp_and_a_first_write_stamps_every_record_contract(
+def test_first_write_stamps_every_record_contract_and_a_read_preserves_it(
     imported: ImportResult,
     write_recording: WriteRecording,
     cli_root: Path,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
+    original = (cli_root / STAMP_NAME).read_bytes()
     assert main([*_INSPECT, imported.source_sha256]) == EXIT_OK
-    assert not (cli_root / STAMP_NAME).exists()
+    assert (cli_root / STAMP_NAME).read_bytes() == original
 
     assert main(_amend(write_recording)) == EXIT_OK
 
@@ -51,6 +52,11 @@ def test_a_read_writes_no_stamp_and_a_first_write_stamps_every_record_contract(
     assert stamp["contracts"] == installed_fingerprints()
     assert "record/source-manifest" in stamp["contracts"]
     assert "result/command" not in stamp["contracts"]
+
+
+def test_read_only_command_on_fresh_root_writes_no_stamp(cli_root: Path) -> None:
+    assert main([*_INSPECT, "0" * 64]) == EXIT_REFUSED
+    assert not (cli_root / STAMP_NAME).exists()
 
 
 def test_a_root_written_before_an_edit_is_refused_with_the_regenerate_remedy(

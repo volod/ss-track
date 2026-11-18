@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from ss_track.core.canonical import SEAL_FIELD
+from ss_track.core.evidence.contract_stamp import require_current_data_root
 from ss_track.core.metadata import project_info
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.core.scratch import exclusive_lock
@@ -211,6 +212,7 @@ def run_discovery(
     timeout: float = DEFAULT_TIMEOUT_SEC,
 ) -> DiscoveryResult:
     """Write the run a plan declares, holding its run id so no other command computes it too."""
+    require_current_data_root(data_root)
     plan = read_discovery_plan(plan_path)
     busy = CorpusRefusal(
         RefusalCode.DISCOVERY_IN_PROGRESS,
@@ -234,6 +236,7 @@ def _frame_sizes(records: DiscoveryRecords, data_root: Path) -> dict[str, tuple[
 
 def verify_discovery_run(run_id: str, data_root: Path) -> DiscoveryResult:
     """Verify a written run against the corpus version it read, recomputing its selection."""
+    require_current_data_root(data_root)
     records = verify_discovery(data_root, run_id)
     require_reproduced(records, data_root)
     path = discovery_run_path(data_root, run_id)

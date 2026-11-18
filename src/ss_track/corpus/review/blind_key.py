@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from ss_track.core.canonical import SEAL_FIELD
+from ss_track.core.evidence.contract_stamp import require_current_data_root
 from ss_track.core.evidence.sealed import read_sealed
 from ss_track.core.evidence.sealing import seal, write_sealed
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
@@ -78,6 +79,7 @@ def require_current(data_root: Path, record: Mapping[str, Any]) -> AuditSample:
 
 def read_blinding(data_root: Path, audit_id: str) -> dict[str, JsonValue]:
     """Read one private mapping and require it to match the runs and frames it names."""
+    require_current_data_root(data_root)
     path = blinding_path(data_root, audit_id)
     if not is_shared_type("identifier", audit_id) or not path.is_file():
         raise CorpusRefusal(
@@ -118,6 +120,7 @@ def require_same_key(data_root: Path, record: Mapping[str, Any]) -> None:
 
 def publish_key(data_root: Path, record: dict[str, JsonValue]) -> tuple[Path, bool]:
     """Publish the mapping by one rename. The same mapping again changes nothing."""
+    require_current_data_root(data_root)
     audit_id = str(record["audit_id"])
     root = discovery_root(data_root)
     path = blinding_path(data_root, audit_id)
