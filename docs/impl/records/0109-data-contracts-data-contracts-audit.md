@@ -151,7 +151,8 @@ code, CLI flag or dependency changed. Current pages: [Contracts](../current/cont
 | Regressions fail before their fix | `test_stage.py` unknown-stage cases and `test_check_schemas.py` reference cases, run with `src/` stashed | fail as expected before, pass after; the retired-major and no-older-format fixtures pass on the old code, being missing fixtures rather than bugs |
 | The sweep detects a missing root check | `tests/commands/test_root_checks.py` with `reported_on_data_root` changed to skip its check, then restored | fails as expected; 51 cases pass on the real code |
 | Staged-hashes reproduction | One-off script, not kept: a copy of `$DATA_DIR/run/pilot-hashes-origin-grouped/staged-hashes.json` as both sides, `corpus compare` on a fresh scratch root under an install whose `record/staged-hashes` meaning pin differed | comparison sealed `identical`, exit 0; scratch removed, `$DATA_DIR` only read |
-| Full quality gate | `make quality` | see Close or resume |
+| Full quality gate | `make quality` | pass: format, lint, typing, complexity, shell, links, plan, contracts and events; 2928 passed, 8 skipped, coverage 91.20%; Markdown lint; sdist and wheel built. It ran on the tree before the final split of `test_stamp_after_freeze.py` and the private rename in `references.py` |
+| Required CI on the committed tree | `make ci` at `8362654` | pass: 2789 passed, 147 deselected |
 
 ## Audit handoff
 
@@ -174,4 +175,11 @@ gate (no measured problem). Everything else found was fixed in this change.
 
 ## Close or resume
 
-In progress.
+This run's gates pass, except the section 17.7 handoff rule for staged hashes, which fails as
+reproduced and belongs to `development-staged-hashes-provenance`. The session that wrote this record
+ended before `make quality` finished. Its result and `make ci` on the committed tree were added at
+the start of `development-staged-hashes-provenance`. The record stays `active` because the audit
+remains in the plan for the two tasks it added. The Contracts and Corpus pages, the authoring guide,
+`AGENTS.md`, spec sections 17.4 and 17.7 and the records index are updated. Plan counts after: 128
+agent and 30 human tasks; next agent `development-staged-hashes-provenance`, next human
+`define-locked-test-policy` (optional). `data-contracts` remains planned.

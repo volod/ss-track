@@ -11,6 +11,7 @@ import pytest
 
 from ss_track.core.canonical import SEAL_FIELD, canonical_json, seal_of, sha256_bytes
 from ss_track.core.evidence import contract_stamp
+from ss_track.core.evidence.carried_pins import carried_contract_set
 from ss_track.core.evidence.sealed import read_sealed
 from ss_track.core.evidence.stamp_file import STAMP_NAME
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
@@ -25,7 +26,6 @@ from ss_track.corpus.links.portable_archive import (
     build_archive,
     read_archive,
 )
-from ss_track.corpus.links.portable_provenance import exported_contract_set
 from ss_track.corpus.links.portable_state import accepted_path
 from ss_track.corpus.links.run import LinkRequest, write_links
 from ss_track.corpus.records.kinds import LINK_REVIEW_HANDOFF
@@ -183,7 +183,7 @@ def test_matching_pins_round_trip_into_the_accepted_handoff(tmp_path: Path) -> N
 
     accept_handoff(receiver, archive, "receiver-identity", "comparison", REVIEWER, True)
     accepted = read_sealed(accepted_path(receiver, LINKS), LINK_REVIEW_HANDOFF)
-    assert accepted["contract_set"] == exported_contract_set()
+    assert accepted["contract_set"] == carried_contract_set()
 
 
 def test_a_released_handoff_carries_no_pins_and_reads_by_major(

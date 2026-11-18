@@ -35,48 +35,6 @@ hardware or private data.
 
 ### Data contracts -- `data-contracts`
 
-#### development-staged-hashes-provenance
-
-`corpus compare` reads a `staged-hashes.json` that another host's data root wrote and an operator
-carried over, a sealed record crossing data roots, but the record binds no contract set. In the
-development stage a host on another commit, whose `record/staged-hashes`, `record/frame-set` or
-`shared/types` was edited in place, still writes `schema_version: 1`, so `compare` seals
-`identical`, or names differing frames, without proving that both hosts read the records alike.
-Spec section 17.7 requires a development handoff of sealed records between data roots to bind the
-exporting contract set; only the review handoff does. Reproduction: copy a staged-hashes record
-from a root stamped under the shipped set and run `corpus compare` on it under an install whose
-`record/staged-hashes` meaning pin differs, on a fresh root: the comparison is sealed `identical`
-and the command exits 0. Impact: a cross-host identity or difference claim can rest on records the
-two hosts interpret differently.
-
-- Serves: `data-contracts` -- [Development stage and
-  release](../design/spec.md#177-development-stage-and-release)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: `corpus compare` refuses a staged-hashes record whose development contract
-  pins are absent or differ from the installed set, naming the changed contracts, before it writes a
-  comparison. Records with matching pins compare as today, and released records compare by major.
-- Scope boundary: The staged-hashes record and the comparison's read of it. Reuse the pins and the
-  comparison of `corpus/links/portable_provenance.py` rather than a second statement of either. No
-  change to the review handoff or to frame bytes; stale records are regenerated, not migrated.
-- Data and artifact paths: `contracts/record/staged-hashes/`, `src/ss_track/corpus/hosts/`,
-  `src/ss_track/corpus/links/portable_provenance.py`, `tests/corpus/hosts/`,
-  `$DATA_DIR/run/<run-id>/staged-hashes.json`.
-- Execution path: Edit `record/staged-hashes` 1.0.0 in place to carry the `contract_set` rows the
-  review handoff carries, re-pin it, write them in `corpus hashes` and check both records in
-  `compare_staged_hashes` before `_require_comparable` and before any write. Move the row parsing to
-  one place both readers use. The edit changes the stamp, and `$DATA_DIR` holds staged-hashes
-  records, so the root then refuses every root-taking command: regenerate it under the owner's
-  transfer authorization, or add the Human-Assisted regeneration task, in the same change.
-- Acceptance gates: A pair with equal frame bytes but another pin for `record/staged-hashes`,
-  `record/frame-set` or `shared/types` on one side refuses `RECORD_SCHEMA_UNSUPPORTED` with
-  `changed_contracts` and writes no `hash-comparison.json`; a record with no pins refuses; matching
-  pins compare as before; a released-stage pair compares by major. The regression fails before the
-  fix. `make ci` passes.
-- Documentation target: [Contracts](current/contracts.md) and the [Corpus](current/corpus.md)
-  section "Across hosts".
-
 #### development-stamp-added-contracts (optional)
 
 A data root stamped before a record or shared contract was added refuses every root-taking command,
@@ -129,9 +87,10 @@ change it did not pin, or formats drift silently before release.
   score or refusal code.
 - Data and artifact paths: `contracts/`, `src/ss_track/schema/`, `tests/schema/`.
 - Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits) over the
-  remaining work: `development-staged-hashes-provenance`, `development-stamp-added-contracts` and
-  their seams to the root stamp, the read path, the handoff pins and section 17.7. Verify that
-  structural, shared and meaning changes still refuse stale evidence.
+  remaining work: the carried contract pins that the review handoff and staged hashes share
+  (`core/evidence/carried_pins.py`), `development-stamp-added-contracts`, and their seams to the root
+  stamp, the read path and section 17.7. Verify that structural, shared and meaning changes still
+  refuse stale evidence.
 - Acceptance gates: Every section 17.7 rule has a failing fixture or is named as human judgment.
   Every finding is fixed, routed to a task or dropped with its reason, and `make quality` passes.
   Finding nothing is a valid result when the record states what was reviewed.
@@ -190,8 +149,9 @@ Every score must be recomputable from immutable evidence.
   bundle are `record` contracts, and the manifest lists the contract set in force. The manifest
   field list is the `RunManifest` message of `event/analytics`. This task seals that protobuf-JSON
   object and does not define a second field list. In the development stage every contract is
-  `1.0.0`, so the contract set in force names each contract's structure and meaning fingerprints,
-  as `record/link-review-handoff` does. The data-root stamp pins only record and shared contracts,
+  `1.0.0`, so the contract set in force names each contract's structure and meaning fingerprints
+  through `shared/types` `$defs/contract-set` and `core/evidence/carried_pins.py`, as the review
+  handoff and staged hashes do. The data-root stamp pins only record and shared contracts,
   while the sealed manifest takes its shape from `event/analytics` and the bundle's event lines from
   the event packages, which a development edit changes in place: add the event packages a bundle
   depends on to the stamp before its first bundle is written (spec section 17.7). A new stamped name
@@ -3082,6 +3042,40 @@ A locked test needs a named custodian and access rules that no software can supp
 - Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
 
 ### Data contracts -- `data-contracts`
+
+#### development-data-root-regenerate-provenance
+
+The in-place edit that binds staged hashes to their contract set re-pinned `record/staged-hashes`,
+`record/link-review-handoff` and `shared/types`, so every root-checking command on the development
+data root `$DATA_DIR` now refuses `RECORD_SCHEMA_UNSUPPORTED` naming those three contracts.
+Reproduce: `.venv/bin/ss-track corpus verify --corpus hawk-drone-pilot-v1`. Expected: the hawk
+workload and the two-source pilot corpora, discovery runs, link reviews and freezes verify under the
+installed set. The root holds one staged-hashes record and no handoff, so a rebuild should
+reproduce every other seal. Regeneration downloads the pilot sources that the cache does not hold,
+which counts against the owner's transfer cap stated in the [two-source
+recipe](workloads/two-source-pilot/README.md).
+
+- Serves: `data-contracts` -- [Development stage and
+  release](../design/spec.md#177-development-stage-and-release)
+- Agent status: HUMAN-GATED
+- Dependencies: the owner's authorization of the transfer.
+- User-visible outcome: `$DATA_DIR` is stamped under the installed contract set and every pilot
+  dataset verifies again; its staged-hashes record carries contract pins.
+- Scope boundary: Delete and rebuild sealed development datasets only. Keep operator-written
+  declarations, labels, reviews and link decisions, `cache/`, `uv-cache/`,
+  `workload-selection/` and `preserved-operator-inputs-pre-baseline/`. Change no code or contract.
+- Data and artifact paths: `$DATA_DIR/`, `docs/impl/workloads/two-source-pilot/`.
+- Execution path: After authorization, move the sealed datasets and the stamp out of the root,
+  rebuild with `make development-workload-prepare`, the hawk commands and the two-source recipe,
+  reusing a verified cached archive as the recipe allows, then verify each corpus and discovery run
+  and compare every rebuilt seal with the moved copy before deleting it.
+- Acceptance gates: `corpus verify` of `hawk-drone-pilot-v1`, `pilot-two-source-grouped-20261113`,
+  `pilot-frozen-diverse-20261113` and `pilot-frozen-uniform-20261113` and `discover verify` of both
+  runs exit 0; `contract-set.json` holds the installed pins; every seal other than the
+  staged-hashes record's equals its stale copy, or the recipe's table is updated with the reason;
+  every retained operator input is still present.
+- Documentation target: [Contracts](current/contracts.md) and the [two-source
+  recipe](workloads/two-source-pilot/README.md).
 
 #### contract-release-freeze
 

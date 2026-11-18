@@ -568,10 +568,10 @@ contracts:
     corpus on another host.
   versions:
   - version: 1.0.0
-    file_sha256: 2954b8e51fb08ce55b075ca679199171edf4f79fd7f1ef61aed544dc330d7d8b
+    file_sha256: 97a8e2a832224f1b87afdbcd7a655318b00a1ef1b0a2964b43b456a3a234b701
     fingerprints:
-      structure: 8087817864182ed819ca28843f27b270099eeaab1010fd9e310e3e81426c742e
-      meaning: 2e9e01407907e42d44a656eff9d05e2ad1cccf510699913137f2d4dfe95c1342
+      structure: b8fcbf4d49d0b9bc6fcfb1033dd90279bc66505580cbc3958499d52dbb8060bb
+      meaning: 544d38e6613cfc9751185b2239af2bff5103caa42483eff7dd1c751493b9aac9
     change:
       class: initial
       summary: Initial contract.
@@ -610,10 +610,10 @@ contracts:
   description: The shipped staged-hashes format.
   versions:
   - version: 1.0.0
-    file_sha256: d83d7253c9b4fafc7af2b97b6dc69747e7a5f6fd002bf88139ff4005a2c07b1a
+    file_sha256: 0fed81fcde58190acc54ccc430dc34113f26b1736ff737818671c3fc8256e8aa
     fingerprints:
-      structure: 2a0c089ff2919279b11f43506d848e724816842e386ccce677024d98e39eacc5
-      meaning: 1225c87facd77772fad9b5ff95199f9249da099739c72d8d85ffd2cdfacde5e0
+      structure: a12e391a6c408bb040e0fb1c6b36963e309061c4ac6db40953e2bce49cf35dbc
+      meaning: 0f4fd8da9ce922ba25e04cba158582672b53f9ed55c2bf51b4f03d8338191c86
     change:
       class: initial
       summary: Initial contract.
@@ -638,10 +638,10 @@ contracts:
   description: Value types that other contracts reference.
   versions:
   - version: 1.0.0
-    file_sha256: 8767dae47c3092bc2a9ce1d79f4be89ceaa67115f4763e9529199db5c098325b
+    file_sha256: e7a67cfd2565f80e126f056e9d6af2c2e14d241d5a15ca458cdedc864b5fda93
     fingerprints:
-      structure: 24873012e5c08cc1e45af2aa3977cb705409a0efcabda5abe0b201f503fcc026
-      meaning: d9b7155f2a4f1376a98dbbc937148be0453db28e5cd18aaaac1ec1bfbe32602a
+      structure: f506a93ab1aed00039e933ff73f537511a554d26c935bb3fc39e57d55dcb9c25
+      meaning: 48db03ac7901abe97a556c7a3ab1f7bd6f92b7537caa0baf19cc5d2ae5e37314
     change:
       class: initial
       summary: Initial contract.

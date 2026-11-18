@@ -69,9 +69,21 @@ root lookup. The
 lists the commands reviewed. `tests/commands/test_root_checks.py` builds every command from the
 parser and holds each one that takes the data root to this check, on a root with unstamped evidence
 and on a stale stamp: it refuses with the regenerate remedy and changes nothing. A command that
-takes no root is exempt only by name, with its reason. `corpus compare` reads another host's
-staged-hashes record, which carries no contract pins yet; `development-staged-hashes-provenance`
-binds it as the review handoff is bound.
+takes no root is exempt only by name, with its reason.
+
+A sealed record that leaves its data root carries the pins of the install that wrote it:
+`shared/types` `$defs/contract-set` states the rows, one `{contract, structure, meaning}` per record
+and shared contract in contract order, or `null` in the released stage. `record/link-review-handoff`
+and `record/staged-hashes` both reference it as `contract_set`. `core/evidence/carried_pins.py`
+writes the rows (`carried_contract_set`) and checks them (`require_carried_contract_set`) with the
+stamp's own comparison, `contract_stamp.changed_contracts`. Absent or null pins, or any differing
+contract, refuse `RECORD_SCHEMA_UNSUPPORTED` with the record, `changed_contracts` and the carrier's
+remedy before the reader writes anything; unsorted, repeated or incomplete rows are
+`RECORD_TAMPERED`. In the released stage the check passes and a record's major identifies its
+contract. `corpus compare` checks both staged-hashes records before it compares them, so another
+host's record written under another development contract set leaves no `hash-comparison.json`; the
+[staged-hashes provenance
+record](../records/0110-data-contracts-development-staged-hashes-provenance.md) has the evidence.
 
 The scan costs one directory traversal plus the bytes needed to identify JSON objects, with fixed
 input buffers and directory-cycle tracking. On one private root of 25,000 PNG files (102.4 MB) in
@@ -183,13 +195,9 @@ a media-free portable review tar. It binds the corpus, frame set, link record, o
 branch and every archive member by size and SHA-256. In the development stage its `contract_set`
 lists the structure and meaning fingerprint of every record and shared contract the exporter
 installs, the pins the exporting root's `contract-set.json` holds; `review-pack` checks the root
-first. `review-unpack` and `review-accept` compare the pins with the installed set through
-`contract_stamp.changed_contracts`, the stamp's own comparison, in
-`corpus/links/portable_provenance.py`. Absent or null pins, or any differing contract, refuse
-`RECORD_SCHEMA_UNSUPPORTED` with `changed_contracts` and the handoff remedy before recipes are
-extracted or any local record, comparison or checkpoint is written; unsorted, repeated or incomplete
-rows are `RECORD_TAMPERED`. In the released stage the writer sets `null` and the reader reads by
-major; the [handoff provenance
+first. `review-unpack` and `review-accept` check them as [carried pins](#development-stage), with
+the handoff remedy of `corpus/links/portable_provenance.py`, before recipes are extracted or any
+local record, comparison or checkpoint is written; the [handoff provenance
 record](../records/0105-data-contracts-development-portable-handoff-provenance.md) has the evidence.
 Recipe members are text inputs only; media, staged frames, feature rows and model weights remain
 local to independently prepared hosts.
@@ -214,10 +222,11 @@ the paired selection comparison with `review_budget`, `sibling_offers` and `by_s
 are absent when a command has nothing to report. A label result has no `score` field, and an
 unscorable case is never a zero. An unrecorded review minute stays unmeasured rather than zero.
 
-`shared/types` supplies hashes and identifiers. Every shipped document format has a contract, and
-every frame-set reference resolves at its annotated schema pointer. Capture fields preserve
-operator descriptions and numbers: the dialect allows exactly `["string", "number"]` and its nullable
-form. Numeric descriptive metadata has no physical-unit claim; declared range retains metres.
+`shared/types` supplies hashes, identifiers and the contract pins a record carries between roots.
+Every shipped document format has a contract, and every frame-set reference resolves at its
+annotated schema pointer. Capture fields preserve operator descriptions and numbers: the dialect
+allows exactly `["string", "number"]` and its nullable form. Numeric descriptive metadata has no
+physical-unit claim; declared range retains metres.
 
 Each sealed format's kind and major have one statement, its `RecordFormat` in
 `corpus/records/kinds.py`. The writer stamps a record with `RecordFormat.stamp()` and the read path
@@ -319,7 +328,7 @@ The input file is never rewritten. Name a `declaration` contract to select the Y
 | `contracts/registry.yaml` | Each contract's family, id, owner, status and frozen versions, with `file_sha256`, both fingerprints, the change-log entry and optional retired-major dispositions |
 | `contracts/<family>/<id>/<version>.json` | One frozen JSON Schema version, whose `$id` is `urn:ss-track:contract:<family>:<id>:<version>` |
 | `contracts/event/<id>/<version>.binpb` | One frozen descriptor set for an event package. It is not a JSON Schema document |
-| `contracts/shared/types/` | The `sha256` and `identifier` value types |
+| `contracts/shared/types/` | The `sha256`, `identifier` and `contract-set` value types |
 | `contracts/meta/dialect.json` | The restricted JSON Schema a contract may use |
 | `contracts/meta/registry.json` | The shape of `registry.yaml` |
 | `contracts/README.md` | What a consumer holding only this directory needs |

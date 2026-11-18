@@ -114,5 +114,6 @@ Copy the [template](template.md) using the
 | 0107 | `development-explicit-path-revision-root` | [0107-data-contracts-development-explicit-path-revision-root](0107-data-contracts-development-explicit-path-revision-root.md) |
 | 0108 | `development-unstamped-scan-reuse` | [0108-data-contracts-development-unstamped-scan-reuse](0108-data-contracts-development-unstamped-scan-reuse.md) |
 | 0109 | `data-contracts-audit` | [0109-data-contracts-data-contracts-audit](0109-data-contracts-data-contracts-audit.md) |
+| 0110 | `development-staged-hashes-provenance` | [0110-data-contracts-development-staged-hashes-provenance](0110-data-contracts-development-staged-hashes-provenance.md) |
 
-Next unused sequence: `0110`.
+Next unused sequence: `0111`.

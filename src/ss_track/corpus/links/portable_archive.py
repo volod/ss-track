@@ -9,15 +9,12 @@ from tempfile import TemporaryDirectory
 from typing import cast
 
 from ss_track.core.canonical import canonical_json, sha256_bytes
+from ss_track.core.evidence.carried_pins import CONTRACT_SET_FIELD, carried_contract_set
 from ss_track.core.evidence.sealed import read_sealed
 from ss_track.core.evidence.sealing import seal
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.core.scratch import write_atomically
-from ss_track.corpus.links.portable_provenance import (
-    CONTRACT_SET_FIELD,
-    exported_contract_set,
-    require_matching_contract_set,
-)
+from ss_track.corpus.links.portable_provenance import require_matching_contract_set
 from ss_track.corpus.records.kinds import LINK_REVIEW_HANDOFF
 
 MANIFEST_MEMBER = "manifest.json"
@@ -110,7 +107,7 @@ def build_archive(
             "links_manifest_sha256": links_manifest_sha256,
             "base_checkpoint_sha256": base_checkpoint_sha256,
             "checkpoint_sha256": checkpoint_sha256,
-            CONTRACT_SET_FIELD: exported_contract_set(),
+            CONTRACT_SET_FIELD: carried_contract_set(),
             "files": files,
         }
     )

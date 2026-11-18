@@ -1786,11 +1786,13 @@ checks that open it, and `open_frame_bundle` opens any bundle directory without 
 
 ### Across hosts
 
-A pin says only that two hosts differ. `ss-track corpus hashes` first runs everything `corpus
-verify` does, then writes what this host staged to `$DATA_DIR/run/<run-id>/staged-hashes.json`: each
-bundle and every frame's index, PTS and hash, each source's codec and pixel format, and the host's
-machine, system and Python. `src/ss_track/corpus/hosts/host_hashes.py` owns it. Host facts stay out
-of the frame set, which must be one hash on any host, and no frame moves between hosts.
+A pin says only that two hosts differ. `ss-track corpus hashes` first runs everything
+`corpus verify` does, then writes what this host staged to
+`$DATA_DIR/run/<run-id>/staged-hashes.json`: each bundle and every frame's index, PTS and hash, each
+source's codec and pixel format, and the host's machine, system and Python. In the development stage
+it also carries the contract pins of the install that wrote it, in `contract_set`.
+`src/ss_track/corpus/hosts/host_hashes.py` owns it. Host facts stay out of the frame set, which must
+be one hash on any host, and no frame moves between hosts.
 
 `ss-track corpus compare` reads two such records and keeps its result in `hash-comparison.json`, under
 its own run. `src/ss_track/corpus/hosts/hash_comparison.py` owns it. It compares frame sets first, because
@@ -1827,11 +1829,15 @@ from one set of source bytes. Two writes of the fixed corpus on one host differ 
 Matroska or WebM, whose random identifiers change, and a write on arm64 differs from x86-64 in the
 packets of 41 of 71, so a host that regenerates its media compares different sources.
 
-`corpus compare` treats any two hosts alike and `left` and `right` name them, so a cross-architecture
-claim also needs two different `machine` values. In the development stage a staged-hashes record
-binds no contract set, so a comparison is meaningful only between hosts that install the same one;
-`development-staged-hashes-provenance` makes `compare` refuse a record written under another.
-A record is sealed against accidents, not against a person, like every seal here.
+`corpus compare` treats any two hosts alike and `left` and `right` name them, so a
+cross-architecture claim also needs two different `machine` values. Before it compares,
+`corpus compare` holds each record's `contract_set` to the installed one: in the development stage a
+host on another commit writes `schema_version: 1` too, so equal bytes would not show that both hosts
+read the records alike. A record with no pins, or pins of another development contract set, refuses
+`RECORD_SCHEMA_UNSUPPORTED`, naming the record and `changed_contracts`, and nothing is written;
+record both sides with installs of one contract set (see
+[Contracts](contracts.md#development-stage)). A record is sealed against accidents, not against a
+person, like every seal here.
 
 `tests/corpus/hosts/_fixed_sources.py` holds the fixed corpus, `arch-fixed-v1`: 71 sources through 20
 decoders and 28 pixel formats, with odd and short-row sizes, several color matrices and chroma
@@ -2312,7 +2318,7 @@ accepted task, its decisions and its evidence.
 | `TRANSFORM_REVISION_MISMATCH` | A stored case needs a transform revision this code does not provide |
 | `RECORD_TAMPERED` | A sealed record is missing, malformed, of another kind or fails its seal, states a value its contract forbids, such as a declared color matrix no conversion applies or a bundle pixel format other than `rgb24`, or a re-import finds changed stored bytes; or the data root's `contract-set.json` is damaged |
 | `RECORD_INVALID` | A writer produced a record its contract refuses, a reused bundle hashed other than its candidate, or a preview sheet does not fit its own layout; nothing is sealed or written. This is a defect of ss-track, not of the input. `discover verify` also refuses a run whose scores or selection its own feature rows and frames do not give, or whose method this ss-track does not know |
-| `RECORD_SCHEMA_UNSUPPORTED` | [Any sealed record](#reading-sealed-records) is of a major or stated shape this code does not serve as evidence, including at a re-import or rebuild over it; the data root was written under another [development contract set](contracts.md#development-stage), or holds sealed evidence without a stamp; or a review handoff states no development contract set or another one |
+| `RECORD_SCHEMA_UNSUPPORTED` | [Any sealed record](#reading-sealed-records) is of a major or stated shape this code does not serve as evidence, including at a re-import or rebuild over it; the data root was written under another [development contract set](contracts.md#development-stage), or holds sealed evidence without a stamp; or a review handoff or a staged-hashes record states no development contract set or another one |
 | `DECODE_POLICY_MISMATCH` | A source or pin uses a decode policy other than the installed one |
 | `IMPORT_CONFLICT` | The same source was imported at the current major with another declaration or decoder, or an amendment or a redecode names bytes with no record or changes more than terms |
 | `CORPUS_CONFLICT` | The `corpus_id` already exists with different content, or a superseded version differs from the seal its successor pinned, at build, stage or verify; a version to freeze is not the one its review makes, is already frozen from other decisions, or an output file holds other bytes |
