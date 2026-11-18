@@ -3,6 +3,7 @@
 import json
 import os
 import stat
+from collections.abc import Mapping
 from pathlib import Path
 from typing import BinaryIO
 
@@ -15,6 +16,11 @@ _MAX_KEY_BYTES = 128  # Even a fully escaped JSON spelling of either key is shor
 _KEYS = frozenset({KIND_FIELD, SEAL_FIELD})
 _KEY_BYTES = {key.encode("ascii"): key for key in _KEYS}
 _WHITESPACE = frozenset(b" \t\r\n")
+
+
+def is_record_shaped(document: Mapping[str, object]) -> bool:
+    """Say whether a loaded JSON object holds both record keys, the shape a walk refuses."""
+    return document.keys() >= _KEYS
 
 
 class _Probe:

@@ -3,8 +3,8 @@ from pathlib import Path
 
 import pytest
 
-from ss_track.core.evidence.contract_stamp import REGENERATE_REMEDY
 from ss_track.core.evidence.sealed import read_sealed
+from ss_track.core.evidence.stamp_file import REGENERATE_REMEDY
 from ss_track.corpus import CorpusRefusal, ImportResult, RefusalCode, build_corpus
 from ss_track.corpus.decoding.decode_policy import current_decode_policy
 from ss_track.corpus.records.kinds import CORPUS_MANIFEST

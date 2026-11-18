@@ -26,7 +26,8 @@ edited file only with its new pins, and refuses a second version, a change class
 Records written before an edit still stamp `schema_version: 1`, so a data root keeps
 `contract-set.json`: structure and meaning fingerprints of the record and shared contracts. Before
 the first sealed write, `core/evidence/contract_stamp.py` checks and writes the stamp under a
-root lock; read-only commands write nothing. Every command taking the data root, through
+root lock, and `core/evidence/stamp_file.py` parses and writes its bytes; read-only commands write
+nothing. Every command taking the data root, through
 `commands/report.py` `reported_on_data_root` or `checked_data_root`, compares it with the
 installed set. A difference is `RECORD_SCHEMA_UNSUPPORTED`, with `changed_contracts` and the
 remedy to delete sealed datasets and the stamp and regenerate them from retained declarations,
@@ -35,34 +36,48 @@ and is refused with the same remedy and `unverified_contracts`; no data is delet
 The development root `$DATA_DIR` is stamped with meanings; its [regeneration
 record](../records/0106-data-contracts-development-data-root-regenerate.md) shows that a rebuild
 from the retained inputs reproduced every sealed record's seal.
-When the stamp is absent, `core/evidence/unstamped.py` walks the reachable root before a command
-uses it and again under the first-write lock. It streams object keys and refuses a file with both
+When the stamp is absent, `core/evidence/unstamped.py` walks the reachable root when a command first
+checks it and again under the first-write lock. It streams object keys and refuses a file with both
 record identity and seal keys at the top level, regardless of filename. It follows symlinks and
 avoids directory cycles; inaccessible or non-regular files fail closed with `STORAGE_FAILED`. An
 entry that disappears during the walk, such as another command's scratch file, and a dangling link
 hold no readable bytes and are skipped. Declarations and other operator inputs remain in place, and
 a read-only check writes no stamp. A record read rechecks a root whose stamp was absent or has
-disappeared since the command started. Root-taking corpus operations and evidence readers check it
-too. Each checked root is kept for the command, so checking a second root does not stop the
-stamping or rechecks of the first. A standalone path-only read has no data root to infer; its
-caller must establish that context when it belongs to a data root. A command that takes explicit
-output paths instead of the data root calls `commands/report.py` `check_root_holding` before any
-work: when an output resolves under `$DATA_DIR`, as spelled or through a link on either side, the
-root is checked and the sealed write stamps it; an output outside the root stays standalone and
-the root is neither read nor stamped. `annotate freeze --labels-out --revision-out` is the one such
-sealed writer; `core/evidence/contract_stamp.py` `holds_path` is the containment rule shared with
-the write-time root lookup. The [explicit-path
-record](../records/0107-data-contracts-development-explicit-path-revision-root.md) lists the
-commands reviewed.
+disappeared since the command started: a stamp written since by another command is verified, and
+without one `core/evidence/sealed.py` refuses the object it loaded when it holds both record keys,
+naming that record. No walk is needed there, because only such a file can pass a sealed read, and
+the refusal judges the bytes actually read. Root-taking corpus operations and evidence readers check
+the root too. Each checked root is kept for the command, so checking a second root does not stop the
+stamping or rechecks of the first. `core/evidence/checked_roots.py` holds that context: inside one
+command, which `commands/report.py` `reported` enters with `one_command`, a later check of the same
+unstamped root reuses a clean walk when no sealed read or write of a path under it came between
+them. A read or a write ends the reuse for every checked root holding its path, so an enclosing root
+walks again after a nested root receives a record. The locked first-stamp check always walks, a
+stamp that appears is always verified, and library calls outside a command walk at every check. A
+standalone path-only read has no data root to infer; its caller must establish that context when it
+belongs to a data root. A command that takes explicit output paths instead of the data root calls
+`commands/report.py` `check_root_holding` before any work: when an output resolves under
+`$DATA_DIR`, as spelled or through a link on either side, the root is checked and the sealed write
+stamps it; an output outside the root stays standalone and the root is neither read nor stamped.
+`annotate freeze --labels-out --revision-out` is the one such sealed writer;
+`core/evidence/checked_roots.py` `holds_path` is the containment rule shared with the write-time
+root lookup. The
+[explicit-path record](../records/0107-data-contracts-development-explicit-path-revision-root.md)
+lists the commands reviewed.
 
 The scan costs one directory traversal plus the bytes needed to identify JSON objects, with fixed
 input buffers and directory-cycle tracking. On one private root of 25,000 PNG files (102.4 MB) in
 50 directories, three checks took 0.983, 0.688 and 0.685 seconds; peak traced memory was 4.99 MiB
 on the first check, including installed-contract initialization, and 0.06 MiB on each later check.
-A stamped root does not scan. One command can scan an unstamped root once per check, several times
-in all; the optional `development-unstamped-scan-reuse` task reduces that. The
+A stamped root does not scan. On an unstamped root, a command that writes no record walks it once
+and a first-write command walks it twice: at its first check and under the first-write lock.
+`tests/corpus/records/test_unstamped_scan_reuse.py` counts the walks. On a warm private root of
+25,000 PNG files (102.4 MB) in 50 directories, a refused `corpus stage` took about 0.22 seconds
+with one walk and a first `import` about 0.47 seconds with two. The
 [unstamped-evidence record](../records/0104-data-contracts-development-unstamped-evidence.md)
-states the fixture and its limits. A damaged stamp is `RECORD_TAMPERED`. `data clean` reads no
+states the scan fixture and its limits, and the
+[scan-reuse record](../records/0108-data-contracts-development-unstamped-scan-reuse.md) the
+command timings. A damaged stamp is `RECORD_TAMPERED`. `data clean` reads no
 record and serves a stale root. Meaning fingerprints cover annotations including descriptions, so
 even editorial edits conservatively require regeneration. A record of another major gets the same
 regenerate remedy. The [audit record](../records/0102-data-contracts-data-contracts-audit.md) gives

@@ -14,7 +14,7 @@ import pytest
 from ss_track.annotate.review.revision import read_annotation_revision
 from ss_track.annotate.sources.frame_space import read_frame_space
 from ss_track.cli import main
-from ss_track.core.evidence.contract_stamp import STAMP_NAME
+from ss_track.core.evidence.stamp_file import STAMP_NAME
 from ss_track.core.refusal import RefusalCode
 from tests.annotate.review_files import write_pair, write_review, write_settlement
 from tests.annotate.support import DRAFT

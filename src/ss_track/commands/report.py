@@ -6,7 +6,8 @@ from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Protocol
 
-from ss_track.core.evidence.contract_stamp import holds_path, require_current_data_root
+from ss_track.core.evidence.checked_roots import holds_path, one_command
+from ss_track.core.evidence.contract_stamp import require_current_data_root
 from ss_track.core.paths import resolve_data_root
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
 
@@ -28,9 +29,13 @@ def log_json(level: int, record: dict[str, object]) -> None:
 
 
 def reported(action: Callable[[], Reportable]) -> int:
-    """Run one action and report one JSON record for its result or its refusal."""
+    """Run one action and report one JSON record for its result or its refusal.
+
+    The action is one command, so its checks of an unstamped root may reuse a clean walk.
+    """
     try:
-        result = action()
+        with one_command():
+            result = action()
     except CorpusRefusal as refusal:
         return _refuse(refusal)
     except OSError as error:

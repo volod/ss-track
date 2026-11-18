@@ -35,33 +35,6 @@ hardware or private data.
 
 ### Data contracts -- `data-contracts`
 
-#### development-unstamped-scan-reuse (optional)
-
-On a root without `contract-set.json`, one command can walk the whole root several times: the CLI
-check, the operation's own check, each sealed read before the first write, and the locked check
-before that write. One measured scan of 25,000 PNG files took about 0.7 seconds, so a command on a
-large unstamped root can spend several seconds in repeated scans, and the documented cost states
-only one scan.
-
-- Serves: `data-contracts` -- [Development stage and
-  release](../design/spec.md#177-development-stage-and-release)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: A command on a large unstamped root scans it as few times as safety allows,
-  and the Contracts page states the per-command cost.
-- Scope boundary: Scan scheduling within one command. Keep the locked recheck before the first
-  stamp and the recheck before a read when a record could have arrived since the last scan; do not
-  weaken fail-closed handling or change released behavior.
-- Data and artifact paths: `src/ss_track/core/evidence/`, `tests/corpus/records/`.
-- Execution path: Count scans per command on a representative root, then reuse a scan result for
-  repeated checks of the same root where no write or read window separates them, for example
-  between the CLI check and the operation's first check.
-- Acceptance gates: A test counts scans for a read-only command and a first-write command on an
-  unstamped root and shows fewer full walks; every existing unstamped-evidence regression still
-  refuses. Report before and after per-command time on a large root. `make ci` passes.
-- Documentation target: [Contracts](current/contracts.md).
-
 #### data-contracts-audit (optional)
 
 A development-stage gate that lets a contract change without a version must still refuse every

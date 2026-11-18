@@ -8,12 +8,8 @@ import pytest
 from ss_track.cli import main
 from ss_track.commands.report import EXIT_OK, EXIT_REFUSED
 from ss_track.core.evidence import contract_stamp
-from ss_track.core.evidence.contract_stamp import (
-    REGENERATE_REMEDY,
-    STAMP_NAME,
-    installed_fingerprints,
-    require_current_data_root,
-)
+from ss_track.core.evidence.contract_stamp import installed_fingerprints, require_current_data_root
+from ss_track.core.evidence.stamp_file import REGENERATE_REMEDY, STAMP_KIND, STAMP_NAME
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
 from ss_track.corpus.sources.importer import ImportResult
 from tests.corpus._amending import rights_with
@@ -86,7 +82,7 @@ def test_data_clean_serves_a_stale_root(
 ) -> None:
     cli_root.mkdir(parents=True, exist_ok=True)
     (cli_root / STAMP_NAME).write_text(
-        json.dumps({"kind": contract_stamp.STAMP_KIND, "contracts": installed_fingerprints()})
+        json.dumps({"kind": STAMP_KIND, "contracts": installed_fingerprints()})
     )
     _edit_contract(monkeypatch, "record/frame-bundle")
     with pytest.raises(CorpusRefusal):
@@ -109,7 +105,7 @@ def test_a_released_set_writes_and_reads_no_stamp(
 
 @pytest.mark.parametrize("text", ["{", "[]", '{"kind": "other"}', '{"kind": "%s"}'])
 def test_a_damaged_stamp_is_refused(tmp_path: Path, text: str) -> None:
-    (tmp_path / STAMP_NAME).write_text(text.replace("%s", contract_stamp.STAMP_KIND))
+    (tmp_path / STAMP_NAME).write_text(text.replace("%s", STAMP_KIND))
 
     with pytest.raises(CorpusRefusal) as caught:
         require_current_data_root(tmp_path)
@@ -156,9 +152,7 @@ def test_first_write_rechecks_stamp_created_by_another_command(
     current = installed_fingerprints()
     assert current is not None
     old = current | {"record/frame-set": "0" * 64}
-    (tmp_path / STAMP_NAME).write_text(
-        json.dumps({"kind": contract_stamp.STAMP_KIND, "contracts": old})
-    )
+    (tmp_path / STAMP_NAME).write_text(json.dumps({"kind": STAMP_KIND, "contracts": old}))
     with pytest.raises(CorpusRefusal) as caught:
         contract_stamp.stamp_before_write(tmp_path / "record.json")
     assert caught.value.code is RefusalCode.RECORD_SCHEMA_UNSUPPORTED
@@ -202,7 +196,7 @@ def test_legacy_structure_only_stamp_refuses_without_deleting_data(tmp_path: Pat
     (tmp_path / STAMP_NAME).write_text(
         json.dumps(
             {
-                "kind": contract_stamp.STAMP_KIND,
+                "kind": STAMP_KIND,
                 "contracts": {
                     name: value for name, value in original.items() if name.startswith("record/")
                 },

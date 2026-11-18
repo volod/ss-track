@@ -112,5 +112,6 @@ Copy the [template](template.md) using the
 | 0105 | `development-portable-handoff-provenance` | [0105-data-contracts-development-portable-handoff-provenance](0105-data-contracts-development-portable-handoff-provenance.md) |
 | 0106 | `development-data-root-regenerate` | [0106-data-contracts-development-data-root-regenerate](0106-data-contracts-development-data-root-regenerate.md) |
 | 0107 | `development-explicit-path-revision-root` | [0107-data-contracts-development-explicit-path-revision-root](0107-data-contracts-development-explicit-path-revision-root.md) |
+| 0108 | `development-unstamped-scan-reuse` | [0108-data-contracts-development-unstamped-scan-reuse](0108-data-contracts-development-unstamped-scan-reuse.md) |
 
-Next unused sequence: `0108`.
+Next unused sequence: `0109`.

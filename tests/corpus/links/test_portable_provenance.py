@@ -12,6 +12,7 @@ import pytest
 from ss_track.core.canonical import SEAL_FIELD, canonical_json, seal_of, sha256_bytes
 from ss_track.core.evidence import contract_stamp
 from ss_track.core.evidence.sealed import read_sealed
+from ss_track.core.evidence.stamp_file import STAMP_NAME
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
 from ss_track.corpus.hosts.host_hashes import run_directory
 from ss_track.corpus.links.interactive_state import save_checkpoint
@@ -201,7 +202,7 @@ def test_a_released_handoff_carries_no_pins_and_reads_by_major(
 
     result = accept_handoff(receiver, archive, "receiver-identity", "comparison", REVIEWER, True)
     assert result.status == "identical"
-    assert not (receiver / contract_stamp.STAMP_NAME).exists()
+    assert not (receiver / STAMP_NAME).exists()
 
     monkeypatch.undo()  # the same archive opened by a development install has no pins to prove
     with pytest.raises(CorpusRefusal) as caught:

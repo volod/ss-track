@@ -40,7 +40,7 @@ _PROVIDER_PARSER = Path("corpus/sources/provider_http.py")
 # Protobuf-JSON event lines are not sealed records. The parser returns a message or a refusal.
 _EVENT_LINES = Path("contract/events.py")
 # The data root's development contract-set stamp holds fingerprints, not a record.
-_CONTRACT_STAMP = Path("core/evidence/contract_stamp.py")
+_CONTRACT_STAMP = Path("core/evidence/stamp_file.py")
 _JSON_READERS = {
     _CONTRACT_STAMP,
     _GATE,

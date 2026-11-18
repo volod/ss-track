@@ -9,9 +9,9 @@ from collections.abc import Collection, Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
-from ss_track.core.evidence.contract_stamp import REGENERATE_REMEDY
 from ss_track.core.evidence.format import RecordFormat
 from ss_track.core.evidence.read_window import StatedShape
+from ss_track.core.evidence.stamp_file import REGENERATE_REMEDY
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.schema.registry.contract import DEVELOPMENT
 from ss_track.schema.validation.enforce import installed_contracts, older_remedy, readable_majors

@@ -10,7 +10,8 @@ import pytest
 
 from ss_track.cli import main
 from ss_track.commands.report import EXIT_OK, EXIT_REFUSED
-from ss_track.core.evidence.contract_stamp import STAMP_NAME, require_current_data_root
+from ss_track.core.evidence.contract_stamp import require_current_data_root
+from ss_track.core.evidence.stamp_file import STAMP_NAME
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
 from tests.corpus.conftest import last_record
 from tests.schema.conftest import KEPT_FRAME_SET
