@@ -2936,16 +2936,20 @@ takes the root, or writes a sealed record to an explicit path that resolves insi
 stamp with the installed set first; a sealed record written to an explicit path outside the root is
 standalone and stamps nothing. A difference refuses the command with `RECORD_SCHEMA_UNSUPPORTED`,
 names the changed contracts and gives the remedy to regenerate; housekeeping that reads no record,
-such as `data clean`, still runs. A stamp that lacks meaning fingerprints cannot prove its records'
-meanings and is refused with the same remedy. The fingerprint includes descriptions, so even an
-editorial description change conservatively asks for regeneration: a machine cannot decide whether
-prose changes a value's interpretation. A record of another major gets the same remedy, because no
-release wrote one. A development handoff of sealed records between data roots, such as a review
-archive or another host's staged hashes, must bind the exporting contract set and refuse unpacking,
-acceptance or comparison, before writing anything, when its record or shared structure or meaning is
-missing or differs. Released handoffs follow versioned compatibility instead. The section 17.3
-classifier, the independent oracle, dispositions and views stay installed in both stages, tested on
-synthetic version pairs, so that they are proven when release starts using them.
+such as `data clean`, still runs. A contract the install pins but the stamp does not was added after
+the stamp was written, so no record of it can be in the root: it is not a difference, the root's
+next sealed write adds its pins under the lock, and a read of a record of it is served only once the
+stamp pins it as the reading install does. A contract the stamp names that the install lacks is a
+difference. A stamp that lacks meaning fingerprints cannot prove its records' meanings and is
+refused with the same remedy. The fingerprint includes descriptions, so even an editorial
+description change conservatively asks for regeneration: a machine cannot decide whether prose
+changes a value's interpretation. A record of another major gets the same remedy, because no release
+wrote one. A development handoff of sealed records between data roots, such as a review archive or
+another host's staged hashes, must bind the exporting contract set and refuse unpacking, acceptance
+or comparison, before writing anything, when its record or shared structure or meaning is missing or
+differs. Released handoffs follow versioned compatibility instead. The section 17.3 classifier, the
+independent oracle, dispositions and views stay installed in both stages, tested on synthetic
+version pairs, so that they are proven when release starts using them.
 
 Operator-written inputs are not regenerable: declarations, reviewed labels and review decisions stay
 on the data root and in the repository. A development change that alters the shape of such an input

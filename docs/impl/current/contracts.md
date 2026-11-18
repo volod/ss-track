@@ -29,36 +29,47 @@ or shared contract may reference only record and shared contracts, which
 `schema/registry/references.py` holds in the gate, so these pins cover every contract a record's
 shape depends on. Before the first sealed write, `core/evidence/contract_stamp.py` checks and writes
 the stamp under `core/scratch.py` `directory_lock` on the root, the lock a freeze and an event
-publication take on the contract set, and `core/evidence/stamp_file.py` parses and writes its
-bytes; read-only commands write nothing. Every command taking the data root, through
-`commands/report.py` `reported_on_data_root` or `checked_data_root`, compares it with the
-installed set. A difference is `RECORD_SCHEMA_UNSUPPORTED`, with `changed_contracts` and the
-remedy to delete sealed datasets and the stamp and regenerate them from retained declarations,
-labels and review decisions. A stamp without meaning fingerprints cannot prove the earlier meaning
-and is refused with the same remedy and `unverified_contracts`; no data is deleted by the check.
-The development root `$DATA_DIR` is stamped with meanings; its [regeneration
-record](../records/0106-data-contracts-development-data-root-regenerate.md) shows that a rebuild
-from the retained inputs reproduced every sealed record's seal.
-When the stamp is absent, `core/evidence/unstamped.py` walks the reachable root when a command first
-checks it and again under the first-write lock. It streams object keys and refuses a file with both
-record identity and seal keys at the top level, regardless of filename. It follows symlinks and
-avoids directory cycles; inaccessible or non-regular files fail closed with `STORAGE_FAILED`. An
-entry that disappears during the walk, such as another command's scratch file, and a dangling link
-hold no readable bytes and are skipped. Declarations and other operator inputs remain in place, and
-a read-only check writes no stamp. A record read rechecks a root whose stamp was absent or has
-disappeared since the command started: a stamp written since by another command is verified, and
-without one `core/evidence/sealed.py` refuses the object it loaded when it holds both record keys,
-naming that record. No walk is needed there, because only such a file can pass a sealed read, and
-the refusal judges the bytes actually read. Root-taking corpus operations and evidence readers check
-the root too. Each checked root is kept for the command, so checking a second root does not stop the
-stamping or rechecks of the first. `core/evidence/checked_roots.py` holds that context: inside one
-command, which `commands/report.py` `reported` enters with `one_command`, a later check of the same
-unstamped root reuses a clean walk when no sealed read or write of a path under it came between
-them. A read or a write ends the reuse for every checked root holding its path, so an enclosing root
-walks again after a nested root receives a record. The locked first-stamp check always walks, a
-stamp that appears is always verified, and library calls outside a command walk at every check. A
-standalone path-only read has no data root to infer; its caller must establish that context when it
-belongs to a data root. A command that takes explicit output paths instead of the data root calls
+publication take on the contract set, and `core/evidence/stamp_file.py` parses and writes its bytes;
+read-only commands write nothing. Every command taking the data root, through `commands/report.py`
+`reported_on_data_root` or `checked_data_root`, compares it with the installed set. A difference is
+`RECORD_SCHEMA_UNSUPPORTED`, with `changed_contracts` and the remedy to delete sealed datasets and
+the stamp and regenerate them from retained declarations, labels and review decisions. A difference
+is a contract the stamp pins otherwise, or one the stamp names that the install lacks. A contract
+only the install pins was added after the stamp was written, so no record of it can be in the root:
+the check passes, remembers it as missing, and the root's next sealed write replaces the stamp with
+the installed set under the lock, which rechecks first. A stamp's existing pins therefore never
+change while a command runs, and a read needs a recheck only for a record of a contract the stamp
+lacked when the command checked it: `core/evidence/stamp_reads.py` then verifies the stamp again
+after loading the record, and serves it only if the stamp now pins that contract as this install
+does, so another install's pin refuses with `changed_contracts` and a contract still unpinned
+refuses naming the record and `contract`. Reads of contracts the stamp pinned do not reread it. The
+[added-contracts record](../records/0111-data-contracts-development-stamp-added-contracts.md) has
+the evidence. A stamp without meaning fingerprints cannot prove the earlier meaning and is refused
+with the same remedy and `unverified_contracts`; no data is deleted by the check. The development
+root `$DATA_DIR` is stamped with the installed set. Its latest
+[regeneration record](../records/0112-data-contracts-development-data-root-regenerate-provenance.md)
+shows that a rebuild from the retained inputs reproduced every sealed record's seal except the
+staged-hashes record's, which gained its contract pins. When the stamp is absent,
+`core/evidence/unstamped.py` walks the reachable root when a command first checks it and again under
+the first-write lock. It streams object keys and refuses a file with both record identity and seal
+keys at the top level, regardless of filename. It follows symlinks and avoids directory cycles;
+inaccessible or non-regular files fail closed with `STORAGE_FAILED`. An entry that disappears during
+the walk, such as another command's scratch file, and a dangling link hold no readable bytes and are
+skipped. Declarations and other operator inputs remain in place, and a read-only check writes no
+stamp. A record read rechecks a root whose stamp was absent or has disappeared since the command
+started: a stamp written since by another command is verified, and without one
+`core/evidence/sealed.py` refuses the object it loaded when it holds both record keys, naming that
+record. No walk is needed there, because only such a file can pass a sealed read, and the refusal
+judges the bytes actually read. Root-taking corpus operations and evidence readers check the root
+too. Each checked root is kept for the command, so checking a second root does not stop the stamping
+or rechecks of the first. `core/evidence/checked_roots.py` holds that context: inside one command,
+which `commands/report.py` `reported` enters with `one_command`, a later check of the same unstamped
+root reuses a clean walk when no sealed read or write of a path under it came between them. A read
+or a write ends the reuse for every checked root holding its path, so an enclosing root walks again
+after a nested root receives a record. The locked first-stamp check always walks, a stamp that
+appears is always verified, and library calls outside a command walk at every check. A standalone
+path-only read has no data root to infer; its caller must establish that context when it belongs to
+a data root. A command that takes explicit output paths instead of the data root calls
 `commands/report.py` `check_root_holding` before any work: when an output resolves under
 `$DATA_DIR`, as spelled or through a link on either side, the root is checked and the sealed write
 stamps it; an output outside the root stays standalone and the root is neither read nor stamped.
@@ -194,7 +205,8 @@ their rules, which `read_links` enforces. `record/link-review-handoff` is the se
 a media-free portable review tar. It binds the corpus, frame set, link record, optional checkpoint
 branch and every archive member by size and SHA-256. In the development stage its `contract_set`
 lists the structure and meaning fingerprint of every record and shared contract the exporter
-installs, the pins the exporting root's `contract-set.json` holds; `review-pack` checks the root
+installs, which equal those of the exporting root's `contract-set.json` on every contract it pins;
+`review-pack` checks the root
 first. `review-unpack` and `review-accept` check them as [carried pins](#development-stage), with
 the handoff remedy of `corpus/links/portable_provenance.py`, before recipes are extracted or any
 local record, comparison or checkpoint is written; the [handoff provenance

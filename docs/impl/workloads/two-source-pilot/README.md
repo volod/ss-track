@@ -96,7 +96,9 @@ done
 ```
 
 Compare the host's `staged-hashes.json` with the origin's using `corpus compare`, or let
-`discover review-accept` compare it. The identities below must match exactly.
+`discover review-accept` compare it. The identities below must match exactly. Both hosts must
+install the same contract set: in the development stage each record carries its pins, and the
+comparison refuses a pair written under different ones.
 
 ## Runs
 

@@ -16,11 +16,16 @@ from pathlib import Path
 
 @dataclass(frozen=True, slots=True)
 class CheckedRoot:
-    """One root this command checked, as resolved, and whether it had no stamp when checked."""
+    """One root this command checked, as resolved, and whether it had no stamp when checked.
+
+    `missing` names the installed contracts its stamp did not pin then: contracts added since the
+    stamp was written, which the root's next sealed write adds to it.
+    """
 
     root: Path
     unstamped: bool
     walked_in: object | None = None  # the command whose clean walk a later check may reuse
+    missing: frozenset[str] = frozenset()
 
 
 # A check of one root never drops another, so a nested check cannot stop the outer root's stamping.
@@ -38,7 +43,13 @@ def one_command() -> Iterator[None]:
         _COMMAND.reset(token)
 
 
-def remember(root: Path, unstamped: bool | None, *, walked: bool = False) -> None:
+def remember(
+    root: Path,
+    unstamped: bool | None,
+    *,
+    walked: bool = False,
+    missing: frozenset[str] = frozenset(),
+) -> None:
     """Record resolved `root` as checked, or forget it when `unstamped` is None.
 
     `walked` says a clean walk found no record just now, so this command may reuse it.
@@ -48,7 +59,7 @@ def remember(root: Path, unstamped: bool | None, *, walked: bool = False) -> Non
         _CHECKED.set(kept)
         return
     walked_in = _COMMAND.get() if walked else None
-    _CHECKED.set((*kept, CheckedRoot(root, unstamped, walked_in)))
+    _CHECKED.set((*kept, CheckedRoot(root, unstamped, walked_in, missing)))
 
 
 def reusable_walk(root: Path) -> bool:

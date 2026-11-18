@@ -24,7 +24,8 @@ specific files must link here and keep only integration-specific routing.
   same change. The data-root stamp covers the whole root, so after a record or shared contract
   edit delete every sealed dataset and `contract-set.json` under `DATA_DIR`, keep operator inputs,
   and regenerate from the declarations; a root written before the edit refuses with
-  `changed_contracts`.
+  `changed_contracts`. A newly added contract needs no regeneration: the root's next sealed write
+  adds its pins.
   Do not add a version, a `retired_majors` entry, a disposition, a view or a historic fixture to
   keep outdated development data or tests readable. Versioned schema evolution starts at release,
   with `contract-release-freeze`.

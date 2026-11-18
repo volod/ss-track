@@ -12,7 +12,6 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from ss_track.core.canonical import SEAL_FIELD, seal_of
-from ss_track.core.evidence.contract_stamp import check_before_read, unstamped_evidence
 from ss_track.core.evidence.format import RecordFormat
 from ss_track.core.evidence.read_refusals import (
     incomplete_record,
@@ -27,7 +26,7 @@ from ss_track.core.evidence.read_window import (
     stated_shape,
 )
 from ss_track.core.evidence.registry import installed_projections
-from ss_track.core.evidence.unstamped import is_record_shaped
+from ss_track.core.evidence.stamp_reads import check_before_read, require_proven
 from ss_track.core.refusal import JsonValue
 from ss_track.schema.registry.contract import DISPOSITIONS, FACTS, KIND_FIELD, VERSION_FIELD, VIEW
 from ss_track.schema.validation.enforce import older_disposition
@@ -123,16 +122,16 @@ def _read_intact(path: Path, record_format: RecordFormat) -> dict[str, JsonValue
     """Return an object whose seal matches and whose kind is this format's, interpreting nothing else.
 
     `ValueError` covers bad text, bad JSON, an over-long integer and a `NaN`, which `canonical_json`
-    refuses because no record can hold one. Unmatched, those would end in a traceback. In a root
-    without a development stamp, the record-shaped object this read loaded is unstamped evidence.
+    refuses because no record can hold one. Unmatched, those would end in a traceback. What the
+    loaded record must still prove about its data root is `core.evidence.stamp_reads`.
     """
-    missing_stamp = check_before_read(path)
+    guard = check_before_read(path, record_format.kind)
     try:
         loaded = json.loads(path.read_text(encoding="ascii"))
         if not isinstance(loaded, dict):
             raise tampered(path, "record is not a JSON object")
-        if missing_stamp is not None and is_record_shaped(loaded):
-            raise unstamped_evidence(path, missing_stamp)
+        if guard is not None:
+            require_proven(guard, path, loaded)
         seal_matches = loaded.get(SEAL_FIELD) == seal_of(loaded)
     except FileNotFoundError as error:
         raise tampered(path, "record is missing") from error

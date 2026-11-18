@@ -35,40 +35,6 @@ hardware or private data.
 
 ### Data contracts -- `data-contracts`
 
-#### development-stamp-added-contracts (optional)
-
-A data root stamped before a record or shared contract was added refuses every root-taking command,
-because a contract named on only one side counts as changed. No record of an added contract can be
-in the root yet, so the refusal is a false positive, and each task that adds a record contract, such
-as `run-bundle-store`, forces the whole development root to be deleted and regenerated, including
-an authorized re-acquisition of its sources.
-
-- Serves: `data-contracts` -- [Development stage and
-  release](../design/spec.md#177-development-stage-and-release)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: A command on a root whose stamp lacks only contracts added since it was
-  written runs, and the root's next sealed write adds their pins to the stamp. A changed or removed
-  contract still refuses with `changed_contracts`.
-- Scope boundary: The data-root stamp's comparison and its extension under the first-write lock. The
-  handoff pins stay an exact match. Fail-closed handling stays: an extended stamp never lets a
-  command read a record written under another pin of the added contract.
-- Data and artifact paths: `src/ss_track/core/evidence/`, `tests/corpus/records/`.
-- Execution path: In `contract_stamp._verify_stamp`, count a name only the install pins as added
-  rather than changed, and extend the stamp atomically under `directory_lock` before a sealed write
-  in such a root. A stamp can then change while a command runs, which the read fast path assumes it
-  cannot: `check_before_read` trusts a stamped root whose stamp file exists. Recheck a root whose
-  stamp was incomplete when checked, or whose stamp file changed identity, before each read, and
-  refuse a loaded record whose kind's contract the verified stamp did not pin.
-- Acceptance gates: A root stamped without a contract the install adds passes a read-only command
-  without a write, and its first sealed write adds exactly the added pins; an install with another
-  pin for that contract then refuses; a command that checked the root before another install
-  extended it refuses that install's record of the added contract; two commands extending one root
-  concurrently leave one consistent stamp; a removed or changed contract still refuses. `make ci`
-  passes.
-- Documentation target: [Contracts](current/contracts.md).
-
 #### data-contracts-audit (optional)
 
 A development-stage gate that lets a contract change without a version must still refuse every
@@ -88,9 +54,9 @@ change it did not pin, or formats drift silently before release.
 - Data and artifact paths: `contracts/`, `src/ss_track/schema/`, `tests/schema/`.
 - Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits) over the
   remaining work: the carried contract pins that the review handoff and staged hashes share
-  (`core/evidence/carried_pins.py`), `development-stamp-added-contracts`, and their seams to the root
-  stamp, the read path and section 17.7. Verify that structural, shared and meaning changes still
-  refuse stale evidence.
+  (`core/evidence/carried_pins.py`), the stamp's adoption of added contracts and its read recheck
+  (`core/evidence/stamp_reads.py`), and their seams to the root stamp, the read path and section
+  17.7. Verify that structural, shared and meaning changes still refuse stale evidence.
 - Acceptance gates: Every section 17.7 rule has a failing fixture or is named as human judgment.
   Every finding is fixed, routed to a task or dropped with its reason, and `make quality` passes.
   Finding nothing is a valid result when the record states what was reviewed.
@@ -154,9 +120,11 @@ Every score must be recomputable from immutable evidence.
   handoff and staged hashes do. The data-root stamp pins only record and shared contracts,
   while the sealed manifest takes its shape from `event/analytics` and the bundle's event lines from
   the event packages, which a development edit changes in place: add the event packages a bundle
-  depends on to the stamp before its first bundle is written (spec section 17.7). A new stamped name
-  refuses every root stamped without it unless `development-stamp-added-contracts` has landed, so
-  the change states the regeneration of `$DATA_DIR`.
+  depends on to the stamp before its first bundle is written (spec section 17.7). A root stamped
+  before treats the new names as added contracts and adopts them at its next sealed write, so no
+  regeneration is needed for them; widen the name rule of `core/evidence/stamp_file.py`, the
+  `contract` pattern of `shared/types` `$defs/contract-set` and the kind-to-contract lookup of
+  `core/evidence/stamp_reads.py` to the event family in the same change.
 - Acceptance gates: A crash fixture leaves no complete-looking bundle, a retried ID stays
   idempotent, and each manifest records its re-run command. A bundle with no visibility value reads
   as restricted. An in-place edit of `event/analytics`, re-pinned, refuses a root stamped while it
@@ -3042,40 +3010,6 @@ A locked test needs a named custodian and access rules that no software can supp
 - Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
 
 ### Data contracts -- `data-contracts`
-
-#### development-data-root-regenerate-provenance
-
-The in-place edit that binds staged hashes to their contract set re-pinned `record/staged-hashes`,
-`record/link-review-handoff` and `shared/types`, so every root-checking command on the development
-data root `$DATA_DIR` now refuses `RECORD_SCHEMA_UNSUPPORTED` naming those three contracts.
-Reproduce: `.venv/bin/ss-track corpus verify --corpus hawk-drone-pilot-v1`. Expected: the hawk
-workload and the two-source pilot corpora, discovery runs, link reviews and freezes verify under the
-installed set. The root holds one staged-hashes record and no handoff, so a rebuild should
-reproduce every other seal. Regeneration downloads the pilot sources that the cache does not hold,
-which counts against the owner's transfer cap stated in the [two-source
-recipe](workloads/two-source-pilot/README.md).
-
-- Serves: `data-contracts` -- [Development stage and
-  release](../design/spec.md#177-development-stage-and-release)
-- Agent status: HUMAN-GATED
-- Dependencies: the owner's authorization of the transfer.
-- User-visible outcome: `$DATA_DIR` is stamped under the installed contract set and every pilot
-  dataset verifies again; its staged-hashes record carries contract pins.
-- Scope boundary: Delete and rebuild sealed development datasets only. Keep operator-written
-  declarations, labels, reviews and link decisions, `cache/`, `uv-cache/`,
-  `workload-selection/` and `preserved-operator-inputs-pre-baseline/`. Change no code or contract.
-- Data and artifact paths: `$DATA_DIR/`, `docs/impl/workloads/two-source-pilot/`.
-- Execution path: After authorization, move the sealed datasets and the stamp out of the root,
-  rebuild with `make development-workload-prepare`, the hawk commands and the two-source recipe,
-  reusing a verified cached archive as the recipe allows, then verify each corpus and discovery run
-  and compare every rebuilt seal with the moved copy before deleting it.
-- Acceptance gates: `corpus verify` of `hawk-drone-pilot-v1`, `pilot-two-source-grouped-20261113`,
-  `pilot-frozen-diverse-20261113` and `pilot-frozen-uniform-20261113` and `discover verify` of both
-  runs exit 0; `contract-set.json` holds the installed pins; every seal other than the
-  staged-hashes record's equals its stale copy, or the recipe's table is updated with the reason;
-  every retained operator input is still present.
-- Documentation target: [Contracts](current/contracts.md) and the [two-source
-  recipe](workloads/two-source-pilot/README.md).
 
 #### contract-release-freeze
 
