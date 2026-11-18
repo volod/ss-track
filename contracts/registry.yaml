@@ -568,10 +568,10 @@ contracts:
     corpus on another host.
   versions:
   - version: 1.0.0
-    file_sha256: 4e0be2f8ed47bb57a27ddb870f4b42a9ea67d1cdfc3a4cd9fb1753fc3b507162
+    file_sha256: 2954b8e51fb08ce55b075ca679199171edf4f79fd7f1ef61aed544dc330d7d8b
     fingerprints:
-      structure: ceaa0ccb8b5a975df4b430c314db525ad5a7d7c87cff8c54191ff90db841002c
-      meaning: 8ebf87bee0b741360eae04c7bef8e29a98d1295688f47adac9af78004637c755
+      structure: 8087817864182ed819ca28843f27b270099eeaab1010fd9e310e3e81426c742e
+      meaning: 2e9e01407907e42d44a656eff9d05e2ad1cccf510699913137f2d4dfe95c1342
     change:
       class: initial
       summary: Initial contract.

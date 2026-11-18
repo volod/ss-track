@@ -13,6 +13,11 @@ from ss_track.core.evidence.sealed import read_sealed
 from ss_track.core.evidence.sealing import seal
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.core.scratch import write_atomically
+from ss_track.corpus.links.portable_provenance import (
+    CONTRACT_SET_FIELD,
+    exported_contract_set,
+    require_matching_contract_set,
+)
 from ss_track.corpus.records.kinds import LINK_REVIEW_HANDOFF
 
 MANIFEST_MEMBER = "manifest.json"
@@ -84,7 +89,7 @@ def build_archive(
     checkpoint_sha256: str | None,
     members: dict[str, bytes],
 ) -> tuple[bytes, dict[str, JsonValue]]:
-    """Return deterministic tar bytes and their sealed interchange manifest."""
+    """Return deterministic tar bytes and their sealed manifest, pinned to the installed contracts."""
     roles = {
         LINKS_MEMBER: "links",
         HASHES_MEMBER: "staged_hashes",
@@ -105,6 +110,7 @@ def build_archive(
             "links_manifest_sha256": links_manifest_sha256,
             "base_checkpoint_sha256": base_checkpoint_sha256,
             "checkpoint_sha256": checkpoint_sha256,
+            CONTRACT_SET_FIELD: exported_contract_set(),
             "files": files,
         }
     )
@@ -218,7 +224,7 @@ def _verify_expiry(manifest: dict[str, JsonValue], today: date | None) -> None:
 
 
 def read_archive(path: Path, *, today: date | None = None) -> PortableArchive:
-    """Read, verify and expiry-check a portable handoff without extracting it."""
+    """Read, verify, provenance- and expiry-check a portable handoff without extracting it."""
     members = _read_members(path)
     manifest_payload = members.pop(MANIFEST_MEMBER, None)
     if manifest_payload is None:
@@ -226,6 +232,7 @@ def read_archive(path: Path, *, today: date | None = None) -> PortableArchive:
     manifest = _read_manifest(manifest_payload)
     rows = cast(list[dict[str, JsonValue]], manifest["files"])
     _verify_roles(_verify_file_table(rows, members), manifest)
+    require_matching_contract_set(manifest)
     _verify_expiry(manifest, today)
     return PortableArchive(manifest, members)
 

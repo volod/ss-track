@@ -17,6 +17,7 @@
     "links_manifest_sha256",
     "base_checkpoint_sha256",
     "checkpoint_sha256",
+    "contract_set",
     "files"
   ],
   "properties": {
@@ -77,6 +78,38 @@
       "description": "Checkpoint identity carried now, or null when no checkpoint exists.",
       "pattern": "^[0-9a-f]{64}$"
     },
+    "contract_set": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "description": "Structure and meaning fingerprints of every record and shared contract the exporting data root was written under, in ascending contract order; null only when written in the released stage.",
+      "items": {
+        "type": "object",
+        "description": "The pins of one record or shared contract.",
+        "additionalProperties": false,
+        "required": [
+          "contract",
+          "structure",
+          "meaning"
+        ],
+        "properties": {
+          "contract": {
+            "type": "string",
+            "description": "Family and id of the contract, as the registry names it.",
+            "pattern": "^(record|shared)/[a-z0-9]+(-[a-z0-9]+)*$"
+          },
+          "structure": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+            "description": "Structure fingerprint of the contract's single development version."
+          },
+          "meaning": {
+            "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+            "description": "Meaning fingerprint of the contract's single development version, descriptions included."
+          }
+        }
+      }
+    },
     "files": {
       "type": "array",
       "description": "Every non-manifest archive member in ascending path order.",
@@ -125,6 +158,7 @@
     "seal": "manifest_sha256 is SHA-256 of the record excluding that key, serialized as sorted-key JSON with ASCII escapes and no whitespace.",
     "files": "Files are sorted by path, paths are unique and exactly match archive members other than manifest.json. Exactly one links and one staged_hashes member exist, and checkpoint presence agrees with checkpoint_sha256.",
     "checkpoint": "base_checkpoint_sha256 identifies the imported branch point. A receiver replaces its checkpoint only when its current identity equals the base or the carried identity.",
-    "contents": "Recipes contain only operator-selected creation inputs. Source media, staged frames, feature rows and model weights are absent."
+    "contents": "Recipes contain only operator-selected creation inputs. Source media, staged frames, feature rows and model weights are absent.",
+    "provenance": "In the development stage contract_set lists every record and shared contract once, sorted by contract. A receiver refuses the handoff before writing local records or review state when the list is null or absent, or when any listed or installed record or shared contract has another structure or meaning fingerprint. In the released stage the writer sets null and the receiver reads by major instead."
   }
 }

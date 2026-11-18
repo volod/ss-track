@@ -32,6 +32,9 @@ installed set. A difference is `RECORD_SCHEMA_UNSUPPORTED`, with `changed_contra
 remedy to delete sealed datasets and the stamp and regenerate them from retained declarations,
 labels and review decisions. A stamp without meaning fingerprints cannot prove the earlier meaning
 and is refused with the same remedy and `unverified_contracts`; no data is deleted by the check.
+The development root `$DATA_DIR` is stamped with meanings; its [regeneration
+record](../records/0106-data-contracts-development-data-root-regenerate.md) shows that a rebuild
+from the retained inputs reproduced every sealed record's seal.
 When the stamp is absent, `core/evidence/unstamped.py` walks the reachable root before a command
 uses it and again under the first-write lock. It streams object keys and refuses a file with both
 record identity and seal keys at the top level, regardless of filename. It follows symlinks and
@@ -139,8 +142,19 @@ file](corpus/discovery-runs.md), with an extractor's optional `tiles` and the op
 reviewer's decisions on pairs of recordings; the [leakage review](corpus/leakage-review.md) states
 their rules, which `read_links` enforces. `record/link-review-handoff` is the sealed manifest inside
 a media-free portable review tar. It binds the corpus, frame set, link record, optional checkpoint
-branch and every archive member by size and SHA-256. Recipe members are text inputs only; media,
-staged frames, feature rows and model weights remain local to independently prepared hosts.
+branch and every archive member by size and SHA-256. In the development stage its `contract_set`
+lists the structure and meaning fingerprint of every record and shared contract the exporter
+installs, the pins the exporting root's `contract-set.json` holds; `review-pack` checks the root
+first. `review-unpack` and `review-accept` compare the pins with the installed set through
+`contract_stamp.changed_contracts`, the stamp's own comparison, in
+`corpus/links/portable_provenance.py`. Absent or null pins, or any differing contract, refuse
+`RECORD_SCHEMA_UNSUPPORTED` with `changed_contracts` and the handoff remedy before recipes are
+extracted or any local record, comparison or checkpoint is written; unsorted, repeated or incomplete
+rows are `RECORD_TAMPERED`. In the released stage the writer sets `null` and the reader reads by
+major; the [handoff provenance
+record](../records/0105-data-contracts-development-portable-handoff-provenance.md) has the evidence.
+Recipe members are text inputs only; media, staged frames, feature rows and model weights remain
+local to independently prepared hosts.
 
 `declaration/corpus-review` and `record/corpus-freeze` hold a reviewer's decisions on the windows a
 discovery run offers and the sealed export of the version frozen from them, with optional

@@ -35,35 +35,6 @@ hardware or private data.
 
 ### Data contracts -- `data-contracts`
 
-#### development-portable-handoff-provenance
-
-A development review archive does not bind the source root's contract stamp. Two roots can use the
-same `1.0.0` record bytes while a record or shared contract has a different meaning; the receiving
-root accepts the archive after comparing only data hashes. This can silently reinterpret a remote
-review under another contract set.
-
-- Serves: `data-contracts` -- [Development stage and
-  release](../design/spec.md#177-development-stage-and-release)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: Development handoffs prove the source and receiving contract sets agree
-  before any review state or local evidence is changed; missing or different pins refuse safely.
-- Scope boundary: Portable review contract provenance and its checks. Preserve released-stage
-  compatibility, existing sealed record semantics and operator-written inputs.
-- Data and artifact paths: `contracts/record/link-review-handoff/1.0.0.json`,
-  `contracts/registry.yaml`, `src/ss_track/corpus/links/`, `tests/corpus/links/`, `$DATA_DIR/`.
-- Execution path: Bind the exporting root's record and shared structure and meaning fingerprints
-  in the handoff contract and verify them before acceptance. Edit and re-pin `1.0.0` in place,
-  update the writer and reader, and regenerate affected development datasets and handoffs from
-  retained declarations and decisions, following the contract authoring rules.
-- Acceptance gates: Two private roots with identical source and frame bytes and different record
-  meaning pins refuse a handoff before writing local records or checkpoints; missing provenance
-  refuses, matching pins round-trip, and released handoffs retain their versioned behavior. All
-  operator-written inputs remain; `make ci` passes.
-- Documentation target: [Contracts](current/contracts.md) and
-  [Leakage review](current/corpus/leakage-review.md).
-
 #### development-explicit-path-revision-root
 
 `ss-track annotate freeze` with `--source`, `--labels-out` and `--revision-out` runs without a

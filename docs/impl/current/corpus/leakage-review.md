@@ -88,8 +88,12 @@ accept the handoff. This command verifies the complete local corpus, writes this
 installs the sealed link record and checkpoint. Different source sets, decode policies, corpus
 manifests, frame sets or individual frame bytes refuse. An expired, damaged or unauthorized archive
 also refuses without changing review decisions.
-Development handoffs do not yet carry the exporting contract-set stamp. Use exactly the same
-contract set on both hosts; matching data hashes alone do not prove matching contract meanings.
+A development handoff pins the exporting host's record and shared contract fingerprints, because
+matching data hashes alone do not prove that both hosts read the records with the same meaning.
+`review-unpack` and `review-accept` refuse `RECORD_SCHEMA_UNSUPPORTED`, naming
+`changed_contracts`, when the pins are missing or differ from the receiving install, before any
+recipe, record or checkpoint is written. Check out the same software revision on both hosts; after
+a contract edit, regenerate the exporting root and pack again.
 
 ```bash
 .venv/bin/ss-track discover review-accept --archive pilot-link-review.tar \
@@ -141,7 +145,9 @@ The local lock still does not coordinate simultaneous reviewers across hosts; th
 comparison detects their divergence when an archive returns.
 
 The [portable review record](../../records/0073-self-supervised-corpus-corpus-portable-link-review.md)
-contains implementation and acceptance evidence. The earlier
+contains implementation and acceptance evidence, and the [handoff provenance
+record](../../records/0105-data-contracts-development-portable-handoff-provenance.md) the contract-set
+pins. The earlier
 [manual-transfer planning record](../../records/0072-adhoc-remote-link-review-plan.md) is historical;
 copying media between hosts is no longer the supported workflow.
 

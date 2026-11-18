@@ -6,7 +6,11 @@ files; no host copies media, imported sources or staged frames from another. The
 [source authorization](../../current/corpus.md#source-authorization)
 bounds the use under `approval-2026-11-13`: local internal processing, restricted sharing, no
 public redistribution, and a 50 GB transfer cap across all pilot acquisitions. Acquiring this
-recipe transfers about 9.8 GB.
+recipe transfers about 9.8 GB. A host that already holds the verified WetlandBirds `videos.zip`
+may hard-link it to
+`$DATA_DIR/self-supervised-corpus/pilot-wetland-acq-20261112/cache/source.zip` before acquiring:
+the acquisition checks an existing archive by size and published MD5 instead of downloading it,
+which leaves only the Hugging Face videos and metadata to transfer.
 
 | File | Content |
 | --- | --- |

@@ -109,5 +109,7 @@ Copy the [template](template.md) using the
 | 0102 | `data-contracts-audit` | [0102-data-contracts-data-contracts-audit](0102-data-contracts-data-contracts-audit.md) |
 | 0103 | `resolve-data-contract-record-markdown` | [0103-data-contracts-resolve-data-contract-record-markdown](0103-data-contracts-resolve-data-contract-record-markdown.md) |
 | 0104 | `development-unstamped-evidence` | [0104-data-contracts-development-unstamped-evidence](0104-data-contracts-development-unstamped-evidence.md) |
+| 0105 | `development-portable-handoff-provenance` | [0105-data-contracts-development-portable-handoff-provenance](0105-data-contracts-development-portable-handoff-provenance.md) |
+| 0106 | `development-data-root-regenerate` | [0106-data-contracts-development-data-root-regenerate](0106-data-contracts-development-data-root-regenerate.md) |
 
-Next unused sequence: `0105`.
+Next unused sequence: `0107`.

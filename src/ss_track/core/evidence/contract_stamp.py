@@ -104,18 +104,7 @@ def require_current_data_root(data_root: Path) -> None:
     stamped_structure, stamped_meaning = stamped
     meanings = installed_meanings()
     assert meanings is not None
-    changed = sorted(
-        name
-        for name in stamped_structure.keys()
-        | installed.keys()
-        | meanings.keys()
-        | (stamped_meaning.keys() if stamped_meaning is not None else set())
-        if (
-            (stamped_meaning is not None or name.startswith("record/"))
-            and stamped_structure.get(name) != installed.get(name)
-        )
-        or (stamped_meaning is not None and stamped_meaning.get(name) != meanings.get(name))
-    )
+    changed = _changed(stamped_structure, stamped_meaning, installed, meanings)
     if changed or stamped_meaning is None:
         listed: list[JsonValue] = list(changed)
         details: dict[str, JsonValue] = {
@@ -131,6 +120,43 @@ def require_current_data_root(data_root: Path) -> None:
             details,
         )
     _set_checked(resolved, False)
+
+
+def changed_contracts(
+    structures: Mapping[str, str], meanings: Mapping[str, str]
+) -> list[str] | None:
+    """Name the record and shared contracts whose pins differ from the installed set.
+
+    This is the stamp's comparison, for pins that travel with evidence, such as a development
+    handoff. A contract named on only one side differs. Returns None in the released stage.
+    """
+    installed = installed_fingerprints()
+    if installed is None:
+        return None
+    installed_meaning = installed_meanings()
+    assert installed_meaning is not None
+    return _changed(structures, meanings, installed, installed_meaning)
+
+
+def _changed(
+    structures: Mapping[str, str],
+    meanings: Mapping[str, str] | None,
+    installed: Mapping[str, str],
+    installed_meaning: Mapping[str, str],
+) -> list[str]:
+    """Compare pins with the installed set; structure-only pins compare record structure alone."""
+    names = structures.keys() | installed.keys() | installed_meaning.keys()
+    if meanings is not None:
+        names |= meanings.keys()
+    return sorted(
+        name
+        for name in names
+        if (
+            (meanings is not None or name.startswith("record/"))
+            and structures.get(name) != installed.get(name)
+        )
+        or (meanings is not None and meanings.get(name) != installed_meaning.get(name))
+    )
 
 
 def stamp_before_write(path: Path) -> None:

@@ -2934,8 +2934,9 @@ meaning fingerprints cannot prove its records' meanings and is refused with the 
 fingerprint includes descriptions, so even an editorial description change conservatively asks for
 regeneration: a machine cannot decide whether prose changes a value's interpretation. A record of
 another major gets the same remedy, because no release wrote one. A development handoff of sealed
-records between data roots must bind the exporting contract set and refuse acceptance when its
-record or shared structure or meaning is missing or differs. Released handoffs follow versioned
+records between data roots must bind the exporting contract set and refuse unpacking or
+acceptance, before writing anything, when its record or shared structure or meaning is missing or
+differs. Released handoffs follow versioned
 compatibility instead. The section 17.3 classifier, the
 independent oracle, dispositions and views stay installed in both stages, tested on synthetic version
 pairs, so that they are proven when release starts using them.
