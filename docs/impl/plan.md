@@ -35,6 +35,82 @@ hardware or private data.
 
 ### Data contracts -- `data-contracts`
 
+#### development-staged-hashes-provenance
+
+`corpus compare` reads a `staged-hashes.json` that another host's data root wrote and an operator
+carried over, a sealed record crossing data roots, but the record binds no contract set. In the
+development stage a host on another commit, whose `record/staged-hashes`, `record/frame-set` or
+`shared/types` was edited in place, still writes `schema_version: 1`, so `compare` seals
+`identical`, or names differing frames, without proving that both hosts read the records alike.
+Spec section 17.7 requires a development handoff of sealed records between data roots to bind the
+exporting contract set; only the review handoff does. Reproduction: copy a staged-hashes record
+from a root stamped under the shipped set and run `corpus compare` on it under an install whose
+`record/staged-hashes` meaning pin differs, on a fresh root: the comparison is sealed `identical`
+and the command exits 0. Impact: a cross-host identity or difference claim can rest on records the
+two hosts interpret differently.
+
+- Serves: `data-contracts` -- [Development stage and
+  release](../design/spec.md#177-development-stage-and-release)
+- Agent status: CLEAR
+- Milestone: M1
+- Dependencies: none.
+- User-visible outcome: `corpus compare` refuses a staged-hashes record whose development contract
+  pins are absent or differ from the installed set, naming the changed contracts, before it writes a
+  comparison. Records with matching pins compare as today, and released records compare by major.
+- Scope boundary: The staged-hashes record and the comparison's read of it. Reuse the pins and the
+  comparison of `corpus/links/portable_provenance.py` rather than a second statement of either. No
+  change to the review handoff or to frame bytes; stale records are regenerated, not migrated.
+- Data and artifact paths: `contracts/record/staged-hashes/`, `src/ss_track/corpus/hosts/`,
+  `src/ss_track/corpus/links/portable_provenance.py`, `tests/corpus/hosts/`,
+  `$DATA_DIR/run/<run-id>/staged-hashes.json`.
+- Execution path: Edit `record/staged-hashes` 1.0.0 in place to carry the `contract_set` rows the
+  review handoff carries, re-pin it, write them in `corpus hashes` and check both records in
+  `compare_staged_hashes` before `_require_comparable` and before any write. Move the row parsing to
+  one place both readers use. The edit changes the stamp, and `$DATA_DIR` holds staged-hashes
+  records, so the root then refuses every root-taking command: regenerate it under the owner's
+  transfer authorization, or add the Human-Assisted regeneration task, in the same change.
+- Acceptance gates: A pair with equal frame bytes but another pin for `record/staged-hashes`,
+  `record/frame-set` or `shared/types` on one side refuses `RECORD_SCHEMA_UNSUPPORTED` with
+  `changed_contracts` and writes no `hash-comparison.json`; a record with no pins refuses; matching
+  pins compare as before; a released-stage pair compares by major. The regression fails before the
+  fix. `make ci` passes.
+- Documentation target: [Contracts](current/contracts.md) and the [Corpus](current/corpus.md)
+  section "Across hosts".
+
+#### development-stamp-added-contracts (optional)
+
+A data root stamped before a record or shared contract was added refuses every root-taking command,
+because a contract named on only one side counts as changed. No record of an added contract can be
+in the root yet, so the refusal is a false positive, and each task that adds a record contract, such
+as `run-bundle-store`, forces the whole development root to be deleted and regenerated, including
+an authorized re-acquisition of its sources.
+
+- Serves: `data-contracts` -- [Development stage and
+  release](../design/spec.md#177-development-stage-and-release)
+- Agent status: CLEAR
+- Milestone: M1
+- Dependencies: none.
+- User-visible outcome: A command on a root whose stamp lacks only contracts added since it was
+  written runs, and the root's next sealed write adds their pins to the stamp. A changed or removed
+  contract still refuses with `changed_contracts`.
+- Scope boundary: The data-root stamp's comparison and its extension under the first-write lock. The
+  handoff pins stay an exact match. Fail-closed handling stays: an extended stamp never lets a
+  command read a record written under another pin of the added contract.
+- Data and artifact paths: `src/ss_track/core/evidence/`, `tests/corpus/records/`.
+- Execution path: In `contract_stamp._verify_stamp`, count a name only the install pins as added
+  rather than changed, and extend the stamp atomically under `directory_lock` before a sealed write
+  in such a root. A stamp can then change while a command runs, which the read fast path assumes it
+  cannot: `check_before_read` trusts a stamped root whose stamp file exists. Recheck a root whose
+  stamp was incomplete when checked, or whose stamp file changed identity, before each read, and
+  refuse a loaded record whose kind's contract the verified stamp did not pin.
+- Acceptance gates: A root stamped without a contract the install adds passes a read-only command
+  without a write, and its first sealed write adds exactly the added pins; an install with another
+  pin for that contract then refuses; a command that checked the root before another install
+  extended it refuses that install's record of the added contract; two commands extending one root
+  concurrently leave one consistent stamp; a removed or changed contract still refuses. `make ci`
+  passes.
+- Documentation target: [Contracts](current/contracts.md).
+
 #### data-contracts-audit (optional)
 
 A development-stage gate that lets a contract change without a version must still refuse every
@@ -53,8 +129,9 @@ change it did not pin, or formats drift silently before release.
   score or refusal code.
 - Data and artifact paths: `contracts/`, `src/ss_track/schema/`, `tests/schema/`.
 - Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits) over the
-  remaining work, including unstamped evidence and its seams to the root stamp, read path, history
-  gate and section 17.7. Verify that structural, shared and meaning changes refuse stale evidence.
+  remaining work: `development-staged-hashes-provenance`, `development-stamp-added-contracts` and
+  their seams to the root stamp, the read path, the handoff pins and section 17.7. Verify that
+  structural, shared and meaning changes still refuse stale evidence.
 - Acceptance gates: Every section 17.7 rule has a failing fixture or is named as human judgment.
   Every finding is fixed, routed to a task or dropped with its reason, and `make quality` passes.
   Finding nothing is a valid result when the record states what was reviewed.
@@ -112,10 +189,19 @@ Every score must be recomputable from immutable evidence.
 - Execution path: Add bundle reader and writer with crash and retry fixtures. The run manifest and
   bundle are `record` contracts, and the manifest lists the contract set in force. The manifest
   field list is the `RunManifest` message of `event/analytics`. This task seals that protobuf-JSON
-  object and does not define a second field list.
+  object and does not define a second field list. In the development stage every contract is
+  `1.0.0`, so the contract set in force names each contract's structure and meaning fingerprints,
+  as `record/link-review-handoff` does. The data-root stamp pins only record and shared contracts,
+  while the sealed manifest takes its shape from `event/analytics` and the bundle's event lines from
+  the event packages, which a development edit changes in place: add the event packages a bundle
+  depends on to the stamp before its first bundle is written (spec section 17.7). A new stamped name
+  refuses every root stamped without it unless `development-stamp-added-contracts` has landed, so
+  the change states the regeneration of `$DATA_DIR`.
 - Acceptance gates: A crash fixture leaves no complete-looking bundle, a retried ID stays
   idempotent, and each manifest records its re-run command. A bundle with no visibility value reads
-  as restricted. Run scratch and any reproducible cache are registered
+  as restricted. An in-place edit of `event/analytics`, re-pinned, refuses a root stamped while it
+  held a bundle, and the manifest's contract set names fingerprints in the development stage. Run
+  scratch and any reproducible cache are registered
   [data clean](current/corpus.md#cleaning-the-data-root) kinds with restore paths and tests; sealed
   bundles never are.
 - Documentation target: [Current implementation](current.md#areas), page `current/runner.md`.

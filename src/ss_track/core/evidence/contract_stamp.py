@@ -6,9 +6,7 @@ A stale or incomplete stamp refuses reads until the data is regenerated. In the 
 record's major identifies its contract, so the stamp is not used.
 """
 
-import fcntl
-import os
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from pathlib import Path
 
 from ss_track.core.evidence.checked_roots import (
@@ -25,31 +23,30 @@ from ss_track.core.evidence.stamp_file import (
 )
 from ss_track.core.evidence.unstamped import first_unstamped_record
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
-from ss_track.schema.registry.contract import DEVELOPMENT, RECORD_FAMILY, SHARED_FAMILY
+from ss_track.core.scratch import directory_lock
+from ss_track.schema.registry.contract import DEVELOPMENT, STAMPED_FAMILIES, FrozenVersion
 from ss_track.schema.validation.enforce import installed_contracts
 
 
 def installed_fingerprints() -> dict[str, str] | None:
     """Return record and shared structure fingerprints, or None after release."""
-    contracts = installed_contracts().contracts
-    if contracts.stage != DEVELOPMENT:
-        return None
-    return {
-        contract.name: contract.versions[-1].structure
-        for contract in contracts.contracts
-        if contract.family in (RECORD_FAMILY, SHARED_FAMILY) and contract.versions
-    }
+    return _installed_pins(lambda frozen: frozen.structure)
 
 
 def installed_meanings() -> dict[str, str] | None:
     """Return record and shared meaning fingerprints, or None after release."""
+    return _installed_pins(lambda frozen: frozen.meaning)
+
+
+def _installed_pins(pin: Callable[[FrozenVersion], str]) -> dict[str, str] | None:
+    """Return one pin of each contract the stamp covers (`STAMPED_FAMILIES`), in development."""
     contracts = installed_contracts().contracts
     if contracts.stage != DEVELOPMENT:
         return None
     return {
-        contract.name: contract.versions[-1].meaning
+        contract.name: pin(contract.versions[-1])
         for contract in contracts.contracts
-        if contract.family in (RECORD_FAMILY, SHARED_FAMILY) and contract.versions
+        if contract.family in STAMPED_FAMILIES and contract.versions
     }
 
 
@@ -167,9 +164,7 @@ def stamp_before_write(path: Path) -> None:
     root = checked.root
     end_reuse(path)
     root.mkdir(parents=True, exist_ok=True)
-    descriptor = os.open(root, os.O_RDONLY)
-    try:
-        fcntl.flock(descriptor, fcntl.LOCK_EX)
+    with directory_lock(root):
         _require(root, reuse=False)
         stamp = root / STAMP_NAME
         if not stamp.exists():
@@ -177,8 +172,6 @@ def stamp_before_write(path: Path) -> None:
             assert meanings is not None
             write_stamp(stamp, installed, meanings)
             remember(root, False)
-    finally:
-        os.close(descriptor)
 
 
 def check_before_read(path: Path) -> Path | None:

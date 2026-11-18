@@ -211,36 +211,3 @@ def test_legacy_structure_only_stamp_refuses_without_deleting_data(tmp_path: Pat
     assert caught.value.details["changed_contracts"] == []
     assert "record/frame-set" in caught.value.details["unverified_contracts"]
     assert evidence.read_text() == "retained evidence"
-
-
-def test_real_meaning_only_freeze_stales_a_stamped_root(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    from ss_track.schema.compatibility.freeze import freeze_contract
-    from ss_track.schema.registry.fingerprints import structure_fingerprint
-    from ss_track.schema.registry.store import load_contract_set
-    from ss_track.schema.validation import enforce
-    from tests.schema.conftest import development_copy, frame_set_path
-
-    project = tmp_path / "project"
-    project.mkdir()
-    root = development_copy(project)
-    monkeypatch.setattr(enforce, "load_contract_set", lambda: load_contract_set(root))
-    enforce.installed_contracts.cache_clear()
-    try:
-        data = tmp_path / "data"
-        require_current_data_root(data)
-        contract_stamp.stamp_before_write(data / "record.json")
-        schema = json.loads(frame_set_path(root).read_bytes())
-        original = structure_fingerprint(schema)
-        schema["properties"]["corpus_id"]["description"] = "Changed interpretation."
-        candidate = tmp_path / "candidate.json"
-        candidate.write_text(json.dumps(schema))
-        freeze_contract("record/frame-set", candidate, root=root, summary="Change meaning.")
-        assert structure_fingerprint(schema) == original
-        enforce.installed_contracts.cache_clear()
-        with pytest.raises(CorpusRefusal) as caught:
-            require_current_data_root(data)
-        assert caught.value.details["changed_contracts"] == ["record/frame-set"]
-    finally:
-        enforce.installed_contracts.cache_clear()

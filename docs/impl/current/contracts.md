@@ -24,10 +24,13 @@ edited file only with its new pins, and refuses a second version, a change class
 `initial` or a retired major. `schema/registry/stage.py` states those rules.
 
 Records written before an edit still stamp `schema_version: 1`, so a data root keeps
-`contract-set.json`: structure and meaning fingerprints of the record and shared contracts. Before
-the first sealed write, `core/evidence/contract_stamp.py` checks and writes the stamp under a
-root lock, and `core/evidence/stamp_file.py` parses and writes its bytes; read-only commands write
-nothing. Every command taking the data root, through
+`contract-set.json`: structure and meaning fingerprints of the record and shared contracts. A record
+or shared contract may reference only record and shared contracts, which
+`schema/registry/references.py` holds in the gate, so these pins cover every contract a record's
+shape depends on. Before the first sealed write, `core/evidence/contract_stamp.py` checks and writes
+the stamp under `core/scratch.py` `directory_lock` on the root, the lock a freeze and an event
+publication take on the contract set, and `core/evidence/stamp_file.py` parses and writes its
+bytes; read-only commands write nothing. Every command taking the data root, through
 `commands/report.py` `reported_on_data_root` or `checked_data_root`, compares it with the
 installed set. A difference is `RECORD_SCHEMA_UNSUPPORTED`, with `changed_contracts` and the
 remedy to delete sealed datasets and the stamp and regenerate them from retained declarations,
@@ -63,7 +66,12 @@ stamps it; an output outside the root stays standalone and the root is neither r
 `core/evidence/checked_roots.py` `holds_path` is the containment rule shared with the write-time
 root lookup. The
 [explicit-path record](../records/0107-data-contracts-development-explicit-path-revision-root.md)
-lists the commands reviewed.
+lists the commands reviewed. `tests/commands/test_root_checks.py` builds every command from the
+parser and holds each one that takes the data root to this check, on a root with unstamped evidence
+and on a stale stamp: it refuses with the regenerate remedy and changes nothing. A command that
+takes no root is exempt only by name, with its reason. `corpus compare` reads another host's
+staged-hashes record, which carries no contract pins yet; `development-staged-hashes-provenance`
+binds it as the review handoff is bound.
 
 The scan costs one directory traversal plus the bytes needed to identify JSON objects, with fixed
 input buffers and directory-cycle tracking. On one private root of 25,000 PNG files (102.4 MB) in
@@ -88,7 +96,16 @@ keeps the owner-authorized exception.
 The section 17.3 classifier, the oracle, dispositions, views and comparison projections stay
 installed. Their tests run on synthetic version pairs in a private copy of the set moved to
 `stage: released` (`tests/schema/conftest.py` `release`), and on a synthetic older major 0 that a
-test gives the current projection (`tests/corpus/conftest.py` `project_older_major`).
+test gives the current projection (`tests/corpus/conftest.py` `project_older_major`). The shipped
+tool registers no view or stated shape, and no projection of another major, as
+`tests/corpus/records/test_read_window_rules.py` holds for this stage.
+
+Each structural, meaning-only and `shared/types` edit, re-pinned with `contracts freeze` on a
+private set, refuses a root stamped before it and names that contract
+(`tests/corpus/records/test_stamp_after_freeze.py`). Operator inputs are not regenerated, so
+`tests/schema/registry/test_retained_inputs.py` validates every one the repository keeps under
+`docs/impl/workloads/` and `scenarios/` against its declaration contract, and fails on a retained
+input it does not list.
 
 ## The installed set
 
@@ -320,13 +337,15 @@ for a checkout and a wheel.
 | `schema/registry/store.py` | Loading the registry and frozen files against their pins, and `$ref` resolution by URN |
 | `schema/registry/fingerprints.py` | The schema walk and both fingerprints |
 | `schema/registry/dialect.py` | The meta-schema check and the shared-tag rule |
-| `schema/registry/check.py` | Registry, file, dialect, identity and reference checks without Git |
+| `schema/registry/check.py` | Registry, file, dialect and identity checks without Git |
+| `schema/registry/references.py` | `$ref` and `x-references` resolution, and the families a record or shared contract may reference |
+| `schema/registry/stage.py` | The stage rules and the one reading of a registry's stage |
 | `schema/compatibility/evolution.py`, `schema/compatibility/change_rules.py` | JSON-pointer comparison and keyword compatibility rules |
 | `schema/compatibility/patterns.py` | The structural pattern-inclusion proof |
 | `schema/compatibility/derivatives.py`, `schema/compatibility/derivative_expr.py` | Inclusion of a pattern whose shape changed |
 | `schema/compatibility/versioning.py` | Minimum bump, change-log, disposition-floor and backward-transitive policy |
 | `schema/compatibility/dispositions.py` | The disposition floor and the properties no view may derive, named in code |
-| `schema/compatibility/freeze.py`, `schema/compatibility/publishing.py` | Candidate validation, generated pins and locked publication |
+| `schema/compatibility/freeze.py`, `schema/compatibility/publishing.py` | Candidate validation, generated pins and publication under the set's directory lock through one atomic writer, `write_contract_file` |
 | `schema/compatibility/history.py` | `make lint-contracts`: merge-base immutability and transition checks |
 | `schema/validation/commands.py` | `contracts list` and `contracts validate` |
 | `schema/validation/enforce.py` | Runtime validation of declarations and records, change-log remedies and dispositions, and shared types |
@@ -373,9 +392,11 @@ version:
 - both fingerprints, stating the pinned and computed values; `freeze` generates these pins;
 - the rules of the registry's stage: in `development`, one version `1.0.0` per contract with change
   class `initial`, and no retired major;
-- every `$ref`, once every file above is intact. The `event` family skips `$id`, the dialect, the
-  stamps and `$ref`. Its file hash still catches any edit. The descriptor check then requires the
-  contract URN, the protobuf package, `json_name` equal to the field name, and both fingerprints.
+- every `$ref`, once every file above is intact, and in a record or shared contract only to a record
+  or shared contract, the families the data-root stamp pins. The `event` family skips `$id`, the
+  dialect, the stamps and `$ref`. Its file hash still catches any edit. The descriptor check then
+  requires the contract URN, the protobuf package, `json_name` equal to the field name, and both
+  fingerprints.
 
 The fingerprints walk schema positions, because a property may be named `title` or `description`,
 and such a key is a name and not an annotation. Fixed `prefixItems` positions are walked in order;
@@ -391,7 +412,8 @@ revision's every frozen file and complete version entry must be unchanged, so lo
 version already committed on the feature branch are caught, and deleting a version or editing it
 together with its registry pins fails. A development revision froze nothing, so a development set
 is compared with its own pins alone, and a registry that predates the `stage` field reads as
-development. Missing refs and shallow history fail closed. A baseline
+development. A revision whose stage is any other value, missing refs and shallow history fail
+closed: `schema/registry/stage.py` `stated_stage` is the one reading of a registry's stage. A baseline
 predating `contracts/registry.yaml` permits the initial set; all subsequent transitions still
 undergo compatibility checks. `python -m ss_track.schema.registry.check --root <contracts>` remains
 the Git-free check for an installed or copied set.
@@ -557,10 +579,11 @@ paths. Reference tests cover external targets and recursion, each also under the
 verdict against the automaton. Freeze and history tests exercise insufficient bumps, missing
 metadata, rollback, repinning, deletion and missing history in isolated Git repositories, on a
 private set moved to `stage: released`. `tests/schema/registry/test_stage.py` covers the development
-stage: an in-place edit with and without its re-pin, a refused second version, the in-place freeze,
-history that accepts a development edit, compares a released revision and refuses a return to
-development. `tests/schema/compatibility/test_dispositions.py` covers the floor and its freeze
-refusal on a synthetic next major. Hash-stability tests reject new null/default fields,
+stage: an in-place edit with and without its re-pin, a refused second version and retired major,
+the in-place freeze, history that accepts a development edit, compares a released revision,
+refuses a return to development and fails closed on a stage it cannot read.
+`tests/schema/compatibility/test_dispositions.py` covers the floor and its freeze refusal on a
+synthetic next major. Hash-stability tests reject new null/default fields,
 unannounced keys and changed existing values. The [evolution task
 record](../records/0019-data-contracts-contract-evolution-gate.md) holds the gate's acceptance.
 

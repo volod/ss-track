@@ -1,4 +1,4 @@
-# Two-source pilot pool (declaration/corpus-pool 1.1.0). Media-free; see README.md.
+# Two-source pilot pool (declaration/corpus-pool 1.0.0). Media-free; see README.md.
 schema_version: 1
 corpus_id: pilot-two-source-grouped-20261113
 run_id: pilot-pool-grouped-20261113

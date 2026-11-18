@@ -138,7 +138,7 @@ def test_publication_failure_rolls_back_the_batch(
     before = {path: path.read_bytes() for path in private_set.rglob("*.binpb")}
     registry = private_set / "registry.yaml"
     original = registry.read_bytes()
-    write = batch_publish._write_atomically
+    write = batch_publish.write_contract_file
     calls = 0
 
     def fail_second(root: Path, target: Path, payload: bytes) -> None:
@@ -148,7 +148,7 @@ def test_publication_failure_rolls_back_the_batch(
             raise OSError("injected write failure")
         write(root, target, payload)
 
-    monkeypatch.setattr(batch_publish, "_write_atomically", fail_second)
+    monkeypatch.setattr(batch_publish, "write_contract_file", fail_second)
     with pytest.raises(OSError, match="injected write failure"):
         build.write_artifacts(private_set)
     assert calls >= 2
@@ -192,14 +192,14 @@ def test_binding_write_failure_rolls_back_images_and_pins(
     before = {path: path.read_bytes() for path in private_set.rglob("*.binpb")}
     bindings = {path: path.read_bytes() for path in build._GEN_ROOT.glob("*_pb2.py")}
     original = (private_set / "registry.yaml").read_bytes()
-    write = batch_publish._write_atomically
+    write = batch_publish.write_contract_file
 
     def fail_binding(root: Path, target: Path, payload: bytes) -> None:
         if target.parent == build._GEN_ROOT:
             raise OSError("binding write failed")
         write(root, target, payload)
 
-    monkeypatch.setattr(batch_publish, "_write_atomically", fail_binding)
+    monkeypatch.setattr(batch_publish, "write_contract_file", fail_binding)
     with pytest.raises(OSError, match="binding write failed"):
         build.write_artifacts(private_set)
     assert (private_set / "registry.yaml").read_bytes() == original

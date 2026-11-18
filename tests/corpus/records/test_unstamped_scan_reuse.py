@@ -22,6 +22,7 @@ from ss_track.core.evidence.stamp_file import STAMP_NAME, write_stamp
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
 from ss_track.corpus.records.kinds import FRAME_SET
 from tests.corpus.conftest import WriteRecording, last_record
+from tests.corpus.records._unstamped import place_record
 from tests.schema.conftest import KEPT_FRAME_SET
 
 
@@ -43,12 +44,6 @@ def _operator_root(root: Path) -> Path:
     root.mkdir(parents=True, exist_ok=True)
     (root / "declaration.yaml").write_text("schema_version: 1\n")
     return root
-
-
-def _evidence(path: Path) -> Path:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(KEPT_FRAME_SET.read_bytes())
-    return path
 
 
 def _refused(action: object) -> CorpusRefusal:
@@ -97,7 +92,7 @@ def test_a_first_write_walks_at_the_check_and_under_the_lock(
 def test_unstamped_evidence_still_refuses_a_command_after_reuse(
     cli_root: Path, walks: list[Path], caplog: pytest.LogCaptureFixture
 ) -> None:
-    _evidence(_operator_root(cli_root) / "old" / "record.json")
+    place_record(_operator_root(cli_root) / "old" / "record.json")
     assert main(["corpus", "stage", "--corpus", "absent"]) == EXIT_REFUSED
     assert last_record(caplog)["code"] == "RECORD_SCHEMA_UNSUPPORTED"
     assert len(walks) == 1
@@ -106,7 +101,7 @@ def test_unstamped_evidence_still_refuses_a_command_after_reuse(
 def test_outside_a_command_every_check_walks(tmp_path: Path, walks: list[Path]) -> None:
     root = _operator_root(tmp_path / "data")
     require_current_data_root(root)
-    evidence = _evidence(root / "late.json")
+    evidence = place_record(root / "late.json")
     _refused(lambda: require_current_data_root(root))
     assert len(walks) == 2
     assert evidence.is_file() and not (root / STAMP_NAME).exists()
@@ -119,7 +114,7 @@ def test_a_reused_check_still_refuses_a_late_record_at_its_read_and_its_write(
     root = _operator_root(tmp_path / "data")
     with one_command():
         require_current_data_root(root)
-        late = _evidence(root / "late.json")
+        late = place_record(root / "late.json")
         require_current_data_root(root)
         assert len(walks) == 1
         refusal = _refused(lambda: read_sealed(late, FRAME_SET))

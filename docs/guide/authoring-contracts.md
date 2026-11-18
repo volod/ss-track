@@ -89,7 +89,12 @@ commands that built the datasets again. An
 edit of descriptions or examples also asks for regeneration, because the meaning fingerprint
 cannot distinguish editorial prose from a changed interpretation. A change that alters the shape of
 an operator-written input also edits every retained one in the same change and states the edit in its
-task record.
+task record. `tests/schema/registry/test_retained_inputs.py` holds each input the repository keeps
+to its declaration contract, and lists them, so an input it does not name fails there too.
+
+A record or shared contract may `$ref` only record and shared contracts, the families the stamp
+pins, so that the stamp covers every contract a record's shape depends on; the gate refuses any
+other reference.
 
 ## Freeze with care
 

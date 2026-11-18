@@ -6,10 +6,11 @@ frozen version is immutable and the history gate compares it with Git. A release
 returns to development. Nothing here reads Git: `schema.compatibility.history` compares stages.
 """
 
+from collections.abc import Mapping
 from pathlib import Path
 
 from ss_track.schema.registry.contract import BASELINE_VERSION, DEVELOPMENT, INITIAL, RELEASED
-from ss_track.schema.registry.store import REGISTRY_NAME, ContractSet, registry_document
+from ss_track.schema.registry.store import REGISTRY_NAME, ContractSet, damaged, registry_document
 
 STAGE_FIELD = "stage"
 
@@ -34,13 +35,21 @@ def stage_findings(contracts: ContractSet) -> list[str]:
 
 
 def stage_of(root: Path) -> str:
-    """Return the stage a registry states; one written before stages existed is development.
+    """Return the stage the registry under `root` states, by `stated_stage`."""
+    return stated_stage(registry_document((root / REGISTRY_NAME).read_bytes()))
+
+
+def stated_stage(document: Mapping[str, object]) -> str:
+    """Return the stage a registry document states; one written before stages is development.
 
     This reads only the stage, so the history gate can compare a revision whose registry predates
-    the field without validating the rest of it under today's meta-schema.
+    the field without validating the rest of it under today's meta-schema. Any other value is
+    refused: a stage read as development could hide a release.
     """
-    stage = registry_document((root / REGISTRY_NAME).read_bytes()).get(STAGE_FIELD, DEVELOPMENT)
-    return RELEASED if stage == RELEASED else DEVELOPMENT
+    stage = document.get(STAGE_FIELD, DEVELOPMENT)
+    if stage not in (DEVELOPMENT, RELEASED):
+        raise damaged(f"{REGISTRY_NAME} states an unknown stage {stage!r}")
+    return str(stage)
 
 
 def regression_finding(previous: str, current: str, revision: str) -> list[str]:

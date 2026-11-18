@@ -21,8 +21,10 @@ specific files must link here and keep only integration-specific routing.
   version, `1.0.0` ([spec section 17.7](docs/design/spec.md#177-development-stage-and-release)).
   Fix a contract, including an architecture or planning mistake, by editing `1.0.0` in place,
   re-pinning it with `ss-track contracts freeze`, and updating writers, fixtures and tests in the
-  same change. Then delete the affected development datasets under `DATA_DIR` and regenerate them
-  from their declarations; a data root written before the edit refuses with `changed_contracts`.
+  same change. The data-root stamp covers the whole root, so after a record or shared contract
+  edit delete every sealed dataset and `contract-set.json` under `DATA_DIR`, keep operator inputs,
+  and regenerate from the declarations; a root written before the edit refuses with
+  `changed_contracts`.
   Do not add a version, a `retired_majors` entry, a disposition, a view or a historic fixture to
   keep outdated development data or tests readable. Versioned schema evolution starts at release,
   with `contract-release-freeze`.

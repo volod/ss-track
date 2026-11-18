@@ -2809,8 +2809,10 @@ its seal, so a record whose content moved is not called valid. It does not run `
 with the code that reads the record. `CONTRACT_UNKNOWN` means no frozen version applies, and
 `CONTRACT_SET_INVALID` means the installed set is not the one its registry pinned.
 
-`RunManifest` records the contract set in force, so a result names the formats it read. That list is
-descriptive: a contract's major enters a cohort key only through a format the key already covers.
+`RunManifest` records the contract set in force, so a result names the formats it read; in the
+development stage, where each contract is `1.0.0`, it names their structure and meaning
+fingerprints. That list is descriptive: a contract's major enters a cohort key only through a format
+the key already covers.
 
 #### Reading older records
 
@@ -2921,27 +2923,29 @@ states one stage for the whole set, and the gate enforces that stage's rules.
 | `development`, until the first release | Exactly one per contract, `1.0.0`; every record stamps `schema_version: 1` | Edits `1.0.0` in place and re-pins its hash and fingerprints in the registry, with writers, fixtures and tests in the same change. A fix to an architecture or planning mistake is such a change, never a new version | Deleted and regenerated from its declarations with the current code. No view, disposition, `retired_majors` entry or historic fixture keeps it readable |
 | `released`, from the first release | Frozen; sections 17.2 to 17.4 apply in full | A new version, classified by section 17.3; a major declares the disposition of its predecessor | Retained and read under its disposition, with a real record of every released major in the tests |
 
-In the development stage, a sealed record written under an earlier edit of its contract still
-stamps `schema_version: 1`, so the major alone cannot tell it apart. Before the first sealed write,
-the data root records structure and meaning fingerprints of every record and shared contract, and
-a root containing sealed evidence without a stamp is refused. A missing stamp is checked before
-reading evidence and again under the first-write lock; a fresh root or one holding only operator
-inputs remains usable without a read-side write. Every command that takes the root, or writes a
-sealed record to an explicit path that resolves inside it, compares the stamp with the installed
-set first; a sealed record written to an explicit path outside the root is standalone and stamps
-nothing. A difference refuses
-the command with `RECORD_SCHEMA_UNSUPPORTED`, names the changed contracts and gives the remedy to
-regenerate; housekeeping that reads no record, such as `data clean`, still runs. A stamp that lacks
-meaning fingerprints cannot prove its records' meanings and is refused with the same remedy. The
-fingerprint includes descriptions, so even an editorial description change conservatively asks for
-regeneration: a machine cannot decide whether prose changes a value's interpretation. A record of
-another major gets the same remedy, because no release wrote one. A development handoff of sealed
-records between data roots must bind the exporting contract set and refuse unpacking or
-acceptance, before writing anything, when its record or shared structure or meaning is missing or
-differs. Released handoffs follow versioned
-compatibility instead. The section 17.3 classifier, the
-independent oracle, dispositions and views stay installed in both stages, tested on synthetic version
-pairs, so that they are proven when release starts using them.
+In the development stage, a sealed record written under an earlier edit of its contract still stamps
+`schema_version: 1`, so the major alone cannot tell it apart. Before the first sealed write, the
+data root records structure and meaning fingerprints of every record and shared contract, and a root
+containing sealed evidence without a stamp is refused. A record or shared contract references only
+record and shared contracts, so those pins cover every contract a record's shape depends on, and the
+gate refuses any other reference. A format the root holds that takes its shape from another family,
+such as a run bundle's event lines and manifest, joins the stamp before its first write there. A
+missing stamp is checked before reading evidence and again under the first-write lock; a fresh root
+or one holding only operator inputs remains usable without a read-side write. Every command that
+takes the root, or writes a sealed record to an explicit path that resolves inside it, compares the
+stamp with the installed set first; a sealed record written to an explicit path outside the root is
+standalone and stamps nothing. A difference refuses the command with `RECORD_SCHEMA_UNSUPPORTED`,
+names the changed contracts and gives the remedy to regenerate; housekeeping that reads no record,
+such as `data clean`, still runs. A stamp that lacks meaning fingerprints cannot prove its records'
+meanings and is refused with the same remedy. The fingerprint includes descriptions, so even an
+editorial description change conservatively asks for regeneration: a machine cannot decide whether
+prose changes a value's interpretation. A record of another major gets the same remedy, because no
+release wrote one. A development handoff of sealed records between data roots, such as a review
+archive or another host's staged hashes, must bind the exporting contract set and refuse unpacking,
+acceptance or comparison, before writing anything, when its record or shared structure or meaning is
+missing or differs. Released handoffs follow versioned compatibility instead. The section 17.3
+classifier, the independent oracle, dispositions and views stay installed in both stages, tested on
+synthetic version pairs, so that they are proven when release starts using them.
 
 Operator-written inputs are not regenerable: declarations, reviewed labels and review decisions stay
 on the data root and in the repository. A development change that alters the shape of such an input
@@ -2949,9 +2953,9 @@ edits each retained one in the same change and states the edit; regeneration the
 sealed record from them.
 
 The move to `released` is the owner's release decision, made once, and the gate refuses a return to
-`development`. A fix found while preparing a release is a development edit made before the stage
-changes. This section does not migrate development data, keep a history of development edits beyond
-Git, or version data or algorithms.
+`development`, and a registry revision whose stage it cannot read. A fix found while preparing a
+release is a development edit made before the stage changes. This section does not migrate
+development data, keep a history of development edits beyond Git, or version data or algorithms.
 
 Evaluation: in the development stage, an edited `1.0.0` passes the gate only with its re-pin, a
 second version is refused, a record written under the previous structure, meaning or referenced

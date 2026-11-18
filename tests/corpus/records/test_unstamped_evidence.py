@@ -14,21 +14,15 @@ from ss_track.core.evidence.contract_stamp import require_current_data_root
 from ss_track.core.evidence.stamp_file import STAMP_NAME
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
 from tests.corpus.conftest import last_record
+from tests.corpus.records._unstamped import place_record
 from tests.schema.conftest import KEPT_FRAME_SET
-
-
-def _evidence(root: Path, name: str = "arbitrary.bin") -> Path:
-    path = root / name
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(KEPT_FRAME_SET.read_bytes())
-    return path
 
 
 def test_unstamped_evidence_refuses_a_read_and_a_write(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
     root = tmp_path / "data"
-    evidence = _evidence(root)
+    evidence = place_record(root / "arbitrary.bin")
     before = evidence.read_bytes()
     monkeypatch.setenv("DATA_DIR", str(root))
     assert main(["corpus", "inspect-source", "--source-sha256", "0" * 64]) == EXIT_REFUSED
@@ -44,7 +38,7 @@ def test_first_write_rechecks_when_evidence_arrives_after_initial_check(tmp_path
 
     root = tmp_path / "data"
     require_current_data_root(root)
-    evidence = _evidence(root)
+    evidence = place_record(root / "arbitrary.bin")
     with pytest.raises(CorpusRefusal) as caught:
         stamp_before_write(root / "new-record.json")
     assert caught.value.code == RefusalCode.RECORD_SCHEMA_UNSUPPORTED
@@ -161,7 +155,7 @@ def test_public_corpus_api_refuses_unstamped_root_before_work(
     from ss_track import corpus
 
     root = tmp_path / "data"
-    evidence = _evidence(root)
+    evidence = place_record(root / "arbitrary.bin")
     source = tmp_path / "absent.yaml"
     actions = {
         "import": lambda: corpus.import_source(source, root),
@@ -194,7 +188,7 @@ def test_record_appearing_after_root_check_is_not_read(tmp_path: Path) -> None:
 
     root = tmp_path / "data"
     require_current_data_root(root)
-    evidence = _evidence(root)
+    evidence = place_record(root / "arbitrary.bin")
     with pytest.raises(CorpusRefusal) as caught:
         read_sealed(evidence, FRAME_SET)
     assert caught.value.code == RefusalCode.RECORD_SCHEMA_UNSUPPORTED
@@ -209,7 +203,7 @@ def test_removed_stamp_is_rechecked_before_a_read(tmp_path: Path) -> None:
     root = tmp_path / "data"
     require_current_data_root(root)
     stamp_before_write(root / "record.json")
-    evidence = _evidence(root)
+    evidence = place_record(root / "arbitrary.bin")
     (root / STAMP_NAME).unlink()
     with pytest.raises(CorpusRefusal) as caught:
         read_sealed(evidence, FRAME_SET)
@@ -244,7 +238,7 @@ def test_other_root_writers_refuse_unstamped_evidence_before_work(
     from ss_track.corpus.sources.pool import prepare_pool
 
     root = tmp_path / "data"
-    evidence = _evidence(root)
+    evidence = place_record(root / "arbitrary.bin")
     source = tmp_path / "absent.yaml"
     actions = {
         "pool": lambda: prepare_pool(source, "run", root),
@@ -279,7 +273,7 @@ def test_released_stage_reads_unstamped_evidence(
     from ss_track.corpus.records.kinds import FRAME_SET
 
     root = tmp_path / "data"
-    evidence = _evidence(root)
+    evidence = place_record(root / "arbitrary.bin")
     monkeypatch.setattr(contract_stamp, "installed_fingerprints", lambda: None)
     require_current_data_root(root)
     assert read_sealed(evidence, FRAME_SET)["kind"] == FRAME_SET.kind
@@ -290,7 +284,7 @@ def test_clean_can_inspect_unstamped_evidence(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     root = tmp_path / "data"
-    evidence = _evidence(root)
+    evidence = place_record(root / "arbitrary.bin")
     before = evidence.read_bytes()
     monkeypatch.setenv("DATA_DIR", str(root))
     assert main(["data", "clean", "--kind", "scratch"]) == EXIT_OK
@@ -322,7 +316,7 @@ def test_root_taking_readers_refuse_unstamped_evidence_without_prior_context(
     from ss_track.corpus.versions.manifests import load_corpus_manifest, load_predecessor
 
     root = tmp_path / "data"
-    _evidence(root)
+    place_record(root / "arbitrary.bin")
     require_current_data_root(tmp_path / "other-root")
     actions = {
         "source": lambda: load_source_record("0" * 64, root),
@@ -368,7 +362,7 @@ def test_a_vanished_entry_does_not_hide_a_later_record(tmp_path: Path) -> None:
     root = tmp_path / "data"
     root.mkdir()
     (root / "a-dangling").symlink_to(tmp_path / "absent")
-    _evidence(root, "z-record")
+    place_record(root / "z-record")
     with pytest.raises(CorpusRefusal) as caught:
         require_current_data_root(root)
     assert caught.value.code == RefusalCode.RECORD_SCHEMA_UNSUPPORTED
@@ -388,7 +382,7 @@ def test_checking_another_root_keeps_the_first_root_stamped_and_rechecked(tmp_pa
     assert not (other / STAMP_NAME).exists()
 
     require_current_data_root(other)
-    evidence = _evidence(other / "nested-check")
+    evidence = place_record(other / "nested-check" / "arbitrary.bin")
     with pytest.raises(CorpusRefusal) as caught:
         read_sealed(evidence, FRAME_SET)
     assert caught.value.code == RefusalCode.RECORD_SCHEMA_UNSUPPORTED

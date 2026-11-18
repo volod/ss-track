@@ -20,7 +20,7 @@ from ss_track.schema.registry.contract import (
     Contract,
     FrozenVersion,
 )
-from ss_track.schema.registry.stage import regression_finding, stage_of
+from ss_track.schema.registry.stage import regression_finding, stage_of, stated_stage
 from ss_track.schema.registry.store import ContractSet, load_contract_set, registry_document
 
 _LOG = logging.getLogger(__name__)
@@ -113,7 +113,10 @@ def _released_history(project: Path) -> tuple[set[str], list[str]]:
     stages = {}
     for revision in revisions.decode().splitlines():
         payload = _git(project, "show", f"{revision}:contracts/registry.yaml")
-        stages[revision] = registry_document(payload).get("stage", DEVELOPMENT)
+        try:
+            stages[revision] = stated_stage(registry_document(payload))
+        except CorpusRefusal as error:
+            raise ValueError(f"the registry at {revision}: {error.message}") from error
     released = {revision for revision, stage in stages.items() if stage == RELEASED}
     findings = []
     for revision in released:

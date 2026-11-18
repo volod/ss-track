@@ -204,3 +204,42 @@ def test_history_catches_release_in_merged_ancestry(repository: Path) -> None:
     assert any(
         "cannot return to development" in item for item in history_findings(repository, "main")
     )
+
+
+@pytest.mark.parametrize("stage", ["Released", "release", 1])
+def test_history_fails_closed_on_a_stage_it_cannot_read(repository: Path, stage: object) -> None:
+    """A committed registry whose stage reads as neither stage could hide a release."""
+    root = repository / "contracts"
+    registry = read_registry(root)
+    registry["stage"] = stage
+    write_registry(root, registry)
+    _commit(repository, "Unreadable stage")
+    registry["stage"] = DEVELOPMENT
+    write_registry(root, registry)
+    _commit(repository, "Development again")
+
+    findings = history_findings(repository, "main")
+
+    assert any("states an unknown stage" in item for item in findings)
+
+
+def test_reading_an_unknown_stage_is_refused(development_root: Path) -> None:
+    registry = read_registry(development_root)
+    registry["stage"] = "Released"
+    write_registry(development_root, registry)
+
+    with pytest.raises(CorpusRefusal, match="states an unknown stage"):
+        stage_of(development_root)
+
+
+def test_a_retired_major_is_refused_in_development(development_root: Path) -> None:
+    registry = read_registry(development_root)
+    contract = next(item for item in registry["contracts"] if item["id"] == "frame-set")
+    contract["retired_majors"] = [
+        {"major": 2, "status": "retired", "reason": "Old.", "migration": "Regenerate."}
+    ]
+    write_registry(development_root, registry)
+
+    findings = check_contract_set(development_root)
+
+    assert any("holds no retired major" in item for item in findings)

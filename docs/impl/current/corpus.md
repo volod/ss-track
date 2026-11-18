@@ -1828,7 +1828,9 @@ Matroska or WebM, whose random identifiers change, and a write on arm64 differs 
 packets of 41 of 71, so a host that regenerates its media compares different sources.
 
 `corpus compare` treats any two hosts alike and `left` and `right` name them, so a cross-architecture
-claim also needs two different `machine` values.
+claim also needs two different `machine` values. In the development stage a staged-hashes record
+binds no contract set, so a comparison is meaningful only between hosts that install the same one;
+`development-staged-hashes-provenance` makes `compare` refuse a record written under another.
 A record is sealed against accidents, not against a person, like every seal here.
 
 `tests/corpus/hosts/_fixed_sources.py` holds the fixed corpus, `arch-fixed-v1`: 71 sources through 20
@@ -2308,9 +2310,9 @@ accepted task, its decisions and its evidence.
 | `RETENTION_EXPIRED` | The evaluation day is after a source's inclusive retention deadline |
 | `CASE_INVALID` | A generated case does not fit its parent, changes no frame of it, does not have the frame shape its transform gives from its parent, or is named where preview expects the parent stream |
 | `TRANSFORM_REVISION_MISMATCH` | A stored case needs a transform revision this code does not provide |
-| `RECORD_TAMPERED` | A sealed record is missing, malformed, of another kind or fails its seal, states a value its contract forbids, such as a declared color matrix no conversion applies or a bundle pixel format other than `rgb24`, or a re-import finds changed stored bytes |
+| `RECORD_TAMPERED` | A sealed record is missing, malformed, of another kind or fails its seal, states a value its contract forbids, such as a declared color matrix no conversion applies or a bundle pixel format other than `rgb24`, or a re-import finds changed stored bytes; or the data root's `contract-set.json` is damaged |
 | `RECORD_INVALID` | A writer produced a record its contract refuses, a reused bundle hashed other than its candidate, or a preview sheet does not fit its own layout; nothing is sealed or written. This is a defect of ss-track, not of the input. `discover verify` also refuses a run whose scores or selection its own feature rows and frames do not give, or whose method this ss-track does not know |
-| `RECORD_SCHEMA_UNSUPPORTED` | [Any sealed record](#reading-sealed-records) is of a major or stated shape this code does not serve as evidence, including at a re-import or rebuild over it, or the data root was written under another [development contract set](contracts.md#development-stage) |
+| `RECORD_SCHEMA_UNSUPPORTED` | [Any sealed record](#reading-sealed-records) is of a major or stated shape this code does not serve as evidence, including at a re-import or rebuild over it; the data root was written under another [development contract set](contracts.md#development-stage), or holds sealed evidence without a stamp; or a review handoff states no development contract set or another one |
 | `DECODE_POLICY_MISMATCH` | A source or pin uses a decode policy other than the installed one |
 | `IMPORT_CONFLICT` | The same source was imported at the current major with another declaration or decoder, or an amendment or a redecode names bytes with no record or changes more than terms |
 | `CORPUS_CONFLICT` | The `corpus_id` already exists with different content, or a superseded version differs from the seal its successor pinned, at build, stage or verify; a version to freeze is not the one its review makes, is already frozen from other decisions, or an output file holds other bytes |
@@ -2331,7 +2333,7 @@ accepted task, its decisions and its evidence.
 | `DISCOVERY_IN_PROGRESS` | Another command is writing this discovery run id |
 | `LINKS_UNRESOLVED` | [Freezing](corpus/review-and-freeze.md#refusals) meets a link review that leaves a link across splits undecided |
 | `INTERRUPTED` | SIGINT stopped the command. Import and stage leave no scratch |
-| `STORAGE_FAILED` | The data root cannot be written, lacks the space for raw frames, or a preview PNG cannot be written outside the corpus directory |
+| `STORAGE_FAILED` | The data root cannot be written, lacks the space for raw frames, a preview PNG cannot be written outside the corpus directory, or the check of an unstamped root cannot inspect a file in it |
 
 ## Integrity limits
 

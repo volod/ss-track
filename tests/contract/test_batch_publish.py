@@ -15,14 +15,14 @@ def test_registry_write_failure_rolls_back_all_images(
     registry.write_bytes(b"original registry")
     first, second = Path("first.binpb"), Path("second.binpb")
     (tmp_path / first).write_bytes(b"old")
-    write = batch_publish._write_atomically
+    write = batch_publish.write_contract_file
 
     def fail_registry(root: Path, target: Path, payload: bytes) -> None:
         if target == registry:
             raise OSError("registry write failed")
         write(root, target, payload)
 
-    monkeypatch.setattr(batch_publish, "_write_atomically", fail_registry)
+    monkeypatch.setattr(batch_publish, "write_contract_file", fail_registry)
     with pytest.raises(OSError, match="registry write failed"):
         batch_publish.publish_batch(
             tmp_path,
