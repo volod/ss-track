@@ -45,9 +45,15 @@ a read-only check writes no stamp. A record read rechecks a root whose stamp was
 disappeared since the command started. Root-taking corpus operations and evidence readers check it
 too. Each checked root is kept for the command, so checking a second root does not stop the
 stamping or rechecks of the first. A standalone path-only read has no data root to infer; its
-caller must establish that context when it belongs to a data root. An explicit-path
-`annotate freeze` into the data root is not checked yet; `development-explicit-path-revision-root`
-owns it.
+caller must establish that context when it belongs to a data root. A command that takes explicit
+output paths instead of the data root calls `commands/report.py` `check_root_holding` before any
+work: when an output resolves under `$DATA_DIR`, as spelled or through a link on either side, the
+root is checked and the sealed write stamps it; an output outside the root stays standalone and
+the root is neither read nor stamped. `annotate freeze --labels-out --revision-out` is the one such
+sealed writer; `core/evidence/contract_stamp.py` `holds_path` is the containment rule shared with
+the write-time root lookup. The [explicit-path
+record](../records/0107-data-contracts-development-explicit-path-revision-root.md) lists the
+commands reviewed.
 
 The scan costs one directory traversal plus the bytes needed to identify JSON objects, with fixed
 input buffers and directory-cycle tracking. On one private root of 25,000 PNG files (102.4 MB) in

@@ -6,7 +6,7 @@ from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Protocol
 
-from ss_track.core.evidence.contract_stamp import require_current_data_root
+from ss_track.core.evidence.contract_stamp import holds_path, require_current_data_root
 from ss_track.core.paths import resolve_data_root
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
 
@@ -60,6 +60,18 @@ def checked_data_root() -> Path:
     data_root = resolve_data_root()
     require_current_data_root(data_root)
     return data_root
+
+
+def check_root_holding(*outputs: Path) -> None:
+    """Hold the data root to the installed contracts when an explicit output lands inside it.
+
+    A command that takes its output paths instead of the data root still publishes data-root
+    evidence when a path resolves under `DATA_DIR`, so the root is checked before any work and its
+    sealed writes stamp it. An output outside the root stays standalone and the root is not read.
+    """
+    data_root = resolve_data_root()
+    if any(holds_path(data_root, output) for output in outputs):
+        require_current_data_root(data_root)
 
 
 def _refuse(refusal: CorpusRefusal) -> int:

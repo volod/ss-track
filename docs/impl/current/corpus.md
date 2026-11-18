@@ -651,6 +651,12 @@ two stream options are given together, and a generated case id is refused becaus
 derived. `stream_target` in `src/ss_track/annotate/sources/corpus_stream.py` resolves the stream.
 The hashes equal those of the same freeze named by paths.
 
+A freeze named by paths whose `--labels-out` or `--revision-out` resolves under `$DATA_DIR` is
+data-root evidence: the [development root check](contracts.md#development-stage) runs before the
+documents are read, so a root holding unstamped records refuses with `RECORD_SCHEMA_UNSUPPORTED`
+and writes nothing, and a fresh root is stamped with the revision. Outputs outside the root write
+no stamp. `tests/annotate/review/test_explicit_path_root.py` covers both.
+
 Freezing a long track stays linear in its frames: the rows a decision left unknown are indexed
 once. On one instance of 6,000 frames with a box disagreement on every frame, building the frozen
 document took 1.07 s when each frame scanned every row and takes 0.03 s now, with the same
@@ -684,7 +690,8 @@ ss-track annotate freeze \
 
 Tests are under `tests/annotate/review/`: `test_annotation_review.py`,
 `test_annotation_freeze.py`, `test_annotation_freeze_refusal.py`, `test_frozen_outputs.py`,
-`test_frozen_sides.py`, `test_stream_freeze.py` and `test_annotate_review_command.py`, with
+`test_frozen_sides.py`, `test_stream_freeze.py`, `test_explicit_path_root.py` and
+`test_annotate_review_command.py`, with
 `tests/annotate/sources/test_annotation_sequence.py` and `test_video_stream.py` for the other
 sources. The examples are
 `tests/schema/examples/declaration-annotation-review.json`,

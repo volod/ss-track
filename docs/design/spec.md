@@ -2926,8 +2926,10 @@ stamps `schema_version: 1`, so the major alone cannot tell it apart. Before the 
 the data root records structure and meaning fingerprints of every record and shared contract, and
 a root containing sealed evidence without a stamp is refused. A missing stamp is checked before
 reading evidence and again under the first-write lock; a fresh root or one holding only operator
-inputs remains usable without a read-side write. Every command that takes the root compares the
-stamp with the installed set first. A difference refuses
+inputs remains usable without a read-side write. Every command that takes the root, or writes a
+sealed record to an explicit path that resolves inside it, compares the stamp with the installed
+set first; a sealed record written to an explicit path outside the root is standalone and stamps
+nothing. A difference refuses
 the command with `RECORD_SCHEMA_UNSUPPORTED`, names the changed contracts and gives the remedy to
 regenerate; housekeeping that reads no record, such as `data clean`, still runs. A stamp that lacks
 meaning fingerprints cannot prove its records' meanings and is refused with the same remedy. The

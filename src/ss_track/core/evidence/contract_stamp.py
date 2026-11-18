@@ -67,14 +67,19 @@ def _set_checked(root: Path, unstamped: bool | None) -> None:
     _CHECKED_ROOTS.set(kept if unstamped is None else (*kept, (root, unstamped)))
 
 
+def holds_path(root: Path, path: Path) -> bool:
+    """Return whether `path` lies under `root`, as spelled or through a link on either side."""
+    spellings = (path.absolute(), path.resolve())
+    return any(
+        spelling.is_relative_to(base)
+        for base in {root.absolute(), root.resolve()}
+        for spelling in spellings
+    )
+
+
 def _checked_root(path: Path) -> tuple[Path, bool] | None:
     """Return the most specific checked root that holds `path`, directly or through a link."""
-    spellings = (path.absolute(), path.resolve())
-    holding = [
-        item
-        for item in _CHECKED_ROOTS.get()
-        if any(spelling.is_relative_to(item[0]) for spelling in spellings)
-    ]
+    holding = [item for item in _CHECKED_ROOTS.get() if holds_path(item[0], path)]
     return max(holding, key=lambda item: len(item[0].parts), default=None)
 
 

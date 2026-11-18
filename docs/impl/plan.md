@@ -35,38 +35,6 @@ hardware or private data.
 
 ### Data contracts -- `data-contracts`
 
-#### development-explicit-path-revision-root
-
-`ss-track annotate freeze` with `--source`, `--labels-out` and `--revision-out` runs without a
-data-root check. A `--revision-out` inside `DATA_DIR` therefore publishes a sealed
-`record/annotation-revision` without a contract stamp and without scanning for unstamped evidence.
-On a fresh root, the next root-checking command finds that record and refuses the operator's new
-revision with the regenerate remedy. On a stamped root the write skips the stamp check that every
-other sealed write gets. Reproduce: set `DATA_DIR` to an empty directory, freeze with
-`--revision-out "$DATA_DIR/revision.json"`, then run `ss-track corpus inspect-source`; it refuses
-`RECORD_SCHEMA_UNSUPPORTED`. Expected: a sealed write that lands in the data root is held to the
-root's contract set and stamps it, and a write outside the root stays standalone.
-
-- Serves: `data-contracts` -- [Development stage and
-  release](../design/spec.md#177-development-stage-and-release)
-- Agent status: CLEAR
-- Milestone: M1
-- Dependencies: none.
-- User-visible outcome: An explicit-path freeze into `DATA_DIR` checks and stamps the root before
-  publishing, so the next command accepts its revision; a freeze outside the root is unchanged.
-- Scope boundary: The explicit-path write route of `annotate freeze` and any other explicit-output
-  sealed writer found by the same review. Do not change record bytes, the `--corpus --stream`
-  route, released behavior or frozen contracts.
-- Data and artifact paths: `src/ss_track/commands/annotate.py`, `src/ss_track/annotate/review/`,
-  `src/ss_track/core/evidence/contract_stamp.py`, `tests/annotate/`, `tests/corpus/records/`.
-- Execution path: When an explicit sealed output resolves inside the data root, check the root
-  before work so `write_sealed` stamps it; review other explicit `--out` sealed writers for the same
-  route.
-- Acceptance gates: A fresh root receiving an explicit-path revision is stamped and a following
-  root-checking command succeeds; a root with unstamped evidence refuses the freeze before writing;
-  an output outside `DATA_DIR` writes no stamp. `make ci` passes.
-- Documentation target: [Contracts](current/contracts.md) and [Corpus](current/corpus.md).
-
 #### development-unstamped-scan-reuse (optional)
 
 On a root without `contract-set.json`, one command can walk the whole root several times: the CLI
