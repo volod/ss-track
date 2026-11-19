@@ -1,4 +1,4 @@
-schema_version: 3
+schema_version: 1
 corpus_id: hawk-drone-pilot-v1
 scenario_rights:
   sharing: restricted

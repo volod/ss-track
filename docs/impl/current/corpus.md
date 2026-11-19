@@ -128,7 +128,7 @@ real-provider evidence.
 `--download-budget` bounds selected file bytes, or the complete Zenodo archive plus split file;
 `--extraction-budget` bounds selected uncompressed video and metadata bytes. Provider API pages are
 independently bounded. Scratch, cache, media, the normalized input and output inventories, and the
-sealed `record/source-acquisition` 1.3.0 are under `$DATA_DIR/self-supervised-corpus/<run-id>/`.
+sealed `record/source-acquisition` are under `$DATA_DIR/self-supervised-corpus/<run-id>/`.
 A retry verifies and reuses identical files; conflicting bytes or a different request for the same
 run are refused, including after an interruption. A retry clears scratch left by a killed run while
 holding its lock. Results are
@@ -152,7 +152,7 @@ by an exact path, a unique sibling stem, or a source line that names the path or
 source reference. A query, fragment, credential or non-ASCII value stays unresolved and is omitted
 from the record. Published Drone Detection CSV names such as `no_drone/birds_only/rgb/1` do not
 equal paths under `videos/no_drone_footage/`. A collection's optional `metadata_names` rules, from
-`declaration/corpus-pool` 1.1.0, state the mapping for one acquired CSV file each: a row name that
+`declaration/corpus-pool`, state the mapping for one acquired CSV file each: a row name that
 starts with `name_prefix` has it replaced by `path_prefix` before the exact comparison, so
 `{file: metadata/videos_no_drone.csv, name_prefix: no_drone/, path_prefix: videos/no_drone_footage/}`
 joins that row to `videos/no_drone_footage/birds_only/rgb/1.mp4`. A name without the prefix keeps
@@ -272,34 +272,25 @@ uncertainty visible. These are not frozen labels or held-out evidence. See the
 `corpus inspect-source` reads the current source manifest or, when a seal is supplied, the
 retained record under that seal. It reports the original capture object, source record major and
 seal, and its evidence disposition (`current`, `view`, or `facts`). An absent platform is reported
-as `unknown` separately; the capture object is not modified. `migration_operations` lists every
-`ss-track import` operation a `facts` record needs, to be given together, and is empty for a
-record that serves as it is:
+as `unknown` separately; the capture object is not modified:
 
 ```json
-{"source_inspection": {"major": 1, "disposition": "facts", "platform": "unknown",
- "capture": {"...": "as stated"},
- "migration_operations": ["--amend-capture", "--amend-terms", "--redecode"]}}
+{"source_inspection": {"major": 1, "disposition": "current", "platform": "airborne",
+ "capture": {"...": "as stated"}}}
 ```
 
-Every older major needs `--amend-capture`; one that lacks terms or decoded facts also needs
-`--amend-terms` or `--redecode`. An import operation refuses with the same list in
-`missing_operations` when one is left out, because both come from
-`corpus/sources/replacement.py`. Inspection uses `read_stated`, checks the seal and kind, and does
-not promote historical facts to evidence. It needs no source media and writes nothing. The
-implementation is in `corpus/sources/inspection.py`;
-`tests/corpus/records/test_source_inspection.py` covers retained records and refusals.
+Inspection uses `read_stated`, checks the seal and kind, and does not promote a retained record to
+evidence. It needs no source media and writes nothing. The implementation is in
+`corpus/sources/inspection.py`; `tests/corpus/records/test_source_inspection.py` covers current and
+retained records and refusals.
 
-Recording declarations and source manifests use major 3. Omitted camera control and observer
-platform judgments become `unknown`. The two fields accept only the values shown below; other
-capture facts remain descriptive. `corpus/declarations/capture.py` states both vocabularies and
-reads the capture section; build counts, amendment and inspection take them from there. Historical
-major 1 and 2 source records are inspectable but cannot serve as current evidence. To migrate one,
-restate its capture facts and explicitly select the judgments with `import --amend-capture`; the
-original bytes are retained under their seal. The operation needs no media when the declaration
-supplies the source hash. Add `--amend-terms` and/or `--redecode` if the refusal names them as
-required. Only those explicitly requested operations change their respective facts. Versions pinning
-the old record refuse until a successor is built. See the [implementation
+Omitted camera control and observer platform judgments become `unknown`. The two fields accept only
+the values shown below; other capture facts remain descriptive. `corpus/declarations/capture.py`
+states both vocabularies and reads the capture section; build counts, amendment and inspection take
+them from there. `import --amend-capture` restates the judgments of an imported source and keeps the
+replaced record under its seal. It needs no media when the declaration supplies the source hash, and
+changes nothing else. Versions pinning the replaced record refuse until a successor is built. See
+the [implementation
 record](../records/0087-corpus-provenance-recording-capture-vocabulary.md).
 
 ## Commands
@@ -344,13 +335,13 @@ traceback. Import and stage remove their scratch before that record is written:
 
 ## Declarations
 
-Each file is checked in full against its contract on read, `declaration/recording` 3.0.0 and
-`declaration/corpus` 3.3.0, before any reader takes a value from it. A scenario pack is
+Each file is checked in full against its contract on read, `declaration/recording` 1.0.0 and
+`declaration/corpus` 1.0.0, before any reader takes a value from it. A scenario pack is
 `declaration/scenario-pack` 1.0.0. See [Scenario pack](#scenario-pack). A recording may carry
 optional `origin`. An import omits it when the declaration has none, and an amendment or redecode
 that drops a recorded origin is refused. Both contracts reject unknown fields, repeated keys,
 non-finite numbers and any other schema version, so a misspelled key cannot silently drop a fact.
-A recording is schema 3 and a corpus is schema 3. There are no defaults for rights,
+A recording and a corpus are schema 1. There are no defaults for rights,
 sensitivity, split or scenario rights: a declaration without them is refused, and `basis` has no
 `unknown` value. A refusal names the contract version and the first violation by JSON pointer, a wrong
 `schema_version` before anything else, and its details list up to 20 violations, as
@@ -503,8 +494,8 @@ perturbations. `declaration/annotation-mask` 1.0.0 repeats every labeled frame a
 that cover those frames. Each document hash is the SHA-256 of the canonical JSON, the same rule as
 the pack hash. Key order and comments do not change it. Array order does.
 
-`result/command` 1.30.0 adds optional `annotation` to a successful validation. `version` is the
-frozen contract version the document was validated under, the newest of its major. The object
+`result/command` states optional `annotation` on a successful validation. `version` is the
+contract version the document was validated under, the newest of its major. The object
 carries the document hash, `pack_hash` for a label, `replay_sha256` for a seed, and one entry per labeled
 frame, seed role or mask frame. An entry is `scorable`, `unscorable` or `not_denominator`, with a
 reason when it has one. The object has no `score` field. An unscorable frame and a withheld frame
@@ -640,7 +631,7 @@ the revision. A run killed between the two leaves no revision, which
 `write_once` and `holds_payload` in `src/ss_track/core/scratch.py` are the shared rule, which
 `discover export` uses too.
 
-`result/command` 1.31.0 adds optional `label_review`. Compare has no label hash and no output
+`result/command` states optional `label_review`. Compare has no label hash and no output
 paths. Freeze adds `label_sha256`, `revision_sha256`, `labels_path` and `revision_path`. The
 object has no `score` field.
 
@@ -659,6 +650,12 @@ another decode than the corpus pinned are `MANIFEST_INVALID`. The two forms cann
 two stream options are given together, and a generated case id is refused because its labels are
 derived. `stream_target` in `src/ss_track/annotate/sources/corpus_stream.py` resolves the stream.
 The hashes equal those of the same freeze named by paths.
+
+A freeze named by paths whose `--labels-out` or `--revision-out` resolves under `$DATA_DIR` is
+data-root evidence: the [development root check](contracts.md#development-stage) runs before the
+documents are read, so a root holding unstamped records refuses with `RECORD_SCHEMA_UNSUPPORTED`
+and writes nothing, and a fresh root is stamped with the revision. Outputs outside the root write
+no stamp. `tests/annotate/review/test_explicit_path_root.py` covers both.
 
 Freezing a long track stays linear in its frames: the rows a decision left unknown are indexed
 once. On one instance of 6,000 frames with a box disagreement on every frame, building the frozen
@@ -693,7 +690,8 @@ ss-track annotate freeze \
 
 Tests are under `tests/annotate/review/`: `test_annotation_review.py`,
 `test_annotation_freeze.py`, `test_annotation_freeze_refusal.py`, `test_frozen_outputs.py`,
-`test_frozen_sides.py`, `test_stream_freeze.py` and `test_annotate_review_command.py`, with
+`test_frozen_sides.py`, `test_stream_freeze.py`, `test_explicit_path_root.py` and
+`test_annotate_review_command.py`, with
 `tests/annotate/sources/test_annotation_sequence.py` and `test_video_stream.py` for the other
 sources. The examples are
 `tests/schema/examples/declaration-annotation-review.json`,
@@ -802,7 +800,7 @@ not label is the operator's claim, which [case preview](#case-preview) shows. On
 case, a target the region only overlaps takes the `overlap` status and loses its geometry, so an
 absence frame stays `unknown`. A frame with no scorable box stays `unknown`.
 
-`result/command` 1.32.0 adds status `derived` and optional `label_derivation`. One row per
+`result/command` states status `derived` and optional `label_derivation`. One row per
 generated case follows the manifest order. A derived row names both hashes, both paths and
 `timestamp_quality`, which is `derived` or null. The object has no `score` field.
 
@@ -936,7 +934,7 @@ target option, a stray one or an unknown kind is `MANIFEST_INVALID`. An entry th
 outside the data root is refused. Read-only bundle directories are made writable by their owner
 just before removal. After frames are released, `corpus verify` and `discover verify` of runs
 over that version refuse until it is staged again. The result is `planned` or `cleaned` with a
-`clean` object in `result/command` 1.26.0: each kind, target, restore path, bytes and entry paths
+`clean` object in `result/command`: each kind, target, restore path, bytes and entry paths
 relative to the data root.
 
 The command does not decide what is obsolete, delete a whole data root or touch another host. A
@@ -1046,9 +1044,9 @@ The number in a bin is distinct encounters. Two streams of one encounter that sh
 once. An encounter whose streams use different values counts once in each of those values, so
 adding the bins does not recover the encounter total. A generated case adds no encounter. The
 counts are read from the verified source records and are absent from the corpus manifest, so a
-second build of the same declaration keeps the manifest seal. A historical source record is
-refused with its migration remedy. After `import --amend-capture` and a new build, the counts use
-the amended judgments. `src/ss_track/corpus/versions/capture_counts.py` owns the count.
+second build of the same declaration keeps the manifest seal. After `import --amend-capture` and a
+new build, the counts use the amended judgments. `src/ss_track/corpus/versions/capture_counts.py`
+owns the count.
 `src/ss_track/corpus/versions/placement.py` reads the judgments while it places each stream.
 `tests/corpus/versions/test_capture_counts.py` covers the bins. See the
 [implementation record](../records/0088-corpus-provenance-capture-encounter-counts.md).
@@ -1108,7 +1106,7 @@ everything the rules read, nearest first:
 A predecessor is read through its major's [comparison projection](#reading-sealed-records), so a
 version may name one of any major, whatever its disposition: a `facts` or `retired` version still
 guards its splits, and a move out of it is `SPLIT_LEAKAGE`, not a schema refusal. One whose major has
-no projection, such as corpus major 1 or a newer major, still has its seal pinned in `supersedes`,
+no projection, such as a newer major, still has its seal pinned in `supersedes`,
 ends the chain, and is listed rather than failing the build. `compared_versions` may then be empty,
 and `added`, `removed` and `kept` are empty when it is the named version:
 
@@ -1154,7 +1152,7 @@ One data root only. Versions outside `corpus/` are not listed. The
 accepted task.
 
 The manifest seals `supersedes` as `{"corpus_id", "manifest_sha256"}`, and only when one was named, so
-a version that names none keeps its hash and corpus manifests stay schema 3. Naming a predecessor on
+a version that names none keeps its hash and corpus manifests stay schema 1. Naming a predecessor on
 an existing version is `CORPUS_CONFLICT`, as any change is. A named version that does not exist is
 `CORPUS_NOT_BUILT` before any source is read, and so is one missing further back. A version rebuilt
 differently under its old name no longer matches the seal its successor pinned, which is
@@ -1324,8 +1322,8 @@ manifest is not a version for the source-hash listing, and it is `unreadable` he
 missing manifest is not a clear comparison. When the corpus directory itself cannot be listed,
 `scan` is `unreadable` and the declared chain is still compared. The build still succeeds. A
 same-group predecessor that cannot be read is not named, because it is not a near-duplicate
-question. A retired major that still carries a window is fingerprinted through its comparison
-projection; corpus major 2 is one.
+question. Any major with a comparison projection that carries a window is fingerprinted through
+it.
 [Shared frames](#shared-frames) still refuses an exact remux.
 
 A [leakage review](corpus/leakage-review.md) applies the same fingerprint within one version and
@@ -1382,12 +1380,10 @@ with `RIGHTS_CONFLICT`, naming its parent stream and source. `grouping.py` check
 execution or corpus publication. Both new fields are required. Quoted and unquoted YAML dates
 normalize to the same ISO string. Numbers, timestamps, invalid dates and string booleans are refused.
 
-Source manifests use schema 3. Historical source records and corpus records missing required terms
-are refused with `RECORD_SCHEMA_UNSUPPORTED` and the `facts` disposition; their terms and capture
-judgments are never guessed. A
-[re-import over an old source](#reading-sealed-records) is refused the same way. An old source record
-requires `--amend-capture` and any other missing operations before a new corpus version can use it. No
-automatic migration runs.
+Source manifests use schema 1, and both contracts require the source terms. Terms and capture
+judgments are never guessed, and no automatic migration runs. A record of another major is refused
+with `RECORD_SCHEMA_UNSUPPORTED` on the [read path](#reading-sealed-records), including at a
+re-import over it.
 
 The manifest pins each source record. `corpus stage` and `corpus verify` re-read every source record
 before writing, skipping or hashing anything, and a record that differs is `SOURCE_RECORD_CHANGED`,
@@ -1452,9 +1448,8 @@ until it is decoded again.
 | Changed `capture` or capture-clock evidence | `IMPORT_CONFLICT`, naming `changed_facts` |
 | File that contradicts its declared hash | `SOURCE_HASH_MISMATCH` |
 | File gone and no declared hash | `SOURCE_NOT_FOUND` |
-| Historical source record | Requires `--amend-capture`; a schema 1 record missing terms also requires `--amend-terms` |
-| Historical record short of decoded facts | `RECORD_SCHEMA_UNSUPPORTED` names the missing operations, including `--redecode` |
-| Any newer record | `RECORD_SCHEMA_UNSUPPORTED` |
+| A record of another major | `RECORD_SCHEMA_UNSUPPORTED`, with the regenerate remedy in the development stage |
+| A successor the current contract refuses | `RECORD_INVALID`, and nothing is written |
 
 Every corpus version that pinned the old record then refuses at `corpus stage` and `corpus verify`.
 The amendment lists those versions on this data root. `impact` is absent when nothing needs
@@ -1477,8 +1472,8 @@ not part of the source record. Its frames stay on disk until an operator removes
 
 `src/ss_track/corpus/versions/impact.py` reads `$DATA_DIR/corpus/*/manifest.json` through
 `scan_versions` in `scan.py` and matches `source_manifest_sha256` on each major's comparison projection.
-Corpus majors 2 and 3 carry that pin. Corpus major 1 keeps no projection, so a version of that
-major is named `other_schema` rather than matched on its sequences. `--redecode` lists the same
+The current corpus major carries that pin. A version of a major with no projection is named
+`other_schema` rather than matched on its sequences. `--redecode` lists the same
 way when it replaces a record. The
 [amendment-impact record](../records/0034-corpus-provenance-amendment-impact-report.md) holds the
 accepted task.
@@ -1612,12 +1607,10 @@ reports `unchanged`. The stored source is read, decoded and left byte-identical;
 again first, and a source that no longer matches it is `SOURCE_HASH_MISMATCH`.
 
 A plain `--redecode` carries the existing `rights` and `sensitivity` forward unchanged, exactly as
-recorded, because terms are never invented. A record whose carried terms then fall short of the
-current major, such as a schema 1 record still missing `retain_until` and `derived_frames`, is
-`RECORD_SCHEMA_UNSUPPORTED` naming `--amend-terms`. Adding `--amend-terms` takes the terms from the
-declaration instead. Historical records also require explicit `--amend-capture`; records short of
-decoded facts need all applicable operations together. `successor_of` in `replacement.py` raises this
-refusal from either path.
+recorded, because terms are never invented. Adding `--amend-terms` takes the terms from the
+declaration instead, and `--amend-capture` restates the capture judgments. `successor_of` in
+`replacement.py` builds the successor for either path, and `seal` refuses one the current contract
+refuses.
 
 Every corpus version that pinned the old record then refuses at `corpus stage` and `corpus verify`
 with `SOURCE_RECORD_CHANGED`, exactly as after an amendment, and the result lists them in `impact`
@@ -1793,11 +1786,13 @@ checks that open it, and `open_frame_bundle` opens any bundle directory without 
 
 ### Across hosts
 
-A pin says only that two hosts differ. `ss-track corpus hashes` first runs everything `corpus
-verify` does, then writes what this host staged to `$DATA_DIR/run/<run-id>/staged-hashes.json`: each
-bundle and every frame's index, PTS and hash, each source's codec and pixel format, and the host's
-machine, system and Python. `src/ss_track/corpus/hosts/host_hashes.py` owns it. Host facts stay out
-of the frame set, which must be one hash on any host, and no frame moves between hosts.
+A pin says only that two hosts differ. `ss-track corpus hashes` first runs everything
+`corpus verify` does, then writes what this host staged to
+`$DATA_DIR/run/<run-id>/staged-hashes.json`: each bundle and every frame's index, PTS and hash, each
+source's codec and pixel format, and the host's machine, system and Python. In the development stage
+it also carries the contract pins of the install that wrote it, in `contract_set`.
+`src/ss_track/corpus/hosts/host_hashes.py` owns it. Host facts stay out of the frame set, which must
+be one hash on any host, and no frame moves between hosts.
 
 `ss-track corpus compare` reads two such records and keeps its result in `hash-comparison.json`, under
 its own run. `src/ss_track/corpus/hosts/hash_comparison.py` owns it. It compares frame sets first, because
@@ -1834,9 +1829,15 @@ from one set of source bytes. Two writes of the fixed corpus on one host differ 
 Matroska or WebM, whose random identifiers change, and a write on arm64 differs from x86-64 in the
 packets of 41 of 71, so a host that regenerates its media compares different sources.
 
-`corpus compare` treats any two hosts alike and `left` and `right` name them, so a cross-architecture
-claim also needs two different `machine` values.
-A record is sealed against accidents, not against a person, like every seal here.
+`corpus compare` treats any two hosts alike and `left` and `right` name them, so a
+cross-architecture claim also needs two different `machine` values. Before it compares,
+`corpus compare` holds each record's `contract_set` to the installed one: in the development stage a
+host on another commit writes `schema_version: 1` too, so equal bytes would not show that both hosts
+read the records alike. A record with no pins, or pins of another development contract set, refuses
+`RECORD_SCHEMA_UNSUPPORTED`, naming the record and `changed_contracts`, and nothing is written;
+record both sides with installs of one contract set (see
+[Contracts](contracts.md#development-stage)). A record is sealed against accidents, not against a
+person, like every seal here.
 
 `tests/corpus/hosts/_fixed_sources.py` holds the fixed corpus, `arch-fixed-v1`: 71 sources through 20
 decoders and 28 pixel formats, with odd and short-row sizes, several color matrices and chroma
@@ -2191,7 +2192,7 @@ MPEG program streams import as `missing`, because they do not store a presentati
 ## Reading sealed records
 
 The shared evidence package owns sealing, reads and read windows. Corpus registers its comparison
-projections and historic shapes, supplying the source-term amendment command to the shape remedy.
+projections.
 The shared registry does not import corpus. The [task record](../records/0081-corpus-provenance-shared-evidence-primitives.md)
 holds the migration and acceptance evidence.
 
@@ -2209,7 +2210,7 @@ read path has three entries:
 | Entry | Returns | Used by |
 | --- | --- | --- |
 | `read_sealed` | Evidence: a record of the current major as written, or of a `view` major as the current major, in memory | Every command that uses a record |
-| `read_stated` | A record of the current major, or a `facts` or `view` major, as written, with its disposition | source inspection, capture and terms amendment, and `--redecode` |
+| `read_stated` | A record of the current major, or a `facts` or `view` major, as written, with its disposition | source inspection, and the replaced record an amendment or `--redecode` keeps |
 | `read_comparable` | The seal, the major and the major's comparison projection, or none, for a record of any major | Lineage, shared-frame checks and the near-duplicate report |
 
 A record of an earlier major takes the strictest disposition of each major it steps through, from the
@@ -2218,32 +2219,27 @@ contract's change log (see [contracts](contracts.md#runtime-enforcement)). `read
 newer major, of a major no change log states, or whose version is not a true integer is refused by
 both.
 
-| Format | Writes | Older majors and their disposition | Remedy for an older record |
-| --- | --- | --- | --- |
-| Source manifest | 3 | 1, 2: `facts` | `ss-track import --amend-capture`, with other operations when required |
-| Corpus manifest | 3 | 1, 2: `retired`; schema 3 without source terms: `facts` | Build a new corpus version that names it in `supersedes` |
-| Frame bundle | 3 | 1, 2: `retired` | Build and stage a new corpus version |
-| Frame set, staged hashes | 1 | None | No older major exists |
-
-A refusal says what an operator needs to act on it:
+Every format writes and reads major 1. In the [development
+stage](contracts.md#development-stage) no format has an older major, no disposition and no view, so
+a record of another major comes from a data root written before the development baseline. A
+refusal says what an operator needs to act on it:
 
 ```json
 {"status": "refused", "code": "RECORD_SCHEMA_UNSUPPORTED",
- "message": "manifest.json (ss-track.source-manifest) has older schema 1 (facts); ...",
+ "message": "manifest.json (ss-track.source-manifest) has newer schema 3; ...",
  "details": {"record": "manifest.json", "path": ".../import/<sha256>/manifest.json",
-  "kind": "ss-track.source-manifest", "found_schema_version": 1, "accepted_schema_versions": [3],
-  "age": "older", "disposition": "facts",
-  "remedy": "Record its terms with ss-track import --amend-terms."}}
+  "kind": "ss-track.source-manifest", "found_schema_version": 3, "accepted_schema_versions": [1],
+  "age": "newer", "disposition": null,
+  "remedy": "this data root was written under an earlier development contract set: ..."}}
 ```
 
-`age` is `older`, `newer` or `unstated`, and only an older record names a `disposition`. A newer
-record is refused because this code cannot know what a newer field means, and its remedy is to
-install the version that wrote it. A version that is not a true integer is `unstated`, as `True` and
-`1.0` would otherwise compare equal to 1. `accepted_schema_versions` lists the current major and each
-one a chain of views reaches. The remedy for an older record is the `migration` text of the
-contract's change log, its one statement: a historic major's own entry in `retired_majors`, or else
-the first major transition after it. A major with neither, which no ss-track version wrote, is told
-to restore the record from a trusted copy.
+`age` is `older`, `newer` or `unstated`, and only an older record names a `disposition`. A version
+that is not a true integer is `unstated`, as `True` and `1.0` would otherwise compare equal to 1, and
+is told to restore the record from a trusted copy. `accepted_schema_versions` lists the current major
+and each one a chain of views reaches. In the development stage an older or newer record gets the
+regenerate remedy. Once the set is released, a newer record is told to install the version that
+wrote it, and an older one gets the `migration` text of the contract's change log: a historic
+major's own entry in `retired_majors`, or else the first major transition after it.
 
 **Views.** `src/ss_track/core/evidence/read_window.py` provides the shared view registry and
 `View` type. Each area registers one `View` per `view` major: the kind,
@@ -2255,20 +2251,12 @@ was, and each step is logged with what it derived. A view naming a protected pro
 `CONTRACT_SET_INVALID` at read, and so is a `view` disposition with no function installed.
 `check_view` applies a view to a real record and names every value it changed without declaring it,
 or a change to the record it read. It walks every value, seconds on a million-frame bundle, so it
-runs in tests and never on a read: `tests/corpus/records/test_historic_records.py` applies
-every installed view to each kept record of its major and fails on any finding, or when no kept
-record exists. A first-read check would prove no more, because a view is fixed code and that one
-record is no better a witness than the kept one. No installed major is a view today, so the table is
-empty: `tests/corpus/records/test_read_window.py` freezes a synthetic next corpus major with
-the real `freeze` and proves both dispositions on records today's code writes.
+runs in tests and never on a read. No installed major is a view, so the table is empty:
+`tests/corpus/records/test_read_window.py` freezes a synthetic next corpus major with the real
+`freeze` in a released private set and proves both dispositions on records today's code writes.
 
-**Stated shapes.** A corpus manifest sealed at schema 3 before source terms existed has no major of
-its own. `stated_shape` tells it apart by one test, whether every stream's `rights` holds
-`retain_until` and `derived_frames`, which reads streams and no frame. It is the
-`corpus-3-without-source-terms` shape, with the `facts` disposition: `read_sealed` refuses it, naming
-`shape` and the streams `lacking` terms, with the remedy to record terms and build a new version,
-and `read_stated` returns it. A shape is read no more freely than its major, so a view never serves
-it. This replaced the key check `corpus/sources/terms.py` held.
+**Stated shapes.** `stated_shape` tells apart a format that entered a major without a version of its
+own, by one test on the read path. None is installed.
 
 **Comparison projections.** `src/ss_track/corpus/records/projections.py` holds, per kind and major,
 the facts a comparison reads from a record as written: a corpus version's `corpus_id`, seal, decode
@@ -2276,30 +2264,28 @@ policy hash, `supersedes` and each stream's `stream_id`, `source_sha256`, `group
 plus `content_sha256` when the source identity is not the file hash,
 `source_manifest_sha256`, which the amendment listing matches, and `selection` (`start_frame`,
 `end_frame`) when the record carries a frame window, and a bundle's pins and
-`(frame_index, sha256)` pairs. Corpus majors 2 and 3 and bundle majors 2 and
-3 have one, whatever their disposition. Corpus major 1 states no group or split, so it has none, and
-nor does bundle major 1, which only a major-1 version staged. A record lacking a fact its projection
+`(frame_index, sha256)` pairs. Corpus and bundle major 1 have one. A record lacking a fact its
+projection
 reads is `RECORD_TAMPERED`, as is any sealed record a reader walks and finds short of a fact:
 `read_refusals.incomplete_record` is the one guard for that, since only a reseal by hand can make
-one. Each projection is held to its era's kept record by
-`tests/corpus/records/test_historic_records.py`. A predecessor with no projection is reported
+one. Tests that need a projected predecessor give a synthetic older major the current projection
+(`tests/corpus/conftest.py` `project_older_major`). A predecessor with no projection is reported
 as `not_compared` with reason `other_schema` and never fails its successor; [version
 lineage](#version-lineage) and [shared frames](#shared-frames) show the results.
 
 A record is validated once, in full, by `seal`, before anything is written: a writer defect is
 `RECORD_INVALID` with nothing sealed, and its details name the contract version and violations. A
-read walks no field beyond a stated shape's test, so opening a million-frame bundle record costs
+read walks no field, so opening a million-frame bundle record costs
 what it did before contracts were enforced; `tests/corpus/records/test_read_cost.py` holds that
-fixture. Validating such a record at staging costs about 32 seconds, measured on the kept bundle
-grown to a million frames, which decoding and writing those frames far exceeds.
+fixture. Validating such a record at staging costs about 32 seconds, measured on a bundle grown to a
+million frames, which decoding and writing those frames far exceeds.
 
 A plain import refuses an older record before decoding anything, so the remedy costs no decode. A
 record that fails its seal or does not parse is `RECORD_TAMPERED`, including one holding a `NaN` or a
 number too long to read, which no writer can produce.
 
-`tests/corpus/kept_records/` keeps one real record of every major of every format, each written by
-the code of the commit in its name and listed in its `README.md`, and a test fails when a new major
-has none. The [read window record](../records/0021-data-contracts-record-read-window.md) holds the
+No real record of an earlier era is kept in the development stage; the release keeps one per
+contract. The [read window record](../records/0021-data-contracts-record-read-window.md) holds the
 accepted task, its decisions and its evidence.
 
 ## Refusal codes
@@ -2330,9 +2316,9 @@ accepted task, its decisions and its evidence.
 | `RETENTION_EXPIRED` | The evaluation day is after a source's inclusive retention deadline |
 | `CASE_INVALID` | A generated case does not fit its parent, changes no frame of it, does not have the frame shape its transform gives from its parent, or is named where preview expects the parent stream |
 | `TRANSFORM_REVISION_MISMATCH` | A stored case needs a transform revision this code does not provide |
-| `RECORD_TAMPERED` | A sealed record is missing, malformed, of another kind or fails its seal, states a value its contract forbids, such as a declared color matrix no conversion applies or a bundle pixel format other than `rgb24`, or a re-import finds changed stored bytes |
+| `RECORD_TAMPERED` | A sealed record is missing, malformed, of another kind or fails its seal, states a value its contract forbids, such as a declared color matrix no conversion applies or a bundle pixel format other than `rgb24`, or a re-import finds changed stored bytes; or the data root's `contract-set.json` is damaged |
 | `RECORD_INVALID` | A writer produced a record its contract refuses, a reused bundle hashed other than its candidate, or a preview sheet does not fit its own layout; nothing is sealed or written. This is a defect of ss-track, not of the input. `discover verify` also refuses a run whose scores or selection its own feature rows and frames do not give, or whose method this ss-track does not know |
-| `RECORD_SCHEMA_UNSUPPORTED` | [Any sealed record](#reading-sealed-records) is of a major or stated shape this code does not serve as evidence, including at a re-import or rebuild over it and a corpus without source terms, or an amendment or a [redecode](#redecoding-under-a-new-policy) finds a record it cannot write forward |
+| `RECORD_SCHEMA_UNSUPPORTED` | [Any sealed record](#reading-sealed-records) is of a major or stated shape this code does not serve as evidence, including at a re-import or rebuild over it; the data root was written under another [development contract set](contracts.md#development-stage), or holds sealed evidence without a stamp, or a record of a contract its stamp does not pin; or a review handoff or a staged-hashes record states no development contract set or another one |
 | `DECODE_POLICY_MISMATCH` | A source or pin uses a decode policy other than the installed one |
 | `IMPORT_CONFLICT` | The same source was imported at the current major with another declaration or decoder, or an amendment or a redecode names bytes with no record or changes more than terms |
 | `CORPUS_CONFLICT` | The `corpus_id` already exists with different content, or a superseded version differs from the seal its successor pinned, at build, stage or verify; a version to freeze is not the one its review makes, is already frozen from other decisions, or an output file holds other bytes |
@@ -2353,7 +2339,7 @@ accepted task, its decisions and its evidence.
 | `DISCOVERY_IN_PROGRESS` | Another command is writing this discovery run id |
 | `LINKS_UNRESOLVED` | [Freezing](corpus/review-and-freeze.md#refusals) meets a link review that leaves a link across splits undecided |
 | `INTERRUPTED` | SIGINT stopped the command. Import and stage leave no scratch |
-| `STORAGE_FAILED` | The data root cannot be written, lacks the space for raw frames, or a preview PNG cannot be written outside the corpus directory |
+| `STORAGE_FAILED` | The data root cannot be written, lacks the space for raw frames, a preview PNG cannot be written outside the corpus directory, or the check of an unstamped root cannot inspect a file in it |
 
 ## Integrity limits
 
@@ -2452,21 +2438,17 @@ cover verification from the command's exit status to what each refusal names.
 declaration readers. `tests/corpus/sources/test_amend_terms.py`, `test_amend_refusals.py`,
 `test_amend_records.py` and `test_amend_impact.py` cover the amendment from the command to the
 kept records and the versions that pin a replaced record, including a subprocess killed at each
-write and real schema 1 records from `tests/corpus/kept_records/`, each written by the code of
-the commit in its name. `tests/corpus/sources/test_redecode.py` covers
-`--redecode` and `--redecode --amend-terms` the same way: a simulated policy upgrade, a tampered
-stored source, a repeat, a subprocess killed at each write, and both kept schema 1 records, one
-through the sequential route and one that needs both flags together.
+write. `tests/corpus/sources/test_redecode.py` covers `--redecode` and `--redecode --amend-terms`
+the same way: a simulated policy upgrade, a tampered stored source, a repeat and a subprocess killed
+at each write.
 `tests/corpus/sources/test_replacement.py` covers the record a successor keeps when the existing
 major is read through a view.
 `tests/corpus/records/test_sealed.py` covers the read path itself, `test_sealing.py` the seal, the
 write and hashed copies, and `test_sealed_reads.py` scans for reads around the read path.
-`test_historic_records.py` reads every kept record through the read path and
-`test_historic_commands.py` runs each through the commands
-that can reach it, `test_duplicate_frames_major.py` covers a predecessor's bundles of another major,
-real and unprojected, and `test_read_window.py` covers a synthetic next major read as a view and as
-`facts`, a view deriving a rights field, a decode policy mismatch through a view and the stated
-shape. `tests/corpus/cases/test_transforms.py`, `test_transform_recipes.py`,
+`test_contract_stamp.py` covers the data root's development contract-set stamp,
+`test_duplicate_frames_major.py` covers a predecessor's unprojected bundles, and `test_read_window.py`
+covers a synthetic next major read as a view and as `facts`, a view deriving a rights field and a
+decode policy mismatch through a view. `tests/corpus/cases/test_transforms.py`, `test_transform_recipes.py`,
 `test_field_cases.py` and `test_transform_golden.py` cover each transform on hand-checkable
 frames and pin its bytes, and
 `test_recipes.py`, `test_generated_cases.py`, `test_case_membership.py`, `test_case_frames.py`,

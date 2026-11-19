@@ -15,6 +15,7 @@ RECORD_FAMILY = "record"
 DECLARATION_FAMILY = "declaration"
 SHARED_FAMILY = "shared"
 EVENT_FAMILY = "event"
+STAMPED_FAMILIES = (RECORD_FAMILY, SHARED_FAMILY)  # what a development data-root stamp pins
 INITIAL = "initial"  # the change classes a registry entry states, from meta/registry.json
 PATCH = "patch"
 MINOR = "minor"
@@ -23,12 +24,23 @@ VIEW = "view"
 FACTS = "facts"
 RETIRED = "retired"
 DISPOSITIONS = (VIEW, FACTS, RETIRED)  # from most to least usable, so the strictest step wins
+DEVELOPMENT = "development"  # the registry stages of spec section 17.7, from meta/registry.json
+RELEASED = "released"
+BASELINE_VERSION = "1.0.0"  # the one version each contract has in the development stage
 _URN_PREFIX = "urn:ss-track:contract"
 
 
 def contract_urn(family: str, contract_id: str, version: str) -> str:
     """Return the stable identity of one frozen version."""
     return f"{_URN_PREFIX}:{family}:{contract_id}:{version}"
+
+
+def urn_family(reference: str) -> str | None:
+    """Return the family a contract URN names, or None for another reference, such as `#/...`."""
+    prefix = f"{_URN_PREFIX}:"
+    if not reference.startswith(prefix):
+        return None
+    return reference.removeprefix(prefix).split(":", 1)[0]
 
 
 def version_path(name: str, version: str, suffix: str = ".json") -> Path:

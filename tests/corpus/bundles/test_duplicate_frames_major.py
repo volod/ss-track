@@ -12,8 +12,6 @@ from ss_track.corpus import (
     stage_corpus,
     verify_corpus_frames,
 )
-from ss_track.corpus.storage.layout import frame_set_path
-from tests.corpus._historic import place_record
 from tests.corpus._shared_frames import V1, V2, check_of, named, not_compared, stage_refused
 from tests.corpus.conftest import WriteCorpus, reseal, single_group, stream_of
 
@@ -25,22 +23,6 @@ def _give_unprojected_bundle(data_root: Path, stream_id: str) -> None:
     bundle = data_root / "corpus" / V1 / "frames" / stream_id
     bundle.chmod(0o755)
     reseal(bundle / "manifest.json", schema_version=_NO_PROJECTION)
-
-
-def test_a_real_predecessor_of_major_2_is_compared_through_its_projections(
-    copy: ImportResult, write_grouped_corpus: WriteCorpus, data_root: Path
-) -> None:
-    corpus = data_root / "corpus" / V1
-    place_record("corpus-schema-2-78db68c.json", corpus / "manifest.json")
-    place_record("bundle-schema-2-78db68c.json", corpus / "frames" / "one" / "manifest.json")
-    place_record("frame-set-schema-1-fd982a1.json", frame_set_path(data_root, V1))
-    v2 = [single_group("site-b", "locked", stream_of(copy, stream_id="moved"))]
-    build_corpus(write_grouped_corpus(v2, corpus_id=V2, supersedes=V1), data_root)
-
-    result = stage_corpus(V2, data_root)
-
-    assert check_of(result)["compared_versions"] == [V1]
-    assert not_compared(result) == [(V1, "other_decode_policy", [])]
 
 
 def test_a_predecessor_holding_an_unprojected_bundle_names_it_and_fails_nothing(

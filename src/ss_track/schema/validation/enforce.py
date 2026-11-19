@@ -43,7 +43,10 @@ class _Installed:
 
 @cache
 def installed_contracts() -> _Installed:
+    from ss_track.schema.registry.check import require_runtime_pins
+
     contracts = load_contract_set()
+    require_runtime_pins(contracts)
     return _Installed(contracts, contracts.schema_registry(), contracts.records_by_kind())
 
 
@@ -123,14 +126,6 @@ def require_record(record: Mapping[str, JsonValue]) -> None:
         label=str(document.get(KIND_FIELD)),
         registry=installed.registry,
     )
-
-
-def record_violations(record: Mapping[str, JsonValue]) -> list[Violation]:
-    """Return how a record breaks the newest version of the major it stamps, refusing nothing."""
-    document, contract, frozen = _held_to(record)
-    installed = installed_contracts()
-    schema = installed.contracts.frozen_schema(contract, frozen)
-    return violations(document, schema, installed.registry)
 
 
 def _held_to(

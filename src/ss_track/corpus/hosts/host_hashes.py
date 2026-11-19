@@ -3,7 +3,8 @@
 Two frame-set hashes say only whether two hosts agree. This record keeps every bundle's frame hashes
 beside the facts of the host, so `hash_comparison` can name a disagreement per source and per frame
 without moving any frames between hosts. Host facts would break a frame set's single hash, so they
-live only here.
+live only here. The record travels to the other host, so in the development stage it carries the
+contract pins of the install that wrote it (`core.evidence.carried_pins`).
 """
 
 import platform
@@ -13,6 +14,8 @@ from pathlib import Path
 from typing import Any
 
 from ss_track.core.canonical import SEAL_FIELD
+from ss_track.core.evidence.carried_pins import CONTRACT_SET_FIELD, carried_contract_set
+from ss_track.core.evidence.contract_stamp import require_current_data_root
 from ss_track.core.evidence.sealed import read_sealed
 from ss_track.core.evidence.sealing import seal, write_sealed
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
@@ -91,6 +94,7 @@ def record_staged_hashes(corpus_id: str, run_id: str, data_root: Path) -> Staged
 
     Verifying first means the record states frames that are on disk now, not what a stage reported.
     """
+    require_current_data_root(data_root)
     target = run_directory(data_root, run_id) / STAGED_HASHES_NAME
     verified = verify_corpus_frames(corpus_id, data_root)
     corpus = load_corpus_manifest(corpus_id, data_root)
@@ -111,6 +115,7 @@ def record_staged_hashes(corpus_id: str, run_id: str, data_root: Path) -> Staged
             "decode_policy_sha256": corpus["decode_policy_sha256"],
             "frame_set_sha256": verified.frame_set_sha256,
             "host": host,
+            CONTRACT_SET_FIELD: carried_contract_set(),
             "sources": sources,
             "bundles": bundles,
         }

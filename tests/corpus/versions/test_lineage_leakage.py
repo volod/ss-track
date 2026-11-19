@@ -8,10 +8,12 @@ import pytest
 from ss_track.cli import main
 from ss_track.commands.report import EXIT_OK, EXIT_REFUSED
 from ss_track.corpus import ImportResult, RefusalCode
+from ss_track.corpus.records.kinds import CORPUS_MANIFEST
 from tests.corpus.conftest import (
     WriteCorpus,
     last_record,
     place_of,
+    project_older_major,
     reseal,
     single_group,
     stream_of,
@@ -131,13 +133,16 @@ def test_a_group_changing_split_with_new_sources_is_leakage(
 
 
 def test_a_move_from_a_predecessor_of_another_major_is_leakage_not_a_schema_refusal(
-    first: ImportResult, write_grouped_corpus: WriteCorpus, data_root: Path
+    first: ImportResult,
+    write_grouped_corpus: WriteCorpus,
+    data_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     stream = stream_of(first)
     v1 = build_version(
         write_grouped_corpus, data_root, "pilot-v1", [single_group("site-a", "development", stream)]
     )
-    reseal(v1.manifest_path, schema_version=2)
+    reseal(v1.manifest_path, schema_version=project_older_major(monkeypatch, CORPUS_MANIFEST))
 
     refusal = refused_build(
         write_grouped_corpus,

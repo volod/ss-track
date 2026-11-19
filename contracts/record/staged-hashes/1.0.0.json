@@ -61,6 +61,10 @@
       ],
       "additionalProperties": false
     },
+    "contract_set": {
+      "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/contract-set",
+      "description": "Structure and meaning fingerprints of every record and shared contract the recording host's data root was written under; null only when written in the released stage."
+    },
     "sources": {
       "type": "array",
       "description": "Source facts sorted by hash.",
@@ -191,6 +195,7 @@
     "decode_policy_sha256",
     "frame_set_sha256",
     "host",
+    "contract_set",
     "sources",
     "bundles"
   ],
@@ -198,6 +203,7 @@
   "x-rules": {
     "seal": "manifest_sha256 is SHA-256 of the record excluding that key, serialized as sorted-key JSON with ASCII escapes and no whitespace.",
     "membership": "Sources and bundles exactly match the verified corpus frame set. Each source and stream appears once.",
-    "frames": "Each tuple matches the corresponding verified bundle frame entry, in source-frame order."
+    "frames": "Each tuple matches the corresponding verified bundle frame entry, in source-frame order.",
+    "provenance": "In the development stage contract_set lists every record and shared contract once, sorted by contract. A comparison refuses before writing anything when either record's list is null or absent, or when any listed or installed record or shared contract has another structure or meaning fingerprint. In the released stage the writer sets null and the comparison reads by major instead."
   }
 }

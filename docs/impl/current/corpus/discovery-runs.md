@@ -71,7 +71,7 @@ A larger host has not been measured.
 
 ## Plan
 
-`declaration/discovery-plan` 1.1.0 states one run. Extractors, weights and hint files are listed in
+`declaration/discovery-plan` 1.0.0 states one run. Extractors, weights and hint files are listed in
 ascending id order:
 
 ```yaml
@@ -103,13 +103,13 @@ selection:                              # optional; absent, the run ranks nothin
   {method: ssl-diverse, budget: 12, score_ids: [clip-b16.deviation, motion]}
 ```
 
-`declaration/discovery-plan` 1.1.0 adds `selection` and an extractor's `tiles`. An extractor with
+`declaration/discovery-plan` holds an optional `selection` and an extractor's `tiles`. An extractor with
 `tiles: {columns: 4, rows: 2}` embeds square tiles instead of whole frames
 ([tiled coverage](#tiled-coverage)).
 
 `source_approval` is required on every plan. ss-track cannot tell fixture media from real sources,
 so it cannot refuse only real-source runs without it. The run records the approval in
-`record/discovery-run` 1.1.0. A plan without it is `MANIFEST_INVALID`.
+`record/discovery-run`. A plan without it is `MANIFEST_INVALID`.
 
 A weight `revision` is a Hugging Face snapshot commit, or `tree-sha256:` and the digest of the
 torch.hub code directory, whose archive records no commit. The contract refuses a branch name. To
@@ -227,7 +227,7 @@ embedder's centre crop whole, and a target in it is `224 / S` times its frame si
 of the centre crop, at eight times the compute.
 
 Each tile position is its own extractor of the run, `<extractor_id>.r<row>c<column>`, with crop
-`tiled` and its `tile` in `record/discovery-run` 1.2.0, and its own feature records keyed by the
+`tiled` and its `tile` in `record/discovery-run`, and its own feature records keyed by the
 frame each tile was cut from. One worker loads the model once; each batch holds one tile position
 of `batch_size` consecutive frames, so rows are reproducible from the plan. A grid whose tile side
 exceeds a stream's shorter side, or a model with a non-square input that would crop each tile, is
@@ -330,7 +330,8 @@ targets, not how selection performs on real footage.
 - Selection evidence on real footage needs the reviewed protocol of the
   [selection evaluation](../../plan.md#corpus-selection-evaluation).
 - ss-video has no export of matches joined to file hashes, so an operator builds the hint file.
-- Rows are float32 only; a GPU mixed-precision mode is a contract minor that the
+- Rows are float32 only; a GPU mixed-precision mode is an in-place development edit of
+  `record/discovery-run` ([Contracts](../contracts.md#development-stage)) that the
   [scale pilot](../../plan.md#corpus-scale-pilot) owns if it needs one.
 - A tiled grid multiplies embedding compute by its tile count.
 - Real-source runs require [source authorization](../corpus.md#source-authorization),
@@ -443,7 +444,7 @@ observation row. In the pilot's shape, 100 selections overlap a 232-window audit
 `shared_audit` compares 85 with 87 and is unmatched. `selection_pass` compares 100 with 100,
 reports 15 and 13 repeats and 432 exposures, and is matched.
 
-The log line is a `result/command` 1.25.0 record. `status` is `estimated` only when that budget
+The log line is a `result/command` record. `status` is `estimated` only when that budget
 is matched and the comparison has recall and an interval. It is `inconclusive` when the budget
 is unmatched or unmeasured, evidence is missing, variance is unavailable, or the runs selected
 different counts. A gain left on an inconclusive comparison is descriptive. It is a matched-budget
@@ -501,12 +502,12 @@ incomplete provenance and a negative gain. `test_selection_pass_budget.py` hand-
 outside the audit, disagreements that leave the estimate unchanged, an incomplete pass, a pass in
 one review only or without a shared audit, unequal selections, a withheld selection and a pass
 replayed onto the other run. The command test logs a matched `selection_pass` comparison, and checks
-that a comparison without a pass is still a 1.24.0 record.
+that a comparison without a pass states no `review_budget.selection_pass`.
 
 The [by-source record](../../records/0066-self-supervised-corpus-corpus-evaluation-by-source.md)
 holds the decisions and acceptance evidence. The
 [workload record](../../records/0065-self-supervised-corpus-corpus-evaluation-review-budget.md)
 holds the review-budget decisions, and the
 [selection-pass record](../../records/0070-self-supervised-corpus-corpus-balanced-review-budget.md)
-holds the matched-workload protocol. The comparison fields `result/command` 1.22.0 added are in that
+holds the matched-workload protocol. The comparison fields of `result/command` are in that
 [record](../../records/0064-self-supervised-corpus-corpus-evaluation-result-contract.md).

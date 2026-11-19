@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:ss-track:contract:declaration:discovery-plan:1.0.0",
   "title": "Discovery plan",
-  "description": "Operator declaration of one discovery run over a staged corpus version: the owner's source approval, the pool window, the audit sample, the pinned embedding worker and any ss-video hint files. It grants no right and verifies no label.",
+  "description": "Operator declaration of one discovery run over a staged corpus version: the owner's source approval, the pool window, the audit sample, the pinned embedding worker, any ss-video hint files and the selection method. It grants no right and verifies no label.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -225,6 +225,32 @@
                       "additionalProperties": false
                     },
                     "minItems": 1
+                  },
+                  "tiles": {
+                    "type": "object",
+                    "description": "Embed square tiles that together cover each frame instead of the embedder's centre crop, so a small target near the frame edge is seen at a larger scale.",
+                    "properties": {
+                      "columns": {
+                        "type": "integer",
+                        "x-unit": "1",
+                        "minimum": 1,
+                        "description": "Tiles across each frame."
+                      },
+                      "rows": {
+                        "type": "integer",
+                        "x-unit": "1",
+                        "minimum": 1,
+                        "description": "Tiles down each frame."
+                      }
+                    },
+                    "required": [
+                      "columns",
+                      "rows"
+                    ],
+                    "additionalProperties": false,
+                    "x-rules": {
+                      "tiles": "Each tile position becomes an extractor of the run named <extractor_id>.r<row>c<column>, counted from 0; each such name is an identifier and no other extractor of the plan has it. A tile is square with side max(ceil(width / columns), ceil(height / rows)), which must not exceed the frame's shorter side."
+                    }
                   }
                 },
                 "required": [
@@ -321,6 +347,32 @@
                       "additionalProperties": false
                     },
                     "minItems": 1
+                  },
+                  "tiles": {
+                    "type": "object",
+                    "description": "Embed square tiles that together cover each frame instead of the embedder's centre crop, so a small target near the frame edge is seen at a larger scale.",
+                    "properties": {
+                      "columns": {
+                        "type": "integer",
+                        "x-unit": "1",
+                        "minimum": 1,
+                        "description": "Tiles across each frame."
+                      },
+                      "rows": {
+                        "type": "integer",
+                        "x-unit": "1",
+                        "minimum": 1,
+                        "description": "Tiles down each frame."
+                      }
+                    },
+                    "required": [
+                      "columns",
+                      "rows"
+                    ],
+                    "additionalProperties": false,
+                    "x-rules": {
+                      "tiles": "Each tile position becomes an extractor of the run named <extractor_id>.r<row>c<column>, counted from 0; each such name is an identifier and no other extractor of the plan has it. A tile is square with side max(ceil(width / columns), ceil(height / rows)), which must not exceed the frame's shorter side."
+                    }
                   }
                 },
                 "required": [
@@ -373,6 +425,76 @@
         "additionalProperties": false
       },
       "minItems": 1
+    },
+    "selection": {
+      "description": "How the run ranks pool windows for review. Absent, the run ranks nothing and computes no score. A window of a stream in the locked split is never ranked.",
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "The baseline: a seeded simple random sample of budget eligible pool windows, each with the same known probability. It reads no score.",
+          "properties": {
+            "method": {
+              "type": "string",
+              "const": "uniform",
+              "description": "Selection method."
+            },
+            "budget": {
+              "type": "integer",
+              "x-unit": "1",
+              "minimum": 1,
+              "description": "Pool windows selection may rank for review, at most."
+            },
+            "seed": {
+              "type": "integer",
+              "description": "Deterministic random seed, independent of the audit seed.",
+              "x-unit": "1",
+              "minimum": 0,
+              "maximum": 9223372036854775807
+            }
+          },
+          "required": [
+            "method",
+            "budget",
+            "seed"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "Model-assisted and deterministic: windows are ranked by the mean percentile of the scores read, and each pick is penalised by its embedding similarity to windows already picked.",
+          "properties": {
+            "method": {
+              "type": "string",
+              "const": "ssl-diverse",
+              "description": "Selection method."
+            },
+            "budget": {
+              "type": "integer",
+              "x-unit": "1",
+              "minimum": 1,
+              "description": "Pool windows selection may rank for review, at most."
+            },
+            "score_ids": {
+              "type": "array",
+              "description": "Scores the selection reads, in ascending order.",
+              "items": {
+                "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+                "description": "One score the run computes."
+              },
+              "minItems": 1
+            }
+          },
+          "required": [
+            "method",
+            "budget",
+            "score_ids"
+          ],
+          "additionalProperties": false,
+          "x-rules": {
+            "scores": "score_ids are ascending and distinct, and each is motion, or <extractor_id>.deviation or <extractor_id>.instability for an extractor of this plan, whose embedding section is then required."
+          }
+        }
+      ]
     }
   },
   "x-rules": {

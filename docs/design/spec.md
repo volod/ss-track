@@ -602,7 +602,9 @@ copying a dataset between hosts. Each host independently acquires, imports, buil
 same pinned source selection from portable text recipe inputs. A media-free handoff carries those
 inputs, the sealed link record, one host's staged-hash evidence and an optional checkpoint. Before
 accepting review work, the receiving host verifies its local sources and frames and compares their
-identities with the exporting host down to each staged frame. The handoff preserves the reviewer,
+identities with the exporting host down to each staged frame. In development it must also bind
+and compare the structure and meaning of the record and shared contracts; it refuses a missing or
+different contract-set identity before changing local review state. The handoff preserves the reviewer,
 source identities and checkpoint branch point, and refuses expired, unauthorized, incomplete,
 corrupted or divergent work rather than overwriting decisions. It carries no source media, staged
 frames, feature rows or model weights; does not grant source rights, execute recipe files,
@@ -2697,15 +2699,16 @@ their own.
 
 ### 17.2 Identity and versions
 
-Each contract has an id, a family, an owning capability, a status (`draft`, `active`, `deprecated` or
-`retired`) and a semantic version. `contracts/registry.yaml` lists them, and a meta-schema beside the
-dialect states its shape. Each version is one file,
-named by its version, identified by `urn:ss-track:contract:<family>:<id>:<version>` and never edited
-after it is frozen. A frozen version also carries a change-log entry: its class, a summary and, for a
+Each contract has an id, a family, an owning capability, a status (`draft`, `active`, `deprecated`
+or `retired`) and a semantic version. `contracts/registry.yaml` lists them, and a meta-schema beside
+the dialect states its shape. Each version is one file, named by its version, identified by
+`urn:ss-track:contract:<family>:<id>:<version>` and never edited after the set is released; before
+release, [section 17.7](#177-development-stage-and-release) keeps one version per contract and edits
+it in place. A frozen version also carries a change-log entry: its class, a summary and, for a
 major, the migration a holder of an old record must make. Historic majors with no frozen contract
 are listed separately as `retired_majors`, each with a reason, that migration and a disposition,
-without inventing a contract: `facts` while a retained record of that major still has a route, as
-an amendment gives source major 1, and `retired` once none needs one. Such a major has no view.
+without inventing a contract: `facts` while a retained record of that major still has a route, such
+as an amendment that reads it, and `retired` once none needs one. Such a major has no view.
 Compatibility test fixtures do not make those majors usable corpus evidence.
 
 The registry stores the file hash and two fingerprints of each version. `structure` hashes the
@@ -2806,8 +2809,10 @@ its seal, so a record whose content moved is not called valid. It does not run `
 with the code that reads the record. `CONTRACT_UNKNOWN` means no frozen version applies, and
 `CONTRACT_SET_INVALID` means the installed set is not the one its registry pinned.
 
-`RunManifest` records the contract set in force, so a result names the formats it read. That list is
-descriptive: a contract's major enters a cohort key only through a format the key already covers.
+`RunManifest` records the contract set in force, so a result names the formats it read; in the
+development stage, where each contract is `1.0.0`, it names their structure and meaning
+fingerprints. That list is descriptive: a contract's major enters a cohort key only through a format
+the key already covers.
 
 #### Reading older records
 
@@ -2855,8 +2860,9 @@ that yields no projection is `not_compared` under its own reason, named in the r
 older or newer, its disposition and the remedy from the change log. A newer record is refused, because
 a tool cannot know what a newer field means. A record whose version is not an integer is neither older
 nor newer, and is refused as unstated. A major stays in service with no time limit, while any
-record of it may be retained, and only a contract change retires it. Every major keeps at least one
-real record, written by the code of its era, that the tests read under every later version. A record
+record of it may be retained, and only a contract change retires it. From release, every major keeps
+at least one real record, written by the code of its era, that the tests read under every later
+version. A record
 with only its version number changed proves nothing about a format.
 
 ### 17.5 Dataset descriptors and self-service
@@ -2898,12 +2904,71 @@ algorithms. It adds no generated Avro, Parquet or search schemas until a consume
 stays outside this repository.
 
 Evaluation: every shipped record and declaration conforms unchanged; hand-built changes of every row
-in section 17.3 classify as declared, including nested and tagged-union changes; the real history of
-this repository classifies as major with the disposition each change warranted; an independent checker
-agrees on structure; real records of every historic major read under their disposition; and a consumer
-with only `contracts/` and a standard validator accepts a good record and refuses a bad one. The valid
-negative result is a format the dialect cannot state: it stays listed in the registry as `draft` with
-its reason, and its hand-written reader stays in force.
+in section 17.3 classify as declared, including nested and tagged-union changes; an independent checker
+agrees on structure; section 17.7 holds in each stage, and from release the released history
+classifies as declared and real records of every released major read under their disposition; and
+a consumer with only `contracts/` and a standard validator accepts a good record and refuses a bad
+one. The valid negative result is a format the dialect cannot state: it stays listed in the registry
+as `draft` with its reason, and its hand-written reader stays in force.
+
+### 17.7 Development stage and release
+
+Until the first release, no record of this product is held outside the development data root, so no
+reader needs a predecessor format. Versions kept for development-time fixes would only keep stale
+datasets and tests alive and mislead the first consumers about which formats exist. The registry
+states one stage for the whole set, and the gate enforces that stage's rules.
+
+| Stage | Versions | A change to a format | Older data |
+| --- | --- | --- | --- |
+| `development`, until the first release | Exactly one per contract, `1.0.0`; every record stamps `schema_version: 1` | Edits `1.0.0` in place and re-pins its hash and fingerprints in the registry, with writers, fixtures and tests in the same change. A fix to an architecture or planning mistake is such a change, never a new version | Deleted and regenerated from its declarations with the current code. No view, disposition, `retired_majors` entry or historic fixture keeps it readable |
+| `released`, from the first release | Frozen; sections 17.2 to 17.4 apply in full | A new version, classified by section 17.3; a major declares the disposition of its predecessor | Retained and read under its disposition, with a real record of every released major in the tests |
+
+In the development stage, a sealed record written under an earlier edit of its contract still stamps
+`schema_version: 1`, so the major alone cannot tell it apart. Before the first sealed write, the
+data root records structure and meaning fingerprints of every record and shared contract, and a root
+containing sealed evidence without a stamp is refused. A record or shared contract references only
+record and shared contracts, so those pins cover every contract a record's shape depends on, and the
+gate refuses any other reference. A format the root holds that takes its shape from another family,
+such as a run bundle's event lines and manifest, joins the stamp before its first write there. A
+missing stamp is checked before reading evidence and again under the first-write lock; a fresh root
+or one holding only operator inputs remains usable without a read-side write. Every command that
+takes the root, or writes a sealed record to an explicit path that resolves inside it, compares the
+stamp with the installed set first; a sealed record written to an explicit path outside the root is
+standalone and stamps nothing. A difference refuses the command with `RECORD_SCHEMA_UNSUPPORTED`,
+names the changed contracts and gives the remedy to regenerate; housekeeping that reads no record,
+such as `data clean`, still runs. A contract the install pins but the stamp does not was added after
+the stamp was written, so no record of it can be in the root: it is not a difference, the root's
+next sealed write adds its pins under the lock, and a read of a record of it is served only once the
+stamp pins it as the reading install does. A contract the stamp names that the install lacks is a
+difference. A stamp that lacks meaning fingerprints cannot prove its records' meanings and is
+refused with the same remedy. The fingerprint includes descriptions, so even an editorial
+description change conservatively asks for regeneration: a machine cannot decide whether prose
+changes a value's interpretation. A record of another major gets the same remedy, because no release
+wrote one. A development handoff of sealed records between data roots, such as a review archive or
+another host's staged hashes, must bind the exporting contract set and refuse unpacking, acceptance
+or comparison, before writing anything, when its record or shared structure or meaning is missing or
+differs. Released handoffs follow versioned compatibility instead. The section 17.3 classifier, the
+independent oracle, dispositions and views stay installed in both stages, tested on synthetic
+version pairs, so that they are proven when release starts using them.
+
+Operator-written inputs are not regenerable: declarations, reviewed labels and review decisions stay
+on the data root and in the repository. A development change that alters the shape of such an input
+edits each retained one in the same change and states the edit; regeneration then rebuilds every
+sealed record from them.
+
+The move to `released` is the owner's release decision, made once, and the gate refuses a return to
+`development`, and a registry revision whose stage it cannot read. A fix found while preparing a
+release is a development edit made before the stage changes. This section does not migrate
+development data, keep a history of development edits beyond Git, or version data or algorithms.
+
+Evaluation: in the development stage, an edited `1.0.0` passes the gate only with its re-pin, a
+second version is refused, a record written under the previous structure, meaning or referenced
+shared contract is refused with the regenerate remedy, and the regenerated data root validates
+under the current set; in the released
+stage, an in-place edit of a frozen file is refused and every new version classifies as section 17.3
+declares. The valid negative result is a format whose operator-written inputs cannot be edited to a
+new shape by a stated rule: the change keeps that input's contract unchanged and adds the new shape
+as a separate format.
 
 ## 18. Board and sensor telemetry
 
@@ -3449,7 +3514,7 @@ Group order alone never establishes readiness.
 | 1 | `reproducible-environment` | shipped | A fresh locked environment reaches the complete CI gate without manual repair | [Developer tooling](../impl/current/developer-tooling.md) |
 | 2 | `project-identity` | shipped | Import, CLI, and distribution-build tests agree on the project identity | [Product core](../impl/current/product-core.md) |
 | 3 | `corpus-provenance` | planned | Import/hash/canonical-decode, staged frame bundles, a kept source reuses a linked version's frames by hard link, synchronized multi-stream grouping, generated cases, version lineage, duplicate-frame and source-term refusals and scenario-rights/split fixtures; malformed source yields structured failure; a likely re-encode across groups, including one outside the declared chain on the same data root, is reported and not refused; `data clean` removes only named reproducible kinds, never a sealed record, and released frames stage again to the same frame set; capture vocabularies are closed, and a scale-reduction case scales its labels with its pixels | - |
-| 4 | `data-contracts` | shipped | Every shipped record and declaration conforms unchanged to its frozen contract; every section 17.3 change classifies as declared, with an independent checker agreeing on structure; real records of every historic major read under their disposition with no byte or hash moved; a consumer with only the contracts validates a record; optional descriptors validate and leak nothing | [Contracts](../impl/current/contracts.md) |
+| 4 | `data-contracts` | planned | Every shipped record and declaration conforms unchanged to its contract; every section 17.3 change classifies as declared, with an independent checker agreeing on structure; section 17.7 holds in each stage, and from release real records of every released major read under their disposition with no byte or hash moved; a consumer with only the contracts validates a record; optional descriptors validate and leak nothing | [Contracts](../impl/current/contracts.md) |
 | 5 | `annotation-selection` | planned | A scenario pack validates and pins the class map; two-reviewer G0 labels, stable class/instance IDs, frozen mask and identical seed replay | - |
 | 6 | `module-contract-runner` | planned | Oracle, null, dropper, crash, schema and class-identity fixtures pass with exact frame accounting | - |
 | 7 | `motion-sot-evaluation` | planned | Hand-computed fixture metrics, denominators and time weights match evaluator output; extent-envelope bins and the smallest supported extent match hand-built encounters | - |

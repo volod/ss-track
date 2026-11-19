@@ -13,7 +13,7 @@ from ss_track.schema import ValidationResult
 _PACKAGE = Path(ss_track.__file__).parent
 _GATE = Path("core/evidence/sealed.py")
 _FACTS_READERS = {
-    Path("corpus/sources/replacement.py"),  # reads a `facts` record to write its successor
+    Path("corpus/sources/replacement.py"),  # keeps the replaced record as written, under its seal
     Path("corpus/sources/inspection.py"),  # reports stated facts without serving evidence
 }
 _DECLARATION_LOADER = Path(
@@ -39,7 +39,10 @@ _PACKAGE_METADATA_READER = Path("corpus/siblings/perception_worker.py")
 _PROVIDER_PARSER = Path("corpus/sources/provider_http.py")
 # Protobuf-JSON event lines are not sealed records. The parser returns a message or a refusal.
 _EVENT_LINES = Path("contract/events.py")
+# The data root's development contract-set stamp holds fingerprints, not a record.
+_CONTRACT_STAMP = Path("core/evidence/stamp_file.py")
 _JSON_READERS = {
+    _CONTRACT_STAMP,
     _GATE,
     _CONTRACT_FILE_READER,
     _DEEP_PARSER,

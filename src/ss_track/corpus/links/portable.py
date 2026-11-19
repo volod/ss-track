@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, cast
 
 from ss_track.core.canonical import SEAL_FIELD
+from ss_track.core.evidence.contract_stamp import require_current_data_root
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.hosts.host_hashes import read_staged_hashes, record_staged_hashes
 from ss_track.corpus.links.interactive_state import read_checkpoint
@@ -56,11 +57,16 @@ def export_handoff(
     recipes: list[Path],
     reviewer: str,
 ) -> PortableResult:
-    """Export recipe inputs, identity evidence, links and checkpoint, but no dataset bytes."""
+    """Export recipe inputs, identity evidence, links and checkpoint, but no dataset bytes.
+
+    The root is checked first, so the contract set the manifest pins is the one its records were
+    written under.
+    """
     if not recipes:
         raise CorpusRefusal(
             RefusalCode.MANIFEST_INVALID, "portable review requires a local creation recipe"
         )
+    require_current_data_root(data_root)
     links = read_links(data_root, run_id)
     if links["corpus_id"] != corpus_id:
         raise CorpusRefusal(RefusalCode.HASHES_NOT_COMPARABLE, "link run names another corpus")

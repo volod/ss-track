@@ -44,6 +44,21 @@ def exclusive_lock(
 
 
 @contextmanager
+def directory_lock(directory: Path) -> Iterator[None]:
+    """Hold `directory` itself exclusively, so that no lock file is left inside it.
+
+    A contract set and a data root are locked this way, because each holds only the files its
+    contract names.
+    """
+    descriptor = os.open(directory, os.O_RDONLY)
+    try:
+        fcntl.flock(descriptor, fcntl.LOCK_EX)
+        yield
+    finally:
+        os.close(descriptor)
+
+
+@contextmanager
 def shared_lock(folder: Path, name: str, *, clear: tuple[Path, ...] = ()) -> Iterator[None]:
     """Hold `folder/name` shared. A run that finds no other holder first clears `clear`.
 

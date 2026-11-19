@@ -3,6 +3,7 @@
 An equal frame-set hash proves every bundle equal, because the frame set names each bundle hash.
 Unequal ones prove less: a source record can differ with every bundle equal, so the comparison
 states which it was. It is kept on disk either way, because a negative result is worth the most.
+A record written under another development contract set is refused first, with nothing written.
 """
 
 from collections.abc import Iterable, Mapping
@@ -10,6 +11,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from ss_track.core.evidence.carried_pins import require_carried_contract_set
+from ss_track.core.evidence.contract_stamp import require_current_data_root
 from ss_track.core.evidence.read_refusals import incomplete_record
 from ss_track.core.evidence.sealing import seal, write_sealed
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
@@ -17,6 +20,11 @@ from ss_track.corpus.hosts.host_hashes import STAGED_HASHES_NAME, read_staged_ha
 from ss_track.corpus.records.kinds import HASH_COMPARISON
 
 HASH_COMPARISON_NAME = "hash-comparison.json"
+STAGED_HASHES_REMEDY = (
+    "record both hosts' staged hashes with ss-track versions that install the same contract set: "
+    "regenerate the data root of the host whose set differs and run corpus hashes there again "
+    "(spec section 17.7)"
+)
 IDENTICAL = "identical"
 DIFFERENT = "different"
 
@@ -133,8 +141,16 @@ def compare_staged_hashes(
     left_path: Path, right_path: Path, run_id: str, data_root: Path
 ) -> ComparisonResult:
     """Compare two hosts' records and keep the result, then refuse if they differ."""
+    require_current_data_root(data_root)
     target = run_directory(data_root, run_id) / HASH_COMPARISON_NAME
     left, right = read_staged_hashes(left_path), read_staged_hashes(right_path)
+    for side, path, record in (("left", left_path, left), ("right", right_path, right)):
+        require_carried_contract_set(
+            record,
+            carrier=f"the {side} staged-hashes record",
+            name=str(path),
+            remedy=STAGED_HASHES_REMEDY,
+        )
     _require_comparable(left, right)
     equal = left["frame_set_sha256"] == right["frame_set_sha256"]
     comparison = seal(

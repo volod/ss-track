@@ -11,8 +11,12 @@ from ss_track.annotate.sources.corpus_stream import stream_target
 from ss_track.annotate.validation.result import AnnotationResult
 from ss_track.annotate.validation.validate import validate_labels, validate_mask, validate_seed
 from ss_track.commands import Subcommands
-from ss_track.commands.report import reported, reported_on_data_root
-from ss_track.core.paths import resolve_data_root
+from ss_track.commands.report import (
+    check_root_holding,
+    checked_data_root,
+    reported,
+    reported_on_data_root,
+)
 from ss_track.corpus.declarations.fields import invalid
 
 
@@ -162,6 +166,7 @@ def _freeze(arguments: argparse.Namespace) -> ReviewResult:
             raise invalid(
                 "name --source, --labels-out and --revision-out, or --corpus and --stream"
             )
+        check_root_holding(arguments.labels_out, arguments.revision_out)
         return freeze_labels(
             _review_inputs(arguments),
             arguments.settlement,
@@ -174,7 +179,7 @@ def _freeze(arguments: argparse.Namespace) -> ReviewResult:
         raise invalid(
             "--corpus and --stream replace --source, --video-stream-index and both output paths"
         )
-    target = stream_target(str(arguments.corpus), str(arguments.stream), resolve_data_root())
+    target = stream_target(str(arguments.corpus), str(arguments.stream), checked_data_root())
     inputs = ReviewInputs(
         arguments.left,
         arguments.right,

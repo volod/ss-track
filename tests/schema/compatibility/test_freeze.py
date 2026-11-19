@@ -8,6 +8,7 @@ import pytest
 
 from ss_track.cli import main
 from ss_track.core.refusal import CorpusRefusal
+from ss_track.core.scratch import SCRATCH_PREFIX
 from ss_track.schema.compatibility.freeze import diff_contract, freeze_contract
 from ss_track.schema.registry.check import check_contract_set
 from ss_track.schema.registry.store import load_contract_set
@@ -174,7 +175,7 @@ def test_registry_replace_failure_rolls_back_new_file(
         _freeze(contract_root, candidate)
     assert read_registry(contract_root) == before
     assert not (contract_root / "result/test/1.1.0.json").exists()
-    assert not list(contract_root.glob(".registry-*"))
+    assert not list(contract_root.glob(f"{SCRATCH_PREFIX}*"))
 
 
 def test_conflicting_destination_and_stale_registry_preserve_other_work(

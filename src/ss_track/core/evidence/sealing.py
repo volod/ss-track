@@ -10,10 +10,10 @@ from collections.abc import Mapping
 from pathlib import Path
 
 from ss_track.core.canonical import SEAL_FIELD, seal_of
+from ss_track.core.evidence.contract_stamp import stamp_before_write
 from ss_track.core.refusal import JsonValue
 from ss_track.core.scratch import READ_ONLY_FILE_MODE, write_atomically
-from ss_track.schema.validation.enforce import record_violations, require_record
-from ss_track.schema.validation.strict import Violation
+from ss_track.schema.validation.enforce import require_record
 
 _CHUNK_BYTES = 1024 * 1024
 _UNSEALED = "0" * 64  # a well-formed stand-in, so validation needs no hash of an invalid body
@@ -49,15 +49,6 @@ def seal(body: Mapping[str, JsonValue]) -> dict[str, JsonValue]:
     return sealed
 
 
-def seal_violations(body: Mapping[str, JsonValue]) -> list[Violation]:
-    """Return how a record would break its contract once sealed, sealing nothing.
-
-    A writer that carries an older record forward asks this first, so a record short of the current
-    major is refused as that, and not as a writer defect.
-    """
-    return record_violations(_unsealed(body))
-
-
 def _unsealed(body: Mapping[str, JsonValue]) -> dict[str, JsonValue]:
     return dict(body) | {SEAL_FIELD: _UNSEALED}
 
@@ -71,4 +62,5 @@ def sealed_bytes(sealed: Mapping[str, JsonValue]) -> bytes:
 def write_sealed(path: Path, sealed: Mapping[str, JsonValue]) -> None:
     """Write a read-only record so that a crash cannot leave a partial file."""
     path.parent.mkdir(parents=True, exist_ok=True)
+    stamp_before_write(path)
     write_atomically(path, sealed_bytes(sealed), mode=READ_ONLY_FILE_MODE)

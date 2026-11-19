@@ -111,5 +111,5 @@ def test_a_built_manifest_states_each_membership_once_per_stream(
     record = json.loads(result.manifest_path.read_text(encoding="ascii"))
 
     assert "sequences" not in record
-    assert record["schema_version"] == 3
+    assert record["schema_version"] == 1
     assert [stream["modality"] for stream in record["streams"]] == ["camera"]

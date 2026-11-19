@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from ss_track.core.canonical import SEAL_FIELD
+from ss_track.core.evidence.contract_stamp import require_current_data_root
 from ss_track.core.evidence.read_refusals import incomplete_record
 from ss_track.core.evidence.sealed import read_sealed
 from ss_track.core.evidence.sealing import seal, write_sealed
@@ -61,6 +62,7 @@ def seal_frame_set(corpus: Mapping[str, Any], hashes: BundleHashes) -> dict[str,
 
 def read_frame_set(data_root: Path, corpus_id: str) -> dict[str, JsonValue]:
     """Return a corpus version's sealed record, refusing a missing or damaged one."""
+    require_current_data_root(data_root)
     return read_sealed(frame_set_path(data_root, corpus_id), FRAME_SET)
 
 
@@ -131,6 +133,7 @@ def commit_frame_set(
 
     The caller holds the staging lock, so no bundle can change between finding and sealing.
     """
+    require_current_data_root(data_root)
     corpus_id = str(corpus["corpus_id"])
     path = frame_set_path(data_root, corpus_id)
     found = seal_frame_set(corpus, hashes)

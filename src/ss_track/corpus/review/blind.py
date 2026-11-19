@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import cast
 
 from ss_track.core.canonical import SEAL_FIELD, sha256_bytes
+from ss_track.core.evidence.contract_stamp import require_current_data_root
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.core.scratch import exclusive_lock
 from ss_track.corpus.declarations.fields import invalid
@@ -131,6 +132,7 @@ def _busy(audit_id: str) -> CorpusRefusal:
 
 def present_audit(audit_id: str, run_ids: Sequence[str], out: Path, data_root: Path) -> BlindResult:
     """Write the blinded packet and seal the private mapping for one audit id."""
+    require_current_data_root(data_root)
     _identifier(audit_id, "audit id")
     for run_id in run_ids:
         _identifier(run_id, "run id")
@@ -167,6 +169,7 @@ def _run_ids(record: Mapping[str, JsonValue]) -> list[str]:
 
 def unblind_audit(audit_id: str, review_path: Path, out: Path, data_root: Path) -> BlindResult:
     """Map a blinded review onto one corpus review per run the private mapping names."""
+    require_current_data_root(data_root)
     _identifier(audit_id, "audit id")
     _apart(out, data_root, audit_id)
     review = read_audit_review(review_path)

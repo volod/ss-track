@@ -103,5 +103,20 @@ Copy the [template](template.md) using the
 | 0096 | `generated-case-labels` | [0096-annotation-selection-generated-case-labels](0096-annotation-selection-generated-case-labels.md) |
 | 0097 | `annotation-sequence-source` | [0097-annotation-selection-annotation-sequence-source](0097-annotation-selection-annotation-sequence-source.md) |
 | 0098 | `annotation-selection-audit` | [0098-annotation-selection-annotation-selection-audit](0098-annotation-selection-annotation-selection-audit.md) |
+| 0099 | `contract-development-baseline` | [0099-data-contracts-contract-development-baseline](0099-data-contracts-contract-development-baseline.md) |
+| 0100 | `event-package-development-edit` | [0100-data-contracts-event-package-development-edit](0100-data-contracts-event-package-development-edit.md) |
+| 0101 | `event-package-batch-recovery` | [0101-data-contracts-event-package-batch-recovery](0101-data-contracts-event-package-batch-recovery.md) |
+| 0102 | `data-contracts-audit` | [0102-data-contracts-data-contracts-audit](0102-data-contracts-data-contracts-audit.md) |
+| 0103 | `resolve-data-contract-record-markdown` | [0103-data-contracts-resolve-data-contract-record-markdown](0103-data-contracts-resolve-data-contract-record-markdown.md) |
+| 0104 | `development-unstamped-evidence` | [0104-data-contracts-development-unstamped-evidence](0104-data-contracts-development-unstamped-evidence.md) |
+| 0105 | `development-portable-handoff-provenance` | [0105-data-contracts-development-portable-handoff-provenance](0105-data-contracts-development-portable-handoff-provenance.md) |
+| 0106 | `development-data-root-regenerate` | [0106-data-contracts-development-data-root-regenerate](0106-data-contracts-development-data-root-regenerate.md) |
+| 0107 | `development-explicit-path-revision-root` | [0107-data-contracts-development-explicit-path-revision-root](0107-data-contracts-development-explicit-path-revision-root.md) |
+| 0108 | `development-unstamped-scan-reuse` | [0108-data-contracts-development-unstamped-scan-reuse](0108-data-contracts-development-unstamped-scan-reuse.md) |
+| 0109 | `data-contracts-audit` | [0109-data-contracts-data-contracts-audit](0109-data-contracts-data-contracts-audit.md) |
+| 0110 | `development-staged-hashes-provenance` | [0110-data-contracts-development-staged-hashes-provenance](0110-data-contracts-development-staged-hashes-provenance.md) |
+| 0111 | `development-stamp-added-contracts` | [0111-data-contracts-development-stamp-added-contracts](0111-data-contracts-development-stamp-added-contracts.md) |
+| 0112 | `development-data-root-regenerate-provenance` | [0112-data-contracts-development-data-root-regenerate-provenance](0112-data-contracts-development-data-root-regenerate-provenance.md) |
+| 0113 | `data-contracts-audit` | [0113-data-contracts-data-contracts-audit](0113-data-contracts-data-contracts-audit.md) |
 
-Next unused sequence: `0099`.
+Next unused sequence: `0114`.

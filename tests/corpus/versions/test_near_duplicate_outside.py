@@ -3,12 +3,21 @@
 from collections.abc import Callable
 from pathlib import Path
 
+import pytest
+
 from ss_track.core.evidence.sealed import read_sealed
 from ss_track.corpus import ImportResult, import_source
 from ss_track.corpus.records.kinds import CORPUS_MANIFEST
 from ss_track.corpus.versions.fingerprint import SIMILARITY_THRESHOLD
 from tests.corpus._media import expected_rgb, flat_rgb, write_clip
-from tests.corpus.conftest import WriteCorpus, WriteRecording, reseal, single_group, stream_of
+from tests.corpus.conftest import (
+    WriteCorpus,
+    WriteRecording,
+    project_older_major,
+    reseal,
+    single_group,
+    stream_of,
+)
 from tests.corpus.versions._lineage_build import build_version
 
 
@@ -134,7 +143,11 @@ def test_an_unlinked_re_encode_in_the_same_group_is_not_reported(
 
 
 def test_a_projected_older_major_in_the_chain_is_still_compared(
-    media: Path, write_recording: WriteRecording, write_grouped_corpus: WriteCorpus, data_root: Path
+    media: Path,
+    write_recording: WriteRecording,
+    write_grouped_corpus: WriteCorpus,
+    data_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     original = _import(media, write_recording, data_root, "original.mkv")
     copy = _encode_copy(media, write_recording, data_root, "copy.mkv")
@@ -144,7 +157,7 @@ def test_a_projected_older_major_in_the_chain_is_still_compared(
         "pilot-v1",
         [single_group("site-a", "development", stream_of(original, stream_id="original"))],
     )
-    reseal(earlier.manifest_path, schema_version=2)
+    reseal(earlier.manifest_path, schema_version=project_older_major(monkeypatch, CORPUS_MANIFEST))
 
     built = build_version(
         write_grouped_corpus,
@@ -165,7 +178,11 @@ def test_a_projected_older_major_in_the_chain_is_still_compared(
 
 
 def test_a_projected_older_major_outside_the_chain_is_still_compared(
-    media: Path, write_recording: WriteRecording, write_grouped_corpus: WriteCorpus, data_root: Path
+    media: Path,
+    write_recording: WriteRecording,
+    write_grouped_corpus: WriteCorpus,
+    data_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     original = _import(media, write_recording, data_root, "original.mkv")
     copy = _encode_copy(media, write_recording, data_root, "copy.mkv")
@@ -175,7 +192,7 @@ def test_a_projected_older_major_outside_the_chain_is_still_compared(
         "pilot-v1",
         [single_group("site-a", "development", stream_of(original, stream_id="original"))],
     )
-    reseal(earlier.manifest_path, schema_version=2)
+    reseal(earlier.manifest_path, schema_version=project_older_major(monkeypatch, CORPUS_MANIFEST))
 
     built = build_version(
         write_grouped_corpus,

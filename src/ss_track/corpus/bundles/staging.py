@@ -8,6 +8,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
+from ss_track.core.evidence.contract_stamp import require_current_data_root
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
 from ss_track.core.scratch import exclusive_lock
 from ss_track.corpus.bundles.bundle_reader import open_corpus_bundle
@@ -58,6 +59,7 @@ def stage_corpus(corpus_id: str, data_root: Path, *, today: date | None = None) 
     could otherwise fill the disk with nothing to remove them. Only the frame set is written beside
     the manifest, and a stage implies a finished build, so a partial file there is ours as well.
     """
+    require_current_data_root(data_root)
     checked_on = evaluation_date(today)
     corpus = load_corpus_manifest(corpus_id, data_root)
     require_sources_hold(corpus, data_root, checked_on)

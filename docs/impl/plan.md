@@ -85,10 +85,25 @@ Every score must be recomputable from immutable evidence.
 - Execution path: Add bundle reader and writer with crash and retry fixtures. The run manifest and
   bundle are `record` contracts, and the manifest lists the contract set in force. The manifest
   field list is the `RunManifest` message of `event/analytics`. This task seals that protobuf-JSON
-  object and does not define a second field list.
+  object and does not define a second field list. In the development stage every contract is
+  `1.0.0`, so the contract set in force names each contract's structure and meaning fingerprints
+  through `shared/types` `$defs/contract-set` and `core/evidence/carried_pins.py`, as the review
+  handoff and staged hashes do. The data-root stamp pins only record and shared contracts,
+  while the sealed manifest takes its shape from `event/analytics` and the bundle's event lines from
+  the event packages, which a development edit changes in place: add the event packages a bundle
+  depends on to the stamp before its first bundle is written (spec section 17.7). A root stamped
+  before treats the new names as added contracts and adopts them at its next sealed write, so no
+  regeneration is needed for them. Widen, in the same change, `STAMPED_FAMILIES` in
+  `schema/registry/contract.py`, which the installed pins, the stamp parser's name rule and the
+  gate's reference rule all read, so decide there whether a record may then reference an event
+  contract; the `contract` pattern of `shared/types` `$defs/contract-set`, which
+  `tests/corpus/records/test_contract_stamp.py` holds to that constant; and the kind-to-contract
+  lookup of `core/evidence/stamp_reads.py`.
 - Acceptance gates: A crash fixture leaves no complete-looking bundle, a retried ID stays
   idempotent, and each manifest records its re-run command. A bundle with no visibility value reads
-  as restricted. Run scratch and any reproducible cache are registered
+  as restricted. An in-place edit of `event/analytics`, re-pinned, refuses a root stamped while it
+  held a bundle, and the manifest's contract set names fingerprints in the development stage. Run
+  scratch and any reproducible cache are registered
   [data clean](current/corpus.md#cleaning-the-data-root) kinds with restore paths and tests; sealed
   bundles never are.
 - Documentation target: [Current implementation](current.md#areas), page `current/runner.md`.
@@ -716,8 +731,11 @@ A large corpus needs evidence that selection can run within the owner's availabl
 - Execution path: Use the approved corpus-size and diversity targets, candidate sampling, human
   review and baseline protocol; measure ingest, storage, CPU or GPU compute and completeness; retain
   run pins. The embedding worker records float32 rows only and refuses mixed precision; a GPU run
-  either measures float32 or adds a float16 or autocast mode as a `record/discovery-run` minor
-  with its own reproducibility check. A tile grid multiplies embedding cost by its tile count, so
+  either measures float32 or adds a float16 or autocast mode to `record/discovery-run`, with its
+  own reproducibility check. Before release that is an in-place edit of its `1.0.0` under spec
+  section 17.7, not a minor: re-pin it, and regenerate the discovery runs `$DATA_DIR` holds under
+  the owner's authorization, or add the Human-Assisted regeneration task, in the same change. A
+  tile grid multiplies embedding cost by its tile count, so
   choose the grid from measured cost and small-target scale. `discover verify` compares recomputed
   scores and the `ssl-diverse` similarity exactly; run it on a second host or architecture, and if a
   near-tie flips there, quantize the similarity under a new method revision. The link review's
@@ -2836,8 +2854,9 @@ Platform telemetry beside a video encounter must obey the same split and rights 
 - Scope boundary: Split, rights and clock rules for one more stream kind. A platform-state sample
   stays context and is never an object detection.
 - Data and artifact paths: `src/ss_track/corpus/`, `src/ss_track/telemetry/`, `tests/corpus/`.
-- Execution path: Extend the corpus declaration by an optional field under a minor contract version,
-  and extend the frame set to name telemetry bundles.
+- Execution path: Extend the corpus declaration by an optional field, and extend the frame set to
+  name telemetry bundles, under the stage spec section 17.7 then states: before release an in-place
+  edit of each `1.0.0` that regenerates the stamped root, after it a minor version.
 - Acceptance gates: A corpus using no telemetry keeps every hash. A telemetry stream inherits its
   encounter's split, and a source crossing splits is `SPLIT_LEAKAGE`. With no declared clock relation,
   alignment with video is `NOT_MEASURABLE`.
@@ -2967,6 +2986,34 @@ A locked test needs a named custodian and access rules that no software can supp
 - Acceptance gates: A hashed policy exists before any locked evaluation. With no custodian, a
   `locked` split stays membership only and no held-out claim is made.
 - Documentation target: [Current implementation](current.md#areas), page `current/corpus.md`.
+
+### Data contracts -- `data-contracts`
+
+#### contract-release-freeze
+
+The first release is the point where records leave this repository, so from then on a format can
+no longer change in place and every earlier record must stay readable.
+
+- Serves: `data-contracts` -- [Development stage and
+  release](../design/spec.md#177-development-stage-and-release)
+- Agent status: HUMAN-GATED
+- Dependencies: every other required task in both lanes; the owner's release decision.
+- User-visible outcome: The registry states `stage: released`. The gate refuses any edit of a frozen
+  file and classifies every new version under section 17.3, a major declares its predecessor's
+  disposition, and the tests read one retained real record of every contract at major 1.
+- Scope boundary: The stage switch, its retained records and the documentation of the released flow.
+  No contract content changes at release: a fix found while preparing it is a development edit made
+  before the switch. The gate refuses a return to `development`.
+- Data and artifact paths: `contracts/registry.yaml`, `src/ss_track/schema/`, `tests/schema/`,
+  `tests/corpus/records/`, `AGENTS.md`, `docs/guide/authoring-contracts.md`, `contracts/README.md`.
+- Execution path: The owner declares the release. Regenerate the data root a final time under the
+  current set, retain one real record of each contract as a test fixture, set the stage, and replace
+  the development-stage rule in `AGENTS.md` and the authoring guide with the versioned evolution
+  flow.
+- Acceptance gates: Under `stage: released`, a fixture in-place edit of a frozen file is refused, a
+  fixture minor classifies as section 17.3 declares, and a switch back to `development` is refused.
+  Every retained record reads as evidence. `make ci` passes.
+- Documentation target: [Contracts](current/contracts.md).
 
 ### Annotation and selection -- `annotation-selection`
 

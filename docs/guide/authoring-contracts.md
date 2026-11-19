@@ -10,8 +10,8 @@ in the change that introduces it. The
 1. Choose the family: `declaration` for operator-written YAML, `record` for sealed JSON, `result`
    for command output, `shared` for value types other contracts reference. An event package is not
    a JSON Schema file. Follow [event packages](#event-packages).
-2. Create `contracts/<family>/<id>/1.0.0.json`, or `<major>.0.0.json` for a format already shipped
-   at that `schema_version`. A record the code writes today must conform with no byte changed.
+2. Create `contracts/<family>/<id>/1.0.0.json`. Before release every contract is at `1.0.0` and
+   stamps `schema_version: 1`. A record the code writes today must conform with no byte changed.
 3. Set `$schema` to JSON Schema 2020-12 and `$id` to
    `urn:ss-track:contract:<family>:<id>:<version>`, and give the root a `title` and `description`.
 4. State the format, as in [the dialect](#the-dialect).
@@ -60,10 +60,49 @@ A YAML date is accepted only where a node states `format: date`, so no contract 
 property `public` in `x-sensitivity` only when a public descriptor may carry it, because loosening
 it later takes a major.
 
+## Change a contract before release
+
+The registry states `stage: development` until the first release ([spec section
+17.7](../design/spec.md#177-development-stage-and-release)). Each contract then has one version,
+`1.0.0`, and a change to it, including the fix of an architecture or planning mistake, is an edit
+in place, never a new version:
+
+```bash
+cp contracts/record/frame-set/1.0.0.json frame-set.json   # edit the copy; keep its $id at 1.0.0
+ss-track contracts diff record/frame-set --file frame-set.json --root contracts
+ss-track contracts freeze record/frame-set --file frame-set.json --root contracts \
+  --summary "Initial contract."
+make ci
+```
+
+`freeze` replaces the file and re-pins its registry entry, and refuses any version but `1.0.0`. Update
+the writer, its fixtures and tests in the same change. Add no version, `retired_majors` entry,
+disposition, view or historic fixture to keep outdated development data or tests readable.
+
+A data root's `contract-set.json` pins structure and meaning for record and shared contracts. A
+command on a root written before either changes refuses with `RECORD_SCHEMA_UNSUPPORTED` and
+`changed_contracts`. A new contract is not a change: the root's next sealed write adds its pins, so
+adding a contract needs no regeneration. A structure-only stamp cannot prove the earlier meaning and
+is also refused. If the stamp is missing, an unstamped root containing record-shaped evidence is
+refused instead of being stamped under the current set. Regenerate it: delete the root's sealed
+datasets and `contract-set.json`, keep operator-written declarations, labels and review decisions,
+and run the commands that built the datasets again. An edit of descriptions or examples also asks
+for regeneration, because the meaning fingerprint cannot distinguish editorial prose from a changed
+interpretation. A change that alters the shape of an operator-written input also edits every
+retained one in the same change and states the edit in its task record.
+`tests/schema/registry/test_retained_inputs.py` holds each input the repository keeps to its
+declaration contract, and lists them, so an input it does not name fails there too.
+
+A record or shared contract may `$ref` only record and shared contracts, the families the stamp
+pins, so that the stamp covers every contract a record's shape depends on; the gate refuses any
+other reference.
+
 ## Freeze with care
 
-A frozen file is never edited, so read it once more before it merges. Everything in it, descriptions
-included, is covered by a pin. Copy the newest file to a candidate, change its `$id` to the proposed
+The rest of this guide applies once the set is released: `contract-release-freeze` moves it to
+`stage: released`, and the gate refuses a return to development. A frozen file is never edited,
+so read it once more before it merges. Everything in it, descriptions included, is covered by a
+pin. Copy the newest file to a candidate, change its `$id` to the proposed
 version, and edit the copy. A candidate can be outside the set, or at its not-yet-registered target
 path. Do not add registry pins by hand.
 
@@ -127,15 +166,19 @@ affected package needs a new version in that change. `buf breaking` with categor
 decides whether the version is major or compatible. A wire-incompatible major needs migration text
 and a disposition of at least `facts`.
 
+In the development stage an event package also stays at `1.0.0`, but `make proto-gen` and `make
+proto-check` still treat its image as frozen, so an in-place edit of an event package is not yet
+possible; the `event-package-development-edit` task in the plan owns that.
+
 G2 records are a new event package. They do not edit the frozen G0 descriptor bytes or the
 `FrameResult` message. The [runner page](../impl/current/runner.md) states the packages that exist.
 
 ## Historic formats
 
-Use `retired_majors` for historic majors with no frozen contract. Each entry states `major`,
-`status`, `reason` and `migration`; majors must be unique, sorted, and cannot also have a frozen
-version. `status` is the disposition: `facts` while a retained record of that major has a route,
-such as an amendment that reads it, and `retired` once none needs one. A historic major is never a
-view. `migration` is the remedy ss-track gives when it refuses a
-record of that major, so write it as what the holder must do. Kept compatibility fixtures are not
-runtime evidence.
+The development stage holds no historic format, and the gate refuses a `retired_majors` entry
+there. Once released, use `retired_majors` for historic majors with no frozen contract. Each entry
+states `major`, `status`, `reason` and `migration`; majors must be unique, sorted, and cannot also
+have a frozen version. `status` is the disposition: `facts` while a retained record of that major
+has a route, such as an amendment that reads it, and `retired` once none needs one. A historic
+major is never a view. `migration` is the remedy ss-track gives when it refuses a record of that
+major, so write it as what the holder must do. Kept compatibility fixtures are not runtime evidence.

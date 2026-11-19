@@ -14,9 +14,9 @@ from pathlib import Path
 from typing import Any
 
 from ss_track.core.canonical import SEAL_FIELD
-from ss_track.core.evidence.read_refusals import schema_details
+from ss_track.core.evidence.contract_stamp import require_current_data_root
 from ss_track.core.evidence.sealed import read_sealed, read_stated
-from ss_track.core.evidence.sealing import seal, seal_violations, write_sealed
+from ss_track.core.evidence.sealing import seal, write_sealed
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.core.scratch import READ_ONLY_FILE_MODE, exclusive_lock, write_atomically
 from ss_track.corpus.declarations.declaration import RecordingDeclaration
@@ -31,18 +31,9 @@ from ss_track.corpus.storage.layout import (
     source_directory,
 )
 from ss_track.corpus.versions.impact import AmendmentImpact, report_amendment_impact
-from ss_track.schema.registry.contract import FACTS, VERSION_FIELD, VIEW
-from ss_track.schema.validation.strict import Violation
+from ss_track.schema.registry.contract import VERSION_FIELD
 
 UNCHANGED = "unchanged"
-UNSUPPLIED_REMEDY = (
-    "no import operation supplies these facts; restore the source record from a trusted copy"
-)
-AMEND_CAPTURE = "--amend-capture"
-AMEND_TERMS = "--amend-terms"
-REDECODE = "--redecode"
-_TERM_POINTERS = ("/rights", "/sensitivity")
-_DECODE_POINTERS = ("/sequence", "/decode_policy")
 _LOCK_NAME = ".amendment.lock"
 
 
@@ -81,7 +72,7 @@ class ReplacementResult:
 
 @dataclass(frozen=True, slots=True)
 class ExistingRecord:
-    """The record a successor replaces: as written, as read, and the disposition of its major.
+    """The record a successor replaces: as written, and as the read path serves it.
 
     A `view` major is read as the current one, in memory, and a successor carries that reading. The
     record kept under its seal is the one written, because only those bytes match that seal.
@@ -90,7 +81,6 @@ class ExistingRecord:
     path: Path
     written: Mapping[str, Any]
     record: Mapping[str, Any]
-    disposition: str | None  # None for the current major
 
 
 @contextmanager
@@ -106,76 +96,19 @@ def replacing_source(data_root: Path, source_sha256: str, refusal: str) -> Itera
     clear = (directory, directory / REPLACED_DIRECTORY)
     with exclusive_lock(import_root(data_root), _LOCK_NAME, clear=clear):
         path = directory / MANIFEST_NAME
-        stated = read_stated(path, SOURCE_MANIFEST)
-        # A view major reads as the current one; a `facts` major is what a successor writes forward.
-        record = read_sealed(path, SOURCE_MANIFEST) if stated.disposition == VIEW else stated.record
-        yield ExistingRecord(path, stated.record, record, stated.disposition)
+        written = read_stated(path, SOURCE_MANIFEST).record
+        yield ExistingRecord(path, written, read_sealed(path, SOURCE_MANIFEST))
 
 
 def successor_of(
-    existing: ExistingRecord, changes: Mapping[str, JsonValue], source_sha256: str
+    existing: ExistingRecord, changes: Mapping[str, JsonValue]
 ) -> dict[str, JsonValue]:
-    """Return the existing record with `changes` at the current major, refusing one still short.
+    """Return the existing record with `changes`, at the current major.
 
-    The current contract states every fact a record of this major holds.
-    `require_migration_operations` has already named each operation an older record needs, so a
-    successor still short here lacks a fact that no operation supplies, and nothing is written.
+    `seal` validates it in full, so a successor the current contract refuses writes nothing.
     """
-    record = existing.record
-    carried = {key: value for key, value in record.items() if key != SEAL_FIELD}
-    successor = carried | {VERSION_FIELD: SOURCE_MANIFEST.major} | dict(changes)
-    found = seal_violations(successor) if existing.disposition == FACTS else []
-    if found:
-        listed: list[JsonValue] = [item.to_record() for item in found]
-        raise CorpusRefusal(
-            RefusalCode.RECORD_SCHEMA_UNSUPPORTED,
-            "this record lacks facts of the current major that no import operation supplies",
-            schema_details(existing.path, SOURCE_MANIFEST, record[VERSION_FIELD])
-            | {"source_sha256": source_sha256, "violations": listed, "remedy": UNSUPPLIED_REMEDY},
-        )
-    return successor
-
-
-def migration_operations(record: Mapping[str, Any]) -> tuple[list[str], list[Violation]]:
-    """Return every operation a record of an older major needs, and what it lacks today.
-
-    Every older major lacks the closed capture judgments, which only `--amend-capture` states.
-    Terms come only from `--amend-terms` and decoded facts only from `--redecode`.
-    """
-    violations = seal_violations(dict(record) | {VERSION_FIELD: SOURCE_MANIFEST.major})
-    needed = [AMEND_CAPTURE]
-    if any(item.pointer.startswith(_TERM_POINTERS) for item in violations):
-        needed.append(AMEND_TERMS)
-    if any(item.pointer.startswith(_DECODE_POINTERS) for item in violations):
-        needed.append(REDECODE)
-    return needed, violations
-
-
-def require_migration_operations(
-    existing: ExistingRecord,
-    source_sha256: str,
-    *,
-    amend_capture: bool,
-    amend_terms: bool,
-    redecode: bool,
-) -> None:
-    """Refuse an older record unless every operation it needs was asked for, before any runs."""
-    if existing.disposition != FACTS:
-        return
-    needed, violations = migration_operations(existing.record)
-    given = {AMEND_CAPTURE: amend_capture, AMEND_TERMS: amend_terms, REDECODE: redecode}
-    missing: list[JsonValue] = [operation for operation in needed if not given[operation]]
-    if missing:
-        raise CorpusRefusal(
-            RefusalCode.RECORD_SCHEMA_UNSUPPORTED,
-            "migration requires additional operations: " + ", ".join(str(op) for op in missing),
-            schema_details(existing.path, SOURCE_MANIFEST, existing.record[VERSION_FIELD])
-            | {
-                "source_sha256": source_sha256,
-                "missing_operations": missing,
-                "violations": [item.to_record() for item in violations],
-            },
-        )
+    carried = {key: value for key, value in existing.record.items() if key != SEAL_FIELD}
+    return carried | {VERSION_FIELD: SOURCE_MANIFEST.major} | dict(changes)
 
 
 def require_unchanged_facts(
@@ -208,6 +141,7 @@ def replace_record(
 
     A successor equal to the existing record writes nothing and reports `unchanged`.
     """
+    require_current_data_root(data_root)
     path = existing.path
     sealed = seal(successor)
     if sealed == existing.record:

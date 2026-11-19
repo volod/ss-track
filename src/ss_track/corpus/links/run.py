@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from ss_track.core.canonical import SEAL_FIELD
+from ss_track.core.evidence.contract_stamp import require_current_data_root
 from ss_track.core.evidence.sealing import seal, write_sealed
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.core.scratch import exclusive_lock, scratch_directory
@@ -165,6 +166,7 @@ def _require_same(data_root: Path, path: Path, record: Mapping[str, JsonValue]) 
 
 def write_links(request: LinkRequest, data_root: Path) -> LinksResult:
     """Write the review a request asks for, holding its run id so no other command computes it."""
+    require_current_data_root(data_root)
     if not is_shared_type("identifier", request.run_id):
         raise invalid(f"run id {request.run_id!r} is not an identifier")
     busy = CorpusRefusal(

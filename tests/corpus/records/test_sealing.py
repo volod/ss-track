@@ -13,11 +13,11 @@ from ss_track.core.evidence.sealing import copy_with_sha256, seal, sha256_file, 
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
 from ss_track.corpus.records.kinds import RecordFormat
 from tests._sealing import self_sealed
-from tests.corpus._historic import RECORDS
+from tests.schema.conftest import KEPT_FRAME_SET
 
 BODY = {"kind": "test-record", "schema_version": 3, "b": [1, None], "a": "value"}
 FORMAT = RecordFormat("test-record", 3)
-FRAME_SET_RECORD = RECORDS / "frame-set-schema-1-fd982a1.json"
+FRAME_SET_RECORD = KEPT_FRAME_SET
 
 
 def _frame_set_body() -> dict[str, Any]:

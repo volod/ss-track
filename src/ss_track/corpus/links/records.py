@@ -10,6 +10,7 @@ from collections.abc import Iterator, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
+from ss_track.core.evidence.contract_stamp import require_current_data_root
 from ss_track.core.evidence.sealed import read_sealed
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.links.review import CLEAR, UNRESOLVED
@@ -52,7 +53,12 @@ def _findings(record: Mapping[str, Any]) -> Iterator[str]:
 
 def read_links(data_root: Path, run_id: str) -> dict[str, JsonValue]:
     """Read one link review, refusing a missing, altered or rule-breaking record."""
-    path = links_path(data_root, run_id)
+    require_current_data_root(data_root)
+    return read_links_file(links_path(data_root, run_id), run_id)
+
+
+def read_links_file(path: Path, run_id: str) -> dict[str, JsonValue]:
+    """Validate a standalone link record; a caller with a data root must check it first."""
     if not is_shared_type("identifier", run_id) or not path.is_file():
         raise CorpusRefusal(
             RefusalCode.RECORD_TAMPERED,

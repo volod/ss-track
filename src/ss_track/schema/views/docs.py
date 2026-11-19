@@ -7,8 +7,9 @@ from pathlib import Path
 from typing import Any
 
 from ss_track.core.refusal import JsonValue
+from ss_track.schema.registry.check import load_checked_contract_set
 from ss_track.schema.registry.contract import EVENT_FAMILY, Contract
-from ss_track.schema.registry.store import ContractSet, load_contract_set
+from ss_track.schema.registry.store import ContractSet
 
 
 def fields(node: Mapping[str, Any], path: str = "") -> Iterator[tuple[str, Mapping[str, Any]]]:
@@ -88,7 +89,7 @@ def _render_contract(
 
 def render_docs(out: Path, root: Path | None = None) -> DocsResult:
     """Write deterministic per-contract dictionaries and a lineage graph."""
-    contracts = load_contract_set(root)
+    contracts = load_checked_contract_set(root)
     out.mkdir(parents=True, exist_ok=True)
     edges: set[tuple[str, str, str]] = set()
     written = []

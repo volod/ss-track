@@ -6,6 +6,11 @@ authoritative when they differ. Sources and tools were checked on 2026-11-02. Th
 not kept, and their results are in
 [record 0012](../impl/records/0012-adhoc-data-contract-and-telemetry-design.md).
 
+The majors and versions named below are the history this analysis started from. Until the first
+release, [section 17.7](spec.md#177-development-stage-and-release) keeps one version, `1.0.0`, of
+each contract, edited in place, and the [contracts page](../impl/current/contracts.md) states the
+installed set.
+
 ## Decision
 
 Yes, ss-track can and should define its interchangeable data as open schemas with evolution support.
@@ -265,6 +270,9 @@ A hosted catalog, access requests, publication and pricing are not part of this.
 stay outside the repository.
 
 ## Evolution workflow
+
+In the development stage, edit `1.0.0` in place, freeze it again to re-pin it and regenerate the
+development data root. Once released:
 
 ```text
 copy the newest frozen file to the next version -> edit it

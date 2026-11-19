@@ -6,15 +6,11 @@ with its registry entry. Comparing with the history is the job of the evolution 
 
 import argparse
 import logging
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from pathlib import Path
-from typing import Any
-
-from referencing.exceptions import Unresolvable
 
 from ss_track.core.canonical import SEAL_FIELD, sha256_bytes
 from ss_track.core.refusal import CorpusRefusal
-from ss_track.schema.compatibility.evolution import pointer_parts
 from ss_track.schema.registry.contract import (
     DECLARATION_FAMILY,
     EVENT_FAMILY,
@@ -26,11 +22,14 @@ from ss_track.schema.registry.contract import (
     version_key,
 )
 from ss_track.schema.registry.dialect import dialect_findings
-from ss_track.schema.registry.fingerprints import meaning_fingerprint, structure_fingerprint, walk
+from ss_track.schema.registry.fingerprints import meaning_fingerprint, structure_fingerprint
+from ss_track.schema.registry.references import reference_findings
+from ss_track.schema.registry.stage import stage_findings
 from ss_track.schema.registry.store import (
     DIALECT_NAME,
     META_DIRECTORY,
     ContractSet,
+    damaged,
     default_root,
     load_contract_set,
     read_schema,
@@ -155,66 +154,14 @@ def _version_findings(
     return findings + _fingerprint_findings(frozen, schema)
 
 
-def _document_contracts(contracts: ContractSet) -> list[Contract]:
-    """Return the JSON Schema contracts. Event packages are descriptor sets."""
-    return [contract for contract in contracts.contracts if contract.family != EVENT_FAMILY]
+type _VersionCheck = Callable[[ContractSet, Contract, FrozenVersion, set[str]], list[str]]
 
 
-def _reference_findings(contracts: ContractSet) -> list[str]:
-    """Resolve every `$ref` of intact files, because a validator meets a bad one only when used."""
-    registry = contracts.schema_registry()
-    findings = []
-    for contract in _document_contracts(contracts):
-        for frozen in contract.versions:
-            urn = contract.urn(frozen)
-            resolver = registry.resolver(urn)
-            nodes = walk(contracts.frozen_schema(contract, frozen))
-            for reference in (node["$ref"] for node in nodes if "$ref" in node):
-                try:
-                    resolver.lookup(reference)
-                except Unresolvable:
-                    findings.append(f"{urn}: $ref {reference} resolves to nothing")
-    return findings + _annotation_findings(contracts)
-
-
-def _annotation_resolves(contracts: ContractSet, reference: str) -> bool:
-    try:
-        name, pointer = reference.split("#", 1)
-        contract = contracts.named(name)
-        newest = contract.newest()
-        if newest is None:
-            return False
-        target: Any = contracts.frozen_schema(contract, newest)
-        for key in pointer_parts(pointer):
-            target = target[int(key)] if isinstance(target, list) else target[key]
-        return True
-    except (CorpusRefusal, ValueError, IndexError, KeyError, TypeError):
-        return False
-
-
-def _annotation_findings(contracts: ContractSet) -> list[str]:
-    findings = []
-    for contract in _document_contracts(contracts):
-        for frozen in contract.versions:
-            for node in walk(contracts.frozen_schema(contract, frozen)):
-                reference = node.get("x-references")
-                if reference is None:
-                    continue
-                if not _annotation_resolves(contracts, reference):
-                    findings.append(
-                        f"{contract.urn(frozen)}: x-references {reference} resolves to nothing"
-                    )
-    return findings
-
-
-def check_contract_set(root: Path) -> list[str]:
-    """Return every finding over one contract set."""
-    try:
-        contracts = load_contract_set(root)
-        dialect = read_schema(root / META_DIRECTORY / DIALECT_NAME)
-    except CorpusRefusal as refusal:
-        return [refusal.message]
-    findings = _registry_findings(contracts) + _stray_findings(contracts)
+def _set_findings(contracts: ContractSet, check_version: _VersionCheck) -> list[str]:
+    """Check the registry's order, stray files and stage, then each version by `check_version`."""
+    findings = (
+        _registry_findings(contracts) + _stray_findings(contracts) + stage_findings(contracts)
+    )
     known_urns = {
         contract.urn(frozen)
         for contract in contracts.contracts
@@ -224,9 +171,56 @@ def check_contract_set(root: Path) -> list[str]:
     for contract in contracts.contracts:
         for frozen in contract.versions:
             label = f"{contract.name} {frozen.version}"
-            found = _version_findings(contracts, contract, frozen, dialect, known_urns)
-            findings += [f"{label}: {finding}" for finding in found]
-    return findings or _reference_findings(contracts)
+            found = check_version(contracts, contract, frozen, known_urns)
+            findings += [f"{label}: {item}" for item in found]
+    return findings
+
+
+def runtime_findings(contracts: ContractSet) -> list[str]:
+    """Check installed pins and stage without the build gate's expensive dialect audit."""
+    return _set_findings(contracts, _runtime_version_findings)
+
+
+def _runtime_version_findings(
+    contracts: ContractSet, contract: Contract, frozen: FrozenVersion, known_urns: set[str]
+) -> list[str]:
+    try:
+        if contract.family == EVENT_FAMILY:
+            return _version_findings(contracts, contract, frozen, {}, known_urns)
+        schema = contracts.frozen_schema(contract, frozen)
+        return _identity_findings(contract, frozen, schema) + _fingerprint_findings(frozen, schema)
+    except CorpusRefusal as error:
+        return [error.message]
+
+
+def require_runtime_pins(contracts: ContractSet) -> None:
+    """Refuse an installed set with stale files, fingerprints or stage rules."""
+    findings = runtime_findings(contracts)
+    if findings:
+        raise damaged("installed contract set is invalid: " + "; ".join(findings))
+
+
+def load_checked_contract_set(root: Path | None = None) -> ContractSet:
+    """Load a contract set for runtime consumers after verifying its pins."""
+    contracts = load_contract_set(root)
+    require_runtime_pins(contracts)
+    return contracts
+
+
+def check_contract_set(root: Path) -> list[str]:
+    """Return every finding over one contract set."""
+    try:
+        contracts = load_contract_set(root)
+        dialect = read_schema(root / META_DIRECTORY / DIALECT_NAME)
+    except CorpusRefusal as refusal:
+        return [refusal.message]
+    findings = _set_findings(
+        contracts,
+        lambda contracts, contract, frozen, known_urns: _version_findings(
+            contracts, contract, frozen, dialect, known_urns
+        ),
+    )
+    return findings or reference_findings(contracts)
 
 
 def main(argv: Sequence[str] | None = None) -> int:

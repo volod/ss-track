@@ -202,7 +202,7 @@ def test_a_predecessor_with_no_projection_is_named(
     first = build_version(
         write_grouped_corpus, data_root, "pilot-v1", [single_group("site-a", "development", stream)]
     )
-    reseal(first.manifest_path, schema_version=1)
+    reseal(first.manifest_path, schema_version=0)
 
     built = build_version(
         write_grouped_corpus,

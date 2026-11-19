@@ -6,14 +6,22 @@ from pathlib import Path
 import pytest
 
 from ss_track.corpus import ImportResult
+from ss_track.corpus.records.kinds import CORPUS_MANIFEST
 from ss_track.corpus.records.projections import OTHER_SCHEMA
 from ss_track.corpus.versions.scan import UNREADABLE
-from tests.corpus.conftest import WriteCorpus, reseal, single_group, stream_of
+from tests.corpus.conftest import (
+    OLDER_MAJOR,
+    WriteCorpus,
+    project_older_major,
+    reseal,
+    single_group,
+    stream_of,
+)
 from tests.corpus.versions._lineage_build import build_version
 from tests.corpus.versions._unlinked import place, plant
 
 
-@pytest.mark.parametrize("major", [1, 4, 1.0], ids=["older", "newer", "unstated"])
+@pytest.mark.parametrize("major", [OLDER_MAJOR, 4, 1.0], ids=["older", "newer", "unstated"])
 def test_an_unprojected_predecessor_stays_on_lineage_and_is_not_listed(
     first: ImportResult, write_grouped_corpus: WriteCorpus, data_root: Path, major: object
 ) -> None:
@@ -39,7 +47,7 @@ def test_an_unprojected_predecessor_stays_on_lineage_and_is_not_listed(
     assert built.unlinked.to_record() == {}
 
 
-@pytest.mark.parametrize("major", [1, 4], ids=["older", "newer"])
+@pytest.mark.parametrize("major", [OLDER_MAJOR, 4], ids=["older", "newer"])
 def test_a_major_with_no_projection_is_named_and_not_compared(
     first: ImportResult, write_grouped_corpus: WriteCorpus, data_root: Path, major: int
 ) -> None:
@@ -60,13 +68,16 @@ def test_a_major_with_no_projection_is_named_and_not_compared(
 
 
 def test_a_projected_older_major_is_compared(
-    first: ImportResult, write_grouped_corpus: WriteCorpus, data_root: Path
+    first: ImportResult,
+    write_grouped_corpus: WriteCorpus,
+    data_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     stream = stream_of(first)
     earlier = build_version(
         write_grouped_corpus, data_root, "pilot-v1", [single_group("site-a", "development", stream)]
     )
-    reseal(earlier.manifest_path, schema_version=2)
+    reseal(earlier.manifest_path, schema_version=project_older_major(monkeypatch, CORPUS_MANIFEST))
 
     built = build_version(
         write_grouped_corpus, data_root, "pilot-v2", [single_group("held-out", "locked", stream)]

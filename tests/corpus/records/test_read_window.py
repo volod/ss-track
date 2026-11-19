@@ -23,7 +23,6 @@ from ss_track.corpus import (
 )
 from ss_track.corpus.records.kinds import CORPUS_MANIFEST, RecordFormat
 from ss_track.corpus.versions.manifests import load_corpus_manifest
-from tests.corpus._historic import kept_record
 from tests.corpus.conftest import (
     WriteCorpus,
     encounter_of,
@@ -164,24 +163,6 @@ def test_a_move_from_a_facts_major_is_split_leakage_and_not_a_schema_refusal(
     ]
 
 
-def test_a_real_corpus_without_source_terms_is_facts_and_still_guards_its_groups(
-    imported: ImportResult, write_grouped_corpus: WriteCorpus, data_root: Path
-) -> None:
-    path = data_root / "corpus" / _V1 / "manifest.json"
-    path.parent.mkdir(parents=True)
-    path.write_bytes(kept_record("corpus-schema-3-d6b704d.json"))
-    moved = write_grouped_corpus(_one_group(imported, "locked"), corpus_id=_V2, supersedes=_V1)
-
-    with pytest.raises(CorpusRefusal) as caught:
-        build_corpus(moved, data_root)
-
-    assert caught.value.code is RefusalCode.SPLIT_LEAKAGE
-    assert caught.value.details["moved_groups"] == [
-        {"from": place_of(_V1, "site-a", "development"), "to": place_of(_V2, "site-a", "locked")}
-    ]
-    assert read_stated(path, CORPUS_MANIFEST).disposition == "facts"
-
-
 def test_a_view_that_derives_a_rights_field_is_refused(
     staged: str, data_root: Path, monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest
 ) -> None:
@@ -205,20 +186,3 @@ def test_a_view_that_derives_a_rights_field_is_refused(
     assert view_findings(undeclared) == []
     record = read_stated(data_root / "corpus" / _V1 / "manifest.json", CORPUS_MANIFEST).record
     assert any("rights" in finding for finding in check_view(undeclared, record))
-
-
-def test_a_view_never_serves_a_shape_that_lacks_source_terms(
-    data_root: Path, request: pytest.FixtureRequest
-) -> None:
-    path = data_root / "corpus" / _V1 / "manifest.json"
-    path.parent.mkdir(parents=True)
-    path.write_bytes(kept_record("corpus-schema-3-d6b704d.json"))
-    request.getfixturevalue("view_major")
-
-    with pytest.raises(CorpusRefusal) as caught:
-        load_corpus_manifest(_V1, data_root)
-
-    assert caught.value.code is RefusalCode.RECORD_SCHEMA_UNSUPPORTED
-    assert caught.value.details["shape"] == "corpus-3-without-source-terms"
-    assert caught.value.details["disposition"] == "facts"
-    assert caught.value.details["accepted_schema_versions"] == [CURRENT, NEXT]

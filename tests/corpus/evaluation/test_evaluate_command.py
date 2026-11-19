@@ -12,8 +12,6 @@ from ss_track.corpus.discovery.reader import read_discovery
 from ss_track.corpus.review.queue import ReviewQueue, review_queue
 from ss_track.corpus.review.selection_pass import expected_windows
 from ss_track.corpus.versions.manifests import load_corpus_manifest
-from ss_track.schema.registry.store import load_contract_set
-from ss_track.schema.validation.strict import violations
 from tests.corpus.conftest import (
     WriteCorpus,
     encounter_of,
@@ -229,7 +227,6 @@ def test_evaluate_logs_estimated_and_inconclusive_comparisons(
     assert main(_evaluate(known["diverse"], mixed)) == 0
 
     _require_estimated(estimated, "declared")
-    _require_previous_minor(estimated)
     _require_inconclusive(inconclusive)
     _require_estimated(last_record(caplog), "mixed")
 
@@ -245,15 +242,6 @@ def test_evaluate_logs_estimated_and_inconclusive_comparisons(
         )
     assert main(_evaluate(passed["diverse"], passed["uniform"])) == 0
     _require_selection_pass(last_record(caplog), queues)
-
-
-def _require_previous_minor(record: dict[str, object]) -> None:
-    """A comparison without a selection pass is still a result/command 1.24.0 record."""
-    contracts = load_contract_set()
-    contract = contracts.named("result/command")
-    previous = next(item for item in contract.versions if str(item.version) == "1.24.0")
-    schema = contracts.frozen_schema(contract, previous)
-    assert violations(record, schema, contracts.schema_registry()) == []
 
 
 def _selection_pass(queue: ReviewQueue) -> dict[str, object]:

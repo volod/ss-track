@@ -6,6 +6,7 @@ source each recording imports, whose origin list names every collection the byte
 
 from pathlib import Path
 
+from ss_track.core.evidence.contract_stamp import require_current_data_root
 from ss_track.core.evidence.sealed import read_sealed
 from ss_track.core.evidence.sealing import write_sealed
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
@@ -54,6 +55,7 @@ class PoolResult:
 
 def prepare_pool(path: Path, run_id: str, data_root: Path) -> PoolResult:
     """Prepare a combined pool, or report the one this declaration already published."""
+    require_current_data_root(data_root)
     if not is_shared_type("identifier", run_id):
         raise invalid("run id is not an identifier")
     loaded = load_pool(path, data_root)

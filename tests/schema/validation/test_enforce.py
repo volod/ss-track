@@ -45,6 +45,4 @@ def test_a_shared_type_is_checked_as_every_contract_states_it(
 def test_a_kind_no_contract_states_has_no_migration() -> None:
     assert older_remedy("ss-track.unknown", 1) is None
     assert older_remedy("ss-track.frame-set", 0) is None
-    assert older_remedy("ss-track.source-manifest", 1) == (
-        "Record its terms with ss-track import --amend-terms."
-    )
+    assert older_remedy("ss-track.source-manifest", 0) is None

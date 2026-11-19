@@ -13,6 +13,38 @@
       "type": "string",
       "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
       "description": "An operator-chosen name: lowercase, at most 64 characters, starting with a letter or digit."
+    },
+    "contract-set": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "description": "Structure and meaning fingerprints of every record and shared contract the writing install pins in a development data-root stamp, in ascending contract order; null only when written in the released stage.",
+      "items": {
+        "type": "object",
+        "description": "The pins of one record or shared contract.",
+        "additionalProperties": false,
+        "required": [
+          "contract",
+          "structure",
+          "meaning"
+        ],
+        "properties": {
+          "contract": {
+            "type": "string",
+            "description": "Family and id of the contract, as the registry names it.",
+            "pattern": "^(record|shared)/[a-z0-9]+(-[a-z0-9]+)*$"
+          },
+          "structure": {
+            "$ref": "#/$defs/sha256",
+            "description": "Structure fingerprint of the contract's single development version."
+          },
+          "meaning": {
+            "$ref": "#/$defs/sha256",
+            "description": "Meaning fingerprint of the contract's single development version, descriptions included."
+          }
+        }
+      }
     }
   }
 }

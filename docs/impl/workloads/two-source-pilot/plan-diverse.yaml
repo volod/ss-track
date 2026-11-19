@@ -1,4 +1,4 @@
-# Model-assisted run of the two-source pilot (declaration/discovery-plan 1.1.0).
+# Model-assisted run of the two-source pilot (declaration/discovery-plan 1.0.0).
 # Host-specific: device and batch_size. Fixed across hosts and runs: pool, audit, frame_stride,
 # tiles, weights and selection. See README.md.
 schema_version: 1

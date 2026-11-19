@@ -1,4 +1,5 @@
 schema_version: 1
+stage: development
 contracts:
 - family: declaration
   id: annotation-label
@@ -10,30 +11,13 @@ contracts:
     which ids exist and what each role means. This document is not a score.'
   versions:
   - version: 1.0.0
-    file_sha256: 1edf04bcb6e33098969539c40cb3ed0a8f2d042c7b39f7329cb167b202bbab73
-    fingerprints:
-      structure: 74939d704c73fc60311fa8500d2d00b820bf189b39b84aa0501df6634fcd37c0
-      meaning: 5a3a5847fa1464ee31132d15e4eda043055641728d598627fc577a94e632c948
-    change:
-      class: initial
-      summary: Initial contract.
-  - version: 1.0.1
-    file_sha256: 7e01b02d9adef6387c1d3254aca441e3ffd7a039396390f81743826e4e922427
-    fingerprints:
-      structure: 74939d704c73fc60311fa8500d2d00b820bf189b39b84aa0501df6634fcd37c0
-      meaning: b262005fb1e66abe66929abbbc13cd6162c521ffbf817451304f09ed6b392815
-    change:
-      class: patch
-      summary: State that a label source hash is a video file hash or an image-sequence
-        identity.
-  - version: 1.0.2
-    file_sha256: 8f8fc2b72cdf720d7faef4ea7e648b95195b4d2a099ab62c705285ffd2eca337
+    file_sha256: cde0678582caf46362018d33636bf6bb73e51c33417e179b6e760e06935bd901
     fingerprints:
       structure: 74939d704c73fc60311fa8500d2d00b820bf189b39b84aa0501df6634fcd37c0
       meaning: 95a0822d41f5972c19202ccadd9990112825e3bf2296495b00b3d1721bc048a0
     change:
-      class: patch
-      summary: State that a later video stream of a file is named by its stream identity.
+      class: initial
+      summary: Initial contract.
 - family: declaration
   id: annotation-mask
   owner: annotation-selection
@@ -77,30 +61,13 @@ contracts:
     is not a score.
   versions:
   - version: 1.0.0
-    file_sha256: a7a9185f4a921421df2d43fa59285635180dfa94f51fc8894c305d16426fcaca
-    fingerprints:
-      structure: a71d5943041eacedcc0274fb6f9998cfe65f0acbea6c77594b438767667dcc91
-      meaning: 962c5abdd3c2b139975da986b74dea4ce21741d12cd5558f84eb0676aa1adc48
-    change:
-      class: initial
-      summary: Initial contract.
-  - version: 1.0.1
-    file_sha256: b0b6628b65b555894b6e2856dd23e520c171dd232967d6a6372895fd8911efcb
-    fingerprints:
-      structure: a71d5943041eacedcc0274fb6f9998cfe65f0acbea6c77594b438767667dcc91
-      meaning: 5bd7d945221debec9b38ae7d66b0b66f86bb85c582b10fc196e2713cbb8dab56
-    change:
-      class: patch
-      summary: State that a seed source hash is a video file hash or an image-sequence
-        identity.
-  - version: 1.0.2
-    file_sha256: 70cd0d92a1f0c0bfa9fadedffb236d3ee5e0e704eccf2f8c68d15af0c5f19b5d
+    file_sha256: 83121fbf2dd7153645ddf70caf2116e6ebbdab98aa167c146035cd97c4e73c34
     fingerprints:
       structure: a71d5943041eacedcc0274fb6f9998cfe65f0acbea6c77594b438767667dcc91
       meaning: 765a67417f6d5e51a8fb4953bd6c16194d4bd0ef515eb681213832b6219f3891
     change:
-      class: patch
-      summary: State that a later video stream of a file is named by its stream identity.
+      class: initial
+      summary: Initial contract.
 - family: declaration
   id: annotation-settlement
   owner: annotation-selection
@@ -139,54 +106,14 @@ contracts:
   status: active
   description: The shipped corpus format.
   versions:
-  - version: 3.0.0
-    file_sha256: 76750d2e26ec256791d9dd3e8089dfb7c8ac44ebd4825e16b77a491278050b15
+  - version: 1.0.0
+    file_sha256: d352c464d990b1fadfdf814502746e3628fc93b99b5e05d1005a1e2376164033
     fingerprints:
-      structure: f24444e04c244f90ecfad71ab08fc1af37b5eacf2d00e79a7448e876e9e274f2
-      meaning: fda44c200776838caada5c76d6435785d8863453adf1b50a55b12e7a39faf935
+      structure: 8cf569aa87129586312ce0dece64bdc2840d417883c9f86b0965ba923bb79816
+      meaning: 6e18f8da49113dffc2d5386f27dbdbf1e1d29103dc9df10a14f7f563ba7ee9ad
     change:
       class: initial
-      summary: The shipped format at major 3, with no record bytes changed.
-  - version: 3.1.0
-    file_sha256: a92f023b83e1e5c00ec26823d65ae46e72398500ea656843e83e5d2255867646
-    fingerprints:
-      structure: 1d3d8399d65bc78d75a7f5843ce0d96fed6a95a17f981fe22d79244ee2f3b263
-      meaning: 07f8caa75e2211c298cceb0967a136773d5b428c5f8e1adda0530cc3cccb5be6
-    change:
-      class: minor
-      summary: Add compression and variable timing generated-case recipes.
-  - version: 3.2.0
-    file_sha256: bbec031c5090a9a2ff73c07b4712beeaf29d1dacf2f2581dd6139d4d8a33658a
-    fingerprints:
-      structure: 49b45ca9493b1135ea60be311b798493f9f66a594e0cfa37f42d5336000da5ff
-      meaning: 28925e2afc9b7a73d33049a2de8a357ba73d26f133cdfd2c22045bf8ea8fd898
-    change:
-      class: minor
-      summary: Add track-following generated-case recipes.
-  - version: 3.3.0
-    file_sha256: 3b5d104fa06b86fff903c9a478d82ee25231a672c687fef17007f83437ba463f
-    fingerprints:
-      structure: edd747bc9f5e4006f59acfe6e18a9122c2bb89e7f43ecacd2f25b993f9d0fc62
-      meaning: 81ac96b88e7e8e0f7dabfc4765b52004493ef002de0865cddb0b7bd5e7d18217
-    change:
-      class: minor
-      summary: Add scale reduction case recipes.
-  retired_majors:
-  - major: 1
-    status: retired
-    reason: No retained runtime evidence needs this major; historic files in tests
-      are compatibility fixtures, not usable corpus evidence. No contract is frozen
-      for this major.
-    migration: 'Rewrite it at schema_version 3: each sequence becomes a stream of
-      an encounter inside a group with a split, and scenario_rights states what the
-      corpus asks of its sources.'
-  - major: 2
-    status: retired
-    reason: No retained runtime evidence needs this major; historic files in tests
-      are compatibility fixtures, not usable corpus evidence. No contract is frozen
-      for this major.
-    migration: Set schema_version 3 and state scenario_rights; groups, encounters
-      and streams keep their form.
+      summary: Initial contract.
 - family: declaration
   id: corpus-pool
   owner: self-supervised-corpus
@@ -194,22 +121,13 @@ contracts:
   description: An operator selection of acquired videos for one combined corpus.
   versions:
   - version: 1.0.0
-    file_sha256: fa5a23e69ca11a086758ac704d68e16f052b69e22e3e95ddffa2a3e4e2c17b69
-    fingerprints:
-      structure: 63288759e4b581acb45352f436a7ebf1c2accc1bff77e2163a98b87ef5009128
-      meaning: ebffba73f3662144d874648294784231aff62de7bab5783cc5f4a0640319627f
-    change:
-      class: initial
-      summary: Initial contract.
-  - version: 1.1.0
-    file_sha256: be7316792082b147207ec527e9f0b5f6785b844d6f0c0b833e8768a719a33356
+    file_sha256: a81bfdbffaa695d6ec185843e6ed427a33276c175c1b7317fed6f9fb028a0482
     fingerprints:
       structure: f47161496822a3fe2c8b664348832d3139c09e84cb9fbe69813ee692e4b7b1f5
       meaning: 3e8bf4e37de97f979dcdca9c4ed5e3dcbc50d72c99f8e449ba4c09a70bbb475e
     change:
-      class: minor
-      summary: Add optional per-collection metadata_names rules that map CSV row names
-        to video paths.
+      class: initial
+      summary: Initial contract.
 - family: declaration
   id: corpus-review
   owner: self-supervised-corpus
@@ -222,31 +140,13 @@ contracts:
     from the annotation contract.'
   versions:
   - version: 1.0.0
-    file_sha256: f81d2ab3c2e377bb5132fcb8eb3c1ade1604f3317e69ff9d87fb44a566bf8430
-    fingerprints:
-      structure: 81a365d68ecfe2a0a5fc6b103fa65c86013245ce435301d529b8fa226894eeaa
-      meaning: ce95ec67db00b531f63c0e9769db1e5682a663c82a26427749dca28c2e63058f
-    change:
-      class: initial
-      summary: Initial contract.
-  - version: 1.1.0
-    file_sha256: 6e09c511a7e0b20e241bac457ac3d40ca4b33cecc735d7694e909388d2e02010
-    fingerprints:
-      structure: fa7faeb5b8eae887851db121d6b4655bbf2634546601082dbca446a2255e75d3
-      meaning: 66aab3e25b611ff0ff4c67672227112583cba90000c9b4f991911a771e31bc40
-    change:
-      class: minor
-      summary: Record declared independence, blinding, review effort and the blinded
-        audit id.
-  - version: 1.2.0
-    file_sha256: 24ed9f4fe65069545e03400bff4b9497deec2be97e701c01e09cc83265e66f75
+    file_sha256: 577a245f8bff969781a7efd142da11251cf00ae4bdc6d3f585a60c34f16978e0
     fingerprints:
       structure: 6867a2e724f0ea875b6fe75c1abcd0fce4c28d52c8f4dba9c250a27b4ff57be4
       meaning: 4807fee8ee046b0f4334127eb856c17cd38039ea1aff3472db0129ee9bc54655
     change:
-      class: minor
-      summary: 'Record an optional selection pass: every selected window of the run
-        reviewed again, with its observations.'
+      class: initial
+      summary: Initial contract.
 - family: declaration
   id: dataset
   owner: data-contracts
@@ -254,22 +154,13 @@ contracts:
   description: Operator declaration of dataset discovery metadata.
   versions:
   - version: 1.0.0
-    file_sha256: 54f4048f8af2c9039577fa20a013d809b31b54d19012428f622b63367eb1d4af
-    fingerprints:
-      structure: f25a9e8d6eea74b60aa245c2831f5754da4c1e54f4a516b82c0039025767b161
-      meaning: 17399633e88c6599dd083a288203b416ea5ced3352cfbf9690dc2769958b6740
-    change:
-      class: initial
-      summary: Initial operator dataset declaration.
-  - version: 1.1.0
-    file_sha256: d85209e38dab244219b6032642f8d8493d61fff53a7821c6d3c890226c1270ae
+    file_sha256: 7dfe1442f0a2d2837994040c238f2464549f94fd3e86be305f6456bea1139aeb
     fingerprints:
       structure: f25a9e8d6eea74b60aa245c2831f5754da4c1e54f4a516b82c0039025767b161
       meaning: f3fc616839afaebb2d345cb34cb49f3ab85a1d0c5c9acd869d191bf7641840a4
     change:
-      class: minor
-      summary: State the not-blank rule of each free-text field under x-rules. Accepted
-        values do not change.
+      class: initial
+      summary: Initial contract.
 - family: declaration
   id: discovery-plan
   owner: self-supervised-corpus
@@ -279,21 +170,13 @@ contracts:
     worker and any ss-video hint files. It grants no right and verifies no label.'
   versions:
   - version: 1.0.0
-    file_sha256: 9a940ba81a2167b1dcba247e53c05cc0e24fde28cf6ca98dabd7178875027ef5
-    fingerprints:
-      structure: e5ea0cadb95518dffd23225efc3bd6d34c115a2275e46ccf8e6f03baac42133e
-      meaning: 7586eae789a1b86782db68aebbd5a96a4b00ed6e2b71c61e25a42ab06cac496d
-    change:
-      class: initial
-      summary: Initial contract.
-  - version: 1.1.0
-    file_sha256: 9aae8ee2151c6723d6671a82cdc36d59d1102cb9b18e1965c20c853e42517e90
+    file_sha256: db90befccc90d274f7c975dabb5287145ffe48a95a9c21c46819530f29b75f66
     fingerprints:
       structure: 7b972b52b2be03c748fe57f07b677a9047e913fa2fc7da3130baf5ece8df23a1
       meaning: cf75a5ea1ff9603768ba5ab3ac8bebc042781f548d59c30fe93bdff3e6c7b4ec
     change:
-      class: minor
-      summary: Add a selection method and tiled extractors.
+      class: initial
+      summary: Initial contract.
 - family: declaration
   id: link-decisions
   owner: self-supervised-corpus
@@ -305,96 +188,27 @@ contracts:
     makes one.'
   versions:
   - version: 1.0.0
-    file_sha256: 4332935825c5bdf9c89bd6959b179e36b58ceec91a468d5fd8fa2fd8478e53a0
-    fingerprints:
-      structure: 78329631fa8258e735969f42ac83481672fd15d34228c3dcd6977e3b3a2ac800
-      meaning: f2b388149e9dcd9761e606070a6de79861566d2a38825667fd3c563fc56b4b9c
-    change:
-      class: initial
-      summary: Initial contract.
-  - version: 1.1.0
-    file_sha256: a68fac783eea155d586fb64be6dd3f59f8b9dafbe2fa9c694bb6c75d2eaa45c9
+    file_sha256: 76ec2de26138e3487c3f570715c0c90407c712ffd7afa184dbe78bd451801b6b
     fingerprints:
       structure: f21aa06754045f801db06b5aff3cf6acd81656bedc456158b9d0d83db675f0c7
       meaning: a7118cdd7bba6eb98147115962bce5fcc226de6ab43d1ea67bd5d0296ca1310e
     change:
-      class: minor
-      summary: Allow empty checkpoints without asserting any relationship.
+      class: initial
+      summary: Initial contract.
 - family: declaration
   id: recording
   owner: corpus-provenance
   status: active
   description: Operator recording declaration.
   versions:
-  - version: 2.0.0
-    file_sha256: 0f5943421082c419ec9433d0ec06ff88d1d2f8a28fb35beb5db13500066cf281
+  - version: 1.0.0
+    file_sha256: 97f5bd92a154f2d03f09d57c772df6ec01e5262d78b83c2c7d31b17b3b202f62
     fingerprints:
-      structure: bca41728867b6cef0a49888785287a0be9e3ceea3327430292ba1175261f776d
-      meaning: 1fc73d91030f025920c7fd16c20f1b935821f66da850fdac8745d17081133e69
+      structure: 28887050e505693d0b3961ebb3e0f504cc492a60dc6c474f0374a7bdd425a670
+      meaning: 660d8a35369d22cf05b33f990bb87caf5b698d6b8571e7cb16baed43e9d00f7c
     change:
       class: initial
-      summary: The shipped format at major 2, including descriptive capture scalars,
-        with no record bytes changed.
-  - version: 2.1.0
-    file_sha256: 42777cc4ca6d957600fef6808b1df9387a87b836eb3e6eda96062221aeabcb32
-    fingerprints:
-      structure: bca41728867b6cef0a49888785287a0be9e3ceea3327430292ba1175261f776d
-      meaning: ec6f4686adf5964ff6a3a30e108a3f3ed1ffd4adfdd5e064aadd6a282439f8a6
-    change:
-      class: minor
-      summary: State the not-blank rule of each free-text field under x-rules. Accepted
-        values do not change.
-  - version: 2.2.0
-    file_sha256: 231fc34f1bc35d93f3ca5b87143c63aa2c8c5fa887391c19daacf0af71de5e22
-    fingerprints:
-      structure: 98da681ca6d0256528d78f913612162d80bf0b28540b6477f39c7e0cb049c9c8
-      meaning: 0a518a8193cedb3a92d35058dcc4421c0231d076efa37b0694c85f5aa9c1ce25
-    change:
-      class: minor
-      summary: Add optional source.video_stream_index for the video stream a recording
-        names.
-  - version: 2.3.0
-    file_sha256: e315db56cbcaa43f23f2909befbea4d62bf3abc0957b82576c0565e759a5a3b3
-    fingerprints:
-      structure: 5ee6a995be8861689219cbec710901b1b1b3975d3b6200c4c36b016b17321ccd
-      meaning: 6c2a23e4d70854ce46715fee1a64772672bcb22b99301d5d571a82ddfbf3d077
-    change:
-      class: minor
-      summary: Add optional color.matrix for a source that stores no color matrix.
-  - version: 2.4.0
-    file_sha256: 83dd40c33b652cf21b2d5e6f2dcc7c22907af5de78bbe532cced277e939d875f
-    fingerprints:
-      structure: e51c8ecfab392e0130efd40c942978b78dc2c01d98ccc7c05b9c6d3324edab59
-      meaning: a28f33267dd5ba97c05cd6e0614f9e51b4cd3ae3923ad720f3a1878862cde71a
-    change:
-      class: minor
-      summary: Record optional upstream collection membership on a recording.
-  - version: 3.0.0
-    file_sha256: 5e325c399111264171d0aad96be01a3dbafbe264d6bbc8b45c4d0d53998c8145
-    fingerprints:
-      structure: 09164a5cca8f16034ba8271728ba5957fae385a4a967b12568c96bb1b81ab460
-      meaning: 2f9e64701e39c3628346edaf818a348a48082bd3fe49652e393dd3db2560d3cc
-    change:
-      class: major
-      summary: Close capture judgments.
-      migration: Restate capture judgments explicitly in a major 3 declaration.
-      disposition: facts
-  - version: 3.1.0
-    file_sha256: 6d44b560dfd10f2711de9e0fd96daad4d49813a8ff5d6b3c18de52a265ade152
-    fingerprints:
-      structure: 261480ca2ea38a686cda2827710b19665faafb225c42e26192b7979ffe37433c
-      meaning: e80efdb8caa88fc48c0369fb3d1a056ac2d8178a41acf5335eb83d9261d4c28f
-    change:
-      class: minor
-      summary: Add explicit lossless PNG sequence sources and pinned inventory.
-  retired_majors:
-  - major: 1
-    status: retired
-    reason: No retained runtime evidence needs this major; historic files in tests
-      are compatibility fixtures, not usable corpus evidence. No contract is frozen
-      for this major.
-    migration: Set schema_version 2 and state rights.retain_until and rights.derived_frames,
-      which only an operator can state.
+      summary: Initial contract.
 - family: declaration
   id: scenario-pack
   owner: annotation-selection
@@ -427,7 +241,7 @@ contracts:
       meaning: ba89e1cc10969989540fdb42c12b2b2da34a6de0170f7005d178f0d470e1ecd0
     change:
       class: initial
-      summary: Initial source inventory declaration.
+      summary: Initial contract.
 - family: declaration
   id: video-hints
   owner: self-supervised-corpus
@@ -530,30 +344,13 @@ contracts:
     score.
   versions:
   - version: 1.0.0
-    file_sha256: fc9f22c5c6763f39f3aaf74e3299c44d145730fa3cb716fb17583b4d4f9ad95f
-    fingerprints:
-      structure: a010cf41602b0b3acba9874b02d9364ac8becacc3ee301f7fbaa668b620f4ee9
-      meaning: 7e4e8578c46f3a93975a671bedb5db2b0a5d9ec2bae24c290a0f63881a76a514
-    change:
-      class: initial
-      summary: Initial contract.
-  - version: 1.0.1
-    file_sha256: 2b4ca1e2008eab1de52b98b11e915ee5c7b5f3d63afea6616df87c328dfbec3d
-    fingerprints:
-      structure: a010cf41602b0b3acba9874b02d9364ac8becacc3ee301f7fbaa668b620f4ee9
-      meaning: 4395a5ef5604d61592437614a0b8ad0b1920e3d442eeeb3e26191a9738deb11c
-    change:
-      class: patch
-      summary: State that a revision source hash is a video file hash or an image-sequence
-        identity.
-  - version: 1.0.2
-    file_sha256: 79353835fabc2a6448302f8f3f770f0cef592122f82e88301c5d7099aebf071f
+    file_sha256: f83d04f5a4b94b41210885e3c8c444b8ab5c573a55a55f217bbf98ff4775c10e
     fingerprints:
       structure: a010cf41602b0b3acba9874b02d9364ac8becacc3ee301f7fbaa668b620f4ee9
       meaning: 33e6ed755ddfdd2707e4bbbacd1739f2024f23f342da7ae2e6be392e08020ccf
     change:
-      class: patch
-      summary: State that a later video stream of a file is named by its stream identity.
+      class: initial
+      summary: Initial contract.
 - family: record
   id: audit-blinding
   owner: self-supervised-corpus
@@ -600,30 +397,13 @@ contracts:
     is what a reviewer saw, and labels come only from a frozen annotation revision.'
   versions:
   - version: 1.0.0
-    file_sha256: b702ba90a317d64dbc692be1af0d9ccca91c0c7644d21c333aa63748d8a4d110
-    fingerprints:
-      structure: 7b2c699a6de3e4fde8cb5dbd044f7e6f0a5574ec344a916abe8d45a7bc2e0b43
-      meaning: fed37313db6201fb0fc2b8e80f3abf30398d8394292fbcbae8a55ed39fe14135
-    change:
-      class: initial
-      summary: Initial contract.
-  - version: 1.1.0
-    file_sha256: dfc91fef2975b042a6838b3bbda77b4050dc3c0925c21ead55f64b8f422863e7
-    fingerprints:
-      structure: 9847348f060ee7bf809a4eb069d685d9c3488744b383b5358d30f79ba80a386c
-      meaning: dd353ffd83ac37ca16b437226272f4004ae13604636995c1a43b0974522c1ab5
-    change:
-      class: minor
-      summary: Copy declared independence, blinding, review effort and the blinded
-        audit id.
-  - version: 1.2.0
-    file_sha256: b016dd4d0109b9afe17216331e51c14795fee4a1ff972525fa1314a370e40388
+    file_sha256: de633f383d7991984f5b0cd5394c3a05367638362a96332de7291f92aae766b3
     fingerprints:
       structure: b26cce061cf169fc30888a6348909ed4ffd83e43e2ef66dd318530ab8144f429
       meaning: 02c55371ba192ed71b9cf9534ab0aa82aeaeb04056aeb4c4fd04fb44e6a886ac
     change:
-      class: minor
-      summary: Carry the review's selection pass.
+      class: initial
+      summary: Initial contract.
 - family: record
   id: corpus-links
   owner: self-supervised-corpus
@@ -636,93 +416,27 @@ contracts:
     is not ground truth and no link merges a group.'
   versions:
   - version: 1.0.0
-    file_sha256: 4a4bd34fa62f427d26bd4f4b1610b79c0cf24e1d94dc31305ad390aaaaef84c7
-    fingerprints:
-      structure: 87e8a86fec306fad30b7d674ac1407cb53ebee193b6301ac5d9f840073717fa8
-      meaning: d776a60a5fe07d9978a7a78214142ac42fd7b850f091bfff1b53dcabbc10a84c
-    change:
-      class: initial
-      summary: Initial contract.
-  - version: 1.1.0
-    file_sha256: f1c5dab9d689b3ad9dc100f712db933050f675f81893abcfc6a4489005a8caf3
+    file_sha256: 7f3c062002ee0ebf6d69dda9e632c3743f294aa5473fea49533ea160e8fdb06d
     fingerprints:
       structure: 637395381b38cda0374e9cb42f00456e70399a3d4c32a18b96e0e92a68f88efa
       meaning: d776a60a5fe07d9978a7a78214142ac42fd7b850f091bfff1b53dcabbc10a84c
     change:
-      class: minor
-      summary: Allow an empty review checkpoint with no decisions.
+      class: initial
+      summary: Initial contract.
 - family: record
   id: corpus-manifest
   owner: corpus-provenance
   status: active
   description: The shipped corpus-manifest format.
   versions:
-  - version: 3.0.0
-    file_sha256: 445c85421507903474f0358f52b7c2e360e45dabbf01c4bf1effd34c94cb2306
+  - version: 1.0.0
+    file_sha256: 91d56699caedef2f31ea8917439d67e6737898f53c8ef9face485808dcc72ad4
     fingerprints:
-      structure: 85b964e257f5507d3ceba487103bd77516d3c3c3abecbb324578f03e73454e49
-      meaning: 75377930f3a0c505c693f771750f8cccf49a7518fb2e6730dc7babebf8f73a47
+      structure: d337e2951a93fb5207a6361b10d5a43a3259cd2df43ef4a6d2b2b19756464e07
+      meaning: d63b22b014b6fba64fa5cbe4fe0e7662ec850d378dd15a8615f0c4d173ae2fe1
     change:
       class: initial
-      summary: The shipped format at major 3, with no record bytes changed.
-  - version: 3.1.0
-    file_sha256: 4ec30a85ff8f6fafa52840901093f245cf7733abde0e64300a6de565685dd6d9
-    fingerprints:
-      structure: 85b964e257f5507d3ceba487103bd77516d3c3c3abecbb324578f03e73454e49
-      meaning: 1e772aed7dcf0be78fdfbd72adebc2523af13690a69e66cbdfc41957b2ee9c24
-    change:
-      class: minor
-      summary: State which fields a public descriptor may carry. Existing record bytes
-        stay valid.
-  - version: 3.2.0
-    file_sha256: b4e9e4234d94f1ee7bc89627db11ffd6af3cb74edc13c20149d89210330e8954
-    fingerprints:
-      structure: 12df0939eafcbe31550541cc3b0654c42686cbbec1cafcde07b62951b14c165c
-      meaning: 3999aa2b0240fa0a32389a0217b5a0c609e45642fd85bbd48a5c9078eb553171
-    change:
-      class: minor
-      summary: Record the file hash of a later video stream when its source identity
-        is not that hash.
-  - version: 3.3.0
-    file_sha256: 1e1604c906073fc5c64d442102ff92f8d5dcfe26a3a5d2fe86bf5c3c843a34be
-    fingerprints:
-      structure: 903c4eba653ec368df2cfe5420b02c8c72083c93568b87f4847e15a8d56da06f
-      meaning: 2c2cbfc2721a9804780203b1ff37a9049b381d0662117d46cc5f8a751c122c4f
-    change:
-      class: minor
-      summary: Add compression and variable timing cases and their label transforms.
-  - version: 3.4.0
-    file_sha256: 4b6d36c0a10f9a1aa0eef581858223c02b7021a7972bde28ee30a8a217cac7a3
-    fingerprints:
-      structure: aa1a96a803b6eca8c79f99edd085edb0601a120481fa7a0425b5c93086e14b9a
-      meaning: ecfcc207e5bdf2899f49bb9944143c43fe94c787695d7b111d833d889e9d922e
-    change:
-      class: minor
-      summary: Add track-following recipes and the track_status label transform.
-  - version: 3.5.0
-    file_sha256: bc52eb08959c0bc9033c68fec1215726754283bef2197a03bf764c2f2219f823
-    fingerprints:
-      structure: cfd5fc89be2a9d6624ec54f2745cd4d78c13bdb836b9a78fe63f9f09cd2c6e8f
-      meaning: f0d36992700de3073027eaad63b29d6f3e7cf02658a7cb2818bade07ee100014
-    change:
-      class: minor
-      summary: Add scale reduction cases and label transforms.
-  retired_majors:
-  - major: 1
-    status: retired
-    reason: No retained runtime evidence needs this major; historic files in tests
-      are compatibility fixtures, not usable corpus evidence. No contract is frozen
-      for this major.
-    migration: Build a new corpus version under a new corpus_id that names this one
-      in supersedes. This major states no group or split, so lineage reports it as
-      not_compared and checks nothing against it.
-  - major: 2
-    status: retired
-    reason: No retained runtime evidence needs this major; historic files in tests
-      are compatibility fixtures, not usable corpus evidence. No contract is frozen
-      for this major.
-    migration: Build a new corpus version under a new corpus_id that names this one
-      in supersedes; lineage and shared frames compare it through this major's projection.
+      summary: Initial contract.
 - family: record
   id: corpus-pool
   owner: self-supervised-corpus
@@ -766,30 +480,13 @@ contracts:
     source or assigns a split.'
   versions:
   - version: 1.0.0
-    file_sha256: dc74192599c64d08f4da47988fc231df7b1c57b310ee7d9062d49afd53d1a511
-    fingerprints:
-      structure: 7b95729c423c0c4f2a3105248fe02ab7afd873a37a32900e937ce1cda08a7da8
-      meaning: 1c8e7dc49cf849e64974476c5ab8e2a5c9291b4985e0e150b3377bb81da971a9
-    change:
-      class: initial
-      summary: Initial contract.
-  - version: 1.1.0
-    file_sha256: 00009b0172318f9fc992aea7f8f7d45ff2b8122b765f6f0b5acf9974ff83f54a
-    fingerprints:
-      structure: 374ca9ecb2c1290fd5ec65673eff92be8f97d28d557b19f1b3c42126e03bc618
-      meaning: 9a8c1715d6c441a7015c8345095341307f626397acb9059cd99c4fb008a7e6d5
-    change:
-      class: minor
-      summary: Name the owner's source approval, seal each feature-rows record and
-        count what became of each hint file's matches.
-  - version: 1.2.0
-    file_sha256: 2c2e0e82296e6c7b0a9dc3a14ce10d5cb46b7af0ff00af19556466b477e3ddf3
+    file_sha256: 3d3d74590853444cc0883c708f5dd39ed82deb4f0638ef755fad7ffed08a6208
     fingerprints:
       structure: 5d628f43824cedf21e112c57f0b8cde8fb1135485e6d1027e6cfc295f23c7939
       meaning: f91255f86f95173da116a94ac9ab0b3afb7cfc1a17ed1d8699779cf67cf07ce4
     change:
-      class: minor
-      summary: Add the tiled crop and the tile an extractor read.
+      class: initial
+      summary: Initial contract.
 - family: record
   id: feature-rows
   owner: self-supervised-corpus
@@ -813,68 +510,14 @@ contracts:
   status: active
   description: The shipped frame-bundle format.
   versions:
-  - version: 3.0.0
-    file_sha256: c166d83e87e0c8ef6a440b82f0041841e2f6a6020db288ca0e83f73323d36969
+  - version: 1.0.0
+    file_sha256: 8f2dea8cb99aaabb304483653a3a23c3cb6ec29b35dd1523317c2c92c9786345
     fingerprints:
-      structure: 414384d8b3fcc2e97e18d66692ed30416251f9599d4f35620beebc4f3ecc9c25
-      meaning: 69846b8a56d360d542d43962fbd74a56839ddfa3cf3592bd379f181ed6131c07
+      structure: c2c11ca2dbb3802472920306fdcd3e1ef26ff33d404c7154a1312fb9e5f6d944
+      meaning: 5f581aa39fc2f7ed69698b8381bacdce871756a4f2d4ac8cae09fd35afb1ddf1
     change:
       class: initial
-      summary: The shipped format at major 3, with no record bytes changed.
-  - version: 3.1.0
-    file_sha256: 0c77ae11c95f78f9b73e0d425d78643e8b8a770822261f883e4693ae84b2816a
-    fingerprints:
-      structure: 414384d8b3fcc2e97e18d66692ed30416251f9599d4f35620beebc4f3ecc9c25
-      meaning: a8e644e7e9a1f264042a0a2774195fd3da02c83d21a4454a8a163b5ae97028e2
-    change:
-      class: minor
-      summary: State which fields a public descriptor may carry. Existing record bytes
-        stay valid.
-  - version: 3.2.0
-    file_sha256: a584eff0fc2c3fafc4fd5ce69efcc68ac08c655b688366dbe1806c8780274309
-    fingerprints:
-      structure: 4ecd492321fe6f7153e55199ba2a81a0220d022dbf0d0833d534bf8eee4b53b0
-      meaning: d8418e890d52b17bfe04e2718a737091ac811573d2eb1eeee206a027ce2c61bc
-    change:
-      class: minor
-      summary: Record an operator-declared color matrix when conversion used it.
-  - version: 3.3.0
-    file_sha256: 700fa9210c97f362c02728111b2fda3a8a7b09d24c3f30aafa0508e4806d8fa5
-    fingerprints:
-      structure: 83e0f5fc96e604292dfcc78dff7daf7f3c53ddcd3b0bb98e5c1ff177f4a754a9
-      meaning: e3033dd60f887e953c4064fea68a31f17cedcb4ff6235c5bde09a8064365fc82
-    change:
-      class: minor
-      summary: Add compression and variable timing recipes and their label transforms.
-  - version: 3.4.0
-    file_sha256: 971de9054c8d8c883dce0659103ea5ae689e3a69f0d551f3e46e432436067c0d
-    fingerprints:
-      structure: c4bea7c1d979f6f895080d011845c0b61c1de39bb96beca0e8a572635877b3ea
-      meaning: a9674db5c92ac0f0e50aabd223770221a98da73f0158fa26bb59b5246da410ef
-    change:
-      class: minor
-      summary: Add track-following recipes and the track_status label transform.
-  - version: 3.5.0
-    file_sha256: b708556f4e3f70d87f8628c8eaf04ac4ba664c79c98461f7f6d0a2d027367b14
-    fingerprints:
-      structure: 1963aa34c77ac96797900b30d2bd4d8034fbd3ed54033a5ba4c659800cc30351
-      meaning: 4eddadfcd36984e2d2083130ae617aca023aa8666d222664d4a00d156f5d3268
-    change:
-      class: minor
-      summary: Add scale reduction recipes and label transforms.
-  retired_majors:
-  - major: 1
-    status: retired
-    reason: No retained runtime evidence needs this major; historic files in tests
-      are compatibility fixtures, not usable corpus evidence. No contract is frozen
-      for this major.
-    migration: Build and stage a new corpus version.
-  - major: 2
-    status: retired
-    reason: No retained runtime evidence needs this major; historic files in tests
-      are compatibility fixtures, not usable corpus evidence. No contract is frozen
-      for this major.
-    migration: Build and stage a new corpus version.
+      summary: Initial contract.
 - family: record
   id: frame-set
   owner: corpus-provenance
@@ -882,13 +525,13 @@ contracts:
   description: Which frame bundles a corpus version staged.
   versions:
   - version: 1.0.0
-    file_sha256: 00d41661b538872e124cea435102e60e99101489dce6047967291bc1110e431d
+    file_sha256: 7dea3b7a846cc4b7fabbfd8638aa7dafbdafc05d82c92c8cb21025a804b77517
     fingerprints:
       structure: 02af83afffdf8c6e4204d040b1ef7eae68dee15b0ed25c9f81528dcc2dc2cd01
       meaning: 0047bf8ea5ce2dc77a162c5fdb481ca1d6e547a64cc61d27ff7217f0d221a834
     change:
       class: initial
-      summary: The format as shipped at schema 1.
+      summary: Initial contract.
 - family: record
   id: hash-comparison
   owner: corpus-provenance
@@ -902,7 +545,7 @@ contracts:
       meaning: 7e0ef5b75fdaee84a2a478f6adc617c54c6451385898b64333b8ba10b7aa4d00
     change:
       class: initial
-      summary: The shipped format at major 1, with no record bytes changed.
+      summary: Initial contract.
 - family: record
   id: image-sequence
   owner: corpus-provenance
@@ -916,7 +559,7 @@ contracts:
       meaning: 49ced927a6f4a38c8ac5533dda9b0b1a732371309ab75324d832537c5c9da428
     change:
       class: initial
-      summary: Explicit retained image membership and declared rate.
+      summary: Initial contract.
 - family: record
   id: link-review-handoff
   owner: self-supervised-corpus
@@ -925,10 +568,10 @@ contracts:
     corpus on another host.
   versions:
   - version: 1.0.0
-    file_sha256: a6e88acbb4cd4abc22ba43b1443f2f3164c483e16a9d2f7c4612ae80bf9556af
+    file_sha256: 97a8e2a832224f1b87afdbcd7a655318b00a1ef1b0a2964b43b456a3a234b701
     fingerprints:
-      structure: ceaa0ccb8b5a975df4b430c314db525ad5a7d7c87cff8c54191ff90db841002c
-      meaning: 8ebf87bee0b741360eae04c7bef8e29a98d1295688f47adac9af78004637c755
+      structure: b8fcbf4d49d0b9bc6fcfb1033dd90279bc66505580cbc3958499d52dbb8060bb
+      meaning: 544d38e6613cfc9751185b2239af2bff5103caa42483eff7dd1c751493b9aac9
     change:
       class: initial
       summary: Initial contract.
@@ -939,113 +582,27 @@ contracts:
   description: Verified source acquisition and selection, linked to a source inventory.
   versions:
   - version: 1.0.0
-    file_sha256: 05d96882ff4eb2040059bc26a34f281725d44731a45793f11e95a7b68bc4390c
-    fingerprints:
-      structure: e66853b22e689403ed11b44f687c55d92a76693830b99ace098889fd6afe5214
-      meaning: bb901e327de653773850c2eb2478a91b8b0c814cde2f7579001672aff3212a74
-    change:
-      class: initial
-      summary: Initial source acquisition record.
-  - version: 1.1.0
-    file_sha256: 179e1415553934b144b87127e0f9a3dbb9be87f02610426a0b2b46fb14c13210
-    fingerprints:
-      structure: 37d328bf96126965755a3f0485bcffb1fecea269c8560c3e5512b0281510d92d
-      meaning: 5c52bfd49d980329c188d131902ae60ff1cffcdb64ee31425a906d5257fdaca9
-    change:
-      class: minor
-      summary: Pin the submitted inventory for repeat and conflict checks.
-  - version: 1.2.0
-    file_sha256: f4119ec9c9db80945972193fa9c8b8611b93791aac138e61ae5e7add73540365
-    fingerprints:
-      structure: b3d5c7be44876a795b892e96ad481405a7f1d92e949b349df003accc20f229c8
-      meaning: 75cf483935a3ea8bc44f7e926660451c9a1ea0da0f59d5ae4e152a61cf293d1e
-    change:
-      class: minor
-      summary: Pin inspected upstream split metadata.
-  - version: 1.3.0
-    file_sha256: f0ac82a521b1c7925a22b147abe2eef2c718804aeb9a42e0b0f49fde5ba036b8
+    file_sha256: 0c7f9e65f3eef4596feb1b991d5ed990be51ece807c54c3264a210988290fbcc
     fingerprints:
       structure: 451b9cdeeb318d2a97d6d2995d636575b2adaa5bd5b850655a316b2de21310f9
       meaning: 164a3b409d24343b174aee193bf3bb26c510fd300f4a90ac9771feb0a5ec126b
     change:
-      class: minor
-      summary: Record selected upstream metadata files.
+      class: initial
+      summary: Initial contract.
 - family: record
   id: source-manifest
   owner: corpus-provenance
   status: active
   description: Imported source provenance and decoded facts.
   versions:
-  - version: 2.0.0
-    file_sha256: 5b237260139a54f9c72d6aaba3d5e44f83a16d5e868249eb92c8ae0eb08b9137
+  - version: 1.0.0
+    file_sha256: 351f24d5ad1a7f6cd5f1174fcef7528c77d7f2eae25ac0c8433eecc5505537b5
     fingerprints:
-      structure: 50ce4b08a57346130dd2d14c172d4db8665c177e13247e7e8147d518f1a03402
-      meaning: 43d00b6d1757be667a5becc81969dce1203532c32eaaf426907c6532cffcca7e
+      structure: 385e71616bd839540e78cb3ef162c05997dab20d6ebe275137f7f44e0a262877
+      meaning: c90473d222ac51b5f6299ff5ab9f7ee17ea5ae786d411066ca15ed6c13177ff2
     change:
       class: initial
-      summary: The shipped format at major 2, including descriptive capture scalars,
-        with no record bytes changed.
-  - version: 2.1.0
-    file_sha256: 2e6ccd48123840a2dc7fda3255ec88f6bdde8eee3a3aae24a269495d274e2daf
-    fingerprints:
-      structure: 50ce4b08a57346130dd2d14c172d4db8665c177e13247e7e8147d518f1a03402
-      meaning: 983cd672af739edb2c958a922e73b83ae457366497fcde42ebd848e87aad8789
-    change:
-      class: minor
-      summary: State which fields a public descriptor may carry. Existing record bytes
-        stay valid.
-  - version: 2.2.0
-    file_sha256: a09af63f147339fce56970f56e617272352602f6226f7a4e3c427df4173a5d76
-    fingerprints:
-      structure: 91b5d0b919d2855ed6ad066cab5f33934299933e446bbf9437a575c2b3b23bd8
-      meaning: 4d07e1d4c5441c5581fb6d81c4550bc05f079ae25e944a8db69e5cd03fb38632
-    change:
-      class: minor
-      summary: Add optional sequence.video_stream_index, absent when the decoded stream
-        is the first.
-  - version: 2.3.0
-    file_sha256: e0ee590996701897731b968ffa41ce22370dc145d40d0667110a7251b0757349
-    fingerprints:
-      structure: c5faff2abbc2492bb717ab3ef5ec8efd53b0a425670fc8f585f03d179b6b2bcf
-      meaning: 5628719de993b87572df5f9747500d2b98d4fc8982f5e9a501fcae9fb96416dc
-    change:
-      class: minor
-      summary: Record an operator-declared color matrix when the source stores none.
-  - version: 2.4.0
-    file_sha256: e40728b6ce1c0cc50bedc9b5d36a06b9500facf8dfee876a504c4de5fbc60d6f
-    fingerprints:
-      structure: e3cce8db121207b8772366b9875c46c80acdad9c8a9789083297ff974237ef6e
-      meaning: d76161668b39a2e3218fb0547258e4699b000f551ceac5732360a274629f0779
-    change:
-      class: minor
-      summary: Record optional upstream collection membership on a source.
-  - version: 3.0.0
-    file_sha256: 24c4e04ca282dbb7c24c3051aa2bc752698ed36c1fa32b1c989b0abb0c84eab4
-    fingerprints:
-      structure: d180d69aff1f556f1912b08702cf105fc1ff47fa3d2092d287deddf02282eaa3
-      meaning: 6fb8eeb77a9238db218d5c309c0c9f6489ac54a8ea579f631f91f26dc0707a9f
-    change:
-      class: major
-      summary: Close capture judgments.
-      migration: Inspect the retained record and explicitly amend capture judgments,
-        combining terms and redecode when required.
-      disposition: facts
-  - version: 3.1.0
-    file_sha256: 0b01d65971e99a91bd8c7c204dbf51581fec38b742034e05a93421460acfe663
-    fingerprints:
-      structure: ce558bc33ffcb86ae713c1818fdb461a934a85155be8d67623e6dd4fbb4168c9
-      meaning: 7d535b12725e8a967ebdd75ae50ab91d9023d40a7c4457a3a4fce228c48437c7
-    change:
-      class: minor
-      summary: Add explicit lossless PNG sequence sources and pinned inventory.
-  retired_majors:
-  - major: 1
-    status: facts
-    reason: A retained source record of this major lacks retain_until and derived_frames,
-      which only an operator can state, so it serves no evidence; an amendment reads
-      its stated facts and writes the current major beside it. No contract is frozen
-      for this major.
-    migration: Record its terms with ss-track import --amend-terms.
+      summary: Initial contract.
 - family: record
   id: staged-hashes
   owner: corpus-provenance
@@ -1053,13 +610,13 @@ contracts:
   description: The shipped staged-hashes format.
   versions:
   - version: 1.0.0
-    file_sha256: d83d7253c9b4fafc7af2b97b6dc69747e7a5f6fd002bf88139ff4005a2c07b1a
+    file_sha256: 0fed81fcde58190acc54ccc430dc34113f26b1736ff737818671c3fc8256e8aa
     fingerprints:
-      structure: 2a0c089ff2919279b11f43506d848e724816842e386ccce677024d98e39eacc5
-      meaning: 1225c87facd77772fad9b5ff95199f9249da099739c72d8d85ffd2cdfacde5e0
+      structure: a12e391a6c408bb040e0fb1c6b36963e309061c4ac6db40953e2bce49cf35dbc
+      meaning: 0f4fd8da9ce922ba25e04cba158582672b53f9ed55c2bf51b4f03d8338191c86
     change:
       class: initial
-      summary: The shipped format at major 1, with no record bytes changed.
+      summary: Initial contract.
 - family: result
   id: command
   owner: data-contracts
@@ -1067,294 +624,13 @@ contracts:
   description: The shipped command format.
   versions:
   - version: 1.0.0
-    file_sha256: 3830d3760900c95b19144da514a50da53e9d974f679c6aa44f9457ade45b33be
+    file_sha256: 722e566366ea19e5d508abbbbae3288837a84894c49216e4821a81160a17c3ad
     fingerprints:
-      structure: 6949267e12a0ae3fc906ef4617ddbf9dad10d1a9bc402ed67f01d8128d3b5aac
-      meaning: 4832586c5763e71c167e14eaa225abb6a91549b8ca8049537ee99e48475cd86c
+      structure: 23b948d0c155a90a1157024a5ab0ffac5fc218c92b08ec0e0049ab3cb3ac8eb2
+      meaning: 5279f090212efd25766201bb23b790fa199ecca232d1e771474d519ee46964d2
     change:
       class: initial
-      summary: The shipped format at major 1, with no record bytes changed.
-  - version: 1.1.0
-    file_sha256: 4d14f1e3939f544d4c4cbda55f1149144994138819b05bf91f326816b63d3570
-    fingerprints:
-      structure: 094287509dcbe13cdb582488ca8c99b68381263af22a2e873853632b5dcc462e
-      meaning: 66eaa973f481973ac180a16311f86f1f4450c9b63f7b88abe4f8661a5a4ea1e9
-    change:
-      class: minor
-      summary: Add contract diff and freeze results and predecessor-major dispositions.
-  - version: 1.2.0
-    file_sha256: 6fcdf761d73634af344ed43c553045e7dc7e3e4e6cfa7190206ed332b29fc855
-    fingerprints:
-      structure: e94a7dcaafdb81bd6bc0d3cfc67e28695a6a79201d21bc4efcab673a34a9bb05
-      meaning: 1045463937c65e99895693126c2d9ef7dccde27bd0e02a04883d4b61ea88544f
-    change:
-      class: minor
-      summary: List the migration a holder of a record of each retired major must
-        make.
-  - version: 1.3.0
-    file_sha256: 91c273d9a78cdb49548902f0fbda57e82433b6371abc0be2ca215d1eea85a063
-    fingerprints:
-      structure: 97a9cfe223c95e8c6c4e93da77caeb4b6ccf2feb8f527549905ce918622ae275
-      meaning: e2594fb21e9cb996da7fb6dd546578a46be9f5f76590385cb7f45d6f2a37d5b5
-    change:
-      class: minor
-      summary: List a historic major's facts disposition, and name the predecessors
-        a lineage could not compare.
-  - version: 1.4.0
-    file_sha256: f4ebb09fc5a0f75238da5e4a4c715f252c56375d763503175f98590ae7932a09
-    fingerprints:
-      structure: 6a44cd87ee2b3cce5262693565758b2d9f180c9a3a2dbccf9be13c9c9ffabdcb
-      meaning: 608a97dc2c8d972fa2308d439bf93e5fabff75975354ec72a4e14a11875b8f12
-    change:
-      class: minor
-      summary: List paths written by reference and ODCS export commands.
-  - version: 1.5.0
-    file_sha256: 8809796a65d9e93aaeb1b4352f62039f186e2bb78cc224b4791bcbb63b7d69c4
-    fingerprints:
-      structure: 13f41805ec007023b5028ca5b2496bef5939b80566d24eda49d073b4e1a29f2d
-      meaning: 176eff142c4875c031e4f189387e8ed7992af8cd815619f08bb43a657b75673e
-    change:
-      class: minor
-      summary: Add the redecoded status for ss-track import --redecode.
-  - version: 1.6.0
-    file_sha256: deeaef86655138542282169aaa688f18ec5b1632adaca9d5a88b5765dd6ab41c
-    fingerprints:
-      structure: fa0d65ea744448bd7481900c917c9432c54151f0d63e13b836c6e9bb675ca310
-      meaning: 3fa95554dc91cd8570393742b904777a01a2d5813e8f7a89657f3d8fd7b9b13d
-    change:
-      class: minor
-      summary: List corpus versions on this data root that place a source elsewhere.
-  - version: 1.7.0
-    file_sha256: 35ae09e26380a2135b78bab754a05bf8a0e3aa7d7f32c68d49c0a2c8e80cf97e
-    fingerprints:
-      structure: bfb68f24a236561df349b578a10f0cbf36e3c675597e797a7806e20863cef693
-      meaning: 97d6dff86f34609074374dd127591be90d9c1ec49bc56e021ab2b5160633b0b1
-    change:
-      class: minor
-      summary: List corpus versions that pin a replaced source record, and name a
-        corpus directory that could not be listed.
-  - version: 1.8.0
-    file_sha256: 90d28287173fcd44502267fce15317246f36eb1e911d7276b728817c1cd64828
-    fingerprints:
-      structure: 3a97f03d1fff78c7b375e876c7510ea81fb5d4180c42eeb054444dc3ec122032
-      meaning: 952a30e759bb3006ec4a2eab6bee0d1491ff3fb13e4944a7f7e64d8f48cfbf77
-    change:
-      class: minor
-      summary: Describe the contact sheet written by corpus preview.
-  - version: 1.9.0
-    file_sha256: a833c79e827f73b0ba5cc0b887660941fd05739205518daa943e1ac225e31207
-    fingerprints:
-      structure: ea431a638ed356a14db1135d6c023ba9da3cdbc0b9fa9a33f71e16e270bfb720
-      meaning: 3110b443831f4dc533dcf3d41f0b9252c14316d78fc9933a375f04de4b3de18a
-    change:
-      class: minor
-      summary: Add VIDEO_STREAM_UNSPECIFIED when a recording does not name a video
-        stream the container holds.
-  - version: 1.9.1
-    file_sha256: 6e514812d1adf01a98b72a157c3edf19e436af52856e7c2d7abb0a7176325a77
-    fingerprints:
-      structure: ea431a638ed356a14db1135d6c023ba9da3cdbc0b9fa9a33f71e16e270bfb720
-      meaning: 84755c31d0f876bcf01e90053724e7f0004e3a65c123b6a30f64c8e4154db9c8
-    change:
-      class: patch
-      summary: Name source_sha256 as the source identity, which is the file hash for
-        the first video stream.
-  - version: 1.10.0
-    file_sha256: c4255e129953e599b885d17bed622a64c9bb1db7b95d683ede3f06cb175da518
-    fingerprints:
-      structure: 4df1c6b487a6c316aaa085ede46e5affed612cc72da240092e08fc143602309b
-      meaning: b4203a73ff1ddd107bd5165e32b4e942dcf1491eebb69c57fe964501203ab5ad
-    change:
-      class: minor
-      summary: Add COLOR_TAG_CONFLICT when a declared color matrix disagrees with
-        the source.
-  - version: 1.11.0
-    file_sha256: 671fcf4674e75384f233f9fbfe385cce46585b0a26596b40062482189fe3fdc9
-    fingerprints:
-      structure: 10ffd75d3e6de69b4e3930a63ae20fc4103be0937c9f530a9bf55fb1b41cde78
-      meaning: 6074c4b94f373c33aa78ddf0d39fe0f4c84c81f90f4545ccf569cb2c3c8d2a5e
-    change:
-      class: minor
-      summary: Add DECODE_TIME_EXCEEDED and INTERRUPTED when a decode passes its time
-        limit or a command is interrupted.
-  - version: 1.12.0
-    file_sha256: 6a9767df765cc49fb4335c59f8727efdee6971242f1687b287c2de6954b1622b
-    fingerprints:
-      structure: da2318eac9b12b975f4e7c3c1996951580e09d7d9196db2506472fd72001c05d
-      meaning: 6639a7d653570f3e772d28d255123240f552f66003387223779885c4e8ec53e4
-    change:
-      class: minor
-      summary: Report likely re-encoded copies across groups on a corpus build, without
-        refusing.
-  - version: 1.13.0
-    file_sha256: fc41a81a7f4dfc3f14a4b84bb574be16f065d8cd0fe0c4a77abd51b705835225
-    fingerprints:
-      structure: 66e0cc1d62615628b03c448002d27faea279cffa66898378f8834b959a580868
-      meaning: 8671cf11888d00a742259ab22c293fe39e2a05e73f9949f635e1046b49baa621
-    change:
-      class: minor
-      summary: A staged bundle may report status reused and name the linked version
-        its frames came from.
-  - version: 1.14.0
-    file_sha256: 654329ec79d3a1c745e8b4f85608c0a76046a82bc586e73ad4fbe12fa50891a9
-    fingerprints:
-      structure: 416a5f85b5c1aad0e3d7864349ca839c9aba7a160ec6357239ba530b123d38c3
-      meaning: 4e511dbcd2360ff6727cc10c39f70cb01e50209b69b3497964640bceab868985
-    change:
-      class: minor
-      summary: Name a missing or unreadable corpus version in the near-duplicate report,
-        and name a corpus directory that could not be listed.
-  - version: 1.15.0
-    file_sha256: e480dbd135609057c0308f6e4dcb3ba2190216afde7a157a32ec741506b0078e
-    fingerprints:
-      structure: 56d63ee1cc9d1b2ae919b0b788ba885fea48f96c51348d2879c19b2d3a71283f
-      meaning: e0f681396c747de418d10a4b880a9aa66341b123c0d26cf66ead0a2b506d8897
-    change:
-      class: minor
-      summary: Report a discovery run and its hint matches, and refuse an unpinned
-        or incompatible extractor, a failed worker or a busy run id.
-  - version: 1.16.0
-    file_sha256: 58a3e81aec4d2df8053d52ad251b2ce072106dab4e5a600b2349b3a2ff42a350
-    fingerprints:
-      structure: 2496586ba90fdf6f23737d07bb203a02dd1786154bc87a21e49e4bfe72fde184
-      meaning: e828666a8a21ea689b9e563ccb1812832212884f3e84b87cadd22ca1aa891c4a
-    change:
-      class: minor
-      summary: Add a discovery run's selection, unavailable scores and coverage.
-  - version: 1.17.0
-    file_sha256: 88eb917796346c510931b0b6f46c42669869d7bf43fa7d0a7523a3f416f0a218
-    fingerprints:
-      structure: c44eabf50222618425d003754d439893df96a7cc53043fce684c9ce146bcb3b3
-      meaning: 20930075327e2b3b1e47f35146359321d926bb87d0ba7cdfe01baf9a86f06f60
-    change:
-      class: minor
-      summary: Add links, the counts of a link review.
-  - version: 1.18.0
-    file_sha256: aaeb62d7b0a43949330b38594a2fad48575cfdb1362b6ee59c0004d264d92e7d
-    fingerprints:
-      structure: 8e7826f5ac3964be84bdbaaca636635182324a2005d6feccecd5f050407f03d7
-      meaning: bab79f42da3502f85fd0b8f4240d9af6d5fc65703b3ea9949044e2c3f6d34465
-    change:
-      class: minor
-      summary: Add the queue, review and superseded results of review and freeze,
-        the declaration path and hash, and LINKS_UNRESOLVED.
-  - version: 1.19.0
-    file_sha256: 5f01efe15957db105080d8ab888172b737cb186c0c433a90a62be1eecae9a21b
-    fingerprints:
-      structure: f823c76447319f44d0dcc94aa4a0623a1948f1fd07f20412c16c1b81b3c11a26
-      meaning: 9d2dd411d4b40450b1a06aa5dbb410263092b97b559bb3a7d05f6e3dc6ae237c
-    change:
-      class: minor
-      summary: Add source inventory status and unresolved fact counts.
-  - version: 1.20.0
-    file_sha256: c319cae5a8385b7673a67fd8d0d61a35973245d98cc730097b4c659ebce6405b
-    fingerprints:
-      structure: ec5d5587af540bde85e29dcebdeeef3dc48bd465b4e9a2f1444df66aa4358784
-      meaning: f60810d4f4feca62f9b65ed9c295c3f5a6e90df552313900196be5a1c680eacf
-    change:
-      class: minor
-      summary: Add source inventory location, digest and totals.
-  - version: 1.21.0
-    file_sha256: d6779e07f558d2492f743b7c5515de81bc9ba59cb5a832405daa672c2222cb27
-    fingerprints:
-      structure: 3cc2ad9772bcfabba6b1d905ba7c8f8cda3f6338353870c6279182c0adf63c54
-      meaning: 81bc573eaed55a101237613c31650bc4af4d8aa38c806beedd628a7edc65e22f
-    change:
-      class: minor
-      summary: Report a blinded audit presentation and its unblinding.
-  - version: 1.22.0
-    file_sha256: c0b2d166c2d9ee0986b21738da2320c309373064fed7d46016b9e9c93214fe80
-    fingerprints:
-      structure: 9e8547cf2996a92f4053b45517a8ef853018b8c9bf82bba29d47b728befd78bc
-      meaning: d372d2206f90c178e499834eaf6d0dc77e51c437dabbf392f1a2ca40da55a061
-    change:
-      class: minor
-      summary: Report a paired selection comparison as estimated or inconclusive.
-  - version: 1.23.0
-    file_sha256: 2d6490b29a821f219587ba668bb55ba67c08e8a7b27c395082a03c2b3e1a83b9
-    fingerprints:
-      structure: 6df1cff0f01bb4de373b915704350cd0d928b374b26c63089b1e93e20da87612
-      meaning: bd85c826e8a629c3d095d84fac78168a693dd7e52b6f7db990c1aecfdf10bf4a
-    change:
-      class: minor
-      summary: Report the paired review workload and refuse an unmatched budget.
-  - version: 1.24.0
-    file_sha256: ffb62746473327d94129479f5c1378a16b56390ddc95f25d84f26b11475c06ee
-    fingerprints:
-      structure: a525d0d36aea431693918a54ed5fccc2b783e13782847250f2354665b9b4c02d
-      meaning: 9f07e5a5e7930ed55ee69d6b2b0b9a9eb32b2cfd2e20c41954060bee90492f79
-    change:
-      class: minor
-      summary: Add optional by_source on a selection comparison and allow a fifth
-        comparison limit.
-  - version: 1.25.0
-    file_sha256: ac06c48826c656b9246ac7e74500fa03a383ab5b2bb6810eda46967d264a8e0e
-    fingerprints:
-      structure: d8897b8656bdf7ba704de2b8b0287bd53f01d48ebe6399908412ae20b2902a99
-      meaning: 363f804f81695b4e636ed004192ba9e87cdd0caa54140ce0f77586f9d89c5881
-    change:
-      class: minor
-      summary: Report the selection_pass review protocol, each pass's work and yield,
-        and pass disagreements.
-  - version: 1.26.0
-    file_sha256: 411315d3c876d17b36f814dbb02dd8d83d7cd52b9ea71d063124f7092a17aa58
-    fingerprints:
-      structure: ecd9cb4b570d29f32ae08bccd6d6790034feb48d6511b822318310541a15e22a
-      meaning: df9a14199058d98845c7f1a4fe02b491bc4e28e1842e13b07d003b8009e37ae6
-    change:
-      class: minor
-      summary: 'Add data clean: statuses planned and cleaned, the clean object and
-        DATA_ROOT_BUSY.'
-  - version: 1.27.0
-    file_sha256: 25d627ee73abc08ae22fe02535c7767b72808b4829223517adf18dae19d3d089
-    fingerprints:
-      structure: a325bad04050339d6f37ef98bfc9c941d3669c8c055cf53fce1dce3dda195367
-      meaning: cdf9805ba2e7e33bdc44615a3a4ca7eec68c86f9f759edf9e6433b121c464e56
-    change:
-      class: minor
-      summary: Add source capture inspection results.
-  - version: 1.28.0
-    file_sha256: 129e78a6301df69d4bea974859cc8ab92e6d63011f166d20168946f04160f772
-    fingerprints:
-      structure: 508a5548ca3c3a415c0d9d2bae5607303c2ba5d3e1c290248017bfca802f09df
-      meaning: bdfd6e1b2b61bfddf79c6e0b7c2d396d9392fd6ba5173cd20163650edd65e3a7
-    change:
-      class: minor
-      summary: Count distinct encounters by camera-control mode and observer platform.
-  - version: 1.29.0
-    file_sha256: 136b9963d6ec41725542426816653a28bac6e295543c1d3114da84ea834329da
-    fingerprints:
-      structure: e54046a2228615f2c2f0872578544137d8c272539ed696a7609ca80bce6512cb
-      meaning: fa1978a356a3f7344265be8d5f235950ff984f06cdbd04c7e1721706398316b4
-    change:
-      class: minor
-      summary: Source inspection states a current record's observer platform and names
-        the import operations a facts record needs.
-  - version: 1.30.0
-    file_sha256: 39baad8174be79e129e82ee050ec7061cdc31e0bfe0cccf795c7b95c24ec3000
-    fingerprints:
-      structure: a6f1efe4a95e40343bff2494dc8f5c087773eb5a0bc911e20d188e13c9b8b3cc
-      meaning: b08e48a06d4a07a766faf7c9a5389de302757d7acf8fd8df6e92bb2863d59b57
-    change:
-      class: minor
-      summary: Add the annotation validation result. It has no numeric score.
-  - version: 1.31.0
-    file_sha256: ff11d9c761e0336f178cce5d6946a8d7c83680a872d80dc7fc30b9b0f90dec4e
-    fingerprints:
-      structure: 6c68b7a2e5d1df74f1b602dad7d529702070455b14d0ba917470b7b8fe814594
-      meaning: 58c83d5412b270ac0149c73d81bf1454062e974b6b3ddb5484cb2d01d1320c8c
-    change:
-      class: minor
-      summary: Report label comparison and freeze.
-  - version: 1.32.0
-    file_sha256: 84e11f4cf1ef53be1bf674369fce09f468f26780690ece69f874eb608d9df3a9
-    fingerprints:
-      structure: 27bd12df22158b9308a6e3db9d68adaa766b6fd4adf71c5b0e2fd02cbc7a442c
-      meaning: 03b67fba73daaa26d6e8150c9ca6343cb7000c1ad31704b3d7b3fa53e24d7fa2
-    change:
-      class: minor
-      summary: Report derived labels for generated cases. An unscorable case is not
-        a zero.
+      summary: Initial contract.
 - family: shared
   id: types
   owner: data-contracts
@@ -1362,10 +638,10 @@ contracts:
   description: Value types that other contracts reference.
   versions:
   - version: 1.0.0
-    file_sha256: 8767dae47c3092bc2a9ce1d79f4be89ceaa67115f4763e9529199db5c098325b
+    file_sha256: e7a67cfd2565f80e126f056e9d6af2c2e14d241d5a15ca458cdedc864b5fda93
     fingerprints:
-      structure: 24873012e5c08cc1e45af2aa3977cb705409a0efcabda5abe0b201f503fcc026
-      meaning: d9b7155f2a4f1376a98dbbc937148be0453db28e5cd18aaaac1ec1bfbe32602a
+      structure: f506a93ab1aed00039e933ff73f537511a554d26c935bb3fc39e57d55dcb9c25
+      meaning: 48db03ac7901abe97a556c7a3ab1f7bd6f92b7537caa0baf19cc5d2ae5e37314
     change:
       class: initial
-      summary: SHA-256 digest and identifier.
+      summary: Initial contract.

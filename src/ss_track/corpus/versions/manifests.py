@@ -6,6 +6,7 @@ here once, and a name that cannot be a version or has no manifest is `CORPUS_NOT
 
 from pathlib import Path
 
+from ss_track.core.evidence.contract_stamp import require_current_data_root
 from ss_track.core.evidence.sealed import read_comparable, read_sealed
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
 from ss_track.corpus.records.kinds import CORPUS_MANIFEST
@@ -17,11 +18,13 @@ from ss_track.schema.validation.enforce import is_shared_type
 
 def load_corpus_manifest(corpus_id: str, data_root: Path) -> dict[str, JsonValue]:
     """Read one built corpus version as evidence, refusing an identifier that cannot name one."""
+    require_current_data_root(data_root)
     return read_sealed(built_manifest_path(corpus_id, data_root), CORPUS_MANIFEST)
 
 
 def load_predecessor(corpus_id: str, data_root: Path) -> Predecessor:
     """Read a declared predecessor of any major through its projection, for the comparison rules."""
+    require_current_data_root(data_root)
     found = read_comparable(built_manifest_path(corpus_id, data_root), CORPUS_MANIFEST)
     if found.projected is None:
         return Unprojected(corpus_id, found.seal)

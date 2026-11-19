@@ -224,6 +224,7 @@ def test_cli_acquisition_reports_inventory_without_token(
             ]
         )
     assert result == 0
+    assert (tmp_path / "data" / "contract-set.json").is_file()
     output = json.loads(caplog.records[-1].message)
     assert output["source_inventory"]["source_reference"] == 1
     assert output["source_inventory"]["video_count"] == 1

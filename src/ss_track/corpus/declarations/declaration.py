@@ -15,8 +15,8 @@ from ss_track.schema.validation.enforce import read_declaration
 
 RECORDING_CONTRACT = "declaration/recording"
 CORPUS_CONTRACT = "declaration/corpus"
-RECORDING_SCHEMA_VERSION = 3
-CORPUS_SCHEMA_VERSION = 3
+RECORDING_SCHEMA_VERSION = 1
+CORPUS_SCHEMA_VERSION = 1
 # Orders the contracts do not state, which the rights checks compare by.
 SHARING_SCOPES = ("restricted", "public")  # narrowest first
 SENSITIVITY_LEVELS = ("low", "moderate", "high")  # least sensitive first

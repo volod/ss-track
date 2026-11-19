@@ -300,7 +300,7 @@
           "type": "integer",
           "description": "Decisions the file holds.",
           "x-unit": "1",
-          "minimum": 1
+          "minimum": 0
         }
       },
       "required": [

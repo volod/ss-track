@@ -89,3 +89,23 @@ def test_an_unprojected_version_ends_the_chain_behind_it(
     assert lineage["compared_versions"] == []
     assert check_of(staged)["compared_versions"] == []
     assert not_compared(staged) == [(V1, "other_schema", [])]
+
+
+def test_the_development_install_keeps_no_older_format_readable() -> None:
+    """Spec section 17.7: no view, stated shape or older-major projection outlives an edit."""
+    from ss_track.core.evidence.read_window import STATED_SHAPES, installed_views
+    from ss_track.core.evidence.registry import installed_projections
+    from ss_track.schema.registry.contract import DEVELOPMENT, RECORD_FAMILY
+    from ss_track.schema.validation.enforce import installed_contracts
+
+    contracts = installed_contracts().contracts
+    assert contracts.stage == DEVELOPMENT
+    current = {
+        contracts.kind_of(contract): frozen.major
+        for contract in contracts.contracts
+        if contract.family == RECORD_FAMILY and (frozen := contract.newest()) is not None
+    }
+    assert installed_views() == {}
+    assert STATED_SHAPES == []
+    assert installed_projections()
+    assert all(current.get(kind) == major for kind, major in installed_projections())

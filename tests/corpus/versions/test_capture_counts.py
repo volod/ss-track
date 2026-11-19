@@ -4,11 +4,10 @@ import json
 from pathlib import Path
 
 from ss_track.core.evidence.sealed import read_sealed
-from ss_track.corpus import ImportResult, RefusalCode, amend_source, build_corpus
+from ss_track.corpus import ImportResult, build_corpus
 from ss_track.corpus.declarations.capture import CAMERA_CONTROL_MODES, OBSERVER_PLATFORMS
-from ss_track.corpus.records.kinds import CORPUS_MANIFEST, SOURCE_MANIFEST
+from ss_track.corpus.records.kinds import CORPUS_MANIFEST
 from ss_track.schema.registry.store import load_contract_set
-from ss_track.schema.validation.enforce import older_remedy
 from tests.corpus.conftest import (
     HEAD,
     TAIL,
@@ -18,10 +17,8 @@ from tests.corpus.conftest import (
     encounter_of,
     group_of,
     import_clip,
-    reseal,
     stream_of,
 )
-from tests.corpus.versions._grouping import refused_grouping
 
 _HAND = {
     "camera_control_mode": {
@@ -147,52 +144,6 @@ def test_unused_capture_bins_are_zero(
     }
 
 
-def test_a_historical_source_refuses_then_counts_after_amendment(
-    media: Path,
-    write_recording: WriteRecording,
-    write_grouped_corpus: WriteCorpus,
-    data_root: Path,
-) -> None:
-    imported = import_clip(media, write_recording, data_root, 34)
-    historical = _historical_capture(imported.manifest_path)
-    groups = [
-        group_of("site", "development", encounter_of("enc", stream_of(imported, stream_id="one")))
-    ]
-
-    refusal = refused_grouping(
-        write_grouped_corpus, groups, data_root, RefusalCode.RECORD_SCHEMA_UNSUPPORTED
-    )
-    assert refusal.details["disposition"] == "facts"
-    assert refusal.details["remedy"] == older_remedy(SOURCE_MANIFEST.kind, 2)
-
-    declaration = write_recording(
-        "clip-34.mkv",
-        capture={"camera_control_mode": "operator_steered", "observer_platform": "airborne"},
-    )
-    amended = amend_source(declaration, data_root, amend_capture=True, amend_terms=False)
-    assert amended.replaced_path is not None
-    assert amended.replaced_path.read_bytes() == historical
-    built = build_corpus(write_grouped_corpus(groups), data_root)
-    again = build_corpus(write_grouped_corpus(groups), data_root)
-
-    assert built.capture_encounters.to_record() == {
-        "camera_control_mode": {
-            "operator_steered": 1,
-            "fixed_camera": 0,
-            "autonomous_camera": 0,
-            "unknown": 0,
-        },
-        "observer_platform": {
-            "ground_fixed": 0,
-            "ground_handheld": 0,
-            "airborne": 1,
-            "unknown": 0,
-        },
-    }
-    assert again.status == "unchanged"
-    assert again.manifest_sha256 == built.manifest_sha256
-
-
 def _import(
     media: Path,
     write_recording: WriteRecording,
@@ -229,12 +180,3 @@ def _groups(members: tuple[ImportResult, ...], *, case: bool) -> list[dict[str, 
             ),
         )
     ]
-
-
-def _historical_capture(path: Path) -> bytes:
-    record = json.loads(path.read_text(encoding="ascii"))
-    capture = dict(record["capture"])
-    capture["camera_control_mode"] = "gimbal"
-    del capture["observer_platform"]
-    reseal(path, schema_version=2, capture=capture)
-    return path.read_bytes()

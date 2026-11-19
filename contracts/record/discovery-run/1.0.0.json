@@ -220,6 +220,46 @@
       ],
       "additionalProperties": false
     },
+    "source_approval": {
+      "type": "object",
+      "description": "The owner's approval the run was written under. Every run the discovery command writes names one; ss-track cannot tell fixture media from real sources.",
+      "properties": {
+        "owner": {
+          "type": "string",
+          "description": "Who approved the processing.",
+          "minLength": 1,
+          "x-sensitivity": "restricted"
+        },
+        "reference": {
+          "type": "string",
+          "description": "Identifier of the owner's approval record.",
+          "minLength": 1,
+          "x-sensitivity": "restricted"
+        }
+      },
+      "required": [
+        "owner",
+        "reference"
+      ],
+      "additionalProperties": false,
+      "x-sensitivity": "restricted",
+      "x-rules": {
+        "approval": "Names an approval held outside ss-track; the record grants no right by naming it."
+      }
+    },
+    "feature_rows": {
+      "type": "array",
+      "description": "One line per feature-rows record in ascending extractor_id, then stream_id order.",
+      "items": {
+        "$ref": "#/$defs/feature-rows"
+      },
+      "minItems": 0,
+      "x-sensitivity": "restricted",
+      "x-rules": {
+        "order": "Lines are in ascending extractor_id, then stream_id order, each pair appearing once.",
+        "features": "Each line names an extractor of this record and a stream with an inventory; rows_sha256 is the seal of features/<extractor_id>/<stream_id>.json, which holds row_count rows."
+      }
+    },
     "inventories": {
       "type": "array",
       "description": "One line per stream in ascending stream_id order.",
@@ -406,10 +446,11 @@
             },
             "crop": {
               "type": "string",
-              "description": "Which part of the scaled frame the model saw.",
+              "description": "Which part of the scaled frame the model saw: its centre, all of it, or one square tile ss-track cut before the embedder's own preprocessing.",
               "enum": [
                 "center",
-                "none"
+                "none",
+                "tiled"
               ],
               "x-sensitivity": "restricted"
             },
@@ -482,6 +523,51 @@
               "minItems": 3,
               "maxItems": 3,
               "x-sensitivity": "restricted"
+            },
+            "tile": {
+              "type": "object",
+              "description": "The square tile this extractor read, present exactly when crop is tiled.",
+              "properties": {
+                "columns": {
+                  "type": "integer",
+                  "x-unit": "1",
+                  "minimum": 1,
+                  "x-sensitivity": "restricted",
+                  "description": "Tiles across each frame."
+                },
+                "rows": {
+                  "type": "integer",
+                  "x-unit": "1",
+                  "minimum": 1,
+                  "x-sensitivity": "restricted",
+                  "description": "Tiles down each frame."
+                },
+                "column": {
+                  "type": "integer",
+                  "x-unit": "1",
+                  "minimum": 0,
+                  "x-sensitivity": "restricted",
+                  "description": "Tile column, counted from 0 at the left."
+                },
+                "row": {
+                  "type": "integer",
+                  "x-unit": "1",
+                  "minimum": 0,
+                  "x-sensitivity": "restricted",
+                  "description": "Tile row, counted from 0 at the top."
+                }
+              },
+              "required": [
+                "columns",
+                "rows",
+                "column",
+                "row"
+              ],
+              "additionalProperties": false,
+              "x-sensitivity": "restricted",
+              "x-rules": {
+                "tile": "Present exactly when crop is tiled, with column below columns and row below rows. On a frame of width W and height H the tile is square with side S = max(ceil(W / columns), ceil(H / rows)), at most min(W, H); its left edge is floor(column (W - S) / (columns - 1)), or 0 for one column, and its top edge floor(row (H - S) / (rows - 1)), or 0 for one row, so the tiles of a grid cover the frame. input_width equals input_height, so the embedder's own centre crop of the scaled square removes nothing."
+              }
             }
           },
           "required": [
@@ -622,6 +708,74 @@
           "pattern": "^[1-9][0-9]*/[1-9][0-9]*$",
           "x-unit": "Hz",
           "x-sensitivity": "restricted"
+        },
+        "matches": {
+          "type": "object",
+          "description": "What became of the hint file's matches.",
+          "properties": {
+            "read": {
+              "type": "integer",
+              "description": "Matches the hint file holds.",
+              "x-unit": "1",
+              "minimum": 0,
+              "x-sensitivity": "restricted"
+            },
+            "mapped": {
+              "type": "integer",
+              "description": "Matches that named a window of at least one stream.",
+              "x-unit": "1",
+              "minimum": 0,
+              "x-sensitivity": "restricted"
+            },
+            "unmapped": {
+              "type": "array",
+              "description": "Matches that named no window, by reason, in ascending reason order.",
+              "items": {
+                "type": "object",
+                "description": "Matches of one reason.",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "description": "Why no window was named.",
+                    "enum": [
+                      "empty_slot",
+                      "missing_timestamps",
+                      "multi_stream_source",
+                      "no_hash_join",
+                      "not_on_slot",
+                      "outside_bundle",
+                      "slot_out_of_range"
+                    ],
+                    "x-sensitivity": "restricted"
+                  },
+                  "count": {
+                    "type": "integer",
+                    "description": "Matches of this reason.",
+                    "x-unit": "1",
+                    "minimum": 1,
+                    "x-sensitivity": "restricted"
+                  }
+                },
+                "required": [
+                  "reason",
+                  "count"
+                ],
+                "additionalProperties": false
+              },
+              "minItems": 0,
+              "x-sensitivity": "restricted"
+            }
+          },
+          "required": [
+            "read",
+            "mapped",
+            "unmapped"
+          ],
+          "additionalProperties": false,
+          "x-sensitivity": "restricted",
+          "x-rules": {
+            "matches": "read equals mapped plus the counts of the unmapped reasons, which are ascending and distinct."
+          }
         }
       },
       "required": [
@@ -708,6 +862,43 @@
         "source_manifest_sha256",
         "inventory_sha256",
         "candidate_count"
+      ],
+      "additionalProperties": false
+    },
+    "feature-rows": {
+      "type": "object",
+      "description": "One extractor's feature rows for one stream.",
+      "properties": {
+        "extractor_id": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+          "description": "Extractor of this run.",
+          "x-references": "record/discovery-run#/$defs/extractor/properties/extractor_id",
+          "x-sensitivity": "restricted"
+        },
+        "stream_id": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/identifier",
+          "description": "Stream the rows describe.",
+          "x-references": "record/frame-set#/$defs/bundle/properties/stream_id",
+          "x-sensitivity": "restricted"
+        },
+        "rows_sha256": {
+          "$ref": "urn:ss-track:contract:shared:types:1.0.0#/$defs/sha256",
+          "description": "Seal of that feature-rows record.",
+          "x-sensitivity": "restricted"
+        },
+        "row_count": {
+          "type": "integer",
+          "description": "Rows the record holds.",
+          "x-unit": "1",
+          "minimum": 1,
+          "x-sensitivity": "restricted"
+        }
+      },
+      "required": [
+        "extractor_id",
+        "stream_id",
+        "rows_sha256",
+        "row_count"
       ],
       "additionalProperties": false
     }

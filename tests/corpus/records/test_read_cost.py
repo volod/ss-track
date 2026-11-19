@@ -16,7 +16,7 @@ from ss_track.corpus import open_frame_bundle
 from ss_track.corpus.bundles.frames import bundle_hash
 from ss_track.schema.validation import strict
 from tests._sealing import self_sealed
-from tests.corpus._historic import RECORDS
+from tests.schema.conftest import EXAMPLES
 
 MILLION = 1_000_000
 _FRAME_STEP_PTS = 40
@@ -25,9 +25,9 @@ _FRAME_STEP_PTS = 40
 @pytest.fixture(scope="module")
 def million_frame_bundle(tmp_path_factory: pytest.TempPathFactory) -> Path:
     """Write a sealed bundle record whose index holds a million frames."""
-    kept = RECORDS / "bundle-schema-3-d6b704d.json"
+    kept = EXAMPLES / "record-frame-bundle.json"
     record: dict[str, Any] = json.loads(kept.read_text(encoding="ascii"))
-    record.pop(SEAL_FIELD)
+    record.pop(SEAL_FIELD, None)
     identity = record["identity"]
     digest = identity["frames"][0]["sha256"]
     identity["frames"] = [

@@ -12,6 +12,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from ss_track.core.evidence.contract_stamp import require_current_data_root
 from ss_track.core.refusal import JsonValue
 from ss_track.corpus.declarations.capture import with_judgments
 from ss_track.corpus.declarations.declaration import (
@@ -24,7 +25,6 @@ from ss_track.corpus.sources.replacement import (
     ReplacementResult,
     replace_record,
     replacing_source,
-    require_migration_operations,
     require_unchanged_facts,
     successor_of,
 )
@@ -45,17 +45,15 @@ def amend_source(
     amend_terms: bool = True,
 ) -> ReplacementResult:
     """Replace the requested source facts atomically, keeping the record it replaces."""
+    require_current_data_root(data_root)
     declaration = load_recording_declaration(declaration_path)
     sha256 = named_source(declaration)
     with replacing_source(data_root, sha256, _NOT_IMPORTED) as existing:
-        require_migration_operations(
-            existing, sha256, amend_capture=amend_capture, amend_terms=amend_terms, redecode=False
-        )
         require_unchanged_facts(existing.record, declaration, sha256, amend_capture=amend_capture)
         changes = declared_terms(declaration) if amend_terms else {}
         if amend_capture:
             changes.update(capture_changes(existing.record, declaration))
-        successor = successor_of(existing, changes, sha256)
+        successor = successor_of(existing, changes)
         current = _policy_is_installed(existing.record)
         return replace_record(
             AMENDED, existing, successor, sha256, data_root, policy_current=current

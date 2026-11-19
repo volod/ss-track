@@ -9,6 +9,8 @@ from typing import Any
 import pytest
 import yaml
 
+from ss_track.core.evidence import registry
+from ss_track.core.evidence.format import RecordFormat
 from ss_track.core.evidence.sealing import sha256_file
 from ss_track.corpus import import_source
 from ss_track.corpus.bundles.frames import bundle_hash
@@ -27,7 +29,7 @@ TAIL = {"start_frame": 4, "end_frame": 8}  # and the four after them
 def recording_declaration(source: str = "clip.mkv") -> Recording:
     """Return a complete recording declaration that a test may then damage."""
     return {
-        "schema_version": 3,
+        "schema_version": 1,
         "source": {"path": source},
         "rights": {
             "holder": "Project Contributors",
@@ -72,7 +74,7 @@ def case_of(
 def corpus_declaration(groups: list[dict[str, object]], **overrides: object) -> dict[str, object]:
     """Return a complete corpus declaration whose scenario asks nothing of its sources."""
     return {
-        "schema_version": 3,
+        "schema_version": 1,
         "corpus_id": "pilot-v1",
         "scenario_rights": {"sharing": "restricted", "max_sensitivity": "high"},
         "groups": groups,
@@ -90,6 +92,19 @@ def write_groups(media: Path, groups: list[dict[str, object]], **overrides: obje
 def place_of(corpus_id: str, group_id: str, split: str) -> dict[str, str]:
     """Return one side of a move, as a lineage refusal states it."""
     return {"corpus_id": corpus_id, "group_id": group_id, "split": split}
+
+
+OLDER_MAJOR = 0  # a major older than every current one, which no contract states
+
+
+def project_older_major(monkeypatch: pytest.MonkeyPatch, record_format: RecordFormat) -> int:
+    """Give a synthetic older major the current major's comparison projection, and return it.
+
+    The development stage keeps no older major, so a test of a projected predecessor installs one.
+    """
+    current = registry.PROJECTIONS[(record_format.kind, record_format.major)]
+    monkeypatch.setitem(registry.PROJECTIONS, (record_format.kind, OLDER_MAJOR), current)
+    return OLDER_MAJOR
 
 
 def reseal(path: Path, **changes: object) -> None:

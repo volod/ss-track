@@ -1,4 +1,8 @@
-"""Compare the working contract set with immutable versions held by Git history."""
+"""Compare the working contract set with Git history, by the stage each revision states.
+
+A development set is checked against its own pins alone; a released revision's versions are
+immutable, and no revision may return a released set to development.
+"""
 
 import argparse
 import logging
@@ -9,8 +13,15 @@ from pathlib import Path
 from ss_track.core.refusal import CorpusRefusal
 from ss_track.schema.compatibility.versioning import transition_findings
 from ss_track.schema.registry.check import check_contract_set
-from ss_track.schema.registry.contract import INITIAL, Contract, FrozenVersion
-from ss_track.schema.registry.store import ContractSet, load_contract_set
+from ss_track.schema.registry.contract import (
+    DEVELOPMENT,
+    INITIAL,
+    RELEASED,
+    Contract,
+    FrozenVersion,
+)
+from ss_track.schema.registry.stage import regression_finding, stage_of, stated_stage
+from ss_track.schema.registry.store import ContractSet, load_contract_set, registry_document
 
 _LOG = logging.getLogger(__name__)
 
@@ -82,8 +93,57 @@ def evolution_findings(contracts: ContractSet) -> list[str]:
     return findings
 
 
+def _revision_findings(snapshot: Path, revision: str, current: ContractSet) -> list[str]:
+    """Compare a committed set by the stage rules of spec section 17.7.
+
+    A development revision froze nothing, so only a released one holds bytes that must not move.
+    """
+    previous = stage_of(snapshot)
+    findings = regression_finding(previous, current.stage, revision)
+    if previous == RELEASED:
+        findings += immutable_findings(load_contract_set(snapshot), current)
+    return findings
+
+
+def _released_history(project: Path) -> tuple[set[str], list[str]]:
+    """Inspect registry revisions and refuse a later return after any ancestral release."""
+    revisions = _git(
+        project, "log", "--full-history", "--format=%H", "HEAD", "--", "contracts/registry.yaml"
+    )
+    stages = {}
+    for revision in revisions.decode().splitlines():
+        payload = _git(project, "show", f"{revision}:contracts/registry.yaml")
+        try:
+            stages[revision] = stated_stage(registry_document(payload))
+        except CorpusRefusal as error:
+            raise ValueError(f"the registry at {revision}: {error.message}") from error
+    released = {revision for revision, stage in stages.items() if stage == RELEASED}
+    findings = []
+    for revision in released:
+        later = (
+            _git(
+                project,
+                "rev-list",
+                "--full-history",
+                "--ancestry-path",
+                f"{revision}..HEAD",
+                "--",
+                "contracts/registry.yaml",
+            )
+            .decode()
+            .splitlines()
+        )
+        for descendant in later:
+            if stages.get(descendant) == DEVELOPMENT:
+                findings.append(
+                    f"the contract set was released at {revision} and cannot return to "
+                    f"development at {descendant}"
+                )
+    return released, findings
+
+
 def history_findings(project: Path, base_ref: str) -> list[str]:
-    """Fail closed on absent history; compare the merge base and the committed working baseline."""
+    """Compare merge base, HEAD and every released registry in their ancestry."""
     root = project / "contracts"
     findings = check_contract_set(root)
     if findings:
@@ -95,11 +155,13 @@ def history_findings(project: Path, base_ref: str) -> list[str]:
             return [*findings, "contract history requires a full checkout (fetch-depth: 0)"]
         base = _git(project, "merge-base", "HEAD", base_ref).decode().strip()
         head = _git(project, "rev-parse", "HEAD").decode().strip()
-        for revision in sorted({base, head}):
+        released, stage_history = _released_history(project)
+        findings += stage_history
+        for revision in sorted({base, head} | released):
             with tempfile.TemporaryDirectory(prefix="ss-track-contract-history-") as temporary:
                 snapshot = Path(temporary)
                 if _snapshot(project, revision, snapshot):
-                    findings += immutable_findings(load_contract_set(snapshot), current)
+                    findings += _revision_findings(snapshot, revision, current)
     except (ValueError, OSError, CorpusRefusal) as error:
         findings.append(f"cannot check contract history: {error}")
     return sorted(set(findings))

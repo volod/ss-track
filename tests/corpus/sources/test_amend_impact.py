@@ -15,12 +15,20 @@ from ss_track.corpus import (
     stage_corpus,
 )
 from ss_track.corpus.decoding.decode_policy import DecodePolicy
+from ss_track.corpus.records.kinds import CORPUS_MANIFEST
 from ss_track.corpus.records.projections import OTHER_SCHEMA
 from ss_track.corpus.storage.layout import frames_root
 from ss_track.corpus.versions.builder import BuildResult
 from ss_track.corpus.versions.scan import UNREADABLE
 from tests.corpus._amending import evidence
-from tests.corpus.conftest import WriteCorpus, WriteRecording, last_record, reseal, stream_of
+from tests.corpus.conftest import (
+    WriteCorpus,
+    WriteRecording,
+    last_record,
+    project_older_major,
+    reseal,
+    stream_of,
+)
 from tests.corpus.versions._unlinked import plant
 
 _UPGRADED = DecodePolicy(decoder="pyav", decoder_version="99", ffmpeg_version="99")
@@ -59,11 +67,15 @@ def test_one_state_lists_pinning_versions_and_names_what_it_cannot_read(
     write_corpus: WriteCorpus,
     cli_root: Path,
     caplog: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _build(write_corpus, cli_root, "zeta", first)
     _build(write_corpus, cli_root, "other", second)
-    reseal(_build(write_corpus, cli_root, "beta", first).manifest_path, schema_version=2)
-    reseal(_build(write_corpus, cli_root, "z-old", first).manifest_path, schema_version=1)
+    reseal(
+        _build(write_corpus, cli_root, "beta", first).manifest_path,
+        schema_version=project_older_major(monkeypatch, CORPUS_MANIFEST),
+    )
+    reseal(_build(write_corpus, cli_root, "z-old", first).manifest_path, schema_version=4)
     _build(write_corpus, cli_root, "alpha", first)
     plant(cli_root, "m-broken", "{")
     gap = plant(cli_root, "a-gap", "{}").parent

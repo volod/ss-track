@@ -190,3 +190,30 @@ def test_dangling_annotation_fails_contract_gate(contract_root: Path, register: 
         "x-references" in item and "resolves to nothing" in item
         for item in check_contract_set(contract_root)
     )
+
+
+@pytest.mark.parametrize(
+    "reference",
+    [
+        "urn:ss-track:contract:declaration:corpus:1.0.0#/$defs/selection",
+        "urn:ss-track:contract:result:command:1.0.0#/$defs/method-counts",
+    ],
+)
+def test_a_record_may_reference_only_what_the_data_root_stamp_pins(
+    development_root: Path, reference: str
+) -> None:
+    """The stamp pins record and shared contracts, so a record's shape may depend on no other."""
+    from tests.schema.conftest import frame_set_path
+
+    path = frame_set_path(development_root)
+    schema = json.loads(path.read_bytes())
+    schema["properties"]["borrowed"] = {"$ref": reference, "description": "Borrowed."}
+    path.write_text(json.dumps(schema, indent=2) + "\n")
+    registry = read_registry(development_root)
+    contract = next(item for item in registry["contracts"] if item["id"] == "frame-set")
+    contract["versions"] = [version_entry(path)]
+    write_registry(development_root, registry)
+
+    findings = check_contract_set(development_root)
+
+    assert any("which the data-root stamp does not pin" in item for item in findings)

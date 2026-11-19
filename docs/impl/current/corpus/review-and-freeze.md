@@ -152,8 +152,8 @@ decisions and acceptance evidence.
 
 ## Decisions
 
-`declaration/corpus-review` 1.0.0, with optional provenance from 1.1.0 and an optional
-[selection pass](#selection-pass) from 1.2.0:
+`declaration/corpus-review` 1.0.0, with optional provenance and an optional
+[selection pass](#selection-pass):
 
 ```yaml
 schema_version: 1
@@ -303,7 +303,7 @@ and is counted as `unresolved_same_split`.
 
 ## Record
 
-`corpus/<corpus-id>/freeze.json` is `record/corpus-freeze` 1.2.0, sealed beside the manifest.
+`corpus/<corpus-id>/freeze.json` is `record/corpus-freeze` 1.0.0, sealed beside the manifest.
 A review that states no provenance still freezes without those fields, so an older review keeps
 its record shape:
 
@@ -395,9 +395,8 @@ make ci
 
 `test_selection_pass.py` covers the commented template block, a blank pass, a pass carried through
 freeze and evaluation without adding an observation, an unselected or locked window, a repeat, an
-edited and a resealed freeze record, and a review with no pass that still validates against the
-1.1.0 contracts. `test_membership.py` covers joined and separate windows, the declaration,
-include and exclude
+edited and a resealed freeze record, and a review with no pass, which states no `selection_pass`.
+`test_membership.py` covers joined and separate windows, the declaration, include and exclude
 conflicts, withheld and unoffered decisions, an unnoted `other`, a repeat, another run and a name
 too long. `test_queue_and_export.py` stages three clips in three splits and runs discovery: the
 queue withholds the locked stream, the template needs a reviewer, export repeats byte for byte and

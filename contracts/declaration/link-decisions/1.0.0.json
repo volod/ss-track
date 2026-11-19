@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:ss-track:contract:declaration:link-decisions:1.0.0",
   "title": "Link decisions",
-  "description": "A reviewer's decisions on whether two imported recordings are related: not independent of each other, so every stream cut from them belongs in one encounter group. A decision is about two recordings, not a corpus version, so it carries over to any version that holds them. It is human judgment; no similarity score makes one.",
+  "description": "A reviewer's decisions on whether two imported recordings are related: not independent of each other, so every stream cut from them belongs in one encounter group. A decision is about two recordings, not a corpus version, so it carries over to any version that holds them. It is human judgment; no similarity score makes one. An empty decisions list is a checkpoint with no decisions; it asserts no relationships.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -73,7 +73,7 @@
         ],
         "additionalProperties": false
       },
-      "minItems": 1
+      "minItems": 0
     }
   },
   "x-rules": {

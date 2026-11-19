@@ -11,8 +11,10 @@ from pathlib import Path
 
 from ss_track.core.evidence.format import RecordFormat
 from ss_track.core.evidence.read_window import StatedShape
+from ss_track.core.evidence.stamp_file import REGENERATE_REMEDY
 from ss_track.core.refusal import CorpusRefusal, JsonValue, RefusalCode
-from ss_track.schema.validation.enforce import older_remedy, readable_majors
+from ss_track.schema.registry.contract import DEVELOPMENT
+from ss_track.schema.validation.enforce import installed_contracts, older_remedy, readable_majors
 
 OLDER = "older"
 NEWER = "newer"
@@ -111,7 +113,15 @@ def _age(found: JsonValue, major: int) -> str:
 
 
 def _remedy(age: str, record_format: RecordFormat, found: JsonValue) -> str:
-    """Name the change log's migration for an older major, which is its one statement."""
+    """Name the change log's migration for an older major, which is its one statement.
+
+    In the development stage no ss-track release wrote another major, so a record of one comes from
+    a data root written before the development baseline and is regenerated, never migrated.
+    """
     if age == OLDER and type(found) is int:
-        return older_remedy(record_format.kind, found) or _UNWRITTEN_REMEDY
+        stated = older_remedy(record_format.kind, found)
+        if stated:
+            return stated
+    if installed_contracts().contracts.stage == DEVELOPMENT and age != UNSTATED:
+        return REGENERATE_REMEDY
     return _NEWER_REMEDY if age == NEWER else _UNWRITTEN_REMEDY
