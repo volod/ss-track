@@ -117,5 +117,6 @@ Copy the [template](template.md) using the
 | 0110 | `development-staged-hashes-provenance` | [0110-data-contracts-development-staged-hashes-provenance](0110-data-contracts-development-staged-hashes-provenance.md) |
 | 0111 | `development-stamp-added-contracts` | [0111-data-contracts-development-stamp-added-contracts](0111-data-contracts-development-stamp-added-contracts.md) |
 | 0112 | `development-data-root-regenerate-provenance` | [0112-data-contracts-development-data-root-regenerate-provenance](0112-data-contracts-development-data-root-regenerate-provenance.md) |
+| 0113 | `data-contracts-audit` | [0113-data-contracts-data-contracts-audit](0113-data-contracts-data-contracts-audit.md) |
 
-Next unused sequence: `0113`.
+Next unused sequence: `0114`.

@@ -1,6 +1,7 @@
 """A data root holds the development contract set its records were written under (spec 17.7)."""
 
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -9,9 +10,17 @@ from ss_track.cli import main
 from ss_track.commands.report import EXIT_OK, EXIT_REFUSED
 from ss_track.core.evidence import contract_stamp
 from ss_track.core.evidence.contract_stamp import installed_fingerprints, require_current_data_root
-from ss_track.core.evidence.stamp_file import REGENERATE_REMEDY, STAMP_KIND, STAMP_NAME
+from ss_track.core.evidence.stamp_file import (
+    REGENERATE_REMEDY,
+    STAMP_KIND,
+    STAMP_NAME,
+    read_stamp,
+    write_stamp,
+)
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
 from ss_track.corpus.sources.importer import ImportResult
+from ss_track.schema.registry.contract import STAMPED_FAMILIES
+from ss_track.schema.validation.enforce import SHARED_TYPES, installed_contracts
 from tests.corpus._amending import rights_with
 from tests.corpus.conftest import WriteRecording, last_record
 
@@ -211,3 +220,20 @@ def test_legacy_structure_only_stamp_refuses_without_deleting_data(tmp_path: Pat
     assert caught.value.details["changed_contracts"] == []
     assert "record/frame-set" in caught.value.details["unverified_contracts"]
     assert evidence.read_text() == "retained evidence"
+
+
+def test_the_stamp_and_carried_pins_admit_exactly_the_stamped_families(tmp_path: Path) -> None:
+    """`STAMPED_FAMILIES` names what the stamp pins; its parser and the carried rows follow it."""
+    contracts = installed_contracts().contracts
+    types = contracts.named(SHARED_TYPES)
+    rows = contracts.frozen_schema(types, types.versions[-1])["$defs"]["contract-set"]
+    pattern = str(rows["items"]["properties"]["contract"]["pattern"])
+    for family in sorted({contract.family for contract in contracts.contracts}):
+        name = f"{family}/probe"
+        write_stamp(tmp_path / STAMP_NAME, {name: "a" * 64}, {name: "a" * 64})
+        try:
+            parsed = read_stamp(tmp_path / STAMP_NAME) is not None
+        except CorpusRefusal:
+            parsed = False
+        stamped = family in STAMPED_FAMILIES
+        assert (parsed, re.fullmatch(pattern, name) is not None) == (stamped, stamped), family

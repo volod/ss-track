@@ -84,8 +84,8 @@ it does not grant source rights.
 
 Use the extracted inventory, pool and command file to acquire and stage the dataset locally. Then
 accept the handoff. This command verifies the complete local corpus, writes this host's
-`staged-hashes.json`, compares it with the archive's record, whose contract pins must match too,
-and only after an identical result
+`staged-hashes.json`, compares it with the archive's record, whose contract pins are checked
+before that write, and only after an identical result
 installs the sealed link record and checkpoint. Different source sets, decode policies, corpus
 manifests, frame sets or individual frame bytes refuse. An expired, damaged or unauthorized archive
 also refuses without changing review decisions.

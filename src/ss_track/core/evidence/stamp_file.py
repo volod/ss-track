@@ -11,6 +11,7 @@ from pathlib import Path
 from ss_track.core.refusal import CorpusRefusal, RefusalCode
 from ss_track.core.scratch import write_atomically
 from ss_track.core.strict_json import reject_constant, unique_object
+from ss_track.schema.registry.contract import STAMPED_FAMILIES
 
 STAMP_NAME = "contract-set.json"
 STAMP_KIND = "ss-track.development-contract-set"
@@ -50,7 +51,7 @@ def read_stamp(
 def _fingerprint_map(path: Path, value: object) -> dict[str, str]:
     if not isinstance(value, dict) or any(
         not isinstance(name, str)
-        or not name.startswith(("record/", "shared/"))
+        or not name.startswith(tuple(f"{family}/" for family in STAMPED_FAMILIES))
         or not isinstance(digest, str)
         or re.fullmatch(r"[0-9a-f]{64}", digest) is None
         for name, digest in value.items()

@@ -21,6 +21,7 @@ from ss_track.corpus.links.portable_archive import (
     PortableArchive,
     read_archive,
 )
+from ss_track.corpus.links.portable_provenance import require_matching_contract_set
 from ss_track.corpus.links.portable_state import accepted_path, checkpoint_path, file_digest
 from ss_track.corpus.links.records import read_links, read_links_file
 from ss_track.corpus.storage.layout import links_path
@@ -41,6 +42,7 @@ def _verify_archive_records(
     links_file, hashes_file = _temporary_records(archive, directory)
     links = read_links_file(links_file, str(archive.manifest["links_run_id"]))
     hashes = read_staged_hashes(hashes_file)
+    require_matching_contract_set(hashes, member=HASHES_MEMBER)
     manifest = archive.manifest
     if (
         links[SEAL_FIELD] != manifest["links_manifest_sha256"]

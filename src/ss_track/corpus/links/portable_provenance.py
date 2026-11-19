@@ -17,8 +17,13 @@ HANDOFF_REMEDY = (
 )
 
 
-def require_matching_contract_set(manifest: Mapping[str, JsonValue]) -> None:
-    """Refuse a development handoff whose contract pins are absent or differ from this install."""
-    require_carried_contract_set(
-        manifest, carrier="the review handoff", name=MANIFEST_NAME, remedy=HANDOFF_REMEDY
-    )
+def require_matching_contract_set(
+    record: Mapping[str, JsonValue], *, member: str = MANIFEST_NAME
+) -> None:
+    """Refuse a development handoff record whose contract pins are absent or differ from this install.
+
+    The manifest binds the handoff. The staged hashes it carries state their own pins, so acceptance
+    checks that member too, before it records the local corpus's hashes.
+    """
+    carrier = "the review handoff" if member == MANIFEST_NAME else f"the review handoff's {member}"
+    require_carried_contract_set(record, carrier=carrier, name=member, remedy=HANDOFF_REMEDY)

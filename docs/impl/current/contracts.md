@@ -57,10 +57,14 @@ inaccessible or non-regular files fail closed with `STORAGE_FAILED`. An entry th
 the walk, such as another command's scratch file, and a dangling link hold no readable bytes and are
 skipped. Declarations and other operator inputs remain in place, and a read-only check writes no
 stamp. A record read rechecks a root whose stamp was absent or has disappeared since the command
-started: a stamp written since by another command is verified, and without one
-`core/evidence/sealed.py` refuses the object it loaded when it holds both record keys, naming that
-record. No walk is needed there, because only such a file can pass a sealed read, and the refusal
-judges the bytes actually read. Root-taking corpus operations and evidence readers check the root
+started: a stamp written since by another command is verified. When the root had no stamp, the
+object loaded is then judged by the stamp the root holds after loading it, as for a contract the
+stamp lacked, so a record that another command's first write stamped and wrote in between is served
+or refused by that stamp. While the root still has no stamp, `core/evidence/stamp_reads.py` refuses
+the object when it holds both record keys, naming that record. No walk is needed there, because only
+such a file can pass a sealed read, and the refusal judges the bytes actually read. The
+[audit record](../records/0113-data-contracts-data-contracts-audit.md) has that race's fixtures.
+Root-taking corpus operations and evidence readers check the root
 too. Each checked root is kept for the command, so checking a second root does not stop the stamping
 or rechecks of the first. `core/evidence/checked_roots.py` holds that context: inside one command,
 which `commands/report.py` `reported` enters with `one_command`, a later check of the same unstamped
@@ -95,6 +99,11 @@ contract. `corpus compare` checks both staged-hashes records before it compares 
 host's record written under another development contract set leaves no `hash-comparison.json`; the
 [staged-hashes provenance
 record](../records/0110-data-contracts-development-staged-hashes-provenance.md) has the evidence.
+Review acceptance checks the manifest when it opens the archive and the archive's staged-hashes
+record before it records this host's hashes, so neither leaves a local write.
+`schema/registry/contract.py` `STAMPED_FAMILIES` names the families the stamp pins: the installed
+pins, the stamp parser's name rule and the gate's reference rule read it, and
+`tests/corpus/records/test_contract_stamp.py` holds the row pattern of `$defs/contract-set` to it.
 
 The scan costs one directory traversal plus the bytes needed to identify JSON objects, with fixed
 input buffers and directory-cycle tracking. On one private root of 25,000 PNG files (102.4 MB) in
@@ -111,8 +120,11 @@ states the scan fixture and its limits, and the
 command timings. A damaged stamp is `RECORD_TAMPERED`. `data clean` reads no
 record and serves a stale root. Meaning fingerprints cover annotations including descriptions, so
 even editorial edits conservatively require regeneration. A record of another major gets the same
-regenerate remedy. The [audit record](../records/0102-data-contracts-data-contracts-audit.md) gives
-the broader checks and evidence. The
+regenerate remedy. The group audit records give the broader checks and evidence:
+[0102](../records/0102-data-contracts-data-contracts-audit.md),
+[0109](../records/0109-data-contracts-data-contracts-audit.md), and
+[0113](../records/0113-data-contracts-data-contracts-audit.md), whose table names the fixture or
+human judgment behind each section 17.7 rule. The
 [record-formatting decision](../records/0103-data-contracts-resolve-data-contract-record-markdown.md)
 keeps the owner-authorized exception.
 

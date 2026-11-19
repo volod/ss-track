@@ -2,10 +2,10 @@
 
 A command checks a root when it starts, and the root can change while it runs: its stamp can
 disappear, a first write can stamp an unstamped root, and a write by a newer install can add pins
-for contracts the stamp lacked. Only that last change can make a record readable that was not: a
-stamp's existing pins never change, because every writer verifies them under the lock. So a read
-of a contract the stamp pinned when checked needs no recheck, and a read of one it lacked rechecks
-the stamp after loading the record.
+for contracts the stamp lacked. A stamp's existing pins never change, because every writer verifies
+them under the lock. So a read of a contract the stamp pinned when checked needs no recheck. A read
+in a root that had no stamp, or of a contract the stamp lacked, judges the loaded record by the
+stamp the root holds after loading it, which also covers a stamp and record written in between.
 """
 
 from collections.abc import Mapping
@@ -26,10 +26,16 @@ from ss_track.schema.validation.enforce import installed_contracts
 
 @dataclass(frozen=True, slots=True)
 class ReadGuard:
-    """A read whose loaded record must still be proven: its root is unstamped, or `contract` unpinned."""
+    """A read whose loaded record must still be proven against the root's stamp.
+
+    `unstamped` says the root had no stamp when checked, so a loaded object that is not
+    record-shaped needs nothing more. `contract` is the record contract of the kind read, which the
+    stamp must pin as this install does; None for a kind the stamp does not cover.
+    """
 
     root: Path
-    contract: str | None  # None: the root has no stamp, so a record-shaped object is refused
+    contract: str | None
+    unstamped: bool
 
 
 def check_before_read(path: Path, kind: str) -> ReadGuard | None:
@@ -44,33 +50,33 @@ def check_before_read(path: Path, kind: str) -> ReadGuard | None:
     stamp = checked.root / STAMP_NAME
     contract = _contract_of(kind)
     if not checked.unstamped and stamp.is_file():
-        return ReadGuard(checked.root, contract) if contract in checked.missing else None
+        return _guard(checked.root, contract, checked.missing)
     installed = installed_fingerprints()
     if installed is None:
         return None
     end_reuse(path)
     missing = verify_stamp(stamp, installed)
     if missing is None:
-        return ReadGuard(checked.root, None)
+        return ReadGuard(checked.root, contract, unstamped=True)
     remember(checked.root, False, missing=missing)
-    return ReadGuard(checked.root, contract) if contract in missing else None
+    return _guard(checked.root, contract, missing)
 
 
 def require_proven(guard: ReadGuard, path: Path, loaded: Mapping[str, JsonValue]) -> None:
     """Refuse a loaded record its root cannot prove was written under this install's pins.
 
-    In an unstamped root a record-shaped object is unstamped evidence. A record of a contract the
-    stamp lacked when checked is served only if the stamp now pins it as this install does: a
-    newer install may have added it since, and `verify_stamp` refuses another pin.
+    The stamp is read again after loading, because another command may have stamped the root, or
+    added this contract's pins, since the check. A record-shaped object in a root that still has no
+    stamp is unstamped evidence. Otherwise the record is served only if the stamp now pins its
+    contract as this install does: `verify_stamp` refuses another pin, and one still unpinned
+    refuses here, which catches a record copied in by hand.
     """
-    stamp = guard.root / STAMP_NAME
-    if guard.contract is None:
-        if is_record_shaped(loaded):
-            raise unstamped_evidence(path, stamp)
+    if guard.unstamped and not is_record_shaped(loaded):
         return
     installed = installed_fingerprints()
     if installed is None:
         return  # a released install reads by major
+    stamp = guard.root / STAMP_NAME
     missing = verify_stamp(stamp, installed)
     if missing is None:
         raise unstamped_evidence(path, stamp)
@@ -86,6 +92,10 @@ def require_proven(guard: ReadGuard, path: Path, loaded: Mapping[str, JsonValue]
                 "remedy": REGENERATE_REMEDY,
             },
         )
+
+
+def _guard(root: Path, contract: str | None, missing: frozenset[str]) -> ReadGuard | None:
+    return ReadGuard(root, contract, unstamped=False) if contract in missing else None
 
 
 def _contract_of(kind: str) -> str | None:

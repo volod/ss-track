@@ -33,35 +33,6 @@ hardware or private data.
 
 ## Agent Implementation Tasks
 
-### Data contracts -- `data-contracts`
-
-#### data-contracts-audit (optional)
-
-A development-stage gate that lets a contract change without a version must still refuse every
-change it did not pin, or formats drift silently before release.
-
-- Serves: `data-contracts` -- [Development stage and
-  release](../design/spec.md#177-development-stage-and-release)
-- Agent status: CLEAR
-- Milestone: M1
-- Effort: high
-- Dependencies: every other agent task in this group.
-- User-visible outcome: The stage rules, the contract-set check on the read path and the regenerate
-  flow are reviewed against section 17.7, and every finding is fixed or routed.
-- Scope boundary: What this group built, with its seams to neighboring groups, under the [group
-  audit](../guide/planning-workflow.md#group-audits) rules. A refactor moves no sealed byte, hash,
-  score or refusal code.
-- Data and artifact paths: `contracts/`, `src/ss_track/schema/`, `tests/schema/`.
-- Execution path: Run the [group audit](../guide/planning-workflow.md#group-audits) over the
-  remaining work: the carried contract pins that the review handoff and staged hashes share
-  (`core/evidence/carried_pins.py`), the stamp's adoption of added contracts and its read recheck
-  (`core/evidence/stamp_reads.py`), and their seams to the root stamp, the read path and section
-  17.7. Verify that structural, shared and meaning changes still refuse stale evidence.
-- Acceptance gates: Every section 17.7 rule has a failing fixture or is named as human judgment.
-  Every finding is fixed, routed to a task or dropped with its reason, and `make quality` passes.
-  Finding nothing is a valid result when the record states what was reviewed.
-- Documentation target: [Contracts](current/contracts.md).
-
 ### Module contract and runner -- `module-contract-runner`
 
 #### scenario-contract
@@ -122,9 +93,12 @@ Every score must be recomputable from immutable evidence.
   the event packages, which a development edit changes in place: add the event packages a bundle
   depends on to the stamp before its first bundle is written (spec section 17.7). A root stamped
   before treats the new names as added contracts and adopts them at its next sealed write, so no
-  regeneration is needed for them; widen the name rule of `core/evidence/stamp_file.py`, the
-  `contract` pattern of `shared/types` `$defs/contract-set` and the kind-to-contract lookup of
-  `core/evidence/stamp_reads.py` to the event family in the same change.
+  regeneration is needed for them. Widen, in the same change, `STAMPED_FAMILIES` in
+  `schema/registry/contract.py`, which the installed pins, the stamp parser's name rule and the
+  gate's reference rule all read, so decide there whether a record may then reference an event
+  contract; the `contract` pattern of `shared/types` `$defs/contract-set`, which
+  `tests/corpus/records/test_contract_stamp.py` holds to that constant; and the kind-to-contract
+  lookup of `core/evidence/stamp_reads.py`.
 - Acceptance gates: A crash fixture leaves no complete-looking bundle, a retried ID stays
   idempotent, and each manifest records its re-run command. A bundle with no visibility value reads
   as restricted. An in-place edit of `event/analytics`, re-pinned, refuses a root stamped while it
@@ -757,8 +731,11 @@ A large corpus needs evidence that selection can run within the owner's availabl
 - Execution path: Use the approved corpus-size and diversity targets, candidate sampling, human
   review and baseline protocol; measure ingest, storage, CPU or GPU compute and completeness; retain
   run pins. The embedding worker records float32 rows only and refuses mixed precision; a GPU run
-  either measures float32 or adds a float16 or autocast mode as a `record/discovery-run` minor
-  with its own reproducibility check. A tile grid multiplies embedding cost by its tile count, so
+  either measures float32 or adds a float16 or autocast mode to `record/discovery-run`, with its
+  own reproducibility check. Before release that is an in-place edit of its `1.0.0` under spec
+  section 17.7, not a minor: re-pin it, and regenerate the discovery runs `$DATA_DIR` holds under
+  the owner's authorization, or add the Human-Assisted regeneration task, in the same change. A
+  tile grid multiplies embedding cost by its tile count, so
   choose the grid from measured cost and small-target scale. `discover verify` compares recomputed
   scores and the `ssl-diverse` similarity exactly; run it on a second host or architecture, and if a
   near-tie flips there, quantize the similarity under a new method revision. The link review's
@@ -2877,8 +2854,9 @@ Platform telemetry beside a video encounter must obey the same split and rights 
 - Scope boundary: Split, rights and clock rules for one more stream kind. A platform-state sample
   stays context and is never an object detection.
 - Data and artifact paths: `src/ss_track/corpus/`, `src/ss_track/telemetry/`, `tests/corpus/`.
-- Execution path: Extend the corpus declaration by an optional field under a minor contract version,
-  and extend the frame set to name telemetry bundles.
+- Execution path: Extend the corpus declaration by an optional field, and extend the frame set to
+  name telemetry bundles, under the stage spec section 17.7 then states: before release an in-place
+  edit of each `1.0.0` that regenerates the stamped root, after it a minor version.
 - Acceptance gates: A corpus using no telemetry keeps every hash. A telemetry stream inherits its
   encounter's split, and a source crossing splits is `SPLIT_LEAKAGE`. With no declared clock relation,
   alignment with video is `NOT_MEASURABLE`.

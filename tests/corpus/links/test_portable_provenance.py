@@ -62,23 +62,34 @@ def _archive(path: Path) -> Path:
     return path
 
 
-def _resealed(path: Path, edit: Callable[[dict[str, Any]], None]) -> Path:
-    """Rewrite the manifest of an archive by hand, resealing it as a careful forger would."""
+def _reseal(payload: bytes, edit: Callable[[dict[str, Any]], None]) -> bytes:
+    record = json.loads(payload)
+    edit(record)
+    record[SEAL_FIELD] = seal_of(record)
+    return canonical_json(record)
+
+
+def _resealed(
+    path: Path, edit: Callable[[dict[str, Any]], None], member: str = MANIFEST_MEMBER
+) -> Path:
+    """Rewrite one record of an archive by hand, resealing it and its manifest as a forger would."""
+    with tarfile.open(path, mode="r:") as source:
+        members = [(info, source.extractfile(info)) for info in source]
+        payloads = {info.name: (info, handle.read() if handle else b"") for info, handle in members}
+    info, payload = payloads[member]
+    payloads[member] = (info, edited := _reseal(payload, edit))
+    if member != MANIFEST_MEMBER:
+        info, payload = payloads[MANIFEST_MEMBER]
+        files = lambda manifest: [  # noqa: E731
+            row.update(size=len(edited), sha256=sha256_bytes(edited))
+            for row in manifest["files"]
+            if row["path"] == member
+        ]
+        payloads[MANIFEST_MEMBER] = (info, _reseal(payload, files))
     stream = io.BytesIO()
-    with (
-        tarfile.open(path, mode="r:") as source,
-        tarfile.open(fileobj=stream, mode="w", format=tarfile.USTAR_FORMAT) as target,
-    ):
-        for info in source:
-            handle = source.extractfile(info)
-            assert handle is not None
-            payload = handle.read()
-            if info.name == MANIFEST_MEMBER:
-                manifest = json.loads(payload)
-                edit(manifest)
-                manifest[SEAL_FIELD] = seal_of(manifest)
-                payload = canonical_json(manifest)
-                info.size = len(payload)
+    with tarfile.open(fileobj=stream, mode="w", format=tarfile.USTAR_FORMAT) as target:
+        for info, payload in payloads.values():
+            info.size = len(payload)
             target.addfile(info, io.BytesIO(payload))
     path.write_bytes(stream.getvalue())
     return path
@@ -170,6 +181,28 @@ def test_roots_with_equal_bytes_but_other_pins_refuse_before_any_local_write(
     with pytest.raises(CorpusRefusal):
         unpack_handoff(archive, tmp_path / "recipes", True)
     assert not (tmp_path / "recipes").exists()
+
+
+def test_a_staged_hashes_member_under_other_pins_refuses_before_any_local_write(
+    tmp_path: Path,
+) -> None:
+    """The manifest binds this install's set, but the carried staged hashes were pinned otherwise."""
+    inputs, corpus_path = write_inputs(tmp_path / "inputs")
+    origin, receiver = tmp_path / "origin", tmp_path / "receiver"
+    prepare(origin, inputs, corpus_path)
+    prepare(receiver, inputs, corpus_path)
+    write_links(LinkRequest(LINKS, CORPUS), origin)
+    archive = tmp_path / "handoff.tar"
+    export(origin, archive, [*inputs, corpus_path], "origin-identity")
+    altered = lambda record: record["contract_set"][0].update(meaning=ALTERED)  # noqa: E731
+    _resealed(archive, altered, HASHES_MEMBER)
+
+    with pytest.raises(CorpusRefusal) as caught:
+        accept_handoff(receiver, archive, "receiver-identity", "comparison", REVIEWER, True)
+    assert caught.value.code is RefusalCode.RECORD_SCHEMA_UNSUPPORTED
+    assert caught.value.details["record"] == HASHES_MEMBER
+    assert not run_directory(receiver, "receiver-identity").exists()
+    assert not run_directory(receiver, "comparison").exists()
 
 
 def test_matching_pins_round_trip_into_the_accepted_handoff(tmp_path: Path) -> None:

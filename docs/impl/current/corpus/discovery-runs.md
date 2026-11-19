@@ -330,7 +330,8 @@ targets, not how selection performs on real footage.
 - Selection evidence on real footage needs the reviewed protocol of the
   [selection evaluation](../../plan.md#corpus-selection-evaluation).
 - ss-video has no export of matches joined to file hashes, so an operator builds the hint file.
-- Rows are float32 only; a GPU mixed-precision mode is a contract minor that the
+- Rows are float32 only; a GPU mixed-precision mode is an in-place development edit of
+  `record/discovery-run` ([Contracts](../contracts.md#development-stage)) that the
   [scale pilot](../../plan.md#corpus-scale-pilot) owns if it needs one.
 - A tiled grid multiplies embedding compute by its tile count.
 - Real-source runs require [source authorization](../corpus.md#source-authorization),
